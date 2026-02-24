@@ -35,6 +35,7 @@ export interface Playbook {
   rating: number;
   isPro: boolean;
   isNew?: boolean;
+  coworkCompatible?: boolean;
   tools: string[];
   beforeYouStart: string[];
   expectedOutcome: string;
@@ -261,6 +262,7 @@ Flag anything that looks suspicious with a risk score (Low/Medium/High) and expl
     rating: 4.9,
     isPro: false,
     isNew: true,
+    coworkCompatible: true,
     tools: ['Claude', 'Apollo'],
     beforeYouStart: [
       'CSV with prospect names, companies, and LinkedIn URLs',
@@ -296,6 +298,7 @@ Flag anything that looks suspicious with a risk score (Low/Medium/High) and expl
     completionCount: 1567,
     rating: 4.7,
     isPro: true,
+    coworkCompatible: true,
     tools: ['Clay', 'ChatGPT'],
     beforeYouStart: [
       'CRM export with email addresses',
@@ -562,6 +565,218 @@ Flag anything that looks suspicious with a risk score (Low/Medium/High) and expl
     relatedPlaybooks: [
       { id: '9', title: 'Content Calendar Generator', slug: 'content-calendar-generator' },
       { id: '10', title: 'SEO Brief Writer', slug: 'seo-brief-writer' }
+    ]
+  },
+  {
+    id: '13',
+    slug: 'investment-banking-deal-brief',
+    title: 'Investment Banking Deal Brief',
+    subtitle: 'Generate a full M&A target brief from public filings in 30 minutes',
+    category: 'Investment Banking',
+    difficulty: 'Advanced',
+    timeToComplete: 30,
+    timeSaved: 480,
+    completionCount: 312,
+    rating: 4.9,
+    isPro: true,
+    isNew: true,
+    coworkCompatible: true,
+    tools: ['Claude', 'FactSet', 'Excel'],
+    beforeYouStart: [
+      'Target company name and ticker (if public)',
+      'Access to FactSet, Bloomberg, or public SEC filings',
+      'Deal thesis or acquisition rationale'
+    ],
+    expectedOutcome: 'A comprehensive 2-page deal brief covering financials, strategic rationale, key risks, and comparables—ready for the first IC meeting.',
+    troubleshooting: [],
+    steps: [
+      {
+        id: '13-s1',
+        stepNumber: 1,
+        title: 'Pull Financial Summary',
+        instruction: 'Gather the last 3 years of revenue, EBITDA, and net income from filings or FactSet. Upload to Claude.',
+        promptTemplate: `You are an investment banking analyst. Here is 3 years of financial data for [Company Name]:\n[Paste financials]\n\nSummarize: revenue CAGR, EBITDA margins, debt profile, and 2 key financial risks in a table format.`,
+        expectedOutput: 'A clean financial summary table with growth and margin analysis.'
+      },
+      {
+        id: '13-s2',
+        stepNumber: 2,
+        title: 'Strategic Rationale & Synergies',
+        instruction: 'Describe the acquirer and ask Claude to build the strategic rationale.',
+        promptTemplate: `Acquirer: [Company A]. Target: [Company B].\n\nAcquirer\'s core business: [brief description].\nWrite a 3-bullet strategic rationale for this acquisition covering: market expansion, synergies (cost/revenue), and capability gaps filled. Follow standard IB tone.`,
+        expectedOutput: '3-bullet strategic rationale ready for an IC memo.'
+      },
+      {
+        id: '13-s3',
+        stepNumber: 3,
+        title: 'Comparable Company Analysis',
+        instruction: 'List 5 comparable public companies and ask Claude to format a comps table.',
+        promptTemplate: `Here are 5 comparable companies to [Target] with their EV/EBITDA and EV/Revenue multiples:\n[Paste comps data]\n\nFormat this as a clean comps table. Calculate the median and mean multiples and apply them to [Target]\'s LTM EBITDA of $[X]M to produce an implied valuation range.`,
+        expectedOutput: 'A formatted comps table with implied valuation range.'
+      }
+    ],
+    relatedPlaybooks: [
+      { id: '14', title: 'Equity Research Note', slug: 'equity-research-note' },
+      { id: '2', title: 'Expense Anomaly Detection', slug: 'expense-anomaly-detection' }
+    ]
+  },
+  {
+    id: '14',
+    slug: 'equity-research-note',
+    title: 'Equity Research Note',
+    subtitle: 'Draft a buy/sell initiation note from earnings data in 20 minutes',
+    category: 'Equity Research',
+    difficulty: 'Advanced',
+    timeToComplete: 20,
+    timeSaved: 360,
+    completionCount: 198,
+    rating: 4.8,
+    isPro: true,
+    isNew: true,
+    coworkCompatible: true,
+    tools: ['Claude', 'S&P Global', 'Excel'],
+    beforeYouStart: [
+      'Latest earnings transcript or press release',
+      'Last 2 years of financial model data',
+      'Your investment thesis (bull/bear)'
+    ],
+    expectedOutcome: 'A structured equity research initiation note with investment thesis, key catalysts, risks, and a 12-month price target rationale.',
+    troubleshooting: [],
+    steps: [
+      {
+        id: '14-s1',
+        stepNumber: 1,
+        title: 'Summarize the Earnings Call',
+        instruction: 'Paste the earnings transcript into Claude to extract the key signals.',
+        promptTemplate: `You are a sell-side equity analyst. Read this earnings call transcript for [Company]:\n[Paste transcript]\n\nExtract: 1) Management\'s top 3 priorities, 2) Any guidance changes, 3) The 2 most important analyst questions and answers. Format as bullet points.`,
+        expectedOutput: 'A concise earnings call summary with key management signals.'
+      },
+      {
+        id: '14-s2',
+        stepNumber: 2,
+        title: 'Build the Investment Thesis',
+        instruction: 'Provide your bull case and ask Claude to structure it into a formal note.',
+        promptTemplate: `Write a 3-paragraph equity research investment thesis for [Company] (ticker: [TICKER]).\nMy bull case is: [Your thesis in plain English].\nUse formal sell-side research language. Include: why now, the key catalyst, and the primary risk to the thesis.`,
+        expectedOutput: 'A 3-paragraph formal investment thesis suitable for a research note.'
+      },
+      {
+        id: '14-s3',
+        stepNumber: 3,
+        title: 'Price Target & Valuation Summary',
+        instruction: 'Provide your model assumptions and have Claude write the valuation section.',
+        promptTemplate: `Base case assumptions for [Company]: revenue growth of [X]%, EBITDA margins expanding to [Y]%, discount rate [Z]%.\nCurrent price: $[P]. My DCF implies a 12-month price target of $[T].\n\nWrite a 2-paragraph valuation section for a research note explaining the PT methodology and what would cause us to be wrong.`,
+        expectedOutput: 'A concise valuation section with price target rationale and key risk to our view.'
+      }
+    ],
+    relatedPlaybooks: [
+      { id: '13', title: 'Investment Banking Deal Brief', slug: 'investment-banking-deal-brief' },
+      { id: '15', title: 'Private Equity Deal Screener', slug: 'private-equity-deal-screener' }
+    ]
+  },
+  {
+    id: '15',
+    slug: 'private-equity-deal-screener',
+    title: 'Private Equity Deal Screener',
+    subtitle: 'Score and rank 10 inbound deals against your fund thesis in 15 minutes',
+    category: 'Private Equity',
+    difficulty: 'Intermediate',
+    timeToComplete: 15,
+    timeSaved: 240,
+    completionCount: 156,
+    rating: 4.7,
+    isPro: true,
+    isNew: true,
+    coworkCompatible: true,
+    tools: ['Claude', 'Excel', 'Outreach'],
+    beforeYouStart: [
+      'List of inbound deals (CIM or one-pagers)',
+      'Your fund\'s investment criteria (size, sector, geography)',
+      'Minimum return thresholds (IRR/MOIC targets)'
+    ],
+    expectedOutcome: 'A ranked scoring sheet of all inbound deals with a pass/pursue recommendation and a one-line rationale for each.',
+    troubleshooting: [],
+    steps: [
+      {
+        id: '15-s1',
+        stepNumber: 1,
+        title: 'Define Your Scoring Rubric',
+        instruction: 'Tell Claude your criteria so it can build a consistent scoring framework.',
+        promptTemplate: `You are a private equity associate. Our fund invests in [Sector], targeting [revenue range] businesses with [EBITDA margin] margins. Our return target is [X]x MOIC.\n\nCreate a deal scoring rubric with 5 criteria (each scored 1-5) that I can apply consistently to every inbound CIM. Output as a table.`,
+        expectedOutput: 'A 5-criteria scoring table with descriptions for each score level (1-5).'
+      },
+      {
+        id: '15-s2',
+        stepNumber: 2,
+        title: 'Score Each Deal',
+        instruction: 'For each deal, paste the one-pager and apply the rubric.',
+        promptTemplate: `Using the rubric we built, score this deal:\n[Paste CIM summary or one-pager for Deal X]\n\nScore each of the 5 criteria 1-5, provide a total score out of 25, and give a one-sentence rationale for each score.`,
+        expectedOutput: 'A scored row for this deal, ready to add to your tracker.'
+      },
+      {
+        id: '15-s3',
+        stepNumber: 3,
+        title: 'Generate Pass/Pursue Recommendations',
+        instruction: 'After scoring all deals, paste the full tracker and get final recommendations.',
+        promptTemplate: `Here is our deal pipeline tracker with scores for [N] deals:\n[Paste full scoring table]\n\nRank them from highest to lowest score. For any deal scoring above 18/25, write a 1-sentence "pursue" rationale. For any below 12/25, write a 1-sentence pass rationale.`,
+        expectedOutput: 'A ranked deal list with pursue/pass recommendations ready to share with the IC.'
+      }
+    ],
+    relatedPlaybooks: [
+      { id: '13', title: 'Investment Banking Deal Brief', slug: 'investment-banking-deal-brief' },
+      { id: '16', title: 'Wealth Management Client Brief', slug: 'wealth-management-client-brief' }
+    ]
+  },
+  {
+    id: '16',
+    slug: 'wealth-management-client-brief',
+    title: 'Wealth Management Client Brief',
+    subtitle: 'Build a personalized portfolio review brief for HNW client meetings in 10 minutes',
+    category: 'Wealth Management',
+    difficulty: 'Beginner',
+    timeToComplete: 10,
+    timeSaved: 120,
+    completionCount: 423,
+    rating: 4.8,
+    isPro: true,
+    isNew: true,
+    coworkCompatible: true,
+    tools: ['Claude', 'Excel', 'MSCI'],
+    beforeYouStart: [
+      'Client portfolio summary (asset allocation, top 10 holdings)',
+      'Client\'s stated goals and risk tolerance',
+      'Last quarter\'s performance vs benchmark'
+    ],
+    expectedOutcome: 'A 1-page personalized client meeting brief covering portfolio performance, allocation commentary, and 3 concrete recommendations—ready to print or email before the meeting.',
+    troubleshooting: [],
+    steps: [
+      {
+        id: '16-s1',
+        stepNumber: 1,
+        title: 'Performance Summary',
+        instruction: 'Share portfolio performance data and ask Claude to write the performance section.',
+        promptTemplate: `Client: [Name], Risk Profile: [Conservative/Moderate/Aggressive].\nPortfolio return last quarter: [X]%. Benchmark (S&P 500): [Y]%.\nTop performer: [Asset]. Laggard: [Asset].\n\nWrite a 2-paragraph performance summary in plain English suitable for a high-net-worth client. Avoid jargon. Acknowledge underperformance honestly if applicable.`,
+        expectedOutput: 'A client-ready 2-paragraph performance section.'
+      },
+      {
+        id: '16-s2',
+        stepNumber: 2,
+        title: 'Allocation & Market Commentary',
+        instruction: 'Get Claude to contextualize the portfolio relative to current market conditions.',
+        promptTemplate: `The client\'s current allocation is: [X]% equities, [Y]% fixed income, [Z]% alternatives/cash.\nTheir target allocation is: [paste targets].\n\nWrite a 1-paragraph commentary explaining if the portfolio is on-track with their goals and briefly connect it to current macro conditions (rising rates, equity valuations, etc.).`,
+        expectedOutput: 'A 1-paragraph allocation commentary ready for the meeting brief.'
+      },
+      {
+        id: '16-s3',
+        stepNumber: 3,
+        title: 'Generate 3 Recommendations',
+        instruction: 'Ask Claude to turn your notes into 3 specific, actionable client recommendations.',
+        promptTemplate: `Based on the client\'s goals [Goal], risk profile [Profile], and current allocation drift, I am thinking about: [Your rough ideas for rebalancing].\n\nTurn these into 3 clear, client-friendly recommendations formatted as:\n• Recommendation: [Action]\n• Why: [1-sentence rationale]\n• Suggested timeline: [Immediate / Next 30 days / Review at next meeting]`,
+        expectedOutput: '3 formatted, client-ready recommendations to present in the meeting.'
+      }
+    ],
+    relatedPlaybooks: [
+      { id: '15', title: 'Private Equity Deal Screener', slug: 'private-equity-deal-screener' },
+      { id: '11', title: 'Cash Flow Projection', slug: 'cash-flow-projection' }
     ]
   }
 ];
