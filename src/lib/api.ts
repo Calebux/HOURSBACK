@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 import type { Playbook } from '../data/playbooks';
-import { smbPlaybooks } from '../data/playbooks';
+import { smbPlaybooks, coworkPlaybooks } from '../data/playbooks';
 
 export const mapDbPlaybook = (dbPb: any): Playbook => ({
     id: dbPb.id,
@@ -45,16 +45,17 @@ export async function fetchPlaybooks(): Promise<Playbook[]> {
 
     const fetchedPlaybooks = (data || []).map(mapDbPlaybook);
 
-    // Check which SMB playbooks aren't already in the database and prepend them to appear 'on top'
+    // Check which SMB and Cowork playbooks aren't already in the database and prepend them
     const dbSlugs = new Set(fetchedPlaybooks.map(pb => pb.slug));
     const missingSmbPlaybooks = smbPlaybooks.filter(pb => !dbSlugs.has(pb.slug));
+    const missingCoworkPlaybooks = coworkPlaybooks.filter(pb => !dbSlugs.has(pb.slug));
 
-    return [...missingSmbPlaybooks, ...fetchedPlaybooks];
+    return [...missingCoworkPlaybooks, ...missingSmbPlaybooks, ...fetchedPlaybooks];
 }
 
 export async function fetchPlaybookBySlug(slug: string): Promise<Playbook | null> {
-    // Check locally injected SMB playbooks first
-    const localMatch = smbPlaybooks.find(pb => pb.slug === slug);
+    // Check locally injected SMB or Cowork playbooks first
+    const localMatch = smbPlaybooks.find(pb => pb.slug === slug) || coworkPlaybooks.find(pb => pb.slug === slug);
     if (localMatch) return localMatch;
 
     const { data, error } = await supabase

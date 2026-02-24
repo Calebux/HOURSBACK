@@ -332,30 +332,35 @@ export default function PlaybooksPage() {
             <>
               {/* Claude Cowork Featured Banner */}
               {selectedCategory === 'All' && debouncedSearchQuery === '' && (
-                <div className="mb-8 rounded-3xl border border-purple-200 bg-gradient-to-r from-purple-50 to-indigo-50 p-6 flex flex-col md:flex-row items-start md:items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center shrink-0 shadow-lg">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" className="w-6 h-6">
-                      <path d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
+                <div className="mb-8 bg-white shadow-antigravity-md border border-brand-dark/10 rounded-3xl p-6 flex flex-col md:flex-row items-start md:items-center gap-4">
+                  {/* Claude Logo */}
+                  <div className="w-12 h-12 rounded-2xl bg-[#DA7756] flex items-center justify-center shrink-0 shadow-antigravity-sm">
+                    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M14.003 2C7.376 2 2 7.376 2 14.003S7.376 26 14.003 26 26 20.627 26 14.003 20.63 2 14.003 2Zm5.09 16.22c-.28.63-.95.91-1.59.64l-3.5-1.56-2.22 2.13c-.5.48-1.29.47-1.77-.03a1.25 1.25 0 0 1-.03-1.77l2.14-2.05-1.74-3.9c-.27-.63.02-1.36.65-1.64.63-.27 1.36.02 1.64.65l1.3 2.93 2.08-1.99a1.25 1.25 0 0 1 1.77.03c.48.5.47 1.29-.03 1.77l-2.2 2.11 2.88 1.28c.63.28.91.96.62 1.41Z" fill="white" />
                     </svg>
                   </div>
+
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Just Announced</span>
-                      <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">Claude Cowork</span>
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className="text-xs font-semibold text-brand-dark/50 uppercase tracking-widest">Just Announced</span>
+                      <span className="px-2 py-0.5 bg-[#DA7756]/10 text-[#DA7756] text-xs font-medium rounded-full">Claude Cowork</span>
                     </div>
-                    <h3 className="font-semibold text-lg text-brand-dark">New Claude Cowork Integrations</h3>
-                    <p className="text-brand-dark/70 text-sm mt-0.5">
-                      Claude now connects directly with <strong>Apollo</strong>, <strong>Clay</strong>, <strong>Outreach</strong>, <strong>FactSet</strong>, <strong>S&P Global</strong>, and more. Playbooks marked <span className="inline-flex items-center gap-1 text-purple-600 font-medium">✦ Cowork</span> are optimized to run inside Claude's new enterprise tools.
+                    <h3 className="font-semibold text-lg text-brand-dark leading-tight">New Claude Cowork Integrations</h3>
+                    <p className="text-brand-dark/60 text-sm mt-1">
+                      Claude now integrates directly with <span className="text-brand-dark font-medium">Apollo</span>, <span className="text-brand-dark font-medium">Clay</span>, <span className="text-brand-dark font-medium">Outreach</span>, <span className="text-brand-dark font-medium">FactSet</span>, <span className="text-brand-dark font-medium">S&P Global</span>, and more.
+                      Playbooks marked <span className="text-[#DA7756] font-medium">✦ Cowork</span> are built and optimised for Claude's new enterprise tools.
                     </p>
                   </div>
+
                   <button
                     onClick={() => setSelectedCategory('Investment Banking')}
-                    className="shrink-0 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-sm font-medium rounded-full shadow-sm hover:opacity-90 transition-opacity whitespace-nowrap"
+                    className="shrink-0 px-4 py-2 bg-brand-dark text-white text-sm font-medium rounded-full shadow-antigravity-xs hover:bg-brand-dark/80 transition-colors whitespace-nowrap"
                   >
                     View Finance Playbooks →
                   </button>
                 </div>
               )}
+
 
               <motion.div
                 className={
@@ -443,7 +448,7 @@ const PlaybookCard = memo(function PlaybookCard({
               <span className="px-2 py-0.5 bg-brand-dark text-white/20 text-brand-blue text-xs rounded-full">Pro</span>
             )}
             {playbook.coworkCompatible && (
-              <span className="px-2 py-0.5 bg-purple-100 text-purple-600 text-xs rounded-full font-medium">✦ Cowork</span>
+              <span className="px-2 py-0.5 bg-[#DA7756]/10 text-[#DA7756] text-xs rounded-full font-medium">✦ Cowork</span>
             )}
           </div>
           <p className="text-brand-dark/70 text-sm truncate">{playbook.subtitle}</p>
@@ -502,7 +507,7 @@ const PlaybookCard = memo(function PlaybookCard({
                 <span className="px-2 py-1 bg-brand-dark text-white text-xs font-medium rounded-full">Pro</span>
               )}
               {playbook.coworkCompatible && (
-                <span className="px-2 py-1 bg-purple-100 text-purple-600 text-xs font-medium rounded-full">✦ Cowork</span>
+                <span className="px-2 py-1 bg-[#DA7756]/10 text-[#DA7756] text-xs font-medium rounded-full">✦ Cowork</span>
               )}
             </div>
             <div className="flex items-center gap-1 text-xs text-slate-400">
