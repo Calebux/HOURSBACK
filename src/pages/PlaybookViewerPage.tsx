@@ -72,7 +72,7 @@ export default function PlaybookViewerPage() {
           }
         ]
       },
-      onSuccess: async (transaction: any) => {
+      onSuccess: async () => {
         toast.success("Payment successful! Welcome to Pro Playbooks.");
         // Instantly unblock the UI regardless of backend state
         setIsProUser(true);
