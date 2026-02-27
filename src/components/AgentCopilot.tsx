@@ -5,9 +5,10 @@ import { supabase } from '../lib/supabase';
 
 interface AgentCopilotProps {
     prompt: string;
+    tools?: string[];
 }
 
-export default function AgentCopilot({ prompt }: AgentCopilotProps) {
+export default function AgentCopilot({ prompt, tools = [] }: AgentCopilotProps) {
     const { user } = useAuth();
     const [isGenerating, setIsGenerating] = useState(false);
     const [response, setResponse] = useState<string | null>(null);
@@ -21,32 +22,52 @@ export default function AgentCopilot({ prompt }: AgentCopilotProps) {
         setResponse(null);
 
         try {
-            // Fetch the current session to ensure we have a fresh JWT
-            const { data: sessionData } = await supabase.auth.getSession();
+            // Refresh the session to get a fresh JWT (avoids expired token issues)
+            const { data: sessionData, error: sessionError } = await supabase.auth.refreshSession();
             const token = sessionData.session?.access_token;
 
-            if (!token) {
-                throw new Error('Authentication required to use AI Copilot');
+            if (sessionError || !token) {
+                throw new Error('Session expired — please log out and log back in');
             }
 
-            // Call Supabase Edge Function securely
-            const { data, error: fnError } = await supabase.functions.invoke('run-copilot', {
-                body: { prompt },
+            // Determine which AI provider to use based on playbook tools
+            const useClaude = tools.some(t => t.toLowerCase().includes('claude'));
+
+            // Call Edge Function directly via fetch for reliable error handling
+            const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+            const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+            const res = await fetch(`${supabaseUrl}/functions/v1/run-copilot`, {
+                method: 'POST',
                 headers: {
-                    Authorization: `Bearer ${token}`
-                }
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                    'apikey': anonKey,
+                },
+                body: JSON.stringify({ prompt, provider: useClaude ? 'anthropic' : 'openai' }),
             });
 
-            if (fnError) {
-                throw new Error(fnError.message || 'Failed to communicate with Edge Function');
-            }
+            const data = await res.json();
+            console.log('Edge Function response:', JSON.stringify(data));
+
+            // Handle all error formats: { error: "..." }, { message: "..." }, or non-2xx
             if (data?.error) {
                 throw new Error(data.error);
+            }
+            if (data?.message && data?.code && data.code !== 200) {
+                throw new Error(data.message);
+            }
+            if (!res.ok) {
+                throw new Error(`Edge Function returned ${res.status}: ${JSON.stringify(data)}`);
+            }
+            if (!data?.result) {
+                throw new Error('No result returned from AI');
             }
 
             setResponse(data.result);
 
         } catch (err: any) {
+            console.error('AgentCopilot error:', err);
             setError(err.message || 'An unexpected error occurred.');
         } finally {
             setIsGenerating(false);
@@ -65,8 +86,8 @@ export default function AgentCopilot({ prompt }: AgentCopilotProps) {
                         onClick={handleGenerate}
                         disabled={hasUnfilledVariables}
                         className={`w-full py-3 px-4 rounded-xl font-medium flex items-center justify-center gap-2 transition-all shadow-sm ${hasUnfilledVariables
-                                ? 'bg-slate-50 text-slate-400 border border-slate-200 cursor-not-allowed'
-                                : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-600 border border-indigo-200 hover:shadow-antigravity-sm'
+                            ? 'bg-slate-50 text-slate-400 border border-slate-200 cursor-not-allowed'
+                            : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-600 border border-indigo-200 hover:shadow-antigravity-sm'
                             }`}
                     >
                         <Sparkles className={`w-5 h-5 ${!hasUnfilledVariables && 'group-hover/btn:scale-110 transition-transform'}`} />

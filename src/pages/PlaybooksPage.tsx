@@ -12,12 +12,14 @@ import {
   ArrowRight,
   Bookmark,
   BarChart3,
-  ChevronLeft
+  ChevronLeft,
+  Sparkles,
+  LayoutDashboard
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { AuthModal } from '../components/AuthModal';
 import { useAuth } from '../contexts/AuthContext';
-import { getCategoryColor, type Playbook } from '../data/playbooks';
+import { getCategoryColor, claudeCrashCoursePlaybooks, type Playbook } from '../data/playbooks';
 import { fetchPlaybooks } from '../lib/api';
 
 const containerVariants = {
@@ -43,6 +45,7 @@ export default function PlaybooksPage() {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedDifficulty, setSelectedDifficulty] = useState('All');
   const [showFilters, setShowFilters] = useState(false);
+  const [showWhatsNew, setShowWhatsNew] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [savedPlaybooks, setSavedPlaybooks] = useState<Set<string>>(new Set());
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -84,6 +87,7 @@ export default function PlaybooksPage() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
+
   const filteredPlaybooks = useMemo(() => {
     return playbooks.filter(playbook => {
       const matchesSearch =
@@ -93,6 +97,11 @@ export default function PlaybooksPage() {
 
       const matchesCategory = selectedCategory === 'All' || playbook.category === selectedCategory;
       const matchesDifficulty = selectedDifficulty === 'All' || playbook.difficulty === selectedDifficulty;
+
+      // Hide all crash course playbooks from the main page — they live at /crash-course
+      if (playbook.category === 'Claude Crash Course') {
+        return false;
+      }
 
       return matchesSearch && matchesCategory && matchesDifficulty;
     });
@@ -131,13 +140,30 @@ export default function PlaybooksPage() {
           </Link>
 
           <div className="flex items-center gap-4">
+            <button
+              onClick={() => setShowWhatsNew(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#DA7756]/10 to-[#DA7756]/5 border border-[#DA7756]/20 text-[#DA7756] rounded-full text-sm font-medium hover:from-[#DA7756]/15 hover:to-[#DA7756]/10 transition-all"
+            >
+              <Sparkles className="w-4 h-4" />
+              What's New
+              <span className="w-2 h-2 bg-[#DA7756] rounded-full animate-pulse" />
+            </button>
             {user ? (
-              <button
-                onClick={() => signOut()}
-                className="text-sm text-brand-dark/80 hover:text-brand-dark transition-colors"
-              >
-                Sign out
-              </button>
+              <>
+                <Link
+                  to="/workspace"
+                  className="flex items-center gap-1.5 px-3 py-2 text-sm text-brand-dark/80 hover:text-brand-dark hover:bg-slate-100 rounded-full transition-all"
+                >
+                  <LayoutDashboard className="w-4 h-4" />
+                  My Progress
+                </Link>
+                <button
+                  onClick={() => signOut()}
+                  className="text-sm text-brand-dark/80 hover:text-brand-dark transition-colors"
+                >
+                  Sign out
+                </button>
+              </>
             ) : (
               <>
                 <button
@@ -330,36 +356,33 @@ export default function PlaybooksPage() {
             </div>
           ) : (
             <>
-              {/* Claude Cowork Featured Banner */}
+              {/* Claude Crash Course Banner */}
               {selectedCategory === 'All' && debouncedSearchQuery === '' && (
-                <div className="mb-8 bg-white shadow-antigravity-md border border-brand-dark/10 rounded-3xl p-6 flex flex-col md:flex-row items-start md:items-center gap-4">
-                  {/* Claude Logo */}
-                  <div className="w-12 h-12 rounded-2xl bg-[#DA7756] flex items-center justify-center shrink-0 shadow-antigravity-sm">
-                    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M14.003 2C7.376 2 2 7.376 2 14.003S7.376 26 14.003 26 26 20.627 26 14.003 20.63 2 14.003 2Zm5.09 16.22c-.28.63-.95.91-1.59.64l-3.5-1.56-2.22 2.13c-.5.48-1.29.47-1.77-.03a1.25 1.25 0 0 1-.03-1.77l2.14-2.05-1.74-3.9c-.27-.63.02-1.36.65-1.64.63-.27 1.36.02 1.64.65l1.3 2.93 2.08-1.99a1.25 1.25 0 0 1 1.77.03c.48.5.47 1.29-.03 1.77l-2.2 2.11 2.88 1.28c.63.28.91.96.62 1.41Z" fill="white" />
-                    </svg>
-                  </div>
-
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <span className="text-xs font-semibold text-brand-dark/50 uppercase tracking-widest">Just Announced</span>
-                      <span className="px-2 py-0.5 bg-[#DA7756]/10 text-[#DA7756] text-xs font-medium rounded-full">Claude Cowork</span>
+                <Link to="/crash-course">
+                  <div className="mb-8 bg-gradient-to-r from-[#DA7756]/5 to-[#DA7756]/10 border border-[#DA7756]/20 rounded-3xl p-6 flex flex-col md:flex-row items-start md:items-center gap-4 hover:shadow-antigravity-md transition-all cursor-pointer group">
+                    <div className="w-12 h-12 rounded-2xl bg-[#DA7756] flex items-center justify-center shrink-0 shadow-antigravity-sm">
+                      <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M14.003 2C7.376 2 2 7.376 2 14.003S7.376 26 14.003 26 26 20.627 26 14.003 20.63 2 14.003 2Zm5.09 16.22c-.28.63-.95.91-1.59.64l-3.5-1.56-2.22 2.13c-.5.48-1.29.47-1.77-.03a1.25 1.25 0 0 1-.03-1.77l2.14-2.05-1.74-3.9c-.27-.63.02-1.36.65-1.64.63-.27 1.36.02 1.64.65l1.3 2.93 2.08-1.99a1.25 1.25 0 0 1 1.77.03c.48.5.47 1.29-.03 1.77l-2.2 2.11 2.88 1.28c.63.28.91.96.62 1.41Z" fill="white" />
+                      </svg>
                     </div>
-                    <h3 className="font-semibold text-lg text-brand-dark leading-tight">New Claude Cowork Integrations</h3>
-                    <p className="text-brand-dark/60 text-sm mt-1">
-                      Claude now integrates directly with <span className="text-brand-dark font-medium">Apollo</span>, <span className="text-brand-dark font-medium">Clay</span>, <span className="text-brand-dark font-medium">Outreach</span>, <span className="text-brand-dark font-medium">FactSet</span>, <span className="text-brand-dark font-medium">S&P Global</span>, and more.
-                      Playbooks marked <span className="text-[#DA7756] font-medium">✦ Cowork</span> are built and optimised for Claude's new enterprise tools.
-                    </p>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span className="text-xs font-semibold text-[#DA7756] uppercase tracking-widest">Free Course</span>
+                        <span className="px-2 py-0.5 bg-[#DA7756]/10 text-[#DA7756] text-xs font-medium rounded-full">{claudeCrashCoursePlaybooks.length} Lessons • {(claudeCrashCoursePlaybooks.reduce((s, p) => s + p.timeToComplete, 0) / 60).toFixed(1)} Hours</span>
+                      </div>
+                      <h3 className="font-semibold text-lg text-brand-dark leading-tight">Claude Crash Course</h3>
+                      <p className="text-brand-dark/60 text-sm mt-1">
+                        Go from zero to fluent with Claude. Hands-on, prompt-based lessons covering conversation, prompt engineering, file analysis, projects, artifacts, and research mode.
+                      </p>
+                    </div>
+                    <div className="shrink-0 flex items-center gap-2 px-4 py-2 bg-[#DA7756] text-white text-sm font-medium rounded-full shadow-antigravity-xs group-hover:bg-[#C26645] transition-colors whitespace-nowrap">
+                      Start Course <ArrowRight className="w-4 h-4" />
+                    </div>
                   </div>
-
-                  <button
-                    onClick={() => setSelectedCategory('Investment Banking')}
-                    className="shrink-0 px-4 py-2 bg-brand-dark text-white text-sm font-medium rounded-full shadow-antigravity-xs hover:bg-brand-dark/80 transition-colors whitespace-nowrap"
-                  >
-                    View Finance Playbooks →
-                  </button>
-                </div>
+                </Link>
               )}
+
+
 
 
               <motion.div
@@ -399,6 +422,102 @@ export default function PlaybooksPage() {
           </button>
         </div>
       </section>
+
+      {/* What's New Sidebar */}
+      <AnimatePresence>
+        {showWhatsNew && (
+          <>
+            {/* Overlay */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 bg-brand-dark/30 backdrop-blur-sm z-[60]"
+              onClick={() => setShowWhatsNew(false)}
+            />
+            {/* Panel */}
+            <motion.aside
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+              className="fixed top-0 right-0 bottom-0 w-full max-w-md bg-brand-light border-l border-brand-dark/10 shadow-2xl z-[70] overflow-y-auto"
+            >
+              <div className="p-6">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-[#DA7756]" />
+                    <h2 className="text-lg font-semibold">What's New</h2>
+                  </div>
+                  <button
+                    onClick={() => setShowWhatsNew(false)}
+                    className="p-2 rounded-full hover:bg-brand-dark/5 transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  {/* Claude Cowork Announcement */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="bg-white rounded-2xl border border-brand-dark/10 shadow-antigravity-sm overflow-hidden hover:shadow-antigravity-md transition-all cursor-pointer group"
+                    onClick={() => { setSelectedCategory('Investment Banking'); setShowWhatsNew(false); }}
+                  >
+                    <div className="p-5">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-8 h-8 rounded-xl bg-[#DA7756] flex items-center justify-center">
+                          <svg width="18" height="18" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M14.003 2C7.376 2 2 7.376 2 14.003S7.376 26 14.003 26 26 20.627 26 14.003 20.63 2 14.003 2Zm5.09 16.22c-.28.63-.95.91-1.59.64l-3.5-1.56-2.22 2.13c-.5.48-1.29.47-1.77-.03a1.25 1.25 0 0 1-.03-1.77l2.14-2.05-1.74-3.9c-.27-.63.02-1.36.65-1.64.63-.27 1.36.02 1.64.65l1.3 2.93 2.08-1.99a1.25 1.25 0 0 1 1.77.03c.48.5.47 1.29-.03 1.77l-2.2 2.11 2.88 1.28c.63.28.91.96.62 1.41Z" fill="white" />
+                          </svg>
+                        </div>
+                        <span className="px-2 py-0.5 bg-[#DA7756]/10 text-[#DA7756] text-xs font-semibold rounded-full">Claude Cowork</span>
+                        <span className="text-xs text-brand-dark/40">Feb 2026</span>
+                      </div>
+                      <h3 className="font-semibold text-brand-dark mb-1.5 group-hover:text-[#DA7756] transition-colors">New Claude Cowork Integrations</h3>
+                      <p className="text-brand-dark/60 text-sm leading-relaxed">
+                        Claude integrates directly with Apollo, Clay, Outreach, FactSet, S&P Global and more. Playbooks marked ✦ Cowork are optimised for Claude's enterprise tools.
+                      </p>
+                      <div className="flex items-center gap-1 mt-3 text-xs text-[#DA7756] font-medium">
+                        View Finance Playbooks <ArrowRight className="w-3 h-3" />
+                      </div>
+                    </div>
+                  </motion.div>
+
+                  {/* Perplexity Announcement (placeholder for future content) */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="bg-white rounded-2xl border border-brand-dark/10 shadow-antigravity-sm overflow-hidden hover:shadow-antigravity-md transition-all cursor-pointer group"
+                  >
+                    <div className="p-5">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-8 h-8 rounded-xl bg-[#22B8CD] flex items-center justify-center">
+                          <Search className="w-4 h-4 text-white" />
+                        </div>
+                        <span className="px-2 py-0.5 bg-[#22B8CD]/10 text-[#22B8CD] text-xs font-semibold rounded-full">Perplexity</span>
+                        <span className="text-xs text-brand-dark/40">Coming Soon</span>
+                      </div>
+                      <h3 className="font-semibold text-brand-dark mb-1.5 group-hover:text-[#22B8CD] transition-colors">Perplexity Research Playbooks</h3>
+                      <p className="text-brand-dark/60 text-sm leading-relaxed">
+                        Deep research workflows powered by Perplexity's latest updates. Stay tuned for new playbooks.
+                      </p>
+                      <div className="flex items-center gap-1 mt-3 text-xs text-[#22B8CD] font-medium">
+                        Coming Soon <ArrowRight className="w-3 h-3" />
+                      </div>
+                    </div>
+                  </motion.div>
+                </div>
+              </div>
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
 
       <AuthModal
         isOpen={authModalOpen}

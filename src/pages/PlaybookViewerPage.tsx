@@ -18,10 +18,11 @@ import {
   Users,
   Settings,
   Bot,
-  Lock
+  Lock,
+  LayoutDashboard
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { getCategoryColor, type Playbook } from '../data/playbooks';
+import { getCategoryColor, type Playbook, mockPlaybooks, smbPlaybooks, coworkPlaybooks, coworkPluginPlaybooks, designerAIPlaybooks } from '../data/playbooks';
 import { fetchPlaybookBySlug, checkIsSaved, toggleSavedPlaybook, getSinglePlaybookProgress, updatePlaybookProgress, getProfile, updateProfile } from '../lib/api';
 import PaystackPop from '@paystack/inline-js';
 import { useAuth } from '../contexts/AuthContext';
@@ -53,6 +54,23 @@ export default function PlaybookViewerPage() {
   const { user } = useAuth();
   const [isAnnual, setIsAnnual] = useState(false);
   const [isProUser, setIsProUser] = useState(false);
+  const [userRating, setUserRating] = useState<number>(0);
+  const [hoverRating, setHoverRating] = useState<number>(0);
+  const [hasRated, setHasRated] = useState(false);
+
+  // Auto-populate Next Up from same-category playbooks when relatedPlaybooks is empty
+  const nextUpPlaybooks = useMemo(() => {
+    if (!playbook) return [];
+    if (playbook.relatedPlaybooks && playbook.relatedPlaybooks.length > 0) {
+      return playbook.relatedPlaybooks;
+    }
+    // Find other playbooks in the same category
+    const allPlaybooks = [...mockPlaybooks, ...smbPlaybooks, ...coworkPlaybooks, ...coworkPluginPlaybooks, ...designerAIPlaybooks];
+    return allPlaybooks
+      .filter(p => p.category === playbook.category && p.id !== playbook.id)
+      .slice(0, 3)
+      .map(p => ({ id: p.id, title: p.title, slug: p.slug }));
+  }, [playbook]);
 
   const handlePaystack = () => {
     const paystack = new PaystackPop();
@@ -106,19 +124,19 @@ export default function PlaybookViewerPage() {
     loadPlaybook();
   }, [slug]);
 
+  // Only extract variables for the currently active step to keep the sidebar compact
   const extractedVariables = useMemo(() => {
     const vars = new Set<string>();
     if (!playbook) return [];
-    playbook.steps.forEach(step => {
-      if (step.promptTemplate) {
-        const matches = step.promptTemplate.match(/\[(.*?)\]/g);
-        if (matches) {
-          matches.forEach(m => vars.add(m.slice(1, -1)));
-        }
+    const step = playbook.steps[currentStep];
+    if (step?.promptTemplate) {
+      const matches = step.promptTemplate.match(/\[(.*?)\]/g);
+      if (matches) {
+        matches.forEach(m => vars.add(m.slice(1, -1)));
       }
-    });
+    }
     return Array.from(vars);
-  }, [playbook]);
+  }, [playbook, currentStep]);
 
   const getInjectedPrompt = (template: string | undefined): string => {
     if (!template) return '';
@@ -267,6 +285,10 @@ export default function PlaybookViewerPage() {
               >
                 <Bookmark className={`w-5 h-5 ${isSaved && 'fill-current'}`} />
               </button>
+
+              <Link to="/workspace" className="p-2 hover:bg-white shadow-antigravity-md border border-brand-dark/10 rounded-full transition-colors" title="My Progress">
+                <LayoutDashboard className="w-5 h-5" />
+              </Link>
 
               <button className="p-2 hover:bg-white shadow-antigravity-md border border-brand-dark/10 rounded-full transition-colors">
                 <Share2 className="w-5 h-5" />
@@ -529,7 +551,17 @@ export default function PlaybookViewerPage() {
                               {getInjectedPrompt(step.promptTemplate)}
                             </pre>
                           </div>
-                          <AgentCopilot prompt={getInjectedPrompt(step.promptTemplate)} />
+                          {(() => {
+                            // Only show AI Copilot for steps with pure AI tools (no external dependencies)
+                            const aiOnlyTools = ['claude', 'chatgpt', 'perplexity', 'openai'];
+                            const stepTools = step.tools || [];
+                            const canSimulate = stepTools.length > 0 && stepTools.every(
+                              (t: string) => aiOnlyTools.some(ai => t.toLowerCase().includes(ai))
+                            );
+                            return canSimulate ? (
+                              <AgentCopilot prompt={getInjectedPrompt(step.promptTemplate)} tools={step.tools} />
+                            ) : null;
+                          })()}
                         </div>
                       )}
 
@@ -656,48 +688,86 @@ export default function PlaybookViewerPage() {
                   <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="bg-gradient-to-br from-[#635BFF] to-[#8B5CF6] rounded-3xl p-6 text-center"
+                    className="bg-white shadow-antigravity-lg border border-brand-dark/10 rounded-3xl p-6 text-center relative overflow-hidden"
                   >
-                    <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Zap className="w-8 h-8 text-brand-dark" />
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400" />
+                    <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                      <CheckCircle2 className="w-7 h-7 text-emerald-500" />
                     </div>
-                    <h3 className="text-xl font-bold mb-2">Playbook Complete!</h3>
-                    <p className="text-brand-dark/80 mb-4">
-                      You just saved {playbook.timeSaved} minutes on this task.
+                    <h3 className="text-lg font-bold text-brand-dark mb-1">Playbook Complete! 🎉</h3>
+                    <p className="text-brand-dark/60 text-sm mb-5">
+                      You just saved <span className="font-semibold text-emerald-600">{playbook.timeSaved} minutes</span> on this task.
                     </p>
+
+                    {/* Star Rating */}
+                    {!hasRated ? (
+                      <div className="mb-5">
+                        <p className="text-xs text-brand-dark/50 mb-2">How would you rate this playbook?</p>
+                        <div className="flex items-center justify-center gap-1">
+                          {[1, 2, 3, 4, 5].map(star => (
+                            <button
+                              key={star}
+                              onMouseEnter={() => setHoverRating(star)}
+                              onMouseLeave={() => setHoverRating(0)}
+                              onClick={() => { setUserRating(star); setHasRated(true); toast.success(`Thanks for rating! (${star}/5 stars)`); }}
+                              className="p-0.5 transition-transform hover:scale-110"
+                            >
+                              <svg className={`w-7 h-7 transition-colors ${(hoverRating || userRating) >= star ? 'text-amber-400 fill-amber-400' : 'text-slate-200 fill-slate-200'}`} viewBox="0 0 24 24">
+                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                              </svg>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mb-5 flex items-center justify-center gap-1">
+                        {[1, 2, 3, 4, 5].map(star => (
+                          <svg key={star} className={`w-5 h-5 ${userRating >= star ? 'text-amber-400 fill-amber-400' : 'text-slate-200 fill-slate-200'}`} viewBox="0 0 24 24">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                          </svg>
+                        ))}
+                      </div>
+                    )}
+
                     <div className="space-y-2">
-                      <button className="w-full py-2 bg-white text-brand-blue rounded-full font-medium hover:bg-gray-100 transition-colors">
-                        Save to My Stack
-                      </button>
-                      <button className="w-full py-2 bg-slate-50 text-brand-dark rounded-full hover:bg-white/20 transition-colors">
-                        Rate this Playbook
+                      <button
+                        onClick={handleToggleSave}
+                        className={`w-full py-2.5 rounded-xl font-medium text-sm flex items-center justify-center gap-2 transition-all ${isSaved
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : 'bg-brand-dark text-white hover:bg-brand-dark/90'
+                          }`}
+                      >
+                        <Bookmark className={`w-4 h-4 ${isSaved && 'fill-current'}`} />
+                        {isSaved ? 'Saved to Stack' : 'Save to My Stack'}
                       </button>
                     </div>
                   </motion.div>
                 )}
               </AnimatePresence>
 
-              {/* Related Playbooks */}
-              <div className="bg-white shadow-antigravity-md border border-brand-dark/10 border border-brand-dark/10 rounded-3xl p-4">
-                <h3 className="font-semibold mb-4 text-sm uppercase tracking-wide text-brand-dark/70">
-                  Next Up
-                </h3>
-                <div className="space-y-3">
-                  {playbook.relatedPlaybooks.map((related) => (
-                    <Link key={related.id} to={`/playbooks/${related.slug}`}>
-                      <div className="group p-3 rounded-full hover:bg-white shadow-antigravity-md border border-brand-dark/10 transition-colors cursor-pointer">
-                        <p className="font-medium text-sm group-hover:text-brand-blue transition-colors">
-                          {related.title}
-                        </p>
-                        <div className="flex items-center gap-1 mt-1 text-xs text-slate-400">
-                          <span>View playbook</span>
-                          <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+              {/* Related Playbooks / Next Up */}
+              {nextUpPlaybooks.length > 0 && (
+                <div className="bg-white shadow-antigravity-md border border-brand-dark/10 rounded-3xl p-4">
+                  <h3 className="font-semibold mb-4 text-sm uppercase tracking-wide text-brand-dark/70">
+                    Next Up
+                  </h3>
+                  <div className="space-y-3">
+                    {nextUpPlaybooks.map((related) => (
+                      <Link key={related.id} to={`/playbooks/${related.slug}`}>
+                        <div className="group p-3 rounded-2xl hover:bg-slate-50 transition-colors cursor-pointer">
+                          <p className="font-medium text-sm group-hover:text-brand-blue transition-colors">
+                            {related.title}
+                          </p>
+                          <div className="flex items-center gap-1 mt-1 text-xs text-slate-400">
+                            <span>View playbook</span>
+                            <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+                          </div>
                         </div>
-                      </div>
-                    </Link>
-                  ))}
+                      </Link>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Upgrade CTA */}
               {!showCelebration && (

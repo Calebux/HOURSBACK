@@ -8,6 +8,7 @@ import WorkspacePage from './pages/WorkspacePage';
 import SettingsPage from './pages/SettingsPage';
 import AdminDashboard from './pages/AdminDashboard';
 import PlaybookEditorPage from './pages/PlaybookEditorPage';
+import CrashCoursePage from './pages/CrashCoursePage';
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/playbooks" element={<PlaybooksPage />} />
           <Route path="/playbooks/:slug" element={<PlaybookViewerPage />} />
+          <Route path="/crash-course" element={<CrashCoursePage />} />
           <Route path="/workspace" element={<WorkspacePage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/admin" element={<AdminDashboard />} />

@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 import type { Playbook } from '../data/playbooks';
-import { smbPlaybooks, coworkPlaybooks } from '../data/playbooks';
+import { smbPlaybooks, coworkPlaybooks, claudeCrashCoursePlaybooks, coworkPluginPlaybooks, designerAIPlaybooks } from '../data/playbooks';
 
 export const mapDbPlaybook = (dbPb: any): Playbook => ({
     id: dbPb.id,
@@ -49,13 +49,17 @@ export async function fetchPlaybooks(): Promise<Playbook[]> {
     const dbSlugs = new Set(fetchedPlaybooks.map(pb => pb.slug));
     const missingSmbPlaybooks = smbPlaybooks.filter(pb => !dbSlugs.has(pb.slug));
     const missingCoworkPlaybooks = coworkPlaybooks.filter(pb => !dbSlugs.has(pb.slug));
+    const missingCrashCoursePlaybooks = claudeCrashCoursePlaybooks.filter(pb => !dbSlugs.has(pb.slug));
+    const missingPluginPlaybooks = coworkPluginPlaybooks.filter(pb => !dbSlugs.has(pb.slug));
+    const missingDesignerPlaybooks = designerAIPlaybooks.filter(pb => !dbSlugs.has(pb.slug));
 
-    return [...missingCoworkPlaybooks, ...missingSmbPlaybooks, ...fetchedPlaybooks];
+    // Business playbooks first, then crash course, then DB playbooks
+    return [...missingDesignerPlaybooks, ...missingPluginPlaybooks, ...missingCoworkPlaybooks, ...missingSmbPlaybooks, ...fetchedPlaybooks, ...missingCrashCoursePlaybooks];
 }
 
 export async function fetchPlaybookBySlug(slug: string): Promise<Playbook | null> {
     // Check locally injected SMB or Cowork playbooks first
-    const localMatch = smbPlaybooks.find(pb => pb.slug === slug) || coworkPlaybooks.find(pb => pb.slug === slug);
+    const localMatch = smbPlaybooks.find(pb => pb.slug === slug) || coworkPlaybooks.find(pb => pb.slug === slug) || claudeCrashCoursePlaybooks.find(pb => pb.slug === slug) || coworkPluginPlaybooks.find(pb => pb.slug === slug) || designerAIPlaybooks.find(pb => pb.slug === slug);
     if (localMatch) return localMatch;
 
     const { data, error } = await supabase
@@ -74,9 +78,44 @@ export async function fetchPlaybookBySlug(slug: string): Promise<Playbook | null
     return mapDbPlaybook(data);
 }
 
+// --- Local Playbook Helpers ---
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function isUUID(id: string) { return UUID_REGEX.test(id); }
+
+const allLocalPlaybooks = [...smbPlaybooks, ...coworkPlaybooks, ...claudeCrashCoursePlaybooks, ...coworkPluginPlaybooks, ...designerAIPlaybooks];
+function findLocalPlaybook(id: string): Playbook | undefined {
+    return allLocalPlaybooks.find(p => p.id === id);
+}
+
+// --- localStorage-based storage for local playbooks ---
+
+function getLocalSaved(): string[] {
+    try { return JSON.parse(localStorage.getItem('local_saved_playbooks') || '[]'); }
+    catch { return []; }
+}
+function setLocalSaved(ids: string[]) {
+    localStorage.setItem('local_saved_playbooks', JSON.stringify(ids));
+}
+
+interface LocalProgress {
+    playbook_id: string;
+    completed_steps: number[];
+    last_accessed: string;
+    completed_at: string | null;
+}
+function getLocalProgress(): LocalProgress[] {
+    try { return JSON.parse(localStorage.getItem('local_playbook_progress') || '[]'); }
+    catch { return []; }
+}
+function setLocalProgress(progress: LocalProgress[]) {
+    localStorage.setItem('local_playbook_progress', JSON.stringify(progress));
+}
+
 // --- Tracking and Progress API ---
 
 export async function getSavedPlaybooks(userId: string) {
+    // DB saved playbooks
     const { data, error } = await supabase
         .from('saved_playbooks')
         .select(`
@@ -86,15 +125,27 @@ export async function getSavedPlaybooks(userId: string) {
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
-    if (error) {
-        console.error('Error fetching saved playbooks:', error);
-        return [];
-    }
+    const dbSaved = (!error && data) ? data.filter(row => row.playbooks).map(row => mapDbPlaybook(row.playbooks)) : [];
 
-    return (data || []).map(row => mapDbPlaybook(row.playbooks));
+    // Merge with locally saved playbooks
+    const localSavedIds = getLocalSaved();
+    const localSaved = localSavedIds.map(findLocalPlaybook).filter(Boolean) as Playbook[];
+
+    return [...localSaved, ...dbSaved];
 }
 
 export async function toggleSavedPlaybook(userId: string, playbookId: string, isCurrentlySaved: boolean) {
+    if (!isUUID(playbookId)) {
+        // Use localStorage for local playbooks
+        const saved = getLocalSaved();
+        if (isCurrentlySaved) {
+            setLocalSaved(saved.filter(id => id !== playbookId));
+        } else {
+            if (!saved.includes(playbookId)) setLocalSaved([...saved, playbookId]);
+        }
+        return true;
+    }
+
     if (isCurrentlySaved) {
         const { error } = await supabase
             .from('saved_playbooks')
@@ -112,6 +163,7 @@ export async function toggleSavedPlaybook(userId: string, playbookId: string, is
 }
 
 export async function getPlaybookProgress(userId: string) {
+    // DB progress
     const { data, error } = await supabase
         .from('playbook_progress')
         .select(`
@@ -121,27 +173,42 @@ export async function getPlaybookProgress(userId: string) {
         .eq('user_id', userId)
         .order('last_accessed', { ascending: false });
 
-    if (error) {
-        console.error('Error fetching progress:', error);
-        return [];
-    }
-
-    return (data || []).map(row => ({
+    const dbProgress = (!error && data) ? data.filter(row => row.playbooks).map(row => ({
         ...mapDbPlaybook(row.playbooks),
         completedSteps: row.completed_steps || [],
         lastAccessed: row.last_accessed,
         completedAt: row.completed_at
-    }));
+    })) : [];
+
+    // Merge with local progress
+    const localProgressData = getLocalProgress();
+    const localProgress = localProgressData.map(lp => {
+        const playbook = findLocalPlaybook(lp.playbook_id);
+        if (!playbook) return null;
+        return {
+            ...playbook,
+            completedSteps: lp.completed_steps || [],
+            lastAccessed: lp.last_accessed,
+            completedAt: lp.completed_at
+        };
+    }).filter(Boolean);
+
+    return [...localProgress, ...dbProgress];
 }
 
 export async function getSinglePlaybookProgress(userId: string, playbookId: string) {
+    if (!isUUID(playbookId)) {
+        // Use localStorage for local playbooks
+        const progress = getLocalProgress();
+        return progress.find(p => p.playbook_id === playbookId) || null;
+    }
+
     const { data, error } = await supabase
         .from('playbook_progress')
         .select('*')
         .match({ user_id: userId, playbook_id: playbookId })
         .single();
 
-    // single() throws error if zero rows, we can just return null
     if (error && error.code !== 'PGRST116') {
         console.error('Error fetching single progress:', error);
     }
@@ -150,6 +217,10 @@ export async function getSinglePlaybookProgress(userId: string, playbookId: stri
 }
 
 export async function checkIsSaved(userId: string, playbookId: string) {
+    if (!isUUID(playbookId)) {
+        return getLocalSaved().includes(playbookId);
+    }
+
     const { data, error } = await supabase
         .from('saved_playbooks')
         .select('id')
@@ -164,6 +235,26 @@ export async function checkIsSaved(userId: string, playbookId: string) {
 
 export async function updatePlaybookProgress(userId: string, playbookId: string, completedSteps: number[], totalSteps: number) {
     const isComplete = completedSteps.length === totalSteps && totalSteps > 0;
+
+    if (!isUUID(playbookId)) {
+        // Use localStorage for local playbooks
+        const progress = getLocalProgress();
+        const existing = progress.find(p => p.playbook_id === playbookId);
+        if (existing) {
+            existing.completed_steps = completedSteps;
+            existing.last_accessed = new Date().toISOString();
+            existing.completed_at = isComplete ? new Date().toISOString() : null;
+        } else {
+            progress.push({
+                playbook_id: playbookId,
+                completed_steps: completedSteps,
+                last_accessed: new Date().toISOString(),
+                completed_at: isComplete ? new Date().toISOString() : null
+            });
+        }
+        setLocalProgress(progress);
+        return true;
+    }
 
     const { error } = await supabase
         .from('playbook_progress')

@@ -1085,7 +1085,8 @@ export const getCategoryColor = (category: string): string => {
     'Operations': '#7C3AED',
     'HR': '#0D9488',
     'Product': '#EA580C',
-    'Legal': '#475569'
+    'Legal': '#475569',
+    'Claude Crash Course': '#DA7756'
   };
   return colors[category] || '#4F46E5';
 };
@@ -1707,6 +1708,801 @@ export const smbPlaybooks: Playbook[] = [
         promptTemplate: 'I am building an AI that automatically clusters user feedback into feature requests. Our product is a [Describe your product], built for [Target Persona]. The core value proposition is [Core Value]. If a user asks for [Give an example of a bad request], we do NOT build it. Based on this, write a rigid system prompt teaching the AI how to categorize feedback aligned with our vision.',
         expectedOutput: 'A product-vision prompt to guide the AI clustering.'
       }
+    ]
+  }
+];
+
+export const claudeCrashCoursePlaybooks: Playbook[] = [
+  {
+    id: 'cc-1',
+    slug: 'claude-101-your-first-conversation',
+    title: 'Your First Conversation with Claude',
+    subtitle: 'Go from blank screen to useful output in 10 minutes flat',
+    category: 'Claude Crash Course',
+    difficulty: 'Beginner',
+    timeToComplete: 10,
+    timeSaved: 30,
+    completionCount: 3842,
+    rating: 4.9,
+    isPro: false,
+    isNew: true,
+    tools: ['Claude'],
+    beforeYouStart: [
+      'A free Claude account at claude.ai',
+      'One real work task you need help with today',
+      '10 minutes of uninterrupted focus'
+    ],
+    expectedOutcome: 'A complete, useful work deliverable produced through a multi-turn conversation with Claude — plus the confidence to start any future conversation effectively.',
+    troubleshooting: [
+      {
+        problem: 'Claude gives a generic, textbook-style answer',
+        solution: 'You skipped the context. Re-send your prompt but start with: "I am a [role] at a [company type]. Here is what I need and why..."'
+      },
+      {
+        problem: 'The response is way too long',
+        solution: 'Add a constraint: "Keep this under 150 words" or "Give me only the top 3"'
+      },
+      {
+        problem: 'Claude misunderstood what I wanted',
+        solution: 'Don\'t start over. Reply with: "Not quite — I meant [X]. Specifically, I need [concrete deliverable]." Claude corrects well from feedback.'
+      }
+    ],
+    steps: [
+      {
+        id: 'cc1-s1',
+        stepNumber: 1,
+        title: 'Set the Stage — Tell Claude Who You Are',
+        instruction: 'Before asking anything, give Claude a one-sentence snapshot of your role, your context, and the problem you\'re solving. This single step eliminates 80% of generic responses.',
+        promptTemplate: `I work as a [YOUR ROLE] at a [COMPANY TYPE / INDUSTRY].\n\nRight now I am working on [SPECIFIC PROJECT OR CHALLENGE]. My goal is to [WHAT SUCCESS LOOKS LIKE].\n\nTalk to me like a sharp colleague who already knows my field — skip the basics and be direct.`,
+        expectedOutput: 'Claude should reply acknowledging your context and asking a clarifying question, or dive straight into useful guidance tailored to your situation.',
+        tips: 'Example: "I work as a product marketing manager at a B2B SaaS startup. Right now I am working on our Q3 launch messaging for a new analytics feature. My goal is to have three positioning angles ready for our messaging workshop on Friday. Talk to me like a sharp colleague who already knows my field — skip the basics and be direct."'
+      },
+      {
+        id: 'cc1-s2',
+        stepNumber: 2,
+        title: 'Ask for a Concrete Deliverable',
+        instruction: 'Now that Claude has context, ask for something specific you can actually use. Be precise about format, length, and audience.',
+        promptTemplate: `Now write me a [DELIVERABLE TYPE] that I can [HOW YOU WILL USE IT].\n\nRequirements:\n- Audience: [WHO WILL READ/SEE THIS]\n- Length: [WORD COUNT OR FORMAT CONSTRAINT]\n- Tone: [PROFESSIONAL / CASUAL / PERSUASIVE / etc.]\n- Must include: [ANY NON-NEGOTIABLE ELEMENTS]`,
+        expectedOutput: 'A structured, ready-to-use deliverable matching your specifications — not a vague suggestion or outline.',
+        tips: 'Example: "Now write me a one-page competitive positioning brief that I can present at our Friday workshop. Audience: VP of Marketing and two PMMs. Length: 400 words max. Tone: confident and data-driven. Must include: our differentiator vs. Mixpanel, one customer proof point, and a suggested tagline."'
+      },
+      {
+        id: 'cc1-s3',
+        stepNumber: 3,
+        title: 'Iterate — Give Feedback Like a Colleague',
+        instruction: 'Claude\'s first draft is a starting point. Reply with specific feedback: what to keep, what to cut, what to change. This is where the real value happens.',
+        promptTemplate: `This is [GOOD / CLOSE / OFF-TRACK]. Here is my feedback:\n\n- Keep: [WHAT WORKED]\n- Change: [WHAT NEEDS TO BE DIFFERENT AND WHY]\n- Add: [ANYTHING MISSING]\n- Remove: [ANYTHING UNNECESSARY]\n\nRevise it with these changes.`,
+        expectedOutput: 'An improved second draft that incorporates your feedback while preserving what was already working.',
+        tips: 'Example: "This is close. Keep the structure and the Mixpanel comparison. Change the tagline — it\'s too generic, make it edgier and outcome-focused. Add a stat about our average implementation time (it\'s 2 days vs. their 2 weeks). Remove the paragraph about market size — the audience already knows this. Revise it with these changes."'
+      },
+      {
+        id: 'cc1-s4',
+        stepNumber: 4,
+        title: 'Reshape the Output',
+        instruction: 'Once the content is right, ask Claude to reformat it for a different context. This shows how one conversation can produce multiple assets.',
+        promptTemplate: `Now take this same content and turn it into:\n\n1. A [NEW FORMAT 1] — for [USE CASE 1]\n2. A [NEW FORMAT 2] — for [USE CASE 2]\n\nKeep the core messaging identical. Adapt only the length and format.`,
+        expectedOutput: 'The same core content reshaped into two new formats, ready to use in different contexts.',
+        tips: 'Example: "Now take this same content and turn it into: 1. A 3-slide executive summary — for our Slack channel update to leadership. 2. A 5-bullet email — for the sales team to use in competitive deals. Keep the core messaging identical. Adapt only the length and format."'
+      }
+    ],
+    relatedPlaybooks: [
+      { id: 'cc-2', title: 'Prompt Engineering Essentials', slug: 'claude-102-prompt-engineering-essentials' },
+      { id: 'cc-3', title: 'Working with Files & Data', slug: 'claude-103-working-with-files-and-data' }
+    ]
+  },
+  {
+    id: 'cc-2',
+    slug: 'claude-102-prompt-engineering-essentials',
+    title: 'Prompt Engineering Essentials',
+    subtitle: 'Master the 5 prompt patterns that cover 90% of business use cases',
+    category: 'Claude Crash Course',
+    difficulty: 'Beginner',
+    timeToComplete: 15,
+    timeSaved: 60,
+    completionCount: 2917,
+    rating: 4.8,
+    isPro: false,
+    isNew: true,
+    tools: ['Claude'],
+    beforeYouStart: [
+      'Completed Playbook 1 or basic familiarity with Claude',
+      'A real writing, analysis, or brainstorming task',
+      '15 minutes'
+    ],
+    expectedOutcome: 'Hands-on experience with 5 reusable prompt patterns — Role Assignment, Chain of Thought, Few-Shot Examples, Constraint Setting, and Structured Output — that you can remix for any future task.',
+    troubleshooting: [
+      {
+        problem: 'Claude ignores my formatting instructions',
+        solution: 'Put format rules at the END of your prompt, not the beginning. Claude weighs the end of a prompt more heavily.'
+      },
+      {
+        problem: 'Responses are too cautious or hedging',
+        solution: 'Add: "Be direct and take a clear position. I want your best recommendation, not a list of options."'
+      },
+      {
+        problem: 'Claude keeps adding disclaimers I don\'t need',
+        solution: 'Say: "Skip caveats and disclaimers. I understand the limitations — give me the actionable output only."'
+      }
+    ],
+    steps: [
+      {
+        id: 'cc2-s1',
+        stepNumber: 1,
+        title: 'Pattern 1 — Role Assignment',
+        instruction: 'Assign Claude an expert persona to activate domain-specific knowledge. This consistently improves output quality for specialized tasks.',
+        promptTemplate: `You are a [SPECIFIC EXPERT ROLE] with 15 years of experience in [DOMAIN].\n\nA client has asked you: "[PASTE THE ACTUAL QUESTION OR TASK]"\n\nRespond as this expert would — with specific recommendations, not generic advice. Reference real frameworks, tools, or methodologies from this field.`,
+        expectedOutput: 'A response noticeably more specific and expert-level than a generic prompt would produce — using industry terminology and frameworks appropriately.',
+        tips: 'Try it: "You are a senior UX researcher with 15 years of experience in enterprise SaaS. A client has asked you: \'We\'re redesigning our dashboard but don\'t have time for full user testing. What\'s the fastest way to validate our new design before launch?\' Respond as this expert would — with specific recommendations, not generic advice."'
+      },
+      {
+        id: 'cc2-s2',
+        stepNumber: 2,
+        title: 'Pattern 2 — Chain of Thought',
+        instruction: 'Force Claude to show its reasoning step by step. This dramatically improves accuracy on complex analysis, math, and strategic decisions.',
+        promptTemplate: `I need you to [ANALYSIS OR DECISION TASK].\n\nThink through this step by step:\n1. First, identify [RELEVANT FACTORS]\n2. Then, analyze [KEY RELATIONSHIPS]\n3. Then, weigh [TRADEOFFS]\n4. Finally, give me your recommendation with reasoning\n\nShow your work at each step.`,
+        expectedOutput: 'A structured analysis that walks through the reasoning, making it easy to spot where you agree or disagree with Claude\'s logic.',
+        tips: 'Try it: "I need you to evaluate whether we should build our analytics feature in-house or buy a third-party solution. Our team is 4 engineers, timeline is 8 weeks, budget is $50K. Think through this step by step: 1. First, identify the key decision criteria. 2. Then, analyze build vs. buy against each criterion. 3. Then, weigh the risks of each option. 4. Finally, give me your recommendation with reasoning. Show your work at each step."'
+      },
+      {
+        id: 'cc2-s3',
+        stepNumber: 3,
+        title: 'Pattern 3 — Few-Shot Examples',
+        instruction: 'Show Claude 1-2 examples of what good output looks like. This is the fastest way to get Claude to match your voice, format, or quality bar.',
+        promptTemplate: `I need you to write [CONTENT TYPE] in a specific style. Here are examples of what good looks like:\n\n---\nExample 1:\n[PASTE A REAL EXAMPLE YOU LIKE]\n---\nExample 2:\n[PASTE ANOTHER EXAMPLE]\n---\n\nNow write one for: [YOUR SPECIFIC TOPIC/CONTEXT]\n\nMatch the tone, structure, and level of detail from the examples.`,
+        expectedOutput: 'Output that closely mirrors the style and quality of your examples, applied to your new topic.',
+        tips: 'Try it: Paste two of your best-performing LinkedIn posts and ask Claude to write a new one about a different topic. The style match is usually uncanny.'
+      },
+      {
+        id: 'cc2-s4',
+        stepNumber: 4,
+        title: 'Pattern 4 — Constraint Setting',
+        instruction: 'Set hard boundaries on length, format, audience, and what to exclude. Constraints force Claude to be concise and relevant instead of comprehensive and rambling.',
+        promptTemplate: `Write a [DELIVERABLE] about [TOPIC].\n\nConstraints:\n- Maximum [X] words\n- Written for [SPECIFIC AUDIENCE] — assume they already know [BASELINE KNOWLEDGE]\n- Use [BULLET POINTS / NUMBERED LIST / PARAGRAPHS]\n- Do NOT include [THINGS TO EXCLUDE]\n- Every point must include [REQUIRED ELEMENT — e.g., a specific example, a metric, an action item]`,
+        expectedOutput: 'A tightly scoped deliverable that respects every constraint — no filler, no fluff.',
+        tips: 'Try it: "Write a project status update about our mobile app redesign. Constraints: Maximum 200 words. Written for our CEO — assume she knows the project background. Use bullet points. Do NOT include technical details or timelines already shared. Every point must include a specific decision or risk that needs her attention."'
+      },
+      {
+        id: 'cc2-s5',
+        stepNumber: 5,
+        title: 'Pattern 5 — Structured Output',
+        instruction: 'Tell Claude exactly what structure you want the output in. Tables, JSON, specific section headers — Claude follows structural instructions very precisely.',
+        promptTemplate: `Analyze [TOPIC/DATA] and present the results in this exact structure:\n\n## [Section 1 Name]\n[What to include]\n\n## [Section 2 Name]\n[What to include]\n\n## [Section 3 Name]\nPresent this as a table with columns: [COL1] | [COL2] | [COL3]\n\n## Bottom Line\nOne paragraph: what does this mean and what should I do next?`,
+        expectedOutput: 'Output that follows your exact template structure, making it immediately usable without reformatting.',
+        tips: 'Try it: "Analyze our Q3 customer churn data and present the results in this exact structure: ## Key Findings (top 3 bullet points) ## Root Causes (table with columns: Cause | % of Churned Customers | Evidence) ## Recommended Actions (numbered list, each with owner and deadline suggestion) ## Bottom Line (one paragraph: what does this mean for our retention target?)"'
+      }
+    ],
+    relatedPlaybooks: [
+      { id: 'cc-1', title: 'Your First Conversation with Claude', slug: 'claude-101-your-first-conversation' },
+      { id: 'cc-3', title: 'Working with Files & Data', slug: 'claude-103-working-with-files-and-data' }
+    ]
+  },
+  {
+    id: 'cc-3',
+    slug: 'claude-103-working-with-files-and-data',
+    title: 'Working with Files & Data',
+    subtitle: 'Upload documents, spreadsheets, and images — then extract real insights',
+    category: 'Claude Crash Course',
+    difficulty: 'Intermediate',
+    timeToComplete: 15,
+    timeSaved: 90,
+    completionCount: 1856,
+    rating: 4.7,
+    isPro: false,
+    isNew: true,
+    tools: ['Claude'],
+    beforeYouStart: [
+      'A PDF, DOCX, or CSV file you actually need to analyze',
+      'Optionally: a screenshot or chart image you want Claude to interpret',
+      'Claude Pro or Free account (free allows limited uploads)'
+    ],
+    expectedOutcome: 'A completed analysis of your real document — summary, extracted data, identified issues, or a reformatted output — all produced through file upload + targeted prompts.',
+    troubleshooting: [
+      {
+        problem: 'Claude says it can\'t read the file',
+        solution: 'Check the file type — Claude supports PDF, DOCX, CSV, TXT, PNG, JPEG, and more. If it\'s a proprietary format, export it to PDF first.'
+      },
+      {
+        problem: 'Claude misses important details in a long document',
+        solution: 'Don\'t ask about the whole document at once. Say: "Focus only on pages 12-18" or "Look specifically at Section 3.2"'
+      },
+      {
+        problem: 'Analysis of a spreadsheet seems shallow',
+        solution: 'CSV works better than XLSX for data analysis. Export as CSV and re-upload. Also, be specific: "Calculate the month-over-month growth rate for each product line" beats "analyze this data."'
+      }
+    ],
+    steps: [
+      {
+        id: 'cc3-s1',
+        stepNumber: 1,
+        title: 'The Smart Summary — Extract What Matters',
+        instruction: 'Upload a document and ask Claude to summarize it for a specific audience and purpose. The key is telling Claude WHY you need the summary — this shapes what it prioritizes.',
+        promptTemplate: `I just uploaded [DOCUMENT NAME]. Here is what I need:\n\nSummarize this document for [SPECIFIC AUDIENCE] who needs to [SPECIFIC PURPOSE].\n\nStructure:\n- Executive summary (3 sentences max)\n- Key findings or decisions (bullet points)\n- Action items or open questions\n- Anything surprising or concerning\n\nSkip background context the audience already knows. Focus on what is new, changed, or requires a decision.`,
+        expectedOutput: 'A purpose-driven summary that highlights what matters to your audience — not a generic document overview.',
+        tips: 'Try it with a meeting transcript: "Summarize this document for our VP of Engineering who missed the meeting and needs to know what was decided, what\'s blocked, and what he needs to weigh in on. Skip background context — he knows the project. Focus on decisions, blockers, and his action items."'
+      },
+      {
+        id: 'cc3-s2',
+        stepNumber: 2,
+        title: 'Data Extraction — Pull Structure from Chaos',
+        instruction: 'Upload a messy document (contract, report, email thread) and ask Claude to extract specific data points into a structured format.',
+        promptTemplate: `From this uploaded document, extract the following into a table:\n\n| [Column 1] | [Column 2] | [Column 3] | [Column 4] |\n\nRules:\n- If a value is not explicitly stated, write "Not specified"\n- If a value is ambiguous, write your best interpretation + "(inferred)"\n- Include the page number or section where you found each data point\n\nAfter the table, list any inconsistencies or red flags you noticed.`,
+        expectedOutput: 'A clean, structured table pulling specific data points from an unstructured source, with page references and flagged issues.',
+        tips: 'Try it with a vendor contract: "Extract: Vendor Name | Contract Value | Start Date | End Date | Auto-Renewal Terms | Termination Notice Period | Key SLA Commitments. After the table, list any inconsistencies or clauses that seem unusual."'
+      },
+      {
+        id: 'cc3-s3',
+        stepNumber: 3,
+        title: 'Image + Screenshot Analysis',
+        instruction: 'Upload a chart, screenshot, whiteboard photo, or UI mockup. Claude can read visual content and turn it into structured text or actionable analysis.',
+        promptTemplate: `I uploaded [IMAGE TYPE — e.g., a screenshot of our analytics dashboard / a photo of our whiteboard / a chart from a report].\n\nDo the following:\n1. Describe what you see in detail\n2. Extract all data points, numbers, or text visible in the image\n3. [SPECIFIC ASK — e.g., identify the top 3 trends / flag any concerning metrics / convert the whiteboard notes into a structured task list]\n\nPresent your analysis as [FORMAT — e.g., bullet points / a table / a formatted summary].`,
+        expectedOutput: 'A text-based extraction and analysis of the visual content, structured in your requested format.',
+        tips: 'Try it: Upload a screenshot of a cluttered Jira board and ask Claude to "List every visible ticket with its status and assignee in a table. Then identify which tickets appear blocked and suggest a priority order for our standup tomorrow."'
+      },
+      {
+        id: 'cc3-s4',
+        stepNumber: 4,
+        title: 'Compare and Cross-Reference',
+        instruction: 'Upload two related documents and ask Claude to compare them. This is powerful for contract redlines, version comparisons, or competitive analysis.',
+        promptTemplate: `I uploaded two documents:\n- Document A: [NAME / DESCRIPTION]\n- Document B: [NAME / DESCRIPTION]\n\nCompare them and produce:\n\n1. **What changed** — key differences between A and B (table format)\n2. **What's new in B** — anything added that wasn't in A\n3. **What's missing from B** — anything in A that was removed\n4. **Risk assessment** — any changes that could be problematic and why\n\nBe specific. Quote exact language where differences matter.`,
+        expectedOutput: 'A structured comparison with specific differences called out, additions and removals identified, and risk flags for material changes.',
+        tips: 'Try it with two versions of a proposal, contract, or policy document. This saves hours of manual redlining.'
+      }
+    ],
+    relatedPlaybooks: [
+      { id: 'cc-2', title: 'Prompt Engineering Essentials', slug: 'claude-102-prompt-engineering-essentials' },
+      { id: 'cc-4', title: 'Projects & Persistent Context', slug: 'claude-104-projects-and-persistent-context' }
+    ]
+  },
+  {
+    id: 'cc-4',
+    slug: 'claude-104-projects-and-persistent-context',
+    title: 'Projects & Persistent Context',
+    subtitle: 'Build a reusable workspace so Claude remembers your brand, data, and rules',
+    category: 'Claude Crash Course',
+    difficulty: 'Intermediate',
+    timeToComplete: 20,
+    timeSaved: 120,
+    completionCount: 1423,
+    rating: 4.8,
+    isPro: false,
+    isNew: true,
+    tools: ['Claude'],
+    beforeYouStart: [
+      'Claude Pro, Max, Team, or Enterprise account (Projects require a paid plan)',
+      '2-3 reference documents you frequently re-explain to AI (brand guidelines, templates, specs)',
+      'A recurring workflow where you want consistency across conversations'
+    ],
+    expectedOutcome: 'A fully configured Claude Project with uploaded knowledge, custom instructions, and a test conversation proving that Claude correctly references your documents and follows your rules without being reminded.',
+    troubleshooting: [
+      {
+        problem: 'Claude doesn\'t seem to reference my uploaded documents',
+        solution: 'Mention the document by name: "Based on the Brand Guidelines PDF I uploaded, ..." This helps Claude locate the right source in projects with many files.'
+      },
+      {
+        problem: 'My project instructions are too long and Claude ignores parts',
+        solution: 'Prioritize. Put the 3 most critical rules first. Use numbered lists, not paragraphs. Test each rule individually.'
+      },
+      {
+        problem: 'Claude gives different answers in different chats within the same project',
+        solution: 'This is normal for nuanced questions. Add explicit rules to your project instructions for the areas where you need consistency: "Always recommend X for Y situations."'
+      }
+    ],
+    steps: [
+      {
+        id: 'cc4-s1',
+        stepNumber: 1,
+        title: 'Create Your Project and Name It',
+        instruction: 'Go to claude.ai/projects and create a new project. Give it a specific, outcome-oriented name — not a vague label.',
+        promptTemplate: `Before creating the project, ask Claude to help you scope it:\n\n"I want to set up a Claude Project for [WORKFLOW — e.g., writing customer case studies / preparing board meeting materials / managing our product launch].\n\nHelp me define:\n1. What documents should I upload as the knowledge base?\n2. What project instructions would ensure consistency?\n3. What should this project NOT be used for (scope boundaries)?\n\nKeep each answer to 3-5 bullet points."`,
+        expectedOutput: 'A clear project scope with recommended documents, instructions, and boundaries — giving you a setup checklist before you start.',
+        tips: 'Great project names: "Q3 Product Launch Content", "Client Onboarding — Acme Corp", "Weekly Sales Report Generator". Bad names: "Marketing Stuff", "Misc", "Project 1".'
+      },
+      {
+        id: 'cc4-s2',
+        stepNumber: 2,
+        title: 'Write Bulletproof Project Instructions',
+        instruction: 'Your project instructions are the rules Claude follows in every conversation within the project. Write them like you\'re onboarding a new team member — specific, unambiguous, and prioritized.',
+        promptTemplate: `Help me write project instructions for a Claude Project called "[PROJECT NAME]".\n\nContext: [WHAT THIS PROJECT IS FOR — 2 sentences]\n\nI need instructions that cover:\n1. Role: Who should Claude act as in this project?\n2. Tone: [FORMAL / CONVERSATIONAL / TECHNICAL / etc.]\n3. Format rules: [DEFAULT OUTPUT FORMAT — e.g., always use bullet points, always include an executive summary]\n4. Must-do rules: [THINGS CLAUDE MUST ALWAYS DO — e.g., cite uploaded documents, use our company terminology]\n5. Must-avoid rules: [THINGS CLAUDE MUST NEVER DO — e.g., never suggest competitor products, never use passive voice]\n\nWrite these as clear, numbered instructions I can paste directly into the Project Instructions field. Keep it under 300 words.`,
+        expectedOutput: 'A copy-paste-ready set of project instructions, numbered and specific enough that Claude can follow them without ambiguity.',
+        tips: 'Try it: "Help me write project instructions for a Claude Project called \'Customer Case Studies\'. Context: We create 2-page case studies for enterprise SaaS customers. They follow a Problem → Solution → Results structure. I need instructions covering: Role (B2B content strategist), Tone (professional but not stiff), Format (always use our case study template structure), Must-do (always ask for specific metrics and customer quotes), Must-avoid (never use jargon our customers wouldn\'t know)."'
+      },
+      {
+        id: 'cc4-s3',
+        stepNumber: 3,
+        title: 'Upload Your Knowledge Base',
+        instruction: 'Upload the documents Claude should reference across all conversations in this project. Use descriptive filenames — Claude uses filenames to locate content.',
+        promptTemplate: `After uploading your documents, test that Claude can find and reference them:\n\n"Based on the uploaded documents, answer these questions:\n1. What is the main topic of [DOCUMENT NAME]?\n2. Find the specific section in [DOCUMENT NAME] that covers [TOPIC].\n3. If I asked you to [COMMON TASK IN THIS PROJECT], which uploaded documents would you reference and why?\n\nQuote specific passages from the documents in your answers."`,
+        expectedOutput: 'Claude should accurately reference your uploaded documents, quote specific passages, and explain which documents it would use for different tasks.',
+        tips: 'Name files descriptively: "Q4-2024-Brand-Voice-Guidelines.pdf" is way better than "guidelines_v2_final.pdf". Upload 3-5 focused documents rather than one massive file. Claude handles multiple specific files better than one 200-page omnibus.'
+      },
+      {
+        id: 'cc4-s4',
+        stepNumber: 4,
+        title: 'The Acid Test — Run a Real Task',
+        instruction: 'Put your project through a real-world test. Give Claude a task you\'d normally do yourself and check whether it follows your instructions and references your documents without being reminded.',
+        promptTemplate: `[Give Claude a real task from your workflow — no special hints or reminders]\n\nExample task prompts:\n- "Write a case study introduction for [CLIENT NAME] based on these call notes: [PASTE NOTES]"\n- "Draft this week's board update using the latest metrics: [PASTE DATA]"\n- "Review this email draft and align it with our brand voice: [PASTE DRAFT]"\n\nAfter Claude responds, evaluate:\n- Did it follow the tone from my instructions?\n- Did it reference the uploaded documents?\n- Did it respect the must-do and must-avoid rules?`,
+        expectedOutput: 'A deliverable that follows your project rules and references your knowledge base without being explicitly reminded — proving the project setup works.',
+        tips: 'If Claude misses a rule, don\'t fix it in the conversation — fix it in the project instructions. Your instructions should be good enough to work for any new conversation in this project.'
+      },
+      {
+        id: 'cc4-s5',
+        stepNumber: 5,
+        title: 'Share and Collaborate (Team Plans)',
+        instruction: 'If you\'re on a Team or Enterprise plan, share the project with colleagues so everyone benefits from the same context and rules.',
+        promptTemplate: `Before sharing, ask Claude to help you write a project README for your teammates:\n\n"Write a short README (under 150 words) for my teammates explaining:\n1. What this project is for\n2. What documents are in the knowledge base\n3. What kind of tasks they can ask Claude to do here\n4. Any important rules or constraints they should know about\n\nWrite it as a casual Slack message, not formal documentation."`,
+        expectedOutput: 'A short, teammate-friendly description you can paste into Slack or the project description to onboard collaborators quickly.',
+        tips: 'Share with "Can view" permission first. Let teammates use the project for a week before giving edit access. This prevents well-meaning changes that break your carefully tuned instructions.'
+      }
+    ],
+    relatedPlaybooks: [
+      { id: 'cc-3', title: 'Working with Files & Data', slug: 'claude-103-working-with-files-and-data' },
+      { id: 'cc-5', title: 'Artifacts & Interactive Outputs', slug: 'claude-105-artifacts-and-interactive-outputs' }
+    ]
+  },
+  {
+    id: 'cc-5',
+    slug: 'claude-105-artifacts-and-interactive-outputs',
+    title: 'Artifacts & Interactive Outputs',
+    subtitle: 'Build working apps, dashboards, and documents inside a conversation',
+    category: 'Claude Crash Course',
+    difficulty: 'Intermediate',
+    timeToComplete: 15,
+    timeSaved: 90,
+    completionCount: 2134,
+    rating: 4.7,
+    isPro: false,
+    isNew: true,
+    tools: ['Claude'],
+    beforeYouStart: [
+      'A Claude account with Artifacts enabled (Settings → Feature Preview)',
+      'An idea for a simple tool, calculator, or document you need',
+      'No coding knowledge required — Claude writes all the code'
+    ],
+    expectedOutcome: 'At least two working artifacts: a practical interactive tool (calculator, form, or dashboard) and a polished document — both ready to download or share.',
+    troubleshooting: [
+      {
+        problem: 'Claude responds in the chat instead of creating an artifact',
+        solution: 'Explicitly say: "Create this as an artifact" or "Build this as an interactive artifact I can use."'
+      },
+      {
+        problem: 'The interactive artifact has a bug or doesn\'t work',
+        solution: 'Tell Claude exactly what broke: "When I click the Calculate button, nothing happens. Fix the click handler." Be specific about the symptom.'
+      },
+      {
+        problem: 'I want to add features but the artifact gets messy',
+        solution: 'Add one feature at a time. Say: "Add [SPECIFIC FEATURE] to this artifact. Don\'t change anything else." Test after each addition.'
+      }
+    ],
+    steps: [
+      {
+        id: 'cc5-s1',
+        stepNumber: 1,
+        title: 'Build a Practical Calculator or Tool',
+        instruction: 'Ask Claude to build an interactive tool you\'d actually use at work. Describe what it should do, what inputs it needs, and what output it shows. No coding knowledge needed.',
+        promptTemplate: `Build me an interactive [TOOL TYPE] as an artifact.\n\nWhat it does:\n- [CORE FUNCTION — e.g., calculates ROI for our marketing campaigns]\n\nInputs I need to enter:\n- [INPUT 1 — e.g., campaign budget]\n- [INPUT 2 — e.g., expected conversion rate]\n- [INPUT 3 — e.g., average deal size]\n\nOutput it should show:\n- [OUTPUT 1 — e.g., projected ROI percentage]\n- [OUTPUT 2 — e.g., break-even point]\n- [OUTPUT 3 — e.g., a visual chart of projected returns]\n\nDesign: Clean and professional. Use a modern dark theme. Make it look like a real product, not a prototype.`,
+        expectedOutput: 'A working interactive artifact with input fields, calculations, and visual output — rendered in the artifact panel, ready to use.',
+        tips: 'Try it: "Build me an interactive SaaS pricing calculator as an artifact. Inputs: number of users, plan tier (starter/growth/enterprise), billing period (monthly/annual). Output: monthly cost, annual cost, savings from annual billing, and a comparison table across all tiers. Design: Clean and professional with a blue/white color scheme."'
+      },
+      {
+        id: 'cc5-s2',
+        stepNumber: 2,
+        title: 'Create a Polished Document or Report',
+        instruction: 'Use artifacts to create formatted documents — project plans, reports, templates — that you can download as real files.',
+        promptTemplate: `Create a [DOCUMENT TYPE] as an artifact.\n\nTopic: [SUBJECT]\nAudience: [WHO WILL READ THIS]\nLength: [PAGE / WORD TARGET]\n\nStructure it as:\n1. [SECTION 1]\n2. [SECTION 2]\n3. [SECTION 3]\n4. [SECTION 4]\n\nInclude:\n- [SPECIFIC ELEMENTS — e.g., an executive summary, data tables, recommendations]\n\nStyle: Professional and polished. This will be shared externally.`,
+        expectedOutput: 'A rendered, formatted document in the artifact panel that you can preview, copy, and download.',
+        tips: 'Try it: "Create a quarterly business review template as an artifact. Structure: 1. Executive Summary, 2. Key Metrics (as a table with YoY comparison columns), 3. Highlights & Lowlights, 4. Next Quarter Priorities, 5. Resource Requests. Each section should have placeholder text showing what to fill in. Style: clean, corporate, ready to present."'
+      },
+      {
+        id: 'cc5-s3',
+        stepNumber: 3,
+        title: 'Build a Visual Diagram or Flowchart',
+        instruction: 'Ask Claude to create Mermaid diagrams for processes, org charts, user flows, or system architecture. These render as real, visual diagrams in the artifact panel.',
+        promptTemplate: `Create a [DIAGRAM TYPE — flowchart / sequence diagram / org chart / user journey] as a Mermaid diagram artifact.\n\nShow: [WHAT THE DIAGRAM SHOULD ILLUSTRATE]\n\nInclude:\n- [KEY NODES or STEPS]\n- [DECISION POINTS if it's a flowchart]\n- [CONNECTIONS between elements]\n\nKeep it readable — no more than [N] nodes. Use clear, short labels.`,
+        expectedOutput: 'A rendered visual diagram in the artifact panel, showing your process or structure as a clean, shareable graphic.',
+        tips: 'Try it: "Create a customer support escalation flowchart as a Mermaid diagram artifact. Show: Ticket comes in → auto-categorize (billing/technical/general) → each category has different routing → escalation triggers at 24h and 48h → resolution or manager review. Include decision points for: severity level, SLA breach, and VIP customer flag. Keep it under 15 nodes."'
+      },
+      {
+        id: 'cc5-s4',
+        stepNumber: 4,
+        title: 'Iterate and Share',
+        instruction: 'Refine your artifact through conversation, then share it. You can publish artifacts publicly or share within your organization.',
+        promptTemplate: `Make these changes to the artifact:\n\n1. [CHANGE 1 — e.g., add a reset button]\n2. [CHANGE 2 — e.g., change the color scheme to match our brand: primary=#2563EB, background=#F8FAFC]\n3. [CHANGE 3 — e.g., add a footer with "Generated by [Team Name] — [Date]"]\n\nDo NOT change anything else. Keep all existing functionality working.`,
+        expectedOutput: 'An updated artifact with your requested changes applied cleanly — no regressions in existing functionality.',
+        tips: 'When you\'re happy with an artifact, click the Share button to publish it or share with your org. Anyone with the link can view and interact with interactive artifacts — they don\'t need a Claude account. Others can also "remix" your artifact to build on it.'
+      }
+    ],
+    relatedPlaybooks: [
+      { id: 'cc-4', title: 'Projects & Persistent Context', slug: 'claude-104-projects-and-persistent-context' },
+      { id: 'cc-6', title: 'Research Mode & Deep Dives', slug: 'claude-106-research-mode-deep-dives' }
+    ]
+  },
+  {
+    id: 'cc-6',
+    slug: 'claude-106-research-mode-deep-dives',
+    title: 'Research Mode & Deep Dives',
+    subtitle: 'Run multi-source investigations that would take you hours — in minutes',
+    category: 'Claude Crash Course',
+    difficulty: 'Advanced',
+    timeToComplete: 20,
+    timeSaved: 180,
+    completionCount: 987,
+    rating: 4.8,
+    isPro: false,
+    isNew: true,
+    tools: ['Claude'],
+    beforeYouStart: [
+      'Claude Pro or Max account with Web Search enabled',
+      'Research Mode toggle enabled (bottom-left of the chat interface)',
+      'A complex question that needs multiple sources to answer properly'
+    ],
+    expectedOutcome: 'A cite-backed research report synthesizing information from multiple web sources and (optionally) your connected integrations — ready to share with stakeholders.',
+    troubleshooting: [
+      {
+        problem: 'Research is taking too long (30+ minutes)',
+        solution: 'Your prompt is too broad. Next time, be more specific: narrow the scope, add constraints, or define the exact sections you want.'
+      },
+      {
+        problem: 'The report doesn\'t cover what I actually needed',
+        solution: 'Specify the exact sections upfront. "Structure the report as: Market Size, Key Players (top 5), Pricing Trends, Our Opportunity" gives Claude a roadmap.'
+      },
+      {
+        problem: 'Citations are from low-quality sources',
+        solution: 'Add: "Prioritize data from: industry reports, company filings, and established publications. Deprioritize blog posts and forums unless they provide unique data."'
+      }
+    ],
+    steps: [
+      {
+        id: 'cc6-s1',
+        stepNumber: 1,
+        title: 'Write a Research Brief — Tell Claude What to Investigate',
+        instruction: 'Enable Research mode (the toggle at the bottom-left of the chat interface turns blue). Then write a structured research prompt — think of it as a brief to a research analyst.',
+        promptTemplate: `Research the following topic and produce a comprehensive report:\n\n**Topic:** [SPECIFIC RESEARCH QUESTION]\n\n**Context:** I need this for [PURPOSE — e.g., a board presentation / market entry decision / competitive analysis]. My audience is [WHO WILL READ THIS].\n\n**Scope:**\n- Focus areas: [LIST 3-5 SPECIFIC AREAS]\n- Time frame: [CURRENT / LAST 12 MONTHS / LAST 5 YEARS]\n- Geography: [GLOBAL / US ONLY / SPECIFIC REGIONS]\n\n**Report structure:**\n1. Executive Summary (200 words)\n2. [SECTION 2 WITH SPECIFIC FOCUS]\n3. [SECTION 3 WITH SPECIFIC FOCUS]\n4. [SECTION 4 WITH SPECIFIC FOCUS]\n5. Key Risks and Open Questions\n6. Recommended Next Steps\n\n**Requirements:**\n- Cite all claims with sources\n- Include data and numbers wherever possible\n- Flag any areas where data is limited or conflicting`,
+        expectedOutput: 'Claude will work for 5-15 minutes, conducting multiple searches, and deliver a structured research report with citations.',
+        tips: 'Try it: "Research the current state of AI-powered customer support tools and produce a report. Context: I\'m evaluating vendors for our 50-person support team. Focus areas: top 5 players by market share, pricing models, implementation timelines, customer satisfaction scores. Structure: Executive Summary, Market Landscape (table), Vendor Deep Dives (top 5), Build vs Buy Analysis, Recommended Shortlist."'
+      },
+      {
+        id: 'cc6-s2',
+        stepNumber: 2,
+        title: 'Competitive Landscape Deep Dive',
+        instruction: 'Use Research mode for competitive intelligence — Claude will pull from multiple sources to build a comprehensive picture of your competitive landscape.',
+        promptTemplate: `Run a competitive analysis on [YOUR COMPANY/PRODUCT] vs these competitors: [COMPETITOR 1], [COMPETITOR 2], [COMPETITOR 3].\n\nFor each competitor, investigate:\n1. Core product and positioning (one paragraph each)\n2. Pricing (specific tiers and numbers if publicly available)\n3. Recent announcements or product launches (last 6 months)\n4. Customer reviews — common praise and complaints\n5. Estimated company size and funding\n\nPresent as a comparison table where possible.\n\nThen add a section called "Our Opportunity" — based on competitor gaps and customer complaints, where should we focus?\n\nCite everything.`,
+        expectedOutput: 'A structured competitive analysis with specific data points, comparison tables, and an opportunity assessment — all cited.',
+        tips: 'This prompt beats generic competitor research because it asks for specifics (pricing tiers, recent launches, review sentiment) rather than allowing Claude to stay surface-level.'
+      },
+      {
+        id: 'cc6-s3',
+        stepNumber: 3,
+        title: 'Research + Internal Data Combo',
+        instruction: 'If you have Google Workspace connected, Claude can combine web research with your internal documents, emails, and calendar for richer analysis.',
+        promptTemplate: `I need you to combine web research with my connected Google Workspace data.\n\n**External research:**\n- [WHAT TO RESEARCH ON THE WEB — e.g., industry benchmarks for SaaS metrics in our space]\n\n**Internal context to pull in:**\n- [WHAT TO LOOK FOR IN MY CONNECTED TOOLS — e.g., recent emails or docs mentioning our Q4 targets]\n\n**Deliverable:**\nA [REPORT TYPE] that compares our internal situation against the external benchmarks.\n\nStructure:\n1. Industry Benchmarks (from web research)\n2. Our Current Performance (from internal data)\n3. Gap Analysis (comparing the two)\n4. Recommended Actions (prioritized, specific)`,
+        expectedOutput: 'A report that blends external research with your internal data — comparing your company\'s situation against market benchmarks.',
+        tips: 'If you don\'t have Google Workspace connected, you can upload internal documents directly to the chat and combine them with Research mode\'s web results.'
+      },
+      {
+        id: 'cc6-s4',
+        stepNumber: 4,
+        title: 'Turn Research into Actions',
+        instruction: 'After Claude delivers the research report, use a follow-up prompt to turn insights into a concrete action plan.',
+        promptTemplate: `Based on the research report you just produced, create an action plan.\n\nFor each recommendation:\n- **Action:** What specifically to do (one sentence)\n- **Owner:** What role should own this (e.g., Head of Product, Marketing Lead)\n- **Timeline:** Suggested deadline or timeframe\n- **Dependencies:** What needs to happen first\n- **Success metric:** How we'll know this worked\n\nPrioritize by impact. Put quick wins (under 1 week) at the top.\nFormat as a numbered list I can paste into our project tracker.`,
+        expectedOutput: 'A prioritized, assignable action plan derived from the research findings — ready to paste into Notion, Asana, Jira, or any project management tool.',
+        tips: 'This two-step approach (research first → action plan second) consistently produces better results than trying to get research + recommendations in one prompt. The research builds Claude\'s context so the action plan is grounded in specifics.'
+      }
+    ],
+    relatedPlaybooks: [
+      { id: 'cc-5', title: 'Artifacts & Interactive Outputs', slug: 'claude-105-artifacts-and-interactive-outputs' },
+      { id: 'cc-1', title: 'Your First Conversation with Claude', slug: 'claude-101-your-first-conversation' }
+    ]
+  }
+];
+
+// Cowork Plugin Playbooks – defined in separate file for maintainability
+export { coworkPluginPlaybooks } from './coworkPluginPlaybooks';
+
+// Designer AI Shipping Playbook
+export const designerAIPlaybooks: Playbook[] = [
+  {
+    id: 'dai-1',
+    slug: 'ship-your-app-with-ai-designers-guide',
+    title: 'Ship Your App with AI — A Designer\'s Complete Guide',
+    subtitle: 'Go from Figma to a live, deployed app using Gemini, Claude, and Antigravity — no engineering team required',
+    category: 'AI for Designers',
+    difficulty: 'Intermediate',
+    timeToComplete: 45,
+    timeSaved: 480,
+    completionCount: 0,
+    rating: 5.0,
+    isPro: false,
+    isNew: true,
+    tools: ['Claude', 'Gemini'],
+    beforeYouStart: [
+      'A Figma design (or clear visual reference) for the app you want to build',
+      'Your design system documented — colors, typography, spacing, components (even rough notes work)',
+      'A GitHub account and Git installed (run `git --version` in terminal to check)',
+      'Access to Claude (claude.ai or Antigravity IDE)',
+      'Access to Google Gemini (gemini.google.com or Gemini in your IDE)',
+      '45-60 minutes of focused time'
+    ],
+    expectedOutcome: 'A fully functional, styled web app built from your design system, pushed to your GitHub repository — ready to deploy on Vercel, Netlify, or any hosting platform.',
+    troubleshooting: [
+      {
+        problem: 'Gemini ignores my design tokens and uses its own styles',
+        solution: 'Be more explicit. Instead of "use my brand colors", say "ONLY use these exact hex values: primary: #1A1A2E, accent: #E94560. Do NOT use any other colors. If you need a shade, use opacity variants of these."'
+      },
+      {
+        problem: 'Claude generates a different tech stack than what I wanted',
+        solution: 'State the stack upfront: "Use React + TypeScript + Vite. Do NOT use Next.js, Vue, or any other framework. Do NOT add TailwindCSS."'
+      },
+      {
+        problem: 'The AI-generated code looks nothing like my design',
+        solution: 'Break it down smaller. Don\'t ask for the full page — ask for one component at a time. Start with the nav bar, verify it matches, then move to the hero section, etc.'
+      },
+      {
+        problem: 'Git push fails with "permission denied"',
+        solution: 'Run `gh auth login` if using GitHub CLI, or set up an SSH key: `ssh-keygen -t ed25519` then add the public key at github.com/settings/keys'
+      }
+    ],
+    steps: [
+      {
+        id: 'dai1-s1',
+        stepNumber: 1,
+        title: 'Extract Your Design System into Code-Ready Tokens',
+        instruction: 'Before any AI touches your code, you need your design system in a format AI can work with. Open your Figma file and extract every design decision into a structured document. This is the most important step — it becomes the "source of truth" that every AI tool will reference.',
+        promptTemplate: `I'm a designer preparing to build my app with AI. Help me create a complete design system document from my design specs.
+
+Here are my design tokens:
+
+**Colors:**
+- Primary: [YOUR PRIMARY COLOR HEX]
+- Secondary: [YOUR SECONDARY COLOR HEX]
+- Accent: [YOUR ACCENT COLOR HEX]
+- Background: [YOUR BG COLOR]
+- Surface: [YOUR CARD/SURFACE COLOR]
+- Text Primary: [YOUR MAIN TEXT COLOR]
+- Text Secondary: [YOUR MUTED TEXT COLOR]
+- Success: [GREEN HEX]
+- Error: [RED HEX]
+
+**Typography:**
+- Font Family: [YOUR FONT e.g. Inter, Outfit, Space Grotesk]
+- Heading 1: [SIZE/WEIGHT e.g. 48px/Bold]
+- Heading 2: [SIZE/WEIGHT]
+- Heading 3: [SIZE/WEIGHT]
+- Body: [SIZE/WEIGHT e.g. 16px/Regular]
+- Small: [SIZE/WEIGHT e.g. 14px/Regular]
+- Caption: [SIZE/WEIGHT e.g. 12px/Medium]
+
+**Spacing:**
+- Base unit: [e.g. 4px or 8px]
+- Component padding: [e.g. 16px]
+- Section gap: [e.g. 32px]
+- Border radius: [e.g. 12px for cards, 8px for buttons]
+
+**Shadows:**
+- Card shadow: [e.g. 0 2px 8px rgba(0,0,0,0.08)]
+- Elevated shadow: [e.g. 0 8px 24px rgba(0,0,0,0.12)]
+
+Convert this into a complete CSS file (index.css) with:
+1. CSS custom properties (variables) on :root
+2. A CSS reset
+3. Base typography styles
+4. Utility classes for common patterns
+5. Component base styles (buttons, cards, inputs)
+
+Use semantic naming. Make it production-ready.`,
+        expectedOutput: 'A complete CSS design system file with custom properties, reset, typography, and component base styles — all using your exact design tokens.',
+        tips: 'Pro tip: In Figma, use the "Inspect" panel to grab exact values. If you use Figma Tokens plugin, you can export tokens as JSON and paste them directly into the prompt.',
+        tools: ['Claude']
+      },
+      {
+        id: 'dai1-s2',
+        stepNumber: 2,
+        title: 'Hardcode Your Design System into Gemini',
+        instruction: 'Now take your design system and give it to Gemini as permanent context. This ensures every piece of code Gemini generates will automatically use YOUR design language — not generic defaults. In Gemini, use the system instruction or project context feature to lock in your design system.',
+        promptTemplate: `You are a frontend developer who STRICTLY follows this design system. Never deviate from these values. Never use default or generic styles.
+
+DESIGN SYSTEM — [YOUR APP NAME]
+================================
+
+CSS Custom Properties (use these EXACTLY):
+--color-primary: [HEX];
+--color-secondary: [HEX];
+--color-accent: [HEX];
+--color-bg: [HEX];
+--color-surface: [HEX];
+--color-text: [HEX];
+--color-text-muted: [HEX];
+
+--font-family: '[YOUR FONT]', system-ui, sans-serif;
+--font-size-h1: [SIZE];
+--font-size-h2: [SIZE];
+--font-size-h3: [SIZE];
+--font-size-body: [SIZE];
+--font-size-small: [SIZE];
+
+--spacing-xs: [VALUE];
+--spacing-sm: [VALUE];
+--spacing-md: [VALUE];
+--spacing-lg: [VALUE];
+--spacing-xl: [VALUE];
+
+--radius-sm: [VALUE];
+--radius-md: [VALUE];
+--radius-lg: [VALUE];
+
+--shadow-card: [VALUE];
+--shadow-elevated: [VALUE];
+
+RULES:
+1. Every color MUST use a CSS variable from above. No hardcoded hex values in components.
+2. Every font size MUST use the typography scale. No arbitrary sizes.
+3. Every spacing value MUST use the spacing scale. No random pixel values.
+4. All components use border-radius from the radius scale.
+5. Use vanilla CSS. No Tailwind. No CSS-in-JS.
+6. Use semantic HTML elements.
+7. Responsive by default — mobile-first.
+
+When I ask you to build a component or page, ALWAYS reference these variables.`,
+        expectedOutput: 'Gemini acknowledges the design system and confirms it will use these exact tokens for all future code generation in this session/project.',
+        tips: 'In Google Gemini, paste this as a "System Instruction" in Gemini Advanced settings. In Gemini Code Assist (IDE), add this as a `.gemini/styleguide.md` file in your project root — Gemini will automatically follow it for all code suggestions.',
+        tools: ['Gemini']
+      },
+      {
+        id: 'dai1-s3',
+        stepNumber: 3,
+        title: 'Scaffold the App with Claude in Antigravity',
+        instruction: 'Now switch to Claude in Antigravity (your AI coding IDE). Claude will create the project structure, install dependencies, and set up the foundational files. Give Claude your full design context and let it build the skeleton.',
+        promptTemplate: `Create a new React + TypeScript + Vite app in the current directory. Set it up with:
+
+1. Project structure:
+   /src
+     /components  (reusable UI components)
+     /pages       (page-level layouts)
+     /assets      (images, icons)
+     index.css    (my design system — I'll provide this)
+     App.tsx      (main app with routing)
+     main.tsx     (entry point)
+
+2. Install these dependencies:
+   - react-router-dom (for page routing)
+   - lucide-react (for icons)
+   - framer-motion (for animations)
+
+3. Clean up ALL default Vite boilerplate (remove default styles, logos, counter code)
+
+4. Set up App.tsx with react-router-dom HashRouter and placeholder routes for:
+   - / (Home page)
+   - /about (About page)
+   [ADD YOUR PAGES HERE]
+
+5. Import Google Font: [YOUR FONT NAME] in index.html
+
+Do NOT use TailwindCSS. Use vanilla CSS with my design system custom properties.
+Run the commands to set this up now.`,
+        expectedOutput: 'A clean, scaffolded Vite + React + TypeScript project with your design system CSS already in place, routes configured, and all boilerplate removed.',
+        tips: 'In Antigravity, Claude can run terminal commands directly. It will run `npm create vite@latest`, install deps, and set up files. Watch the terminal output to make sure it completes without errors.',
+        tools: ['Claude']
+      },
+      {
+        id: 'dai1-s4',
+        stepNumber: 4,
+        title: 'Build Your Components — One at a Time',
+        instruction: 'This is where your design becomes code. Feed Claude each component from your design, one at a time. Describe the visual layout, interactions, and content — Claude will build it using your locked-in design system.',
+        promptTemplate: `Build the [COMPONENT NAME] component.
+
+Visual description from my design:
+- [DESCRIBE THE LAYOUT — what's on the left, right, center]
+- [DESCRIBE THE CONTENT — headings, text, buttons, images]
+- [DESCRIBE INTERACTIONS — hover states, click actions, animations]
+- [DESCRIBE RESPONSIVE BEHAVIOR — what changes on mobile]
+
+Use my design system CSS variables (--color-primary, --font-size-h1, --spacing-md, etc.).
+Create both the .tsx component file and its .css module file.
+Use semantic HTML. Make it accessible (aria labels, keyboard navigation).
+Add smooth framer-motion animations (fade in on scroll, hover scale, etc.).
+
+Component props should be typed with TypeScript interfaces.`,
+        expectedOutput: 'A complete React component (.tsx) with its CSS module (.css), fully styled with your design system tokens, with animations and responsive behavior.',
+        tips: 'Start with the most important components: NavBar → Hero → Feature Cards → Footer. Build each one, verify it looks right in the browser (npm run dev), then move to the next. Don\'t try to build the entire app in one prompt.',
+        tools: ['Claude']
+      },
+      {
+        id: 'dai1-s5',
+        stepNumber: 5,
+        title: 'Assemble Pages and Add Navigation',
+        instruction: 'Now combine your components into full pages. Tell Claude which components go on which page, in what order, and wire up the navigation.',
+        promptTemplate: `Now assemble the [PAGE NAME] page using the components we built.
+
+Page layout (top to bottom):
+1. NavBar component (sticky, transparent on scroll)
+2. [COMPONENT NAME] — [any page-specific props or content]
+3. [COMPONENT NAME] — [any page-specific props or content]
+4. [COMPONENT NAME] — [any page-specific props or content]
+5. Footer component
+
+Page-specific requirements:
+- Page title: "[YOUR PAGE TITLE]"
+- Meta description: "[YOUR META DESCRIPTION]"
+- The page should have smooth scroll animations (elements fade in as you scroll)
+- Mobile layout: stack all sections vertically, full-width
+
+Update App.tsx to import this page and add it to the router.
+Make the NavBar links actually navigate between pages using react-router-dom Link.`,
+        expectedOutput: 'A complete page component assembling all your individual components, with proper routing, scroll animations, and responsive layout.',
+        tips: 'Review each page in the browser before moving to the next. Use Chrome DevTools responsive mode (Cmd+Shift+M) to check mobile layout. If something doesn\'t match your design, tell Claude: "The spacing between [X] and [Y] is too large, reduce it to --spacing-md" — be specific.',
+        tools: ['Claude']
+      },
+      {
+        id: 'dai1-s6',
+        stepNumber: 6,
+        title: 'Polish — Micro-Animations, Hover States, and Final Touches',
+        instruction: 'The difference between "AI-generated" and "designer-built" is in the details. Use this step to add the micro-interactions and polish that make it feel premium.',
+        promptTemplate: `Review the entire app and add these finishing touches:
+
+1. **Micro-animations:**
+   - Buttons: subtle scale on hover (1.02), smooth color transition
+   - Cards: lift effect on hover (translateY -4px + shadow increase)
+   - Page transitions: fade in when navigating between routes
+   - Scroll animations: elements slide up and fade in as they enter viewport
+
+2. **Loading states:**
+   - Add a minimal loading spinner or skeleton for any async content
+   - Smooth transitions between loading → loaded states
+
+3. **Typography polish:**
+   - Ensure heading hierarchy is correct (one h1 per page)
+   - Check line-height and letter-spacing match the design system
+   - Add text-rendering: optimizeLegibility to body
+
+4. **Responsive final check:**
+   - Navigation collapses to hamburger on mobile
+   - All images are responsive (max-width: 100%)
+   - Touch targets are minimum 44x44px on mobile
+   - No horizontal scroll on any screen size
+
+5. **Accessibility:**
+   - All images have alt text
+   - Color contrast passes WCAG AA (4.5:1 ratio)
+   - Focus styles are visible and match the design
+   - Skip-to-content link for keyboard users`,
+        expectedOutput: 'A polished, production-quality app with smooth animations, proper responsive behavior, and accessibility basics covered.',
+        tips: 'This step is iterative. Run `npm run dev`, test in the browser, and keep giving Claude specific feedback: "The card hover animation is too fast — change duration to 0.3s" or "The mobile nav hamburger icon needs to be 24px, not 16px".',
+        tools: ['Claude']
+      },
+      {
+        id: 'dai1-s7',
+        stepNumber: 7,
+        title: 'Push to GitHub and Deploy',
+        instruction: 'Your app is built! Now push it to GitHub and optionally deploy it live. These are terminal commands — Claude in Antigravity can run them for you.',
+        promptTemplate: `Help me push this project to GitHub and prepare it for deployment.
+
+Step by step:
+1. Initialize git in this project (if not already done)
+2. Create a .gitignore for React/Vite (exclude node_modules, dist, .env, etc.)
+3. Stage all files and make the initial commit
+4. Create a new repository on GitHub called "[YOUR REPO NAME]"
+5. Push to the main branch
+6. Run a production build to verify everything compiles: npm run build
+
+Commands I need (give me each one to run):
+
+git init
+git add .
+git commit -m "Initial commit: [YOUR APP NAME] — built with AI"
+gh repo create [YOUR REPO NAME] --public --source=. --push
+
+Then for deployment on Vercel:
+npx vercel --prod
+
+Or for Netlify:
+npx netlify deploy --prod --dir=dist`,
+        expectedOutput: 'Your complete app pushed to a GitHub repository, with a production build verified and optionally deployed to a live URL on Vercel or Netlify.',
+        tips: 'If you don\'t have the GitHub CLI (`gh`), install it: `brew install gh` (Mac) or download from cli.github.com. For Vercel deployment, you\'ll need a free Vercel account — sign up at vercel.com with your GitHub account for the smoothest experience.',
+        tools: ['Claude']
+      }
+    ],
+    relatedPlaybooks: [
+      { id: 'cc-1', title: 'Your First Conversation with Claude', slug: 'claude-101-your-first-conversation' },
+      { id: 'cc-2', title: 'Prompt Engineering Essentials', slug: 'claude-102-prompt-engineering-essentials' }
     ]
   }
 ];
