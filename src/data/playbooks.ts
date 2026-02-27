@@ -2252,6 +2252,7 @@ export const designerAIPlaybooks: Playbook[] = [
         instruction: 'Both tools use the Model Context Protocol (MCP) to read your actual design data (layers, tokens, spacing) — not just a flattened screenshot.',
         promptTemplate: 'For Cowork:\nSearch for the "Figma" connector in the UI and click Connect. Authenticate your account.\n\nFor Claude Code (run in terminal):\nclaude mcp add figma --env FIGMA_ACCESS_TOKEN="[YOUR_FIGMA_TOKEN]"',
         expectedOutput: 'Claude now has deep, structural read access to your Figma files directly through the API.',
+        tips: 'Fact Check: You can just connect your Figma from Cowork, and then move to Claude Code! Once connected in the desktop app, it shares the MCP configuration automatically.',
         tools: ['Claude Cowork', 'Claude Code', 'Figma MCP']
       },
       {
