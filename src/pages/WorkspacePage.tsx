@@ -5,8 +5,6 @@ import {
   Zap,
   Clock,
   BookOpen,
-  TrendingUp,
-  Award,
   Play,
   Bookmark,
   BarChart3,
@@ -114,10 +112,12 @@ export default function WorkspacePage() {
         setSavedPlaybooks(mappedSaved);
 
         const progressRaw = await getPlaybookProgress(user.id);
-        const progress: InProgressPlaybook[] = progressRaw.map(p => ({
-          ...p,
-          totalSteps: p.steps.length,
-        })) as InProgressPlaybook[];
+        const progress: InProgressPlaybook[] = progressRaw
+          .filter(p => p != null)
+          .map(p => ({
+            ...p,
+            totalSteps: p!.steps?.length || 0,
+          })) as InProgressPlaybook[];
 
         setInProgress(progress);
 
