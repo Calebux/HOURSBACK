@@ -420,5 +420,77 @@ export const coworkPluginPlaybooks: Playbook[] = [
     relatedPlaybooks: [
        { id: 'dai-1', title: 'Ship Your App with AI — A Designer\'s Complete Guide', slug: 'ship-your-app-with-ai-designers-guide' }
     ]
+  },
+  {
+    id: 'cwp-8',
+    slug: 'claude-code-figma-mcp-workflow',
+    title: 'Figma to React with Claude Code & MCP',
+    subtitle: 'Connect your IDE directly to Figma using the Model Context Protocol. Extract exact design tokens, build React components from frames, and push new UI variations back to the canvas.',
+    category: 'AI for Designers',
+    difficulty: 'Advanced',
+    timeToComplete: 25,
+    timeSaved: 600,
+    tools: ['Claude Code', 'Figma MCP Server', 'Terminal'],
+    isPro: true,
+    isNew: true,
+    coworkCompatible: true,
+    completionCount: 420,
+    rating: 5.0,
+    expectedOutcome: 'A seamless pipeline where your ID (Claude Code / Antigravity) reads directly from your live Figma files to build pixel-perfect reacting components, and can generate new design pages back into Figma.',
+    beforeYouStart: [
+      'Have Claude Code installed on your machine (`npm install -g @anthropic-ai/claude-code`) or use Antigravity IDE',
+      'Have a Figma Personal Access Token (Settings → Personal Access Tokens)',
+      'Have the URL of the Figma file you want to connect to'
+    ],
+    steps: [
+      {
+        id: 'cwp-8-step-1',
+        stepNumber: 1,
+        title: 'Connect the Figma MCP Server',
+        instruction: 'First, you need to authenticate Claude Code with Figma using the Model Context Protocol (MCP). This gives Claude read/write access to your design files without leaving the terminal or IDE.',
+        promptTemplate: 'Run this in your terminal or Claude Code CLI to configure the Figma MCP server:\n\n`claude mcp add figma --env FIGMA_ACCESS_TOKEN="[YOUR_FIGMA_TOKEN]"`\n\nOnce added, type `/mcp` in Claude to verify the Figma server is connected and active.',
+        expectedOutput: 'Claude Code confirms the Figma MCP server is connected, granting the AI access to tools like `figma_get_file`, `figma_get_nodes`, and `figma_generate_design`.',
+        tips: 'Never commit your `FIGMA_ACCESS_TOKEN` to git. The MCP configuration securely stores it locally for Claude Code to use.',
+        tools: ['Claude Code', 'Terminal']
+      },
+      {
+        id: 'cwp-8-step-2',
+        stepNumber: 2,
+        title: 'Extract Design Tokens into CSS/Tailwind',
+        instruction: 'Instead of manually inspecting Figma, ask Claude to read the file and generate your exact design system code. Claude uses the MCP to fetch the live variables.',
+        promptTemplate: 'Read the Figma file at `[YOUR_FIGMA_FILE_URL]`.\n\nExtract all the local variables (Colors, Typography, Spacing).\nGenerate a generic `index.css` file with all these values mapped to CSS Custom Properties (`--color-primary`, etc.) on the `:root` selector.\n\nEnsure semantic naming based on how they are named in Figma.',
+        expectedOutput: 'Claude uses the `figma_get_file` tool to read the literal hex codes and spacing values from your Figma file and writes a perfect CSS file to your project.',
+        tips: 'If you use Tailwind, you can alter the prompt to say "Generate a `tailwind.config.js` file extending the theme with these tokens" instead of CSS variables.',
+        tools: ['Claude Code', 'Figma MCP']
+      },
+      {
+        id: 'cwp-8-step-3',
+        stepNumber: 3,
+        title: 'Build a Component directly from a Frame',
+        instruction: 'Find the specific Node ID of the component or UI section you want to build in Figma (Click it, copy the URL, the `node-id=` part is what you need). Ask Claude to build it.',
+        promptTemplate: 'Read the specific Figma node: `[YOUR_NODE_ID]` from file `[YOUR_FIGMA_FILE_URL]`.\n\nBased on its layout, text, and styling, build a React + TypeScript component named `[COMPONENT_NAME].tsx`.\n- Use the CSS variables we generated earlier.\n- Make it responsive (the Figma frame might be desktop-only, so infer the mobile layout).\n- Extract the text into sensible props.',
+        expectedOutput: 'Claude translates the absolute positioning and flexbox rules from Figma into a clean, responsive React component.',
+        tips: 'Figma\'s auto-layout translates beautifully to CSS Flexbox. If your design isn\'t using auto-layout, Claude will have to guess the responsive behavior, so always auto-layout in Figma first!',
+        tools: ['Claude Code', 'Figma MCP']
+      },
+      {
+        id: 'cwp-8-step-4',
+        stepNumber: 4,
+        title: 'Generate New Design Pages back to Figma',
+        instruction: 'Now for the magic. You can ask Claude Code to take your existing design system and generate entirely new pages directly onto your Figma canvas.',
+        promptTemplate: 'Look at the design language in file `[YOUR_FIGMA_FILE_URL]`.\n\nI need a new "Settings / Profile" page. It should include:\n- A header matching the other pages\n- A sidebar navigation for (Account, Security, Billing, Notifications)\n- A main content area showing a Profile form (Avatar, Name, Email, Bio)\n\nGenerate this new design and push it as a new Frame onto the current Figma page.',
+        expectedOutput: 'Claude uses the `figma_generate_design` (or Code to Canvas API via MCP) to construct a new Frame in your live Figma file, assembling it using your existing branding and components.',
+        tips: 'This is perfect for "filling in the gaps". If you designed the Dashboard, you can have Claude automatically generate the tedious Settings, Terms of Service, and 404 pages directly in Figma.',
+        tools: ['Claude Code', 'Figma MCP']
+      }
+    ],
+    troubleshooting: [
+      { problem: 'Claude says "Figma tool not found"', solution: 'Verify the MCP server is running. Type `/mcp` or check your `claude.json` configuration file to ensure the token is correct.' },
+      { problem: 'The generated React component uses weird absolute positioning', solution: 'The source frame in Figma must be using Auto-Layout. If a frame has elements dragged freely onto it, the API reads them as absolute coordinates.' },
+      { problem: 'Cannot access Figma link', solution: 'Ensure the link is properly formatted and the Personal Access Token belongs to a Figma account with read access to that file.' }
+    ],
+    relatedPlaybooks: [
+       { id: 'cwp-7', title: 'Figma to Code Automation with Claude Cowork', slug: 'cowork-figma-code-to-canvas' }
+    ]
   }
 ];
