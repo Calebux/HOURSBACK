@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Mail, Lock, Loader2, AlertCircle, User as UserIcon } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { updateProfile } from '../lib/api';
+import { toast } from 'sonner';
 
 interface AuthModalProps {
     isOpen: boolean;
@@ -11,7 +12,7 @@ interface AuthModalProps {
 }
 
 export function AuthModal({ isOpen, onClose, defaultView = 'signin' }: AuthModalProps) {
-    const [view, setView] = useState<'signin' | 'signup'>(defaultView);
+    const [view, setView] = useState<'signin' | 'signup' | 'reset'>(defaultView as any);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [fullName, setFullName] = useState('');
@@ -31,7 +32,8 @@ export function AuthModal({ isOpen, onClose, defaultView = 'signin' }: AuthModal
                     options: {
                         data: {
                             full_name: fullName,
-                        }
+                        },
+                        emailRedirectTo: `${window.location.origin}/`,
                     }
                 });
                 if (signUpError) throw signUpError;
@@ -45,6 +47,14 @@ export function AuthModal({ isOpen, onClose, defaultView = 'signin' }: AuthModal
                     }
                 }
                 onClose();
+            } else if (view === 'reset') {
+                const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+                    redirectTo: `${window.location.origin}/settings`,
+                });
+                if (resetError) throw resetError;
+                toast.success('Check your email for the password reset link!');
+                onClose();
+                return;
             } else {
                 const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
                     email,
@@ -91,12 +101,14 @@ export function AuthModal({ isOpen, onClose, defaultView = 'signin' }: AuthModal
                         <div className="pt-10 pb-6 px-8 relative overflow-hidden">
                             <div className="absolute top-0 right-0 w-64 h-64 bg-brand-blue/10 rounded-bl-full -mr-20 -mt-20 pointer-events-none" />
                             <h2 className="text-3xl font-bold tracking-tight text-brand-dark mb-2">
-                                {view === 'signin' ? 'Welcome back' : 'Create account'}
+                                {view === 'signin' ? 'Welcome back' : view === 'signup' ? 'Create account' : 'Reset password'}
                             </h2>
                             <p className="text-brand-dark/70">
                                 {view === 'signin'
                                     ? 'Enter your details to access your workspace.'
-                                    : 'Start leveraging AI playbooks today.'}
+                                    : view === 'signup'
+                                        ? 'Start leveraging AI playbooks today.'
+                                        : 'Enter your email to receive a reset link.'}
                             </p>
                         </div>
 
@@ -146,22 +158,31 @@ export function AuthModal({ isOpen, onClose, defaultView = 'signin' }: AuthModal
                                     </div>
                                 </div>
 
-                                <div>
-                                    <label className="block text-sm font-medium text-brand-dark mb-1.5 ml-1">Password</label>
-                                    <div className="relative">
-                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-brand-dark/40">
-                                            <Lock className="w-5 h-5" />
+                                {view !== 'reset' && (
+                                    <div>
+                                        <div className="flex items-center justify-between mb-1.5 ml-1 ring-0">
+                                            <label className="block text-sm font-medium text-brand-dark">Password</label>
+                                            {view === 'signin' && (
+                                                <button type="button" onClick={() => setView('reset')} className="text-sm text-brand-blue hover:underline">
+                                                    Forgot password?
+                                                </button>
+                                            )}
                                         </div>
-                                        <input
-                                            type="password"
-                                            required
-                                            value={password}
-                                            onChange={(e) => setPassword(e.target.value)}
-                                            className="block w-full pl-11 pr-4 py-3 bg-brand-light border border-brand-dark/10 rounded-2xl text-brand-dark placeholder:text-brand-dark/40 focus:outline-none focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue transition-all"
-                                            placeholder="••••••••"
-                                        />
+                                        <div className="relative">
+                                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-brand-dark/40">
+                                                <Lock className="w-5 h-5" />
+                                            </div>
+                                            <input
+                                                type="password"
+                                                required
+                                                value={password}
+                                                onChange={(e) => setPassword(e.target.value)}
+                                                className="block w-full pl-11 pr-4 py-3 bg-brand-light border border-brand-dark/10 rounded-2xl text-brand-dark placeholder:text-brand-dark/40 focus:outline-none focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue transition-all"
+                                                placeholder="••••••••"
+                                            />
+                                        </div>
                                     </div>
-                                </div>
+                                )}
 
                                 <button
                                     type="submit"
@@ -171,22 +192,29 @@ export function AuthModal({ isOpen, onClose, defaultView = 'signin' }: AuthModal
                                     {isLoading ? (
                                         <Loader2 className="w-5 h-5 animate-spin" />
                                     ) : (
-                                        <>{view === 'signin' ? 'Sign In' : 'Create Account'}</>
+                                        <>{view === 'signin' ? 'Sign In' : view === 'signup' ? 'Create Account' : 'Send Reset Link'}</>
                                     )}
                                 </button>
                             </form>
 
                             {/* Toggle View */}
-                            <div className="mt-8 text-center">
-                                <p className="text-sm text-brand-dark/70">
-                                    {view === 'signin' ? "Don't have an account?" : "Already have an account?"}{' '}
-                                    <button
-                                        onClick={() => setView(view === 'signin' ? 'signup' : 'signin')}
-                                        className="text-brand-blue font-medium hover:underline"
-                                    >
-                                        {view === 'signin' ? 'Sign up' : 'Sign in'}
-                                    </button>
-                                </p>
+                            <div className="mt-8 text-center flex flex-col items-center gap-2">
+                                {view !== 'signin' && (
+                                    <p className="text-sm text-brand-dark/70">
+                                        Already have an account?{' '}
+                                        <button type="button" onClick={() => setView('signin')} className="text-brand-blue font-medium hover:underline">
+                                            Sign in
+                                        </button>
+                                    </p>
+                                )}
+                                {view === 'signin' && (
+                                    <p className="text-sm text-brand-dark/70">
+                                        Don't have an account?{' '}
+                                        <button type="button" onClick={() => setView('signup')} className="text-brand-blue font-medium hover:underline">
+                                            Sign up
+                                        </button>
+                                    </p>
+                                )}
                             </div>
                         </div>
                     </motion.div>

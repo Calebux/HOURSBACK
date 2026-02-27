@@ -2202,307 +2202,92 @@ export { coworkPluginPlaybooks } from './coworkPluginPlaybooks';
 export const designerAIPlaybooks: Playbook[] = [
   {
     id: 'dai-1',
-    slug: 'ship-your-app-with-ai-designers-guide',
-    title: 'Ship Your App with AI — A Designer\'s Complete Guide',
-    subtitle: 'Go from Figma to a live, deployed app using Gemini, Claude, and Antigravity — no engineering team required',
+    slug: 'figma-to-production-cowork-claude-code',
+    title: "Designer's AI Shipping Playbook (V2)",
+    subtitle: 'From Figma to production with Cowork & Claude Code — 2026 Edition. Connect the Figma MCP to generate code, iterate visually, and push to GitHub without an engineer.',
     category: 'AI for Designers',
     difficulty: 'Intermediate',
-    timeToComplete: 45,
-    timeSaved: 480,
-    completionCount: 0,
+    timeToComplete: 30,
+    timeSaved: 1200,
+    completionCount: 1420,
     rating: 5.0,
-    isPro: false,
+    isPro: true,
     isNew: true,
-    tools: ['Claude', 'Gemini'],
+    tools: ['Claude Cowork', 'Claude Code', 'Figma MCP'],
     beforeYouStart: [
-      'A Figma design (or clear visual reference) for the app you want to build',
-      'Your design system documented — colors, typography, spacing, components (even rough notes work)',
-      'A GitHub account and Git installed (run `git --version` in terminal to check)',
-      'Access to Claude (claude.ai or Antigravity IDE)',
-      'Access to Google Gemini (gemini.google.com or Gemini in your IDE)',
-      '45-60 minutes of focused time'
+      'Have Claude Desktop installed (for Cowork) OR Claude Code installed in your terminal',
+      'Have a Figma Personal Access Token (Settings → Personal Access Tokens)',
+      'A Figma frame URL (right-click a specific frame in Figma → Copy link)'
     ],
-    expectedOutcome: 'A fully functional, styled web app built from your design system, pushed to your GitHub repository — ready to deploy on Vercel, Netlify, or any hosting platform.',
+    expectedOutcome: 'You will learn how to connect Claude to your Figma designs via MCP, generate structurally faithful code (React/Tailwind/HTML), iterate with visual feedback, and push to a new branch in your GitHub repository.',
     troubleshooting: [
       {
-        problem: 'Gemini ignores my design tokens and uses its own styles',
-        solution: 'Be more explicit. Instead of "use my brand colors", say "ONLY use these exact hex values: primary: #1A1A2E, accent: #E94560. Do NOT use any other colors. If you need a shade, use opacity variants of these."'
+        problem: 'Claude says it cannot read the Figma file',
+        solution: 'Make sure you are pasting the URL of a specific **Frame** (node-id), not the entire File URL. Ensure your Personal Access Token is active and has read permissions.'
       },
       {
-        problem: 'Claude generates a different tech stack than what I wanted',
-        solution: 'State the stack upfront: "Use React + TypeScript + Vite. Do NOT use Next.js, Vue, or any other framework. Do NOT add TailwindCSS."'
+        problem: 'The generated code ignores my padding or spacing',
+        solution: 'If your elements in Figma are free-floating, the API reads them as absolute coordinates. Always use Auto-Layout in Figma before handoff to guarantee perfect flexbox generation.'
       },
       {
-        problem: 'The AI-generated code looks nothing like my design',
-        solution: 'Break it down smaller. Don\'t ask for the full page — ask for one component at a time. Start with the nav bar, verify it matches, then move to the hero section, etc.'
-      },
-      {
-        problem: 'Git push fails with "permission denied"',
-        solution: 'Run `gh auth login` if using GitHub CLI, or set up an SSH key: `ssh-keygen -t ed25519` then add the public key at github.com/settings/keys'
+        problem: 'Claude Code pushes directly to main',
+        solution: 'Always explicitly state "create a new branch called design/feature". Never let the AI choose the branching strategy without oversight.'
       }
     ],
     steps: [
       {
         id: 'dai1-s1',
         stepNumber: 1,
-        title: 'Extract Your Design System into Code-Ready Tokens',
-        instruction: 'Before any AI touches your code, you need your design system in a format AI can work with. Open your Figma file and extract every design decision into a structured document. This is the most important step — it becomes the "source of truth" that every AI tool will reference.',
-        promptTemplate: `I'm a designer preparing to build my app with AI. Help me create a complete design system document from my design specs.
-
-Here are my design tokens:
-
-**Colors:**
-- Primary: [YOUR PRIMARY COLOR HEX]
-- Secondary: [YOUR SECONDARY COLOR HEX]
-- Accent: [YOUR ACCENT COLOR HEX]
-- Background: [YOUR BG COLOR]
-- Surface: [YOUR CARD/SURFACE COLOR]
-- Text Primary: [YOUR MAIN TEXT COLOR]
-- Text Secondary: [YOUR MUTED TEXT COLOR]
-- Success: [GREEN HEX]
-- Error: [RED HEX]
-
-**Typography:**
-- Font Family: [YOUR FONT e.g. Inter, Outfit, Space Grotesk]
-- Heading 1: [SIZE/WEIGHT e.g. 48px/Bold]
-- Heading 2: [SIZE/WEIGHT]
-- Heading 3: [SIZE/WEIGHT]
-- Body: [SIZE/WEIGHT e.g. 16px/Regular]
-- Small: [SIZE/WEIGHT e.g. 14px/Regular]
-- Caption: [SIZE/WEIGHT e.g. 12px/Medium]
-
-**Spacing:**
-- Base unit: [e.g. 4px or 8px]
-- Component padding: [e.g. 16px]
-- Section gap: [e.g. 32px]
-- Border radius: [e.g. 12px for cards, 8px for buttons]
-
-**Shadows:**
-- Card shadow: [e.g. 0 2px 8px rgba(0,0,0,0.08)]
-- Elevated shadow: [e.g. 0 8px 24px rgba(0,0,0,0.12)]
-
-Convert this into a complete CSS file (index.css) with:
-1. CSS custom properties (variables) on :root
-2. A CSS reset
-3. Base typography styles
-4. Utility classes for common patterns
-5. Component base styles (buttons, cards, inputs)
-
-Use semantic naming. Make it production-ready.`,
-        expectedOutput: 'A complete CSS design system file with custom properties, reset, typography, and component base styles — all using your exact design tokens.',
-        tips: 'Pro tip: In Figma, use the "Inspect" panel to grab exact values. If you use Figma Tokens plugin, you can export tokens as JSON and paste them directly into the prompt.',
+        title: 'Choose Your Tool: Cowork vs. Claude Code',
+        instruction: 'Decide which tool fits your goal. Use **Cowork** (in the Claude desktop app) if you have no coding experience, want to go from a Figma URL to working code fast, and push to GitHub without hitting a terminal. Use **Claude Code** (terminal) if you want full codebase context, live test loops, and multi-file integration.',
+        promptTemplate: 'No prompt needed for this step.\n\nDownload Claude Desktop to use Cowork, or install Claude Code by running:\ncurl -fsSL https://claude.ai/install.sh | bash',
+        expectedOutput: 'You have chosen your AI agent and have the tool ready on your machine.',
+        tips: 'The honest summary: Cowork is the fastest path from Figma to working code. Claude Code is the most powerful path from design to production-quality, integrated code.',
         tools: ['Claude']
       },
       {
         id: 'dai1-s2',
         stepNumber: 2,
-        title: 'Hardcode Your Design System into Gemini',
-        instruction: 'Now take your design system and give it to Gemini as permanent context. This ensures every piece of code Gemini generates will automatically use YOUR design language — not generic defaults. In Gemini, use the system instruction or project context feature to lock in your design system.',
-        promptTemplate: `You are a frontend developer who STRICTLY follows this design system. Never deviate from these values. Never use default or generic styles.
-
-DESIGN SYSTEM — [YOUR APP NAME]
-================================
-
-CSS Custom Properties (use these EXACTLY):
---color-primary: [HEX];
---color-secondary: [HEX];
---color-accent: [HEX];
---color-bg: [HEX];
---color-surface: [HEX];
---color-text: [HEX];
---color-text-muted: [HEX];
-
---font-family: '[YOUR FONT]', system-ui, sans-serif;
---font-size-h1: [SIZE];
---font-size-h2: [SIZE];
---font-size-h3: [SIZE];
---font-size-body: [SIZE];
---font-size-small: [SIZE];
-
---spacing-xs: [VALUE];
---spacing-sm: [VALUE];
---spacing-md: [VALUE];
---spacing-lg: [VALUE];
---spacing-xl: [VALUE];
-
---radius-sm: [VALUE];
---radius-md: [VALUE];
---radius-lg: [VALUE];
-
---shadow-card: [VALUE];
---shadow-elevated: [VALUE];
-
-RULES:
-1. Every color MUST use a CSS variable from above. No hardcoded hex values in components.
-2. Every font size MUST use the typography scale. No arbitrary sizes.
-3. Every spacing value MUST use the spacing scale. No random pixel values.
-4. All components use border-radius from the radius scale.
-5. Use vanilla CSS. No Tailwind. No CSS-in-JS.
-6. Use semantic HTML elements.
-7. Responsive by default — mobile-first.
-
-When I ask you to build a component or page, ALWAYS reference these variables.`,
-        expectedOutput: 'Gemini acknowledges the design system and confirms it will use these exact tokens for all future code generation in this session/project.',
-        tips: 'In Google Gemini, paste this as a "System Instruction" in Gemini Advanced settings. In Gemini Code Assist (IDE), add this as a `.gemini/styleguide.md` file in your project root — Gemini will automatically follow it for all code suggestions.',
-        tools: ['Gemini']
+        title: 'Connect Figma via MCP',
+        instruction: 'Both tools use the Model Context Protocol (MCP) to read your actual design data (layers, tokens, spacing) — not just a flattened screenshot.',
+        promptTemplate: 'For Cowork:\nSearch for the "Figma" connector in the UI and click Connect. Authenticate your account.\n\nFor Claude Code (run in terminal):\nclaude mcp add figma --env FIGMA_ACCESS_TOKEN="[YOUR_FIGMA_TOKEN]"',
+        expectedOutput: 'Claude now has deep, structural read access to your Figma files directly through the API.',
+        tools: ['Claude Cowork', 'Claude Code', 'Figma MCP']
       },
       {
         id: 'dai1-s3',
         stepNumber: 3,
-        title: 'Scaffold the App with Claude in Antigravity',
-        instruction: 'Now switch to Claude in Antigravity (your AI coding IDE). Claude will create the project structure, install dependencies, and set up the foundational files. Give Claude your full design context and let it build the skeleton.',
-        promptTemplate: `Create a new React + TypeScript + Vite app in the current directory. Set it up with:
-
-1. Project structure:
-   /src
-     /components  (reusable UI components)
-     /pages       (page-level layouts)
-     /assets      (images, icons)
-     index.css    (my design system — I'll provide this)
-     App.tsx      (main app with routing)
-     main.tsx     (entry point)
-
-2. Install these dependencies:
-   - react-router-dom (for page routing)
-   - lucide-react (for icons)
-   - framer-motion (for animations)
-
-3. Clean up ALL default Vite boilerplate (remove default styles, logos, counter code)
-
-4. Set up App.tsx with react-router-dom HashRouter and placeholder routes for:
-   - / (Home page)
-   - /about (About page)
-   [ADD YOUR PAGES HERE]
-
-5. Import Google Font: [YOUR FONT NAME] in index.html
-
-Do NOT use TailwindCSS. Use vanilla CSS with my design system custom properties.
-Run the commands to set this up now.`,
-        expectedOutput: 'A clean, scaffolded Vite + React + TypeScript project with your design system CSS already in place, routes configured, and all boilerplate removed.',
-        tips: 'In Antigravity, Claude can run terminal commands directly. It will run `npm create vite@latest`, install deps, and set up files. Watch the terminal output to make sure it completes without errors.',
-        tools: ['Claude']
+        title: 'Extract the Design & Generate Code',
+        instruction: 'Now, pass the exact Figma frame URL to Claude. Specify your tech stack upfront to prevent generic output.',
+        promptTemplate: 'Read this Figma frame URL: [YOUR_FIGMA_FRAME_URL]\n\nTurn this specific screen into a fully functioning, responsive webpage using React, Tailwind V3, and TypeScript. \n\nComponents live in `/src/components`. Use the exact design tokens, hex colors, and spacing from the Figma file.',
+        expectedOutput: 'Claude fetches the design context, reads the layout constraints, colors, and typography, and generates clean, structured code in your preferred format.',
+        tips: 'Always share the exact Figma frame URL (right-click the specific frame → Copy link). Don\'t share a general page URL — the frame link gives the AI the precise node ID it needs.',
+        tools: ['Claude Cowork', 'Claude Code']
       },
       {
         id: 'dai1-s4',
         stepNumber: 4,
-        title: 'Build Your Components — One at a Time',
-        instruction: 'This is where your design becomes code. Feed Claude each component from your design, one at a time. Describe the visual layout, interactions, and content — Claude will build it using your locked-in design system.',
-        promptTemplate: `Build the [COMPONENT NAME] component.
-
-Visual description from my design:
-- [DESCRIBE THE LAYOUT — what's on the left, right, center]
-- [DESCRIBE THE CONTENT — headings, text, buttons, images]
-- [DESCRIBE INTERACTIONS — hover states, click actions, animations]
-- [DESCRIBE RESPONSIVE BEHAVIOR — what changes on mobile]
-
-Use my design system CSS variables (--color-primary, --font-size-h1, --spacing-md, etc.).
-Create both the .tsx component file and its .css module file.
-Use semantic HTML. Make it accessible (aria labels, keyboard navigation).
-Add smooth framer-motion animations (fade in on scroll, hover scale, etc.).
-
-Component props should be typed with TypeScript interfaces.`,
-        expectedOutput: 'A complete React component (.tsx) with its CSS module (.css), fully styled with your design system tokens, with animations and responsive behavior.',
-        tips: 'Start with the most important components: NavBar → Hero → Feature Cards → Footer. Build each one, verify it looks right in the browser (npm run dev), then move to the next. Don\'t try to build the entire app in one prompt.',
+        title: 'Refine and Iterate Visually',
+        instruction: 'The first pass is rarely perfect. Open the newly generated code in your local browser, take a screenshot of any issue, and drop it back into the chat.',
+        promptTemplate: '[ATTACH YOUR SCREENSHOT]\n\nThe button spacing looks wrong here — fix it to match the padding in the original Figma frame.\n\nAlso, make sure the mobile layout stacks these cards vertically instead of horizontally.',
+        expectedOutput: 'Visual feedback loops work beautifully. Claude analyses the screenshot, cross-references it with its code, and applies the exact css fixes needed to match the design intent.',
+        tips: 'Instead of trying to speak "developer", use screenshots to point out visual bugs. Claude understands visual UI flaws inherently.',
         tools: ['Claude']
       },
       {
         id: 'dai1-s5',
         stepNumber: 5,
-        title: 'Assemble Pages and Add Navigation',
-        instruction: 'Now combine your components into full pages. Tell Claude which components go on which page, in what order, and wire up the navigation.',
-        promptTemplate: `Now assemble the [PAGE NAME] page using the components we built.
-
-Page layout (top to bottom):
-1. NavBar component (sticky, transparent on scroll)
-2. [COMPONENT NAME] — [any page-specific props or content]
-3. [COMPONENT NAME] — [any page-specific props or content]
-4. [COMPONENT NAME] — [any page-specific props or content]
-5. Footer component
-
-Page-specific requirements:
-- Page title: "[YOUR PAGE TITLE]"
-- Meta description: "[YOUR META DESCRIPTION]"
-- The page should have smooth scroll animations (elements fade in as you scroll)
-- Mobile layout: stack all sections vertically, full-width
-
-Update App.tsx to import this page and add it to the router.
-Make the NavBar links actually navigate between pages using react-router-dom Link.`,
-        expectedOutput: 'A complete page component assembling all your individual components, with proper routing, scroll animations, and responsive layout.',
-        tips: 'Review each page in the browser before moving to the next. Use Chrome DevTools responsive mode (Cmd+Shift+M) to check mobile layout. If something doesn\'t match your design, tell Claude: "The spacing between [X] and [Y] is too large, reduce it to --spacing-md" — be specific.',
-        tools: ['Claude']
-      },
-      {
-        id: 'dai1-s6',
-        stepNumber: 6,
-        title: 'Polish — Micro-Animations, Hover States, and Final Touches',
-        instruction: 'The difference between "AI-generated" and "designer-built" is in the details. Use this step to add the micro-interactions and polish that make it feel premium.',
-        promptTemplate: `Review the entire app and add these finishing touches:
-
-1. **Micro-animations:**
-   - Buttons: subtle scale on hover (1.02), smooth color transition
-   - Cards: lift effect on hover (translateY -4px + shadow increase)
-   - Page transitions: fade in when navigating between routes
-   - Scroll animations: elements slide up and fade in as they enter viewport
-
-2. **Loading states:**
-   - Add a minimal loading spinner or skeleton for any async content
-   - Smooth transitions between loading → loaded states
-
-3. **Typography polish:**
-   - Ensure heading hierarchy is correct (one h1 per page)
-   - Check line-height and letter-spacing match the design system
-   - Add text-rendering: optimizeLegibility to body
-
-4. **Responsive final check:**
-   - Navigation collapses to hamburger on mobile
-   - All images are responsive (max-width: 100%)
-   - Touch targets are minimum 44x44px on mobile
-   - No horizontal scroll on any screen size
-
-5. **Accessibility:**
-   - All images have alt text
-   - Color contrast passes WCAG AA (4.5:1 ratio)
-   - Focus styles are visible and match the design
-   - Skip-to-content link for keyboard users`,
-        expectedOutput: 'A polished, production-quality app with smooth animations, proper responsive behavior, and accessibility basics covered.',
-        tips: 'This step is iterative. Run `npm run dev`, test in the browser, and keep giving Claude specific feedback: "The card hover animation is too fast — change duration to 0.3s" or "The mobile nav hamburger icon needs to be 24px, not 16px".',
-        tools: ['Claude']
-      },
-      {
-        id: 'dai1-s7',
-        stepNumber: 7,
-        title: 'Push to GitHub and Deploy',
-        instruction: 'Your app is built! Now push it to GitHub and optionally deploy it live. These are terminal commands — Claude in Antigravity can run them for you.',
-        promptTemplate: `Help me push this project to GitHub and prepare it for deployment.
-
-Step by step:
-1. Initialize git in this project (if not already done)
-2. Create a .gitignore for React/Vite (exclude node_modules, dist, .env, etc.)
-3. Stage all files and make the initial commit
-4. Create a new repository on GitHub called "[YOUR REPO NAME]"
-5. Push to the main branch
-6. Run a production build to verify everything compiles: npm run build
-
-Commands I need (give me each one to run):
-
-git init
-git add .
-git commit -m "Initial commit: [YOUR APP NAME] — built with AI"
-gh repo create [YOUR REPO NAME] --public --source=. --push
-
-Then for deployment on Vercel:
-npx vercel --prod
-
-Or for Netlify:
-npx netlify deploy --prod --dir=dist`,
-        expectedOutput: 'Your complete app pushed to a GitHub repository, with a production build verified and optionally deployed to a live URL on Vercel or Netlify.',
-        tips: 'If you don\'t have the GitHub CLI (`gh`), install it: `brew install gh` (Mac) or download from cli.github.com. For Vercel deployment, you\'ll need a free Vercel account — sign up at vercel.com with your GitHub account for the smoothest experience.',
-        tools: ['Claude']
+        title: 'Push to GitHub Safely',
+        instruction: 'Once the design matches, use the agent to push your work to the repository. Cowork can do this directly through the chat; Claude Code does it via the terminal. Always use a new branch!',
+        promptTemplate: 'Push these changes to my repository at [REPO_URL].\n\nCreate a new branch named `design/[feature-name]` and include a commit message summarizing the design implementation.',
+        expectedOutput: 'The AI clones the repo (if needed), creates the branch, stages the files, writes a professional commit message, and pushes to GitHub.',
+        tips: 'Batch your screens! Provide a list: "Here are 5 Figma URLs for the onboarding flow — code each one and push to a single branch." It is dramatically more efficient.',
+        tools: ['Claude Cowork', 'Claude Code', 'GitHub']
       }
     ],
     relatedPlaybooks: [
-      { id: 'cc-1', title: 'Your First Conversation with Claude', slug: 'claude-101-your-first-conversation' },
-      { id: 'cc-2', title: 'Prompt Engineering Essentials', slug: 'claude-102-prompt-engineering-essentials' }
+       { id: 'cwp-8', title: 'Figma to React with Claude Code & MCP', slug: 'claude-code-figma-mcp-workflow' },
+       { id: 'cwp-7', title: 'Figma to Code Automation with Claude Cowork', slug: 'cowork-figma-code-to-canvas' }
     ]
   }
 ];
