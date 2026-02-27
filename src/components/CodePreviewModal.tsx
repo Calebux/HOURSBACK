@@ -219,8 +219,17 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                                 template="vite-react-ts"
                                 theme="dark"
                                 files={{
-                                    ...files,
-                                    // Override sandbox config if needed here
+                                    "/src/App.tsx": {
+                                        code: files['App.tsx'] || Object.values(files)[0],
+                                        active: true
+                                    },
+                                    // Include any other auxiliary files if they exist
+                                    ...Object.entries(files).reduce((acc, [fileName, content]) => {
+                                        if (fileName !== 'App.tsx' && fileName !== Object.keys(files)[0]) {
+                                            acc[`/src/${fileName}`] = { code: content };
+                                        }
+                                        return acc;
+                                    }, {} as Record<string, any>),
                                 }}
                                 customSetup={{
                                     dependencies: {
