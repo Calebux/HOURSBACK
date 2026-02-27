@@ -36,6 +36,7 @@ export interface Playbook {
   isPro: boolean;
   isNew?: boolean;
   coworkCompatible?: boolean;
+  supportsCodePreview?: boolean;
   tools: string[];
   beforeYouStart: string[];
   expectedOutcome: string;
@@ -2289,6 +2290,108 @@ export const designerAIPlaybooks: Playbook[] = [
     relatedPlaybooks: [
        { id: 'cwp-8', title: 'Figma to React with Claude Code & MCP', slug: 'claude-code-figma-mcp-workflow' },
        { id: 'cwp-7', title: 'Figma to Code Automation with Claude Cowork', slug: 'cowork-figma-code-to-canvas' }
+    ]
+  },
+  {
+    id: 'dai-2',
+    slug: 'build-modern-landing-page-ai',
+    title: "Build a Modern Landing Page in Minutes",
+    subtitle: 'From a blank screen to a stunning, responsive landing page using Claude and Tailwind CSS. Perfect for product launches.',
+    category: 'AI for Designers',
+    difficulty: 'Beginner',
+    timeToComplete: 15,
+    timeSaved: 240,
+    completionCount: 532,
+    rating: 4.9,
+    isPro: false,
+    isNew: true,
+    supportsCodePreview: true,
+    tools: ['Claude', 'ChatGPT'],
+    beforeYouStart: [
+      'Have ideas for your brand colors (e.g., "Deep Purple and Neon Pink")',
+      'Know what your main Call to Action is (e.g., "Join the Waitlist")'
+    ],
+    expectedOutcome: 'A fully responsive React component containing a hero section, feature grid, and footer, styled perfectly with Tailwind CSS.',
+    troubleshooting: [
+      {
+        problem: 'The design looks too generic',
+        solution: 'Use specific descriptive keywords in your prompt like "glassmorphism", "dark mode", "brutalist", or "minimalist Apple style".'
+      }
+    ],
+    steps: [
+      {
+        id: 'dai2-s1',
+        stepNumber: 1,
+        title: 'Define the Structure',
+        instruction: 'Ask the AI to generate the raw React structure of your landing page using a modern stack.',
+        promptTemplate: 'Generate a modern landing page for [Product Name]. \n\nIt must be a single file React component using Tailwind CSS. Include a Hero section with a gradient text headline, a 3-column feature grid, and Call to Action section. Use Lucide React icons.',
+        expectedOutput: 'Claude will write a complete `App.tsx` file containing the semantic HTML and Tailwind classes.',
+        tips: 'Always specify "single file React component" if you just want something easy to copy and paste!',
+        tools: ['Claude']
+      },
+      {
+        id: 'dai2-s2',
+        stepNumber: 2,
+        title: 'Refine the Aesthetics',
+        instruction: 'Review the generated code in the live preview. Iterate on the colors and spacing by asking follow-up questions.',
+        promptTemplate: 'Make the hero section background a dark gradient from #0f172a to #312e81. Increase the padding on the feature cards, and make the main "Get Started" button use a vibrant neon green hover effect.',
+        expectedOutput: 'The AI will update the specific Tailwind classes to match your exact visual requirements.',
+        tips: 'You can use exact hex codes in your prompt. The AI perfectly understands color theory.',
+        tools: ['Claude']
+      }
+    ],
+    relatedPlaybooks: [
+       { id: 'dai-3', title: 'Create a SaaS Dashboard Web App', slug: 'create-saas-dashboard-app' }
+    ]
+  },
+  {
+    id: 'dai-3',
+    slug: 'create-saas-dashboard-app',
+    title: "Create a SaaS Dashboard Web App",
+    subtitle: 'Generate a complex, data-rich dashboard interface with charts, sidebars, and data tables entirely through prompting.',
+    category: 'AI for Designers',
+    difficulty: 'Intermediate',
+    timeToComplete: 20,
+    timeSaved: 600,
+    completionCount: 315,
+    rating: 4.8,
+    isPro: true,
+    isNew: true,
+    supportsCodePreview: true,
+    tools: ['Claude', 'Gemini'],
+    beforeYouStart: [
+      'Basic understanding of what metrics you want to display on your dashboard'
+    ],
+    expectedOutcome: 'A complex React dashboard layout featuring a collapsible sidebar, a top navigation bar, and a main content area with mock metric cards.',
+    troubleshooting: [
+      {
+        problem: 'The dashboard does not fit on mobile screens',
+        solution: 'Tell the AI: "Ensure the sidebar is hidden behind a hamburger menu on mobile, and stack the metric cards vertically on small screens using Tailwind md: classes."'
+      }
+    ],
+    steps: [
+      {
+        id: 'dai3-s1',
+        stepNumber: 1,
+        title: 'Generate the Shell',
+        instruction: 'Start by generating the layout shell (sidebar, header, content area) before filling it with complex data.',
+        promptTemplate: 'Create a highly modern SaaS Admin Dashboard layout in React and Tailwind CSS. \n\nRequire a dark-mode styled left sidebar with navigation links (Home, Analytics, Settings, Users). Require a top sticky header with a user avatar and search bar. The main content area should have a light gray background.',
+        expectedOutput: 'A clean, responsive dashboard shell ready for data widgets.',
+        tips: 'Breaking the generation into "Shell" then "Widgets" helps the AI write more focused, precise code.',
+        tools: ['Claude']
+      },
+      {
+        id: 'dai3-s2',
+        stepNumber: 2,
+        title: 'Add the Data Widgets',
+        instruction: 'Now instruct the AI to build the interior widgets and data visualizations.',
+        promptTemplate: 'Inside the main content area of the previous code, add a grid of 4 metric cards (Total Users, Revenue, Active Sessions, Bounce Rate). Below that, add a recent activity data table with 5 mock rows showing user signups.',
+        expectedOutput: 'The AI will populate the main content area with beautifully styled data components.',
+        tools: ['Claude']
+      }
+    ],
+    relatedPlaybooks: [
+       { id: 'dai-2', title: 'Build a Modern Landing Page in Minutes', slug: 'build-modern-landing-page-ai' }
     ]
   }
 ];

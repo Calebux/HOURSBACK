@@ -627,7 +627,7 @@ export default function App() {
                       )}
 
                       {/* AI Code Preview Mock Button (Only on steps with code-generating AI) */}
-                      {step.tools && step.tools.some(t => ['Claude', 'Claude Code', 'Gemini'].includes(t)) && (
+                      {playbook.supportsCodePreview && step.tools && step.tools.some(t => ['Claude', 'Claude Code', 'Gemini', 'ChatGPT'].includes(t)) && (
                         <div className="mb-6">
                           <button
                             onClick={loadMockPreview}
