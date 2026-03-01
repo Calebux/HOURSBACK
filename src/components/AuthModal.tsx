@@ -11,6 +11,14 @@ interface AuthModalProps {
     defaultView?: 'signin' | 'signup';
 }
 
+export const validatePassword = (password: string): string | null => {
+    if (password.length < 8) return "Password must be at least 8 characters long.";
+    if (!/[A-Z]/.test(password)) return "Password must contain at least one uppercase letter.";
+    if (!/[a-z]/.test(password)) return "Password must contain at least one lowercase letter.";
+    if (!/[0-9]/.test(password)) return "Password must contain at least one number.";
+    return null;
+};
+
 export function AuthModal({ isOpen, onClose, defaultView = 'signin' }: AuthModalProps) {
     const [view, setView] = useState<'signin' | 'signup' | 'reset'>(defaultView as any);
     const [email, setEmail] = useState('');
@@ -26,6 +34,11 @@ export function AuthModal({ isOpen, onClose, defaultView = 'signin' }: AuthModal
 
         try {
             if (view === 'signup') {
+                const passwordError = validatePassword(password);
+                if (passwordError) {
+                    throw new Error(passwordError);
+                }
+
                 const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
                     email,
                     password,
@@ -37,6 +50,13 @@ export function AuthModal({ isOpen, onClose, defaultView = 'signin' }: AuthModal
                     }
                 });
                 if (signUpError) throw signUpError;
+
+                // Check if Supabase requires email confirmation
+                if (signUpData.user && signUpData.session === null) {
+                    toast.success('Sign up successful! Please check your email to confirm your account.');
+                    onClose();
+                    return;
+                }
 
                 // If the user already bought Pro and has it in local storage, sync it with their new account
                 if (localStorage.getItem('has_pro_access') === 'true' && signUpData.user) {
@@ -60,10 +80,11 @@ export function AuthModal({ isOpen, onClose, defaultView = 'signin' }: AuthModal
                     email,
                     password,
                 });
+
                 if (signInError) throw signInError;
 
                 // Sync local storage Pro status for returning users who paid while logged out
-                if (localStorage.getItem('has_pro_access') === 'true' && signInData.user) {
+                if (localStorage.getItem('has_pro_access') === 'true' && signInData?.user) {
                     try {
                         await updateProfile(signInData.user.id, { subscription_status: 'pro' });
                     } catch (e) {

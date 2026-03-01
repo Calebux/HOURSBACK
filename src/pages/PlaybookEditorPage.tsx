@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { ChevronLeft, Save, Plus, Trash2, MessageSquare, CheckCircle, FileText } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { getProfile } from '../lib/api';
+import { getProfile, fetchPlaybookById } from '../lib/api';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 
@@ -16,8 +16,9 @@ interface StepData {
 }
 
 export default function PlaybookEditorPage() {
-    const { user } = useAuth();
+    const { user, isLoading: authLoading } = useAuth();
     const navigate = useNavigate();
+    const { id } = useParams<{ id: string }>();
     const [isLoading, setIsLoading] = useState(true);
     const [isAdmin, setIsAdmin] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
@@ -48,25 +49,55 @@ export default function PlaybookEditorPage() {
     }]);
 
     useEffect(() => {
+        if (authLoading) return;
+
         if (!user) {
             navigate('/');
             return;
         }
 
-        const checkAdmin = async () => {
+        const checkAdminAndLoad = async () => {
             try {
                 let profile = await getProfile(user.id, user.email || '');
 
                 // Set admin status based strictly on DB profile
                 setIsAdmin(!!profile?.is_admin);
+
+                if (profile?.is_admin && id) {
+                    const playbook = await fetchPlaybookById(id);
+                    if (playbook) {
+                        setTitle(playbook.title);
+                        setSubtitle(playbook.subtitle);
+                        setSlug(playbook.slug);
+                        setCategory(playbook.category);
+                        setDifficulty(playbook.difficulty);
+                        setTimeToComplete(playbook.timeToComplete);
+                        setTimeSaved(playbook.timeSaved);
+                        setIsPro(playbook.isPro);
+                        setTools(playbook.tools.length > 0 ? playbook.tools : ['']);
+                        setBeforeYouStart(playbook.beforeYouStart.length > 0 ? playbook.beforeYouStart : ['']);
+                        setExpectedOutcome(playbook.expectedOutcome);
+
+                        if (playbook.steps && playbook.steps.length > 0) {
+                            setSteps(playbook.steps.map(s => ({
+                                title: s.title,
+                                instruction: s.instruction,
+                                promptTemplate: s.promptTemplate || '',
+                                expectedOutput: s.expectedOutput || '',
+                                tips: s.tips || '',
+                                tools: s.tools && s.tools.length > 0 ? s.tools : ['']
+                            })));
+                        }
+                    }
+                }
             } catch (err) {
                 console.error('Auth error:', err);
             } finally {
                 setIsLoading(false);
             }
         };
-        checkAdmin();
-    }, [user, navigate]);
+        checkAdminAndLoad();
+    }, [user, navigate, id, authLoading]);
 
     // Array Helpers
     const handleArrayChange = (index: number, value: string, setter: React.Dispatch<React.SetStateAction<string[]>>, array: string[]) => {
@@ -88,52 +119,72 @@ export default function PlaybookEditorPage() {
                 throw new Error("Please fill in all core fields (Title, Slug, Category, Outcome)");
             }
 
-            // 2. Insert Base Playbook
-            const { data: pbData, error: pbError } = await supabase
-                .from('playbooks')
-                .insert({
-                    title,
-                    subtitle,
-                    slug,
-                    category,
-                    difficulty,
-                    time_to_complete: timeToComplete,
-                    time_saved: timeSaved,
-                    is_pro: isPro,
-                    is_new: true,
-                    tools: cleanTools,
-                    before_you_start: cleanBeforeStart,
-                    expected_outcome: expectedOutcome,
-                    rating: 5.0,
-                    completion_count: 0
-                })
-                .select('id')
-                .single();
+            // 2. Upsert Base Playbook
+            const pbPayload = {
+                title,
+                subtitle,
+                slug,
+                category,
+                difficulty,
+                time_to_complete: timeToComplete,
+                time_saved: timeSaved,
+                is_pro: isPro,
+                tools: cleanTools,
+                before_you_start: cleanBeforeStart,
+                expected_outcome: expectedOutcome,
+            };
 
-            if (pbError) throw pbError;
-            if (!pbData?.id) throw new Error("Failed to create playbook record");
+            let pbId = id;
 
-            // 3. Insert Steps
-            if (steps.length > 0) {
-                const stepsToInsert = steps.map((s, index) => {
-                    const cleanStepTools = s.tools.filter(t => t.trim() !== '');
-                    return {
-                        playbook_id: pbData.id,
-                        step_number: index + 1,
-                        title: s.title,
-                        instruction: s.instruction,
-                        prompt_template: s.promptTemplate || null,
-                        expected_output: s.expectedOutput || null,
-                        tips: s.tips || null,
-                        tools: cleanStepTools.length > 0 ? cleanStepTools : null
-                    };
-                });
+            if (id) {
+                const { error: pbError } = await supabase
+                    .from('playbooks')
+                    .update(pbPayload)
+                    .eq('id', id);
+                if (pbError) throw pbError;
+            } else {
+                const { data: pbData, error: pbError } = await supabase
+                    .from('playbooks')
+                    .insert({
+                        ...pbPayload,
+                        is_new: true,
+                        rating: 5.0,
+                        completion_count: 0
+                    })
+                    .select('id')
+                    .single();
+                if (pbError) throw pbError;
+                if (!pbData?.id) throw new Error("Failed to create playbook record");
+                pbId = pbData.id;
+            }
 
-                const { error: stepsError } = await supabase
-                    .from('playbook_steps')
-                    .insert(stepsToInsert);
+            // 3. Upsert Steps (Delete old ones and insert new to handle ordering easily)
+            if (pbId) {
+                if (id) {
+                    await supabase.from('playbook_steps').delete().eq('playbook_id', id);
+                }
 
-                if (stepsError) throw stepsError;
+                if (steps.length > 0) {
+                    const stepsToInsert = steps.map((s, index) => {
+                        const cleanStepTools = (s.tools || []).filter(t => t.trim() !== '');
+                        return {
+                            playbook_id: pbId,
+                            step_number: index + 1,
+                            title: s.title,
+                            instruction: s.instruction,
+                            prompt_template: s.promptTemplate || null,
+                            expected_output: s.expectedOutput || null,
+                            tips: s.tips || null,
+                            tools: cleanStepTools.length > 0 ? cleanStepTools : null
+                        };
+                    });
+
+                    const { error: stepsError } = await supabase
+                        .from('playbook_steps')
+                        .insert(stepsToInsert);
+
+                    if (stepsError) throw stepsError;
+                }
             }
 
             toast.success('Playbook and steps saved successfully!');
@@ -158,7 +209,7 @@ export default function PlaybookEditorPage() {
                             <ChevronLeft className="w-5 h-5" />
                         </button>
                         <div>
-                            <h1 className="font-bold text-lg leading-tight">Create New Playbook</h1>
+                            <h1 className="font-bold text-lg leading-tight">{id ? 'Edit Playbook' : 'Create New Playbook'}</h1>
                             <p className="text-xs text-brand-dark/60">Drafting mode</p>
                         </div>
                     </div>

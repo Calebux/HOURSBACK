@@ -1,1 +1,1 @@
-declare module '@paystack/inline-js';
+/// <reference types="vite/client" />

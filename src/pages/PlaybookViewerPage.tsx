@@ -19,16 +19,18 @@ import {
   Settings,
   Bot,
   Lock,
-  LayoutDashboard
+  LayoutDashboard,
+  RotateCcw,
+  X
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getCategoryColor, type Playbook, mockPlaybooks, smbPlaybooks, coworkPlaybooks, coworkPluginPlaybooks, designerAIPlaybooks } from '../data/playbooks';
 import { fetchPlaybookBySlug, checkIsSaved, toggleSavedPlaybook, getSinglePlaybookProgress, updatePlaybookProgress, getProfile, updateProfile } from '../lib/api';
-import PaystackPop from '@paystack/inline-js';
+import { useFlutterwave, closePaymentModal } from 'flutterwave-react-v3';
 import { useAuth } from '../contexts/AuthContext';
 import WebhookExecutor from '../components/WebhookExecutor';
 import AgentCopilot from '../components/AgentCopilot';
-import { CodePreviewModal } from '../components/CodePreviewModal';
+import AutopilotModal from '../components/AutopilotModal';
 import { toast } from 'sonner';
 
 const fadeInUp = {
@@ -58,10 +60,8 @@ export default function PlaybookViewerPage() {
   const [userRating, setUserRating] = useState<number>(0);
   const [hoverRating, setHoverRating] = useState<number>(0);
   const [hasRated, setHasRated] = useState(false);
-
-  // Modal State
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [mockPreviewCode, setMockPreviewCode] = useState<Record<string, string>>({});
+  const [isAutopilotModalOpen, setIsAutopilotModalOpen] = useState(false);
+  const [isAgentGuideOpen, setIsAgentGuideOpen] = useState(false);
 
   // Auto-populate Next Up from same-category playbooks when relatedPlaybooks is empty
   const nextUpPlaybooks = useMemo(() => {
@@ -77,41 +77,53 @@ export default function PlaybookViewerPage() {
       .map(p => ({ id: p.id, title: p.title, slug: p.slug }));
   }, [playbook]);
 
-  const handlePaystack = () => {
-    const paystack = new PaystackPop();
-    const amountRaw = isAnnual ? 4.49 * 12 : 4.99;
-    const amountNGN = Math.floor(amountRaw * 1500) * 100;
+  const amountRaw = isAnnual ? 4.49 * 12 : 4.99;
+  const amountNGN = Math.floor(amountRaw * 1500); // Fixed for Flutterwave (NGN instead of Kobo)
 
-    paystack.newTransaction({
-      key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
+  const paymentConfig = {
+    public_key: import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY || '',
+    tx_ref: `hb_tx_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+    amount: amountNGN,
+    currency: 'NGN',
+    payment_options: 'card,mobilemoney,ussd',
+    customer: {
       email: user?.email || 'test@example.com',
-      amount: amountNGN,
-      currency: 'NGN',
-      metadata: {
-        custom_fields: [
-          {
-            variable_name: 'user_id',
-            value: user?.id || 'guest'
-          }
-        ]
-      },
-      onSuccess: async () => {
-        toast.success("Payment successful! Welcome to Pro Playbooks.");
-        // Instantly unblock the UI regardless of backend state
-        setIsProUser(true);
-        localStorage.setItem('has_pro_access', 'true');
+      phone_number: '',
+      name: user?.user_metadata?.name || '',
+    },
+    meta: {
+      user_id: user?.id || 'guest',
+    },
+    customizations: {
+      title: 'Hoursback Pro Playbook',
+      description: 'Unlock this Pro playbook instantly',
+      logo: 'https://i.ibb.co/L5hY5M0/logo.png',
+    },
+  };
 
-        if (user) {
-          try {
-            // Attempt to persist the upgrade to the database
-            await updateProfile(user.id, { subscription_status: 'pro' });
-          } catch (err) {
-            console.error("Failed to persist pro status to DB:", err);
-            // We intentionally do not revert setIsProUser here so the user can still use what they paid for this session
+  const handleFlutterPayment = useFlutterwave(paymentConfig);
+
+  const handlePayment = () => {
+    handleFlutterPayment({
+      callback: async (response) => {
+        if (response.status === 'successful') {
+          closePaymentModal();
+          toast.success("Payment successful! Welcome to Pro Playbooks.");
+          setIsProUser(true);
+          localStorage.setItem('has_pro_access', 'true');
+          if (user) {
+            try {
+              await updateProfile(user.id, { subscription_status: 'pro' });
+            } catch (err) {
+              console.error("Failed to persist pro status to DB:", err);
+            }
           }
+        } else {
+          toast.error("Payment failed or was incomplete. Please try again.");
+          closePaymentModal();
         }
       },
-      onCancel: () => {
+      onClose: () => {
         toast.info("Payment cancelled");
       }
     });
@@ -129,10 +141,23 @@ export default function PlaybookViewerPage() {
     loadPlaybook();
   }, [slug]);
 
-  // Only extract variables for the currently active step to keep the sidebar compact
+  // Handle Agent Guide Modal
+  useEffect(() => {
+    if (playbook?.agentAutomation) {
+      const guideKey = `agent_guide_seen_${playbook.slug}`;
+      const hasSeenGuide = localStorage.getItem(guideKey);
+      if (!hasSeenGuide) {
+        setIsAgentGuideOpen(true);
+        localStorage.setItem(guideKey, 'true');
+      }
+    }
+  }, [playbook]);
+
+  // Extract variables for the CURRENTLY active step to keep the sidebar compact
   const extractedVariables = useMemo(() => {
     const vars = new Set<string>();
     if (!playbook) return [];
+
     const step = playbook.steps[currentStep];
     if (step?.promptTemplate) {
       const matches = step.promptTemplate.match(/\[(.*?)\]/g);
@@ -140,13 +165,15 @@ export default function PlaybookViewerPage() {
         matches.forEach(m => vars.add(m.slice(1, -1)));
       }
     }
+
     return Array.from(vars);
   }, [playbook, currentStep]);
 
   const getInjectedPrompt = (template: string | undefined): string => {
     if (!template) return '';
     let injected = template;
-    extractedVariables.forEach(v => {
+    // Iterate over all globally filled variables to support stateful prompts across steps!
+    Object.keys(variables).forEach(v => {
       if (variables[v] && variables[v].trim() !== '') {
         injected = injected.split(`[${v}]`).join(variables[v]);
       }
@@ -164,20 +191,31 @@ export default function PlaybookViewerPage() {
       setIsProUser(true);
     }
 
-    if (!playbook || !user) return;
+    if (!playbook) return;
 
     // Check if saved
-    checkIsSaved(user.id, playbook.id).then(saved => setIsSaved(saved));
+    checkIsSaved(user?.id || null, playbook.id).then(saved => setIsSaved(saved));
 
     // Load progress
-    getSinglePlaybookProgress(user.id, playbook.id).then(prog => {
+    getSinglePlaybookProgress(user?.id || null, playbook.id).then(prog => {
       if (prog && prog.completed_steps) {
-        setCompletedSteps(new Set(prog.completed_steps));
+        const isFinished = prog.completed_steps.length >= playbook.steps.length && playbook.steps.length > 0;
+        const isOutdated = prog.completed_steps.some((s: number) => s >= playbook.steps.length);
+
+        if (isFinished || isOutdated) {
+          // Playbook was either fully completed previously, or it was updated and their progress is now invalid.
+          // Reset progress so they can reuse the new version, but the DB retains their 'completed_at' timestamp.
+          setCompletedSteps(new Set());
+          setCurrentStep(0);
+          updatePlaybookProgress(user?.id || null, playbook.id, [], playbook.steps.length);
+        } else {
+          setCompletedSteps(new Set(prog.completed_steps));
+        }
       }
     });
 
     // Check subscription status
-    if (!hasLocalProAccess) {
+    if (!hasLocalProAccess && user) {
       getProfile(user.id).then(profile => {
         if (profile) {
           const isPro = profile.subscription_status === 'pro';
@@ -189,22 +227,33 @@ export default function PlaybookViewerPage() {
   }, [playbook?.id, user?.id]);
 
   const handleToggleSave = async () => {
-    if (!playbook || !user) return;
-    const success = await toggleSavedPlaybook(user.id, playbook.id, isSaved);
+    if (!playbook) return;
+    const success = await toggleSavedPlaybook(user?.id || null, playbook.id, isSaved);
     if (success) {
       setIsSaved(!isSaved);
     }
   };
 
+  const handleRestartPlaybook = async () => {
+    if (!playbook) return;
+    if (window.confirm("Are you sure you want to restart this playbook? Your completed steps will be reset.")) {
+      setCompletedSteps(new Set());
+      setCurrentStep(0);
+      setVariables({});
+      await updatePlaybookProgress(user?.id || null, playbook.id, [], playbook.steps.length);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
   const handleStepComplete = async (stepIndex: number) => {
-    if (!playbook || !user) return;
+    if (!playbook) return;
 
     const newCompleted = new Set(completedSteps);
     newCompleted.add(stepIndex);
     setCompletedSteps(newCompleted);
 
-    // Persist to DB
-    await updatePlaybookProgress(user.id, playbook.id, Array.from(newCompleted), playbook.steps.length);
+    // Persist to DB or localStorage
+    await updatePlaybookProgress(user?.id || null, playbook.id, Array.from(newCompleted), playbook.steps.length);
 
     if (stepIndex < playbook.steps.length - 1) {
       setTimeout(() => {
@@ -222,46 +271,29 @@ export default function PlaybookViewerPage() {
     setTimeout(() => setCopiedPrompt(null), 2000);
   };
 
-  const loadMockPreview = () => {
-    // Generate a beautiful mock component to prove the modal works
-
-    setMockPreviewCode({
-      'App.tsx': `import React from 'react';
-import { Sparkles, ArrowRight, Zap } from 'lucide-react';
-
-export default function App() {
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-[#1A1A2E] to-slate-900 text-white flex flex-col items-center justify-center p-6">
-      <div className="max-w-md w-full backdrop-blur-xl bg-white/5 border border-white/10 rounded-[2rem] p-8 shadow-2xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/20 blur-3xl rounded-full -mr-20 -mt-20 pointer-events-none" />
-        
-        <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center mb-6">
-          <Sparkles className="w-6 h-6 text-indigo-400" />
-        </div>
-        
-        <h1 className="text-3xl font-bold mb-3 tracking-tight">AI Generated View</h1>
-        <p className="text-white/60 mb-8 leading-relaxed">
-          This is a live React component instantly generated by the playbook and executed inside your browser. 
-        </p>
-
-        <div className="space-y-3">
-          <button className="w-full py-3.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl font-medium transition-all flex items-center justify-center gap-2 group">
-            <Zap className="w-4 h-4" />
-            Deploy App
-          </button>
-          <button className="w-full py-3.5 bg-white/5 hover:bg-white/10 text-white/90 rounded-xl font-medium transition-all flex items-center justify-center gap-2">
-            View Source <ArrowRight className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-`
-    });
-    setIsPreviewOpen(true);
+  const handleShare = async () => {
+    if (!playbook) return;
+    if (!user) {
+      toast.error("Please sign up or log in to share playbooks.");
+      return;
+    }
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: playbook.title,
+          text: playbook.subtitle,
+          url: window.location.href,
+        });
+      } else {
+        await navigator.clipboard.writeText(window.location.href);
+        toast.success("Link copied to clipboard!");
+      }
+    } catch (err) {
+      if (err instanceof Error && err.name !== 'AbortError') {
+        toast.error("Failed to share playbook");
+      }
+    }
   };
-
   // --- Render Loading / Not Found ---
   if (isLoading) {
     return (
@@ -285,7 +317,7 @@ export default function App() {
   const color = getCategoryColor(playbook.category);
 
   return (
-    <div className="min-h-screen bg-brand-light text-brand-dark font-sans" style={{ scrollBehavior: 'smooth' }}>
+    <div className="min-h-screen bg-brand-light text-brand-dark font-sans overflow-x-hidden" style={{ scrollBehavior: 'smooth' }}>
       {/* Progress Bar */}
       <motion.div
         className="fixed top-0 left-0 right-0 h-1 bg-brand-dark text-white z-50 origin-left"
@@ -294,17 +326,17 @@ export default function App() {
 
       {/* Navigation */}
       <nav className="sticky top-0 z-40 bg-brand-light/90 backdrop-blur-md border-b border-brand-dark/10">
-        <div className="container mx-auto px-6 py-4">
+        <div className="container mx-auto px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4">
               <Link to="/playbooks">
-                <button className="p-2 hover:bg-white shadow-antigravity-md border border-brand-dark/10 rounded-full transition-colors">
-                  <ChevronLeft className="w-5 h-5" />
+                <button className="p-1.5 sm:p-2 hover:bg-white shadow-antigravity-md border border-brand-dark/10 rounded-full transition-colors">
+                  <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
               </Link>
               <div>
-                <h1 className="font-semibold text-lg truncate max-w-md">{playbook.title}</h1>
-                <div className="flex items-center gap-2 text-xs text-brand-dark/70">
+                <h1 className="font-semibold text-base sm:text-lg truncate max-w-[130px] sm:max-w-xs md:max-w-md">{playbook.title}</h1>
+                <div className="flex items-center gap-1 sm:gap-2 text-[10px] sm:text-xs text-brand-dark/70">
                   <span style={{ color }}>{playbook.category}</span>
                   <span>•</span>
                   <span>Step {currentStep + 1} of {playbook.steps.length}</span>
@@ -312,7 +344,7 @@ export default function App() {
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 sm:gap-3">
               {/* Progress Indicator */}
               <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-white shadow-antigravity-md border border-brand-dark/10 rounded-full">
                 <div className="w-24 h-2 bg-slate-50 rounded-full overflow-hidden">
@@ -326,17 +358,21 @@ export default function App() {
 
               <button
                 onClick={handleToggleSave}
-                className={`p-2 rounded-full transition-colors ${isSaved ? 'text-brand-blue bg-brand-dark text-white' : 'hover:bg-white shadow-antigravity-md border border-brand-dark/10'}`}
+                className={`p-1.5 sm:p-2 rounded-full transition-colors ${isSaved ? 'text-brand-blue bg-brand-dark text-white' : 'hover:bg-white shadow-antigravity-md border border-brand-dark/10'}`}
               >
-                <Bookmark className={`w-5 h-5 ${isSaved && 'fill-current'}`} />
+                <Bookmark className={`w-4 h-4 sm:w-5 sm:h-5 ${isSaved && 'fill-current'}`} />
               </button>
 
-              <Link to="/workspace" className="p-2 hover:bg-white shadow-antigravity-md border border-brand-dark/10 rounded-full transition-colors" title="My Progress">
-                <LayoutDashboard className="w-5 h-5" />
+              <Link to="/workspace" className="p-1.5 sm:p-2 hover:bg-white shadow-antigravity-md border border-brand-dark/10 rounded-full transition-colors" title="My Progress">
+                <LayoutDashboard className="w-4 h-4 sm:w-5 sm:h-5" />
               </Link>
 
-              <button className="p-2 hover:bg-white shadow-antigravity-md border border-brand-dark/10 rounded-full transition-colors">
-                <Share2 className="w-5 h-5" />
+              <button
+                onClick={handleShare}
+                className="p-1.5 sm:p-2 hover:bg-white shadow-antigravity-md border border-brand-dark/10 rounded-full transition-colors"
+                title="Share Playbook"
+              >
+                <Share2 className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
             </div>
           </div>
@@ -368,11 +404,32 @@ export default function App() {
                     <p className="font-semibold text-green-400">{playbook.timeSaved} minutes</p>
                   </div>
                 </div>
+
+                {completedSteps.size > 0 && (
+                  <button
+                    onClick={handleRestartPlaybook}
+                    className="mt-6 w-full py-2 px-4 bg-brand-light border border-brand-dark/20 text-brand-dark text-sm rounded-xl font-medium hover:bg-white transition-colors flex items-center justify-center gap-2"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    Restart Playbook
+                  </button>
+                )}
+
+                {/* Autopilot Button */}
+                {playbook.agentAutomation && (
+                  <button
+                    onClick={() => setIsAutopilotModalOpen(true)}
+                    className="mt-3 w-full py-2 px-4 bg-brand-dark text-white text-sm rounded-xl font-medium hover:bg-[#DA7756] transition-all flex items-center justify-center gap-2 shadow-antigravity-md"
+                  >
+                    <Bot className="w-4 h-4" />
+                    Deploy Autopilot Agent
+                  </button>
+                )}
               </div>
 
-              {/* Variable Configuration */}
+              {/* Variable Configuration (Desktop Only) */}
               {extractedVariables.length > 0 && (
-                <div className="bg-white shadow-antigravity-md border border-brand-dark/10 rounded-3xl p-5 relative overflow-hidden group">
+                <div className="hidden lg:block bg-white shadow-antigravity-md border border-brand-dark/10 rounded-3xl p-5 relative overflow-hidden group">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-brand-blue/5 rounded-bl-full -mr-10 -mt-10 pointer-events-none" />
                   <h3 className="font-semibold mb-4 text-sm flex items-center gap-2 text-brand-dark">
                     <Settings className="w-4 h-4 text-brand-blue" />
@@ -453,7 +510,7 @@ export default function App() {
               variants={staggerContainer}
             >
               {/* Header */}
-              <motion.div variants={fadeInUp} className="mb-8">
+              <motion.div variants={fadeInUp} className="mb-6">
                 <div className="flex items-center gap-2 mb-4">
                   <span
                     className="px-3 py-1 text-xs font-medium rounded-full"
@@ -466,7 +523,7 @@ export default function App() {
                   </span>
                 </div>
                 <h1 className="text-3xl md:text-4xl font-bold mb-4">{playbook.title}</h1>
-                <p className="text-xl text-brand-dark/70">{playbook.subtitle}</p>
+                <p className="text-base text-brand-dark/70 font-medium">{playbook.subtitle}</p>
 
                 <div className="flex items-center gap-6 mt-6 text-sm text-brand-dark/70">
                   <span className="flex items-center gap-1">
@@ -483,7 +540,7 @@ export default function App() {
               {/* Expected Outcome */}
               <motion.div
                 variants={fadeInUp}
-                className="bg-green-500/10 border border-green-500/20 rounded-3xl p-6 mb-8"
+                className="bg-green-500/10 border border-green-500/20 rounded-3xl p-6 mb-6"
               >
                 <h3 className="font-semibold mb-2 text-green-700 flex items-center gap-2">
                   <CheckCircle2 className="w-5 h-5" />
@@ -496,7 +553,7 @@ export default function App() {
               {playbook.isPro && !isProUser ? (
                 <div className="relative mt-8">
                   {/* Blurred overlay CTA */}
-                  <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-3xl p-8 text-center" style={{ backdropFilter: 'blur(8px)', backgroundColor: 'rgba(255, 255, 255, 0.4)' }}>
+                  <div className="absolute inset-0 z-10 flex flex-col items-center justify-start pt-16 rounded-3xl p-8 text-center" style={{ backdropFilter: 'blur(8px)', backgroundColor: 'rgba(255, 255, 255, 0.4)' }}>
                     <div className="w-16 h-16 bg-brand-dark text-white rounded-[2rem] flex items-center justify-center mb-6 shadow-antigravity-lg mx-auto">
                       <Lock className="w-8 h-8" />
                     </div>
@@ -505,7 +562,7 @@ export default function App() {
                       Upgrade to Pro to access this full playbook, premium prompt engineering, and 50+ other premium resources.
                     </p>
                     <button
-                      onClick={handlePaystack}
+                      onClick={handlePayment}
                       className="px-10 py-4 bg-[#635BFF] text-white rounded-full font-semibold text-lg shadow-antigravity-md hover:shadow-antigravity-lg hover:-translate-y-0.5 transition-all"
                     >
                       Unlock Pro Access
@@ -531,7 +588,38 @@ export default function App() {
                   </div>
                 </div>
               ) : (
-                <div className="space-y-8">
+                <motion.div
+                  className="space-y-8"
+                  initial="hidden"
+                  animate="visible"
+                  variants={staggerContainer}
+                >
+
+                  {/* Variable Configuration (Mobile Only) */}
+                  {extractedVariables.length > 0 && (
+                    <motion.div variants={fadeInUp} className="block lg:hidden bg-white shadow-antigravity-md border border-brand-dark/10 rounded-3xl p-5 relative overflow-hidden group">
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-brand-blue/5 rounded-bl-full -mr-10 -mt-10 pointer-events-none" />
+                      <h3 className="font-semibold mb-4 text-sm flex items-center gap-2 text-brand-dark">
+                        <Settings className="w-4 h-4 text-brand-blue" />
+                        Configure Prompt Variables
+                      </h3>
+                      <div className="space-y-4 relative z-10">
+                        {extractedVariables.map(v => (
+                          <div key={v}>
+                            <label className="block text-xs font-medium text-brand-dark/70 mb-1.5">{v}</label>
+                            <input
+                              type="text"
+                              placeholder={`Enter ${v.toLowerCase()}...`}
+                              value={variables[v] || ''}
+                              onChange={(e) => setVariables(prev => ({ ...prev, [v]: e.target.value }))}
+                              className="w-full px-4 py-2.5 bg-brand-light border border-brand-dark/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue transition-all"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+
                   {playbook.steps.map((step, index) => (
                     <motion.div
                       key={step.id}
@@ -576,10 +664,15 @@ export default function App() {
                       {step.promptTemplate && (
                         <div className="mb-6">
                           <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm text-brand-dark/70 flex items-center gap-1">
-                              <FileText className="w-4 h-4" />
-                              Copy this prompt
-                            </span>
+                            <div className="flex flex-col gap-1">
+                              <span className="text-sm font-semibold text-brand-dark flex items-center gap-1.5">
+                                <FileText className="w-4 h-4 text-[#635BFF]" />
+                                Your Customized Prompt
+                              </span>
+                              <p className="text-xs text-brand-dark/60 max-w-sm">
+                                Copy this prompt and paste it into Claude.ai or v0.dev. Once your layout is generated, mark this step as complete.
+                              </p>
+                            </div>
                             <button
                               onClick={() => handleCopyPrompt(getInjectedPrompt(step.promptTemplate!))}
                               className="bg-brand-blue/10 px-3 py-1.5 rounded-full text-xs font-medium text-brand-blue hover:bg-brand-blue/20 flex items-center gap-1.5 transition-colors"
@@ -597,10 +690,10 @@ export default function App() {
                             </pre>
                           </div>
                           {(() => {
-                            // Only show AI Copilot for steps with pure AI tools (no external dependencies)
-                            const aiOnlyTools = ['claude', 'chatgpt', 'perplexity', 'openai'];
+                            // Only show AI Copilot for steps with pure AI tools (no external dependencies) and not explicitly hidden
+                            const aiOnlyTools = ['claude', 'chatgpt', 'perplexity', 'openai', 'gemini'];
                             const stepTools = step.tools || [];
-                            const canSimulate = stepTools.length > 0 && stepTools.every(
+                            const canSimulate = !step.hideCopilot && stepTools.length > 0 && stepTools.every(
                               (t: string) => aiOnlyTools.some(ai => t.toLowerCase().includes(ai))
                             );
                             return canSimulate ? (
@@ -626,27 +719,6 @@ export default function App() {
                         </div>
                       )}
 
-                      {/* AI Code Preview Mock Button (Only on steps with code-generating AI) */}
-                      {playbook.supportsCodePreview && step.tools && step.tools.some(t => ['Claude', 'Claude Code', 'Gemini', 'ChatGPT'].includes(t)) && (
-                        <div className="mb-6">
-                          <button
-                            onClick={loadMockPreview}
-                            className="w-full py-4 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 hover:border-indigo-500/40 rounded-2xl flex items-center justify-between px-6 transition-all group"
-                          >
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-500 flex items-center justify-center group-hover:scale-110 transition-transform">
-                                <Bot className="w-5 h-5" />
-                              </div>
-                              <div className="text-left">
-                                <p className="font-semibold text-brand-dark">Test Live Component</p>
-                                <p className="text-xs text-brand-dark/60 mt-0.5">Simulate {step.tools[0]} generating the code</p>
-                              </div>
-                            </div>
-                            <ArrowRight className="w-5 h-5 text-indigo-500 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-                          </button>
-                        </div>
-                      )}
-
                       {/* Complete Button */}
                       <button
                         onClick={() => handleStepComplete(index)}
@@ -664,7 +736,7 @@ export default function App() {
                       </button>
                     </motion.div>
                   ))}
-                </div>
+                </motion.div>
               )}
 
               {/* Agent Automation Alternative */}
@@ -734,8 +806,8 @@ export default function App() {
                   </h3>
                   <div className="space-y-3">
                     {playbook.troubleshooting.map((item, i) => (
-                      <div key={i} className="bg-white shadow-antigravity-md border border-brand-dark/10 border border-brand-dark/10 rounded-full p-4">
-                        <p className="font-medium text-red-400 text-sm mb-1">Problem: {item.problem}</p>
+                      <div key={i} className="bg-white shadow-antigravity-md border border-brand-dark/10 rounded-2xl p-6">
+                        <p className="font-medium text-red-500 text-sm mb-1">Problem: {item.problem}</p>
                         <p className="text-brand-dark/70 text-sm">Solution: {item.solution}</p>
                       </div>
                     ))}
@@ -811,6 +883,51 @@ export default function App() {
                 )}
               </AnimatePresence>
 
+              {/* Upgrade CTA (Restored to Right Sidebar) */}
+              {!showCelebration && (
+                <div className="bg-gradient-to-br from-white/10 to-white/5 border border-brand-dark/10 rounded-3xl p-4 shadow-antigravity-sm">
+                  <h3 className="font-semibold mb-2 text-brand-dark">
+                    {isProUser ? 'Pro Account Active' : 'Unlock 50+ Playbooks'}
+                  </h3>
+                  <p className="text-sm text-brand-dark/70 mb-4">
+                    {isProUser
+                      ? 'You have full access to all premium playbooks.'
+                      : 'Get Pro access to all business playbooks and weekly new releases.'}
+                  </p>
+
+                  {!isProUser && (
+                    <div className="flex items-center justify-between mb-4 bg-brand-dark/5 p-2 rounded-2xl border border-brand-dark/5">
+                      <span className={`text-xs font-medium ${!isAnnual ? 'text-brand-dark' : 'text-slate-400'}`}>Monthly</span>
+                      <button
+                        onClick={() => setIsAnnual(!isAnnual)}
+                        className="w-10 h-6 bg-brand-dark rounded-full p-1 relative transition-colors shadow-antigravity-xs mx-2"
+                      >
+                        <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-300 ${isAnnual ? 'translate-x-4' : 'translate-x-0'}`} />
+                      </button>
+                      <span className={`text-xs font-medium ${isAnnual ? 'text-brand-dark' : 'text-slate-400'}`}>Annually <span className="text-[10px] text-green-600 font-bold">-4%</span></span>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={isProUser ? undefined : handlePayment}
+                    disabled={isProUser}
+                    className={`w-full py-2 rounded-full shadow-antigravity-md transition-all text-sm font-medium flex items-center justify-center gap-2 group ${isProUser
+                      ? 'bg-brand-dark text-white cursor-default'
+                      : 'bg-brand-dark text-white hover:shadow-antigravity-lg hover:bg-gray-800'
+                      }`}
+                  >
+                    {isProUser ? (
+                      <>
+                        <Lightbulb className="w-4 h-4 text-green-400" />
+                        <span>Pro Active</span>
+                      </>
+                    ) : (
+                      <span>Upgrade to Pro ({isAnnual ? '$53.89/yr' : '$4.99/mo'})</span>
+                    )}
+                  </button>
+                </div>
+              )}
+
               {/* Related Playbooks / Next Up */}
               {nextUpPlaybooks.length > 0 && (
                 <div className="bg-white shadow-antigravity-md border border-brand-dark/10 rounded-3xl p-4">
@@ -834,44 +951,79 @@ export default function App() {
                   </div>
                 </div>
               )}
-
-              {/* Upgrade CTA */}
-              {!showCelebration && (
-                <div className="bg-gradient-to-br from-white/10 to-white/5 border border-brand-dark/10 rounded-3xl p-4">
-                  <h3 className="font-semibold mb-2">Unlock 50+ Playbooks</h3>
-                  <p className="text-sm text-brand-dark/70 mb-4">
-                    Get Pro access to all business playbooks and weekly new releases.
-                  </p>
-
-                  <div className="flex items-center justify-between mb-4 bg-brand-dark/5 p-2 rounded-2xl border border-brand-dark/5">
-                    <span className={`text-xs font-medium ${!isAnnual ? 'text-brand-dark' : 'text-slate-400'}`}>Monthly</span>
-                    <button
-                      onClick={() => setIsAnnual(!isAnnual)}
-                      className="w-10 h-6 bg-brand-dark rounded-full p-1 relative transition-colors shadow-antigravity-xs mx-2"
-                    >
-                      <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-300 ${isAnnual ? 'translate-x-4' : 'translate-x-0'}`} />
-                    </button>
-                    <span className={`text-xs font-medium ${isAnnual ? 'text-brand-dark' : 'text-slate-400'}`}>Annually <span className="text-[10px] text-green-600 font-bold">-4%</span></span>
-                  </div>
-
-                  <button
-                    onClick={handlePaystack}
-                    className="w-full py-2 bg-brand-dark text-white rounded-full shadow-antigravity-md hover:shadow-antigravity-lg transition-all text-sm font-medium hover:bg-gray-800 transition-colors"
-                  >
-                    Upgrade to Pro ({isAnnual ? '$172.80/yr' : '$15/mo'})
-                  </button>
-                </div>
-              )}
             </div>
           </div>
         </div>
       </div>
-
-      <CodePreviewModal
-        isOpen={isPreviewOpen}
-        onClose={() => setIsPreviewOpen(false)}
-        files={mockPreviewCode}
+      <AutopilotModal
+        isOpen={isAutopilotModalOpen}
+        onClose={() => setIsAutopilotModalOpen(false)}
+        playbook={playbook}
+        variables={variables}
+        userId={user?.id}
       />
+
+      <AnimatePresence>
+        {isAgentGuideOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsAgentGuideOpen(false)}
+              className="absolute inset-0 bg-brand-dark/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="relative w-full max-w-lg bg-white rounded-[2.5rem] p-8 shadow-antigravity-lg overflow-hidden"
+            >
+              <div className="absolute top-0 right-0 p-6">
+                <button
+                  onClick={() => setIsAgentGuideOpen(false)}
+                  className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                >
+                  <X className="w-5 h-5 text-brand-dark/40" />
+                </button>
+              </div>
+
+              <div className="flex flex-col items-center text-center">
+                <div className="w-16 h-16 bg-brand-dark text-white rounded-[2rem] flex items-center justify-center mb-6 shadow-antigravity-md">
+                  <Bot className="w-8 h-8" />
+                </div>
+
+                <h2 className="text-2xl font-bold text-brand-dark mb-3">Autopilot Active</h2>
+                <p className="text-brand-dark/60 mb-8 max-w-sm">
+                  This playbook can be deployed as a 24/7 AI employee. You can still follow the steps manually, or let the agent handle it.
+                </p>
+
+                <div className="w-full space-y-4 mb-8">
+                  <div className="flex items-start gap-4 p-4 bg-slate-50 rounded-2xl text-left">
+                    <div className="w-8 h-8 rounded-full bg-brand-dark text-white flex items-center justify-center text-sm font-bold shrink-0">1</div>
+                    <p className="text-sm text-brand-dark/70 pt-1">Configure your prompt variables in the sidebar.</p>
+                  </div>
+                  <div className="flex items-start gap-4 p-4 bg-slate-50 rounded-2xl text-left">
+                    <div className="w-8 h-8 rounded-full bg-brand-dark text-white flex items-center justify-center text-sm font-bold shrink-0">2</div>
+                    <p className="text-sm text-brand-dark/70 pt-1">Click <strong>'Deploy Autopilot Agent'</strong> to set local news or daily schedules.</p>
+                  </div>
+                  <div className="flex items-start gap-4 p-4 bg-slate-50 rounded-2xl text-left">
+                    <div className="w-8 h-8 rounded-full bg-brand-dark text-white flex items-center justify-center text-sm font-bold shrink-0">3</div>
+                    <p className="text-sm text-brand-dark/70 pt-1">Get generated reports delivered straight to your email.</p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setIsAgentGuideOpen(false)}
+                  className="w-full py-4 bg-brand-dark text-white rounded-full font-semibold shadow-antigravity-md hover:bg-slate-800 transition-all"
+                >
+                  Got it, let's go
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

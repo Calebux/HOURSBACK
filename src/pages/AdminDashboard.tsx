@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ChevronLeft, LayoutDashboard, FileText, Users, Activity, Plus, Edit, Eye } from 'lucide-react';
+import { ChevronLeft, LayoutDashboard, FileText, Users, Activity, Plus, Edit, Eye, Trash2, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { getProfile, fetchPlaybooks, getAdminStats } from '../lib/api';
+import { getProfile, fetchPlaybooks, getAdminStats, deletePlaybook } from '../lib/api';
 import type { Playbook } from '../data/playbooks';
+import { toast } from 'sonner';
 
 export default function AdminDashboard() {
-    const { user, signOut } = useAuth();
+    const { user, signOut, isLoading: authLoading } = useAuth();
     const navigate = useNavigate();
     const [isLoading, setIsLoading] = useState(true);
     const [isAdmin, setIsAdmin] = useState(false);
@@ -14,6 +15,8 @@ export default function AdminDashboard() {
     const [stats, setStats] = useState({ totalUsers: 0, totalPlaybooks: 0, totalCompletions: 0 });
 
     useEffect(() => {
+        if (authLoading) return;
+
         if (!user) {
             navigate('/');
             return;
@@ -39,7 +42,22 @@ export default function AdminDashboard() {
         };
 
         loadAdminData();
-    }, [user, navigate]);
+    }, [user, navigate, authLoading]);
+
+    const handleDelete = async (id: string, title: string) => {
+        if (!window.confirm(`Are you sure you want to delete "${title}"? This cannot be undone.`)) {
+            return;
+        }
+
+        const success = await deletePlaybook(id);
+        if (success) {
+            setPlaybooks(playbooks.filter(pb => pb.id !== id));
+            setStats(prev => ({ ...prev, totalPlaybooks: prev.totalPlaybooks - 1 }));
+            toast.success(`Playbook "${title}" has been deleted.`);
+        } else {
+            toast.error('Failed to delete playbook. Please try again.');
+        }
+    };
 
     if (isLoading) {
         return (
@@ -49,7 +67,22 @@ export default function AdminDashboard() {
         );
     }
 
-    if (!isAdmin) return null; // Failsafe
+    if (!isAdmin) {
+        return (
+            <div className="min-h-screen bg-brand-light flex flex-col items-center justify-center p-6 text-center">
+                <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mb-4">
+                    <X className="w-8 h-8" />
+                </div>
+                <h1 className="text-2xl font-bold text-brand-dark mb-2">Access Denied</h1>
+                <p className="text-brand-dark/70 max-w-md mb-6">
+                    You do not have the necessary permissions to view the Admin Dashboard. Your account must be explicitly elevated to continue.
+                </p>
+                <Link to="/" className="bg-brand-dark text-white px-6 py-3 rounded-full font-medium hover:bg-brand-dark/90 transition-colors">
+                    Return to Homepage
+                </Link>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-brand-light text-brand-dark">
@@ -107,7 +140,7 @@ export default function AdminDashboard() {
                         </div>
                         <div>
                             <p className="text-sm text-slate-500 font-medium tracking-wide uppercase">Live Playbooks</p>
-                            <p className="text-3xl font-bold">{stats.totalPlaybooks.toLocaleString()}</p>
+                            <p className="text-3xl font-bold">{playbooks.length.toLocaleString()}</p>
                         </div>
                     </div>
                     <div className="bg-white p-6 rounded-3xl border border-brand-dark/10 shadow-antigravity-xs flex items-center gap-4">
@@ -165,8 +198,15 @@ export default function AdminDashboard() {
                                             <Link to={`/playbooks/${pb.slug}`} className="inline-flex p-2 text-slate-400 hover:text-brand-blue bg-slate-50 hover:bg-blue-50 rounded-lg transition-colors" title="View Live">
                                                 <Eye className="w-4 h-4" />
                                             </Link>
-                                            <button className="inline-flex p-2 text-slate-400 hover:text-brand-dark bg-slate-50 hover:bg-slate-200 rounded-lg transition-colors cursor-not-allowed" title="Edit (Coming Soon)">
+                                            <Link to={`/admin/playbooks/${pb.id}/edit`} className="inline-flex p-2 text-slate-400 hover:text-brand-dark bg-slate-50 hover:bg-slate-200 rounded-lg transition-colors" title="Edit Playbook">
                                                 <Edit className="w-4 h-4" />
+                                            </Link>
+                                            <button
+                                                onClick={() => handleDelete(pb.id, pb.title)}
+                                                className="inline-flex p-2 text-slate-400 hover:text-red-500 bg-slate-50 hover:bg-red-50 rounded-lg transition-colors"
+                                                title="Delete Playbook"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
                                             </button>
                                         </td>
                                     </tr>

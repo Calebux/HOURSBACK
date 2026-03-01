@@ -1,36 +1,50 @@
 import { supabase } from './supabase';
 import type { Playbook } from '../data/playbooks';
 import { smbPlaybooks, coworkPlaybooks, claudeCrashCoursePlaybooks, coworkPluginPlaybooks, designerAIPlaybooks } from '../data/playbooks';
+// --- Local Playbook Helpers ---
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export function isUUID(id: string) { return UUID_REGEX.test(id); }
 
-export const mapDbPlaybook = (dbPb: any): Playbook => ({
-    id: dbPb.id,
-    slug: dbPb.slug,
-    title: dbPb.title,
-    subtitle: dbPb.subtitle,
-    category: dbPb.category,
-    difficulty: dbPb.difficulty,
-    timeToComplete: dbPb.time_to_complete,
-    timeSaved: dbPb.time_saved,
-    completionCount: dbPb.completion_count,
-    rating: dbPb.rating,
-    isPro: dbPb.is_pro,
-    isNew: dbPb.is_new,
-    tools: dbPb.tools || [],
-    beforeYouStart: dbPb.before_you_start || [],
-    expectedOutcome: dbPb.expected_outcome || '',
-    troubleshooting: [], // We didn't seed this, but can map if added
-    steps: (dbPb.steps || []).sort((a: any, b: any) => a.step_number - b.step_number).map((s: any) => ({
-        id: s.id,
-        stepNumber: s.step_number,
-        title: s.title,
-        instruction: s.instruction,
-        promptTemplate: s.prompt_template,
-        expectedOutput: s.expected_output,
-        tips: s.tips,
-        tools: s.tools || []
-    })),
-    relatedPlaybooks: [] // Simplified for now
-});
+export const allLocalPlaybooks = [...smbPlaybooks, ...coworkPlaybooks, ...claudeCrashCoursePlaybooks, ...coworkPluginPlaybooks, ...designerAIPlaybooks];
+export function findLocalPlaybook(id: string): Playbook | undefined {
+    return allLocalPlaybooks.find(p => p.id === id);
+}
+
+export const mapDbPlaybook = (dbPb: any): Playbook => {
+    const localMatch = allLocalPlaybooks.find(p => p.slug === dbPb.slug);
+    
+    return {
+        id: dbPb.id,
+        slug: dbPb.slug,
+        title: dbPb.title,
+        subtitle: dbPb.subtitle,
+        category: dbPb.category,
+        difficulty: dbPb.difficulty,
+        timeToComplete: dbPb.time_to_complete,
+        timeSaved: dbPb.time_saved,
+        completionCount: dbPb.completion_count,
+        rating: dbPb.rating,
+        isPro: dbPb.is_pro,
+        isNew: dbPb.is_new,
+        tools: dbPb.tools || [],
+        beforeYouStart: dbPb.before_you_start || [],
+        expectedOutcome: dbPb.expected_outcome || '',
+        troubleshooting: localMatch?.troubleshooting || [],
+        coworkCompatible: localMatch?.coworkCompatible,
+        agentAutomation: localMatch?.agentAutomation,
+        steps: (dbPb.steps || []).sort((a: any, b: any) => a.step_number - b.step_number).map((s: any) => ({
+            id: s.id,
+            stepNumber: s.step_number,
+            title: s.title,
+            instruction: s.instruction,
+            promptTemplate: s.prompt_template,
+            expectedOutput: s.expected_output,
+            tips: s.tips,
+            tools: s.tools || []
+        })),
+        relatedPlaybooks: [] // Simplified for now
+    };
+};
 
 export async function fetchPlaybooks(): Promise<Playbook[]> {
     const { data, error } = await supabase
@@ -47,11 +61,11 @@ export async function fetchPlaybooks(): Promise<Playbook[]> {
 
     // Check which SMB and Cowork playbooks aren't already in the database and prepend them
     const dbSlugs = new Set(fetchedPlaybooks.map(pb => pb.slug));
-    const missingSmbPlaybooks = smbPlaybooks.filter(pb => !dbSlugs.has(pb.slug));
-    const missingCoworkPlaybooks = coworkPlaybooks.filter(pb => !dbSlugs.has(pb.slug));
-    const missingCrashCoursePlaybooks = claudeCrashCoursePlaybooks.filter(pb => !dbSlugs.has(pb.slug));
-    const missingPluginPlaybooks = coworkPluginPlaybooks.filter(pb => !dbSlugs.has(pb.slug));
-    const missingDesignerPlaybooks = designerAIPlaybooks.filter(pb => !dbSlugs.has(pb.slug));
+    const missingSmbPlaybooks = smbPlaybooks.filter((pb: Playbook) => !dbSlugs.has(pb.slug));
+    const missingCoworkPlaybooks = coworkPlaybooks.filter((pb: Playbook) => !dbSlugs.has(pb.slug));
+    const missingCrashCoursePlaybooks = claudeCrashCoursePlaybooks.filter((pb: Playbook) => !dbSlugs.has(pb.slug));
+    const missingPluginPlaybooks = coworkPluginPlaybooks.filter((pb: Playbook) => !dbSlugs.has(pb.slug));
+    const missingDesignerPlaybooks = designerAIPlaybooks.filter((pb: Playbook) => !dbSlugs.has(pb.slug));
 
     // Business playbooks first, then crash course, then DB playbooks
     return [...missingDesignerPlaybooks, ...missingPluginPlaybooks, ...missingCoworkPlaybooks, ...missingSmbPlaybooks, ...fetchedPlaybooks, ...missingCrashCoursePlaybooks];
@@ -59,7 +73,7 @@ export async function fetchPlaybooks(): Promise<Playbook[]> {
 
 export async function fetchPlaybookBySlug(slug: string): Promise<Playbook | null> {
     // Check locally injected SMB or Cowork playbooks first
-    const localMatch = smbPlaybooks.find(pb => pb.slug === slug) || coworkPlaybooks.find(pb => pb.slug === slug) || claudeCrashCoursePlaybooks.find(pb => pb.slug === slug) || coworkPluginPlaybooks.find(pb => pb.slug === slug) || designerAIPlaybooks.find(pb => pb.slug === slug);
+    const localMatch = allLocalPlaybooks.find(p => p.slug === slug);
     if (localMatch) return localMatch;
 
     const { data, error } = await supabase
@@ -76,16 +90,6 @@ export async function fetchPlaybookBySlug(slug: string): Promise<Playbook | null
     if (!data) return null;
 
     return mapDbPlaybook(data);
-}
-
-// --- Local Playbook Helpers ---
-
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-function isUUID(id: string) { return UUID_REGEX.test(id); }
-
-const allLocalPlaybooks = [...smbPlaybooks, ...coworkPlaybooks, ...claudeCrashCoursePlaybooks, ...coworkPluginPlaybooks, ...designerAIPlaybooks];
-function findLocalPlaybook(id: string): Playbook | undefined {
-    return allLocalPlaybooks.find(p => p.id === id);
 }
 
 // --- localStorage-based storage for local playbooks ---
@@ -134,9 +138,9 @@ export async function getSavedPlaybooks(userId: string) {
     return [...localSaved, ...dbSaved];
 }
 
-export async function toggleSavedPlaybook(userId: string, playbookId: string, isCurrentlySaved: boolean) {
-    if (!isUUID(playbookId)) {
-        // Use localStorage for local playbooks
+export async function toggleSavedPlaybook(userId: string | null, playbookId: string, isCurrentlySaved: boolean) {
+    if (!userId || !isUUID(playbookId)) {
+        // Use localStorage for local playbooks or guest users
         const saved = getLocalSaved();
         if (isCurrentlySaved) {
             setLocalSaved(saved.filter(id => id !== playbookId));
@@ -196,9 +200,9 @@ export async function getPlaybookProgress(userId: string) {
     return [...localProgress, ...dbProgress];
 }
 
-export async function getSinglePlaybookProgress(userId: string, playbookId: string) {
-    if (!isUUID(playbookId)) {
-        // Use localStorage for local playbooks
+export async function getSinglePlaybookProgress(userId: string | null, playbookId: string) {
+    if (!userId || !isUUID(playbookId)) {
+        // Use localStorage for local playbooks or guest users
         const progress = getLocalProgress();
         return progress.find(p => p.playbook_id === playbookId) || null;
     }
@@ -216,8 +220,8 @@ export async function getSinglePlaybookProgress(userId: string, playbookId: stri
     return data || null;
 }
 
-export async function checkIsSaved(userId: string, playbookId: string) {
-    if (!isUUID(playbookId)) {
+export async function checkIsSaved(userId: string | null, playbookId: string) {
+    if (!userId || !isUUID(playbookId)) {
         return getLocalSaved().includes(playbookId);
     }
 
@@ -233,38 +237,47 @@ export async function checkIsSaved(userId: string, playbookId: string) {
     return !!data;
 }
 
-export async function updatePlaybookProgress(userId: string, playbookId: string, completedSteps: number[], totalSteps: number) {
+export async function updatePlaybookProgress(userId: string | null, playbookId: string, completedSteps: number[], totalSteps: number) {
     const isComplete = completedSteps.length === totalSteps && totalSteps > 0;
 
-    if (!isUUID(playbookId)) {
-        // Use localStorage for local playbooks
+    if (!userId || !isUUID(playbookId)) {
+        // Use localStorage for local playbooks or guests
         const progress = getLocalProgress();
         const existing = progress.find(p => p.playbook_id === playbookId);
         if (existing) {
             existing.completed_steps = completedSteps;
             existing.last_accessed = new Date().toISOString();
-            existing.completed_at = isComplete ? new Date().toISOString() : null;
+            if (isComplete) {
+                existing.completed_at = new Date().toISOString();
+            }
         } else {
-            progress.push({
+            const newProg: any = {
                 playbook_id: playbookId,
                 completed_steps: completedSteps,
-                last_accessed: new Date().toISOString(),
-                completed_at: isComplete ? new Date().toISOString() : null
-            });
+                last_accessed: new Date().toISOString()
+            };
+            if (isComplete) {
+                newProg.completed_at = new Date().toISOString();
+            }
+            progress.push(newProg);
         }
         setLocalProgress(progress);
         return true;
     }
 
+    const payload: any = {
+        user_id: userId,
+        playbook_id: playbookId,
+        completed_steps: completedSteps,
+        last_accessed: new Date().toISOString()
+    };
+    if (isComplete) {
+        payload.completed_at = new Date().toISOString();
+    }
+
     const { error } = await supabase
         .from('playbook_progress')
-        .upsert({
-            user_id: userId,
-            playbook_id: playbookId,
-            completed_steps: completedSteps,
-            last_accessed: new Date().toISOString(),
-            completed_at: isComplete ? new Date().toISOString() : null
-        }, {
+        .upsert(payload, {
             onConflict: 'user_id, playbook_id'
         });
 
@@ -284,11 +297,13 @@ export async function getProfile(userId: string, email?: string) {
         .eq('id', userId)
         .single();
 
+    let profile = data;
+
     // Auto-create profile if missing (fallback for missing SQL triggers)
     if (error && error.code === 'PGRST116') {
         const { data: newProfile, error: insertError } = await supabase
             .from('profiles')
-            .insert([{ id: userId, email: email || '', is_admin: false }]) // Auto-create standard user
+            .insert([{ id: userId, email: email || '', is_admin: false }]) // Auto-create standard
             .select('*')
             .single();
 
@@ -297,14 +312,21 @@ export async function getProfile(userId: string, email?: string) {
             return null;
         }
 
-        return newProfile;
-    }
-
-    if (error) {
+        profile = newProfile;
+    } else if (error) {
         console.error('Error fetching profile:', error);
         return null;
     }
-    return data;
+
+    if (profile) {
+        if (profile.subscription_status === 'pro') {
+            localStorage.setItem('has_pro_access', 'true');
+        } else {
+            localStorage.removeItem('has_pro_access');
+        }
+    }
+    
+    return profile;
 }
 
 export async function updateProfile(userId: string, updates: any) {
@@ -364,4 +386,60 @@ export async function getAdminStats() {
         totalPlaybooks: playbookCount || 0,
         totalCompletions: progressData && progressData.length > 0 ? progressData.length : 850
     };
+}
+
+export async function deletePlaybook(id: string) {
+    const { error } = await supabase
+        .from('playbooks')
+        .delete()
+        .eq('id', id);
+    if (error) {
+        console.error('Error deleting playbook:', error);
+        return false;
+    }
+    return true;
+}
+
+export async function fetchPlaybookById(id: string): Promise<Playbook | null> {
+    const { data, error } = await supabase
+        .from('playbooks')
+        .select('*, steps:playbook_steps(*)')
+        .eq('id', id)
+        .single();
+    
+    if (error) {
+        console.error('Error fetching playbook by ID:', error);
+        return null;
+    }
+
+    if (data && data.steps) {
+        data.steps.sort((a: any, b: any) => a.step_number - b.step_number);
+    }
+
+    // Remap DB fields to match Playbook type
+    if (data) {
+        return {
+            ...data,
+            timeToComplete: data.time_to_complete,
+            timeSaved: data.time_saved,
+            isPro: data.is_pro,
+            isNew: data.is_new,
+            beforeYouStart: data.before_you_start,
+            expectedOutcome: data.expected_outcome,
+            completionCount: data.completion_count || 0,
+            tools: data.tools || [],
+            steps: data.steps ? data.steps.map((step: any) => ({
+                id: step.id,
+                stepNumber: step.step_number,
+                title: step.title,
+                instruction: step.instruction,
+                promptTemplate: step.prompt_template,
+                expectedOutput: step.expected_output,
+                tips: step.tips,
+                tools: step.tools || []
+            })) : []
+        };
+    }
+
+    return data;
 }

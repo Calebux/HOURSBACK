@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Copy, Download, Check, ExternalLink, Code2 } from 'lucide-react';
+import { X, Copy, Download, Check, Code2 } from 'lucide-react';
 import { Sandpack } from '@codesandbox/sandpack-react';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
@@ -216,17 +216,17 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                         {/* Sandpack Environment */}
                         <div className="flex-1 overflow-hidden bg-[#1E1E1E]">
                             <Sandpack
-                                template="vite-react-ts"
+                                template="react-ts"
                                 theme="dark"
                                 files={{
-                                    "/src/App.tsx": {
-                                        code: files['App.tsx'] || Object.values(files)[0],
+                                    "/App.tsx": {
+                                        code: files['App.tsx'] || files['/src/App.tsx'] || Object.values(files)[0],
                                         active: true
                                     },
                                     // Include any other auxiliary files if they exist
                                     ...Object.entries(files).reduce((acc, [fileName, content]) => {
-                                        if (fileName !== 'App.tsx' && fileName !== Object.keys(files)[0]) {
-                                            acc[`/src/${fileName}`] = { code: content };
+                                        if (!fileName.includes('App.tsx') && fileName !== Object.keys(files)[0]) {
+                                            acc[`/${fileName.replace('/src/', '')}`] = { code: content };
                                         }
                                         return acc;
                                     }, {} as Record<string, any>),

@@ -11,13 +11,14 @@ import {
   Lock,
   Menu,
   X,
-  ArrowRight
+  ArrowRight,
+  Lightbulb
 } from 'lucide-react';
-import { AuthModal } from '../components/AuthModal'; // Added AuthModal import
-import { useAuth } from '../contexts/AuthContext'; // Added useAuth import
+import { AuthModal } from '../components/AuthModal';
+import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import { pricingPlans } from '../data/playbooks';
-import PaystackPop from '@paystack/inline-js';
+import { useFlutterwave, closePaymentModal } from 'flutterwave-react-v3';
 import { updateProfile } from '../lib/api';
 
 const fadeInUp = {
@@ -431,50 +432,147 @@ function FeaturesSection() {
   );
 }
 
-function PricingSection({ onAuthRequired }: { onAuthRequired?: () => void }) {
+function PricingPlanCard({ plan, isAnnual, onAuthRequired }: { plan: any, isAnnual: boolean, onAuthRequired?: () => void }) {
   const { user } = useAuth();
-  const [isAnnual, setIsAnnual] = useState(false);
+  const isPro = localStorage.getItem('has_pro_access') === 'true';
 
-  const handlePaystack = (planDetails: any) => {
+  let amountRaw = isAnnual ? (plan.annualPrice || 0) * 12 : (plan.monthlyPrice || 0);
+  const amountNGN = Math.floor(amountRaw * 1500); // Flutterwave amount in NGN directly
+
+  const config = {
+    public_key: import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY || '',
+    tx_ref: `hb_tx_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+    amount: amountNGN,
+    currency: 'NGN',
+    payment_options: 'card,mobilemoney,ussd',
+    customer: {
+      email: user?.email || 'test@example.com',
+      phone_number: '',
+      name: user?.user_metadata?.name || '',
+    },
+    meta: {
+      user_id: user?.id || '',
+    },
+    customizations: {
+      title: 'Hoursback Pro',
+      description: `Upgrade to ${plan.name} Plan`,
+      logo: 'https://i.ibb.co/L5hY5M0/logo.png', // Fallback remote logo URL
+    },
+  };
+
+  const handleFlutterPayment = useFlutterwave(config);
+
+  const handlePayment = () => {
     if (!user) {
       if (onAuthRequired) onAuthRequired();
       return;
     }
 
-    // Determine amount based on annual toggle (annual charges 12 months at the discounted rate)
-    let amountRaw = isAnnual ? (planDetails.annualPrice || 0) * 12 : (planDetails.monthlyPrice || 0);
-    // Convert to NGN using a basic conversion for demonstration, e.g., 1 USD = 1500 NGN
-    const amountNGN = Math.floor(amountRaw * 1500) * 100;
-
-    const paystack = new PaystackPop();
-    paystack.newTransaction({
-      key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
-      email: user.email || 'test@example.com',
-      amount: amountNGN,
-      currency: 'NGN',
-      metadata: {
-        custom_fields: [
-          {
-            variable_name: 'user_id',
-            value: user.id
+    handleFlutterPayment({
+      callback: async (response) => {
+        if (response.status === 'successful') {
+          closePaymentModal();
+          alert("Payment successful! Welcome to Pro.");
+          localStorage.setItem('has_pro_access', 'true');
+          if (user?.id) {
+            try {
+              await updateProfile(user.id, { subscription_status: 'pro' });
+            } catch (err) {
+              console.error("Failed to update profile", err);
+            }
           }
-        ]
-      },
-      onSuccess: async () => {
-        alert("Payment successful! Welcome to Pro.");
-        localStorage.setItem('has_pro_access', 'true');
-        try {
-          await updateProfile(user.id, { subscription_status: 'pro' });
-        } catch (err) {
-          console.error("Failed to update profile", err);
+          window.location.href = '/playbooks';
+        } else {
+          alert("Payment failed or was incomplete. Please try again.");
+          closePaymentModal();
         }
-        window.location.href = '/playbooks';
       },
-      onCancel: () => {
-        console.log("Payment cancelled");
+      onClose: () => {
+        console.log("Payment modal closed by user");
       }
     });
   };
+
+  return (
+    <div
+      className={`relative rounded-3xl p-8 ${plan.popular
+        ? 'bg-brand-dark text-white shadow-antigravity-lg'
+        : 'bg-white/60 backdrop-blur-xl shadow-antigravity-md border border-brand-dark/10 text-brand-dark'
+        }`}
+    >
+      {plan.popular && (
+        <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+          <span className="bg-white text-brand-blue text-xs font-semibold px-4 py-1 rounded-full shadow-sm">
+            Most popular
+          </span>
+        </div>
+      )}
+
+      <div className="mb-6">
+        <h3 className="text-lg font-medium mb-2">{plan.name}</h3>
+        <div className="flex items-baseline gap-1">
+          <span className="text-4xl font-bold">
+            {plan.price
+              ? plan.price
+              : plan.monthlyPrice === 0
+                ? 'Free'
+                : isAnnual
+                  ? `$${plan.annualPrice}`
+                  : `$${plan.monthlyPrice}`}
+          </span>
+          {!plan.price && plan.monthlyPrice !== 0 && (
+            <span className={`text-sm ${plan.popular ? 'text-gray-300' : 'text-brand-dark/70'}`}>
+              /month {isAnnual && <span className="text-xs opacity-70 block">billed annually</span>}
+            </span>
+          )}
+        </div>
+        <p className={`mt-2 text-sm h-10 ${plan.popular ? 'text-gray-300' : 'text-brand-dark/70'}`}>
+          {plan.description}
+        </p>
+      </div>
+
+      <ul className="space-y-4 mb-8">
+        {plan.features.map((feature: string, j: number) => (
+          <li key={j} className="flex items-start gap-3 text-sm">
+            <CheckCircle2 className={`w-5 h-5 shrink-0 ${plan.popular ? 'text-brand-blue' : 'text-brand-blue'}`} />
+            <span>{feature}</span>
+          </li>
+        ))}
+      </ul>
+
+      <button
+        onClick={() => {
+          if (plan.name === 'Enterprise' || plan.name === 'Custom Build') {
+            window.location.href = 'mailto:petersoncaleb275@gmail.com?subject=Enterprise%20Inquiry';
+          } else if (plan.name === 'Pro') {
+            if (!isPro) handlePayment();
+          } else {
+            window.location.href = '#/playbooks';
+          }
+        }}
+        disabled={plan.name === 'Pro' && isPro}
+        className={`w-full py-3 rounded-full font-medium transition-all flex items-center justify-center gap-2 group ${plan.name === 'Pro' && isPro
+          ? 'bg-brand-dark text-white cursor-default'
+          : plan.popular
+            ? 'bg-white text-brand-dark hover:bg-gray-100'
+            : 'bg-white/60 backdrop-blur-md shadow-sm border border-brand-dark/10 hover:bg-white transition-all'
+          }`}
+      >
+        {plan.name === 'Pro' && isPro ? (
+          <>
+            <Lightbulb className="w-5 h-5 text-green-400" />
+            <span>Pro Active</span>
+          </>
+        ) : (
+          <span>{plan.cta}</span>
+        )}
+      </button>
+    </div>
+  );
+}
+
+function PricingSection({ onAuthRequired }: { onAuthRequired?: () => void }) {
+  const [isAnnual, setIsAnnual] = useState(false);
 
   return (
     <section id="pricing" className="py-32 bg-brand-light">
@@ -499,79 +597,16 @@ function PricingSection({ onAuthRequired }: { onAuthRequired?: () => void }) {
           </div>
         </div>
 
-        <div className="grid md:grid-cols-4 gap-8 max-w-7xl mx-auto">
-          {pricingPlans.map((plan, i) => (
-            <div
-              key={i}
-              className={`relative rounded-3xl p-8 ${plan.popular
-                ? 'bg-brand-dark text-white shadow-antigravity-lg'
-                : 'bg-white/60 backdrop-blur-xl shadow-antigravity-md border border-brand-dark/10 text-brand-dark'
-                }`}
-            >
-              {plan.popular && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                  <span className="bg-white text-brand-blue text-xs font-semibold px-4 py-1 rounded-full shadow-sm">
-                    Most popular
-                  </span>
-                </div>
-              )}
-
-              <div className="mb-6">
-                <h3 className="text-lg font-medium mb-2">{plan.name}</h3>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-bold">
-                    {plan.price
-                      ? plan.price
-                      : plan.monthlyPrice === 0
-                        ? 'Free'
-                        : isAnnual
-                          ? `$${plan.annualPrice}`
-                          : `$${plan.monthlyPrice}`}
-                  </span>
-                  {!plan.price && plan.monthlyPrice !== 0 && (
-                    <span className={`text-sm ${plan.popular ? 'text-gray-300' : 'text-brand-dark/70'}`}>
-                      /month {isAnnual && <span className="text-xs opacity-70 block">billed annually</span>}
-                    </span>
-                  )}
-                </div>
-                <p className={`mt-2 text-sm h-10 ${plan.popular ? 'text-gray-300' : 'text-brand-dark/70'}`}>
-                  {plan.description}
-                </p>
-              </div>
-
-              <ul className="space-y-4 mb-8">
-                {plan.features.map((feature: string, j: number) => (
-                  <li key={j} className="flex items-start gap-3 text-sm">
-                    <CheckCircle2 className={`w-5 h-5 shrink-0 ${plan.popular ? 'text-brand-blue' : 'text-brand-blue'}`} />
-                    <span>{feature}</span>
-                  </li>
-                ))}
-              </ul>
-
-              <button
-                onClick={() => {
-                  if (plan.name === 'Enterprise' || plan.name === 'Custom Build') {
-                    window.location.href = 'mailto:sales@hoursback.xyz?subject=Enterprise%20Inquiry';
-                  } else if (plan.name === 'Pro') {
-                    handlePaystack(plan);
-                  } else {
-                    window.location.href = '#/playbooks';
-                  }
-                }}
-                className={`w-full py-3 rounded-full font-medium transition-colors ${plan.popular
-                  ? 'bg-white text-brand-dark hover:bg-gray-100'
-                  : 'bg-white/60 backdrop-blur-md shadow-sm border border-brand-dark/10 hover:bg-white transition-all'
-                  }`}
-              >
-                {plan.cta}
-              </button>
-            </div>
+        <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          {pricingPlans.filter(p => p.name !== 'Enterprise').map((plan, i) => (
+            <PricingPlanCard key={i} plan={plan} isAnnual={isAnnual} onAuthRequired={onAuthRequired} />
           ))}
         </div>
       </div>
     </section>
   );
 }
+
 
 function FAQSection() {
   const faqs = [

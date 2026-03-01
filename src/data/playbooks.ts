@@ -8,6 +8,8 @@ export interface Step {
   screenshotUrl?: string;
   tips?: string;
   tools?: string[];
+  hideCodePreview?: boolean;
+  hideCopilot?: boolean;
 }
 
 export interface WebhookInput {
@@ -784,6 +786,227 @@ Flag anything that looks suspicious with a risk score (Low/Medium/High) and expl
 
 // Claude Cowork-optimized playbooks (new finance/banking verticals)
 export const coworkPlaybooks: Playbook[] = [
+  {
+    id: 'cw-smm-1',
+    slug: 'automated-social-media-manager',
+    title: 'The 30-Day Content Architect',
+    subtitle: 'Design, edit, and schedule 30 days of high-converting social media content in 2 hours using Claude.',
+    category: 'Marketing',
+    difficulty: 'Advanced',
+    timeToComplete: 120,
+    timeSaved: 2400,
+    completionCount: 89,
+    rating: 5.0,
+    isPro: true,
+    isNew: true,
+    coworkCompatible: true,
+    tools: ['Claude'],
+    beforeYouStart: [
+      'Your target niche or industry',
+      'Basic understanding of your product/service value proposition'
+    ],
+    expectedOutcome: 'A complete, ready-to-schedule 30-day social media calendar with tailored content, hooks, and growth strategies.',
+    troubleshooting: [],
+    steps: [
+      {
+        id: 'cw-smm-s1',
+        stepNumber: 1,
+        title: 'Niche Intelligence & Audience Mapping',
+        instruction: 'Define the most profitable audience segments, their frustrations, and emotional triggers to build focused content around.',
+        promptTemplate: 'Act as a senior social media strategist with over 10 years of experience managing brands in multiple industries. Analyze the niche [Niche/Industry] and identify the most profitable audience segments, their biggest frustrations, emotional triggers, content consumption habits, and what type of posts make them follow, engage, and buy. Present this in a clear, actionable profile I can build content around.',
+        expectedOutput: 'A detailed audience profile including segments, pain points, and content preferences.'
+      },
+      {
+        id: 'cw-smm-s2',
+        stepNumber: 2,
+        title: 'Market Positioning & Brand Strategy',
+        instruction: 'Design a powerful social media identity and messaging strategy that makes your profile feel authoritative.',
+        promptTemplate: 'Act as a brand positioning expert and help me design a powerful social media identity in the niche [Niche/Industry]. Define what my brand should stand for, what makes it different from competitors, and how it should be perceived. Then translate that into a clear messaging and content positioning strategy that makes my profile feel authoritative and trustworthy.',
+        expectedOutput: 'A comprehensive brand positioning strategy with key differentiators and messaging pillars.'
+      },
+      {
+        id: 'cw-smm-s3',
+        stepNumber: 3,
+        title: 'Content Pillar Architecture',
+        instruction: 'Identify the main themes you should post about and how they work together to build trust.',
+        promptTemplate: 'Create a complete content pillar framework for my social media brand in the niche [Niche/Industry]. Identify the main themes I should post about, explain what type of posts belong under each theme, and describe how these pillars work together to build trust, authority, and audience growth over time.',
+        expectedOutput: 'A breakdown of 3-5 distinct content pillars with examples of posts for each category.'
+      },
+      {
+        id: 'cw-smm-s4',
+        stepNumber: 4,
+        title: 'Scroll-Stopping Hook & Idea Generator',
+        instruction: 'Generate a large set of high-impact content ideas and hooks designed to trigger curiosity and emotion.',
+        promptTemplate: 'Generate a large set of high-impact content ideas and scroll-stopping hooks for the niche [Niche/Industry]. Each idea should be designed to grab attention, trigger curiosity or emotion, and make people want to read, watch, or save the post. Avoid generic or obvious ideas.',
+        expectedOutput: 'A list of 15-20 highly engaging content concepts accompanied by attention-grabbing first sentences (hooks).'
+      },
+      {
+        id: 'cw-smm-s5',
+        stepNumber: 5,
+        title: 'The 30-Day Content Calendar Builder',
+        instruction: 'Structure all the previous research into a daily action plan specifying post goals and core ideas.',
+        promptTemplate: 'Create a 30-day social media content calendar for the niche [Niche/Industry]. For each day, specify the type of post, its goal (reach, engagement, authority, or conversion), and the core idea behind it so I know exactly what to post and why.',
+        expectedOutput: 'A day-by-day 30-day schedule detailing the post format, objective, and topic.'
+      },
+      {
+        id: 'cw-smm-s6',
+        stepNumber: 6,
+        title: 'Audience Growth & Engagement System',
+        instruction: 'Create a practical, step-by-step plan to build a loyal, interactive community instead of just passive followers.',
+        promptTemplate: 'Create a practical, step-by-step audience growth and engagement plan for my social media brand in the niche [Niche/Industry]. Include posting strategy, engagement habits, and content tactics that help me build a loyal, interactive community instead of just passive followers.',
+        expectedOutput: 'A daily/weekly engagement checklist and community interaction strategy.'
+      }
+    ],
+    relatedPlaybooks: []
+  },
+  {
+    id: 'cw-btp-1',
+    slug: 'ultimate-budget-travel-planner',
+    title: 'The Travel Hacker\'s Blueprint',
+    subtitle: 'Plan a complete, optimized budget trip with flights, lodging, and activities using AI.',
+    category: 'Travel & Lifestyle',
+    difficulty: 'Beginner',
+    timeToComplete: 15,
+    timeSaved: 180,
+    completionCount: 142,
+    rating: 4.8,
+    isPro: false,
+    isNew: true,
+    coworkCompatible: false,
+    tools: ['Claude', 'Gemini', 'ChatGPT'],
+    beforeYouStart: [
+      'Your destination',
+      'Your general travel dates or flexibility',
+      'Your approximate budget'
+    ],
+    expectedOutcome: 'A complete end-to-end trip itinerary featuring the cheapest flights, vetted budget lodging, free activities, and local dining spots.',
+    troubleshooting: [],
+    steps: [
+      {
+        id: 'cw-btp-s1',
+        stepNumber: 1,
+        title: 'Optimal Booking Window',
+        instruction: 'Determine the absolute cheapest dates to fly and calculate potential savings.',
+        promptTemplate: 'I have [X days] of flexibility. Analyze pricing patterns and identify the cheapest date range to fly to [Destination]. Show me how much I\'ll save.',
+        expectedOutput: 'An analysis of historical/current pricing patterns with a recommended date range.'
+      },
+      {
+        id: 'cw-btp-s2',
+        stepNumber: 2,
+        title: 'Pricing Error Tracker',
+        instruction: 'Search for active mistake fares or flash sales to lock in impossible prices.',
+        promptTemplate: 'You\'re a travel deals hunter. Search for active mistake fares or flash sales from [Your Region] to top destinations. Explain how to book them before they vanish.',
+        expectedOutput: 'A list of potential active flash sales and instructions on leveraging mistake fares safely.'
+      },
+      {
+        id: 'cw-btp-s3',
+        stepNumber: 3,
+        title: 'Strategic Flight Search',
+        instruction: 'Find the absolute cheapest routing options using creative alternatives.',
+        promptTemplate: 'I\'m departing [Your City] for [Destination] around [Dates]. Find the absolute cheapest options using flexible timing, nearby airports, and creative routing.',
+        expectedOutput: '1-3 creative flight routes (e.g., hidden city ticketing, alternative airports, mixed airlines) that significantly lower the cost.'
+      },
+      {
+        id: 'cw-btp-s4',
+        stepNumber: 4,
+        title: 'Affordable Stay Finder',
+        instruction: 'Locate high-value, low-cost accommodations near the action.',
+        promptTemplate: 'I\'m in [Destination] for [X nights]. Locate 3 hotels or Airbnbs under [$X/night] close to downtown or major attractions.',
+        expectedOutput: 'Three specific neighborhood or accommodation recommendations hitting the price target.'
+      },
+      {
+        id: 'cw-btp-s5',
+        stepNumber: 5,
+        title: 'Free Experience Curator',
+        instruction: 'Build an itinerary of genuinely great activities that cost nothing.',
+        promptTemplate: 'I\'m exploring [Destination] on a budget. Give me 5 free or nearly-free things, parks, local events, hidden spots, etc.',
+        expectedOutput: 'A curated list of 5 high-quality free experiences beyond obvious tourist traps.'
+      },
+      {
+        id: 'cw-btp-s6',
+        stepNumber: 6,
+        title: 'Budget Dining Advisor',
+        instruction: 'Discover authentic, affordable food where locals actually eat.',
+        promptTemplate: 'I want authentic food without the markup. Recommend 3 local spots in [Destination] where meals cost under [$X] and locals actually eat.',
+        expectedOutput: 'Three distinct affordable dining recommendations spanning different local cuisines.'
+      },
+      {
+        id: 'cw-btp-s7',
+        stepNumber: 7,
+        title: 'Complete Trip Cost Planner',
+        instruction: 'Compile everything into a final budget and find one more massive saving opportunity.',
+        promptTemplate: 'Using the cheapest flights, lodging, meals, and activities, calculate my total cost for [Destination], then suggest one extra way to save.',
+        expectedOutput: 'A finalized budget breakdown and one creative "secret" tip for further savings.'
+      }
+    ],
+    relatedPlaybooks: []
+  },
+  {
+    id: 'cw-lseo-1',
+    slug: 'local-business-seo-dominator',
+    title: 'The Local Business SEO Dominator',
+    subtitle: 'Outrank competitors by publishing helpful local pages and optimizing your Google Business Profile overnight.',
+    category: 'Marketing',
+    difficulty: 'Intermediate',
+    timeToComplete: 45,
+    timeSaved: 1920, // Agencies take weeks
+    completionCount: 382,
+    rating: 4.9,
+    isPro: true,
+    isNew: true,
+    coworkCompatible: false,
+    tools: ['Claude', 'Google Business Profile', 'WordPress'],
+    beforeYouStart: [
+      'Your exact target services (e.g., HVAC repair, emergency plumbing)',
+      'A list of the cities or neighborhoods you serve',
+      'Basic access to your website and Google Business Profile'
+    ],
+    expectedOutcome: 'A complete local SEO content suite including hyper-targeted local service pages, an optimized GBP, and review request templates.',
+    troubleshooting: [],
+    steps: [
+      {
+        id: 'cw-lseo-s1',
+        stepNumber: 1,
+        title: 'Find Your Local Keywords',
+        instruction: 'Ask Claude to build a comprehensive list of high-intent local search terms for your specific services.',
+        promptTemplate: 'I run a local business offering [Your Services] in [Your City/Local Areas]. Act as a Local SEO expert and analyze search intent for my market. Please list: 1) "Service + Location" keywords. 2) "Near me" intent keywords. 3) Emergency / Urgent keywords. 4) Comparison keywords (best, affordable, top-rated). Present this as a prioritized list.',
+        expectedOutput: 'A structured list of targeted keywords mapped by intent and urgency.'
+      },
+      {
+        id: 'cw-lseo-s2',
+        stepNumber: 2,
+        title: 'Build Service Area Pages',
+        instruction: 'Feed Claude your exact offer so it can write localized, unique landing pages for each city you serve.',
+        promptTemplate: 'Here is my core business information: My exact offer is [Your Offer]. My prices average [Price Range]. My process is [Brief Process]. The areas I serve are [List of Cities/Neighborhoods]. Draft SEO-optimized landing page copy for EACH of these areas individually. Include placeholders for photos, local reviews, FAQs, and a clear Call-to-Action button.',
+        expectedOutput: 'Multiple drafts of localized service pages ready to be pasted into WordPress or your website builder.'
+      },
+      {
+        id: 'cw-lseo-s3',
+        stepNumber: 3,
+        title: 'Turn GBP Into a Lead Machine',
+        instruction: 'Optimize your Google Business Profile with rich descriptions, services, and FAQs to boost local map pack rankings.',
+        promptTemplate: 'Based on my business info ([Services] in [Location]), write the following for my Google Business Profile (GBP): 1) An optimized 750-character business description. 2) A formatted list of services with short, keyword-rich blurbs. 3) 20 common FAQs with detailed answers. 4) 4 weekly Google Post ideas (offers, tips, before/afters).',
+        expectedOutput: 'Ready-to-copy profile descriptions, an FAQ database, and a month of Google Post ideas.'
+      },
+      {
+        id: 'cw-lseo-s4',
+        stepNumber: 4,
+        title: 'Create "Proof" Content',
+        instruction: 'Turn a single recent job into 4 different pieces of marketing content that prove your expertise.',
+        promptTemplate: 'I recently completed a job doing [Brief description of the job, e.g., AC repair in Bandra fixed in 45 mins]. Turn this single job into 4 pieces of content: 1) A short case study page for my website. 2) A promotional Google Post. 3) A simple 30-second script for an Instagram/Facebook Reel. 4) A new FAQ based on a question the customer asked.',
+        expectedOutput: 'Four distinct pieces of content derived from one real-world job.'
+      },
+      {
+        id: 'cw-lseo-s5',
+        stepNumber: 5,
+        title: 'Get Reviews on Autopilot',
+        instruction: 'Generate templates to automate asking for reviews via SMS/email, and templates for responding to them.',
+        promptTemplate: 'Write 3 different short, polite text message/SMS templates I can send to happy customers asking them for a Google review. Keep them casual but professional. Then, write 3 template replies I can use to respond to positive 5-star reviews on my Google Business Profile to show engagement.',
+        expectedOutput: 'Copy/paste SMS review request templates and perfectly crafted GBP review responses.'
+      }
+    ],
+    relatedPlaybooks: []
+  },
   {
     id: 'cw-1',
     slug: 'investment-banking-deal-brief',
@@ -2202,6 +2425,333 @@ export { coworkPluginPlaybooks } from './coworkPluginPlaybooks';
 // Designer AI Shipping Playbook
 export const designerAIPlaybooks: Playbook[] = [
   {
+    id: 'dai-3',
+    slug: '90-percent-design-system-generator',
+    title: 'The 90% Design System Generator',
+    subtitle: 'Free up your engineering bandwidth. Generate 90% of your production-ready Design System code directly from your Figma files using Claude.',
+    category: 'AI for Designers',
+    difficulty: 'Advanced',
+    timeToComplete: 30,
+    timeSaved: 12000, // Roughly a month of dedicated DS engineering
+    completionCount: 156,
+    rating: 4.8,
+    isPro: true,
+    isNew: true,
+    supportsCodePreview: true,
+    tools: ['Figma', 'Claude', 'React/Tailwind'],
+    beforeYouStart: [
+      'A Figma file with documented Design Tokens (Colors, Typography, Spacing)',
+      'Basic knowledge of React and Tailwind CSS',
+      'A fresh Claude chat window (Claude Pro recommended)'
+    ],
+    expectedOutcome: 'A complete, accessible, and structured React+Tailwind component library ready for developers to implement biz logic.',
+    troubleshooting: [
+      {
+        problem: 'Claude hallucinates token names',
+        solution: 'Always feed Claude your exact `tailwind.config.ts` or CSS variables file in every new chat or prompt so it never has to guess.'
+      },
+      {
+        problem: 'Components lack accessibility (ARIA)',
+        solution: 'Explicitly enforce the rule: "Every component must be fully accessible following WCAG 2.1 AA guidelines, including ARIA labels, focus states, and keyboard navigation support."'
+      }
+    ],
+    steps: [
+      {
+        id: 'dai-3-s1',
+        stepNumber: 1,
+        title: 'Extract & Format the Tokens',
+        instruction: 'Before generating components, you must establish the "Source of Truth". Extract your Figma Design Tokens into a format Claude and your codebase can understand.',
+        promptTemplate: 'I am building a React + Tailwind CSS Design System from my Figma file.\n\nHere are my raw design tokens:\n[PASTE YOUR FIGMA VARIABLES/TOKENS HERE]\n\nPlease format these into a complete, production-ready `tailwind.config.ts` file extending the default theme. Do not use generic names; use the exact semantic names provided in my tokens (e.g., `primary-500`, `surface-muted`).',
+        expectedOutput: 'A fully validated `tailwind.config.ts` encapsulating your entire brand identity.'
+      },
+      {
+        id: 'dai-3-s2',
+        stepNumber: 2,
+        title: 'Generate Core Primitives (Atoms)',
+        instruction: 'Build the foundational building blocks of your system first. These are the atoms that every other component will rely on.',
+        promptTemplate: 'You are an expert Design Systems Engineer.\n\nUsing the `tailwind.config.ts` we just created, generate the following Core Primitives as React (TypeScript) components:\n1. `<Button />` (Variants: Primary, Secondary, Outline, Ghost, Link | Sizes: sm, md, lg)\n2. `<Input />` (States: Default, Hover, Focus, Error, Disabled)\n3. `<Badge />` (Variants: Success, Warning, Error, Info)\n\nRequirements:\n- Use `cva` (class-variance-authority) for variant management if applicable.\n- Ensure strict TypeScript interfaces.\n- Must be fully accessible (focus rings, ARIA).',
+        expectedOutput: 'Production-ready React code for Buttons, Inputs, and Badges supporting all your Figma variants.'
+      },
+      {
+        id: 'dai-3-s3',
+        stepNumber: 3,
+        title: 'Generate Complex Components (Molecules)',
+        instruction: 'Combine your core primitives to build the more complex structures in your design system.',
+        promptTemplate: 'Moving on to Molecules.\n\nUsing the `<Button />`, `<Input />`, and `<Badge />` primitives we created, generate the following components:\n1. `<Card />` (With Header, Body, and Footer sub-components)\n2. `<Modal />` (With proper focus trapping and overlay backdrop)\n3. `<DropdownMenu />` (Fully accessible with arrow-key navigation)\n\nRequirements:\n- Adhere strictly to the spacing scale defined in our Tailwind config.\n- Build them composably (e.g. `Card.Header`, `Card.Content`).',
+        expectedOutput: 'Composable, accessible React code for Cards, Modals, and Dropdowns.'
+      },
+      {
+        id: 'dai-3-s4',
+        stepNumber: 4,
+        title: 'Generate Layout Structures (Organisms)',
+        instruction: 'Finally, construct the major page layouts and navigation elements that dictate the structure of your application.',
+        promptTemplate: 'Finally, let\'s build the Organisms.\n\nGenerate the following layout structures:\n1. `<SidebarNavigation />` (Responsive: collapsible on desktop, off-canvas drawer on mobile)\n2. `<TopNavbar />` (With user profile dropdown and notification bell)\n3. `<DataTable />` (With sortable headers and pagination controls)\n\nRequirements:\n- Must be responsive out of the box using Tailwind breakpoints (`sm:`, `md:`, `lg:`).\n- Use dummy data for the tables and menus so I can visualize them immediately.',
+        expectedOutput: 'Responsive layout components ready to be dropped into your routing system.'
+      }
+    ],
+    relatedPlaybooks: []
+  },
+  {
+    id: 'dai-2',
+    slug: 'figma-mcp-design-to-code-speedrun',
+    title: 'Figma MCP: Design to Code Speedrun',
+    subtitle: 'Build production-ready code straight from your Figma files with zero translation loss using Claude Code and Figma MCP.',
+    category: 'AI for Designers',
+    difficulty: 'Advanced',
+    timeToComplete: 15,
+    timeSaved: 2400, // Roughly a week of dev handoff time
+    completionCount: 342,
+    rating: 4.9,
+    isPro: true,
+    isNew: true,
+    supportsCodePreview: false,
+    tools: ['Figma', 'Claude Code', 'Cursor'],
+    beforeYouStart: [
+      'A Figma file with clean Auto Layout and Semantic naming',
+      'Figma Personal Access Token',
+      'Claude Code installed via Terminal'
+    ],
+    expectedOutcome: 'A complete, pixel-perfect React application matching your Figma design perfectly.',
+    troubleshooting: [],
+    steps: [
+      {
+        id: 'dai-2-s1',
+        stepNumber: 1,
+        title: 'Analyze Your Full Design',
+        instruction: 'Point Claude to your Figma file so it understands the global structure, hierarchy, and aesthetic of your design before writing any code.',
+        promptTemplate: 'Read my Figma design at:\nhttps://www.figma.com/design/[YOUR-FILE-ID]/[FILE-NAME]\n\nGive me:\n1. Overview of the page structure\n2. List of main sections\n3. Color palette being used\n4. Typography styles\n5. Any components you can identify',
+        expectedOutput: 'A complete structural breakdown of your Figma file natively within Claude.'
+      },
+      {
+        id: 'dai-2-s2',
+        stepNumber: 2,
+        title: 'Extract Design Tokens',
+        instruction: 'Have Claude generate your foundational design tokens (colors, fonts, spacing) so the resulting components perfectly match the design system.',
+        promptTemplate: 'From the Figma file, extract and create:\n\n1. A Tailwind config with:\n   - Custom colors matching the design\n   - Font families and sizes\n   - Spacing scale based on what you see\n\n2. CSS variables file as backup\n\nFormat the colors as semantic names (primary, secondary, accent, neutral).',
+        expectedOutput: 'A tailwind.config.ts and globals.css file fully populated with your Figma tokens.'
+      },
+      {
+        id: 'dai-2-s3',
+        stepNumber: 3,
+        title: 'Generate Components',
+        instruction: 'Build the foundational atoms and molecules of your design system (Buttons, Cards, Inputs) before assembling the full page.',
+        promptTemplate: 'Look at the [COMPONENT NAME] in my Figma file.\n\nGenerate a React component that:\n- Matches the exact styling (colors, spacing, typography)\n- Uses Tailwind CSS\n- Supports all variants I\'ve defined (if any)\n- Is fully typed with TypeScript\n- Includes hover/focus states based on the design',
+        expectedOutput: 'Production-ready UI components mapping 1:1 with your Figma variants.'
+      },
+      {
+        id: 'dai-2-s4',
+        stepNumber: 4,
+        title: 'Build Full Sections',
+        instruction: 'Assemble the page section by section (Hero -> Features -> Footer) using the tokens and components you just generated.',
+        promptTemplate: 'Generate the [SECTION NAME] section from my Figma design.\n\nRequirements:\n- Match the design exactly\n- Make it responsive:\n  - Mobile (<768px): [describe layout]\n  - Desktop (≥768px): [describe layout]\n- Use semantic HTML (section, nav, main, article)\n- Include all text content from the design',
+        expectedOutput: 'A fully responsive, pixel-perfect webpage section.'
+      }
+    ],
+    relatedPlaybooks: []
+  },
+  {
+    id: 'dai-1',
+    slug: 'notebooklm-antigravity-product-engine',
+    title: 'The NotebookLM + Anti-Gravity Product Engine',
+    subtitle: 'Upload research, generate a perfect product blueprint, and ship it instantly utilizing Gemini 3.1 Pro.',
+    category: 'AI for Designers',
+    difficulty: 'Advanced',
+    timeToComplete: 60,
+    timeSaved: 4800, // Weeks of product planning
+    completionCount: 112,
+    rating: 5.0,
+    isPro: true,
+    isNew: true,
+    supportsCodePreview: true,
+    tools: ['NotebookLM', 'Google Anti-Gravity', 'Gemini 3.1 Pro'],
+    beforeYouStart: [
+      'Raw research documents, customer interviews, or market data',
+      'Access to Google NotebookLM',
+      'Access to Google Anti-Gravity'
+    ],
+    expectedOutcome: 'A market-ready, high-converting digital product or landing page uniquely positioned based on deep research.',
+    troubleshooting: [],
+    steps: [
+      {
+        id: 'dai-1-s1',
+        stepNumber: 1,
+        title: 'Upload Research into NotebookLM',
+        instruction: 'Feed all your scattered market research, customer calls, and competitor data into a single NotebookLM source.',
+        promptTemplate: 'No specific prompt needed yet. Just upload all PDFs, text files, and transcripts into a new Notebook.',
+        expectedOutput: 'A fully loaded NotebookLM environment ready to analyze your specific market data.'
+      },
+      {
+        id: 'dai-1-s2',
+        stepNumber: 2,
+        title: 'Generate the Product Blueprint',
+        instruction: 'Ask NotebookLM to synthesize the research into a concrete product positioning and offer strategy.',
+        promptTemplate: 'Act as a world-class Product Strategist. Based on all the uploaded documents, analyze this market and give me: 1) The exact positioning for a new product. 2) An irresistible core offer. 3) A high-converting landing page structure (Hero, Social Proof, Features, FAQ).',
+        expectedOutput: 'A detailed, strategic product blueprint grounded entirely in your uploaded data.'
+      },
+      {
+        id: 'dai-1-s3',
+        stepNumber: 3,
+        title: 'Export the Strategy',
+        instruction: 'Review the output, tweak if necessary, and copy the entire blueprint to your clipboard.',
+        promptTemplate: 'Format the final approved blueprint cleanly so I can copy everything at once.',
+        expectedOutput: 'The finalized product strategy residing on your clipboard.'
+      },
+      {
+        id: 'dai-1-s4',
+        stepNumber: 4,
+        title: 'Initialize Anti-Gravity',
+        instruction: 'Open your codebase with Google Anti-Gravity, powered by Gemini 3.1 Pro, and prepare your development environment.',
+        promptTemplate: 'Please review the following product blueprint. Do not build it yet, just acknowledge you understand the structure and positioning: [Paste Blueprint Here]',
+        expectedOutput: 'Anti-Gravity confirms understanding of the exact product specifications.'
+      },
+      {
+        id: 'dai-1-s5',
+        stepNumber: 5,
+        title: 'Build the High-Converting Product',
+        instruction: 'Instruct Anti-Gravity to execute the blueprint and build the actual product interface or landing page.',
+        promptTemplate: 'You are now a world-class frontend engineer and UI/UX designer. Based on the product blueprint we just reviewed, build this high-converting product/landing page. Use modern, premium design aesthetics. Focus on the core offer and structured sections outlined in the blueprint. Build it now.',
+        expectedOutput: 'A fully coded, functional, and beautifully designed web product ready to publish.'
+      }
+    ],
+    relatedPlaybooks: []
+  },
+  {
+    id: 'dai-0',
+    slug: 'ship-your-app-with-ai-designers-guide',
+    title: 'Ship Your App with AI — A Designer\'s Complete Guide',
+    subtitle: 'Go from Figma to a live, deployed app using Gemini, Claude, and Antigravity — no engineering team required',
+    category: 'AI for Designers',
+    difficulty: 'Intermediate',
+    timeToComplete: 45,
+    timeSaved: 480,
+    completionCount: 890,
+    rating: 5.0,
+    isPro: false,
+    isNew: false,
+    supportsCodePreview: true,
+    tools: ['Claude', 'Gemini', 'ChatGPT'],
+    beforeYouStart: [
+      'A Figma design (or clear visual reference) for the app you want to build',
+      'Your design system documented — colors, typography, spacing, components (even rough notes work)',
+      '45-60 minutes of focused time'
+    ],
+    expectedOutcome: 'A fully functional, styled web app built from your design system, pushed to your GitHub repository — ready to deploy on Vercel, Netlify, or any hosting platform.',
+    troubleshooting: [
+      {
+        problem: 'Gemini ignores my design tokens and uses its own styles',
+        solution: 'Be more explicit. Instead of "use my brand colors", say "ONLY use these exact hex values: primary: #1A1A2E, accent: #E94560. Do NOT use any other colors. If you need a shade, use opacity variants of these."'
+      },
+      {
+        problem: 'Claude generates a different tech stack than what I wanted',
+        solution: 'State the stack upfront: "Use React + TypeScript + Vite. Do NOT use Next.js, Vue, or any other framework. Do NOT add TailwindCSS."'
+      },
+      {
+        problem: 'The AI-generated code looks nothing like my design',
+        solution: 'Break it down smaller. Don\'t ask for the full page — ask for one component at a time. Start with the nav bar, verify it matches, then move to the hero section, etc.'
+      }
+    ],
+    steps: [
+      {
+        id: 'dai0-s1',
+        stepNumber: 1,
+        title: 'Extract Your Design System into Code-Ready Tokens',
+        instruction: 'Before any AI touches your code, you need your design system in a format AI can work with. Open your Figma file and extract every design decision into a structured document. This is the most important step — it becomes the "source of truth" that every AI tool will reference.',
+        promptTemplate: `I'm a designer preparing to build my app with AI. Help me create a complete design system document from my design specs.
+
+Here are my design tokens:
+
+**Colors:**
+- Primary: [PRIMARY COLOR HEX]
+- Secondary: [SECONDARY COLOR HEX]
+- Background: [BACKGROUND COLOR HEX]
+- Text Primary: [MAIN TEXT COLOR HEX]
+
+**Typography:**
+- Font Family: [FONT FAMILY NAME]
+- Base spacing unit: [BASE SPACING PIXELS]px
+- Border radius: [BORDER RADIUS PIXELS]px
+
+Convert this into a complete CSS file (index.css) with:
+1. CSS custom properties (variables) on :root
+2. A CSS reset
+3. Base typography styles
+4. Utility classes for common patterns
+5. Component base styles (buttons, cards, inputs)
+
+Use semantic naming. Make it production-ready.`,
+        expectedOutput: 'A complete CSS design system file with custom properties, reset, typography, and component base styles — all using your exact design tokens.',
+        tips: 'Pro tip: In Figma, use the "Inspect" panel to grab exact values. If you use Figma Tokens plugin, you can export tokens as JSON and paste them directly into the prompt.',
+        tools: ['Claude'],
+        hideCodePreview: true
+      },
+      {
+        id: 'dai0-s3',
+        stepNumber: 2,
+        title: 'Generate the Atomic Components',
+        instruction: 'Do not ask the AI to build the "whole page" right away. The secret to production-level AI apps is building bottom-up. Ask it to build the smallest pieces first.',
+        promptTemplate: `Using the following design system, build the following component: [COMPONENT NAME (e.g., Primary Button, Feature Card, Nav Bar)]
+
+**Design System:**
+- Primary Color: [PRIMARY COLOR HEX]
+- Secondary Color: [SECONDARY COLOR HEX]
+- Background: [BACKGROUND COLOR HEX]
+- Text Primary: [MAIN TEXT COLOR HEX]
+- Font Family: [FONT FAMILY NAME]
+- Border radius: [BORDER RADIUS PIXELS]px
+- Icon Family: [ICON FAMILY (e.g., Lucide or Heroicons)]
+
+**Icon Rules (CRITICAL):**
+- Never mix icon systems. Use ONLY the specified Icon Family.
+- If Heroicons: Use outline icons, 24px grid, 1.5px stroke, rounded line caps. No gradients or shadows.
+- If Lucide: Use 2px stroke, rounded corners, consistent visual weight.
+- Maintain consistent optical padding and do not mix stroke weights.
+
+Requirements:
+- Written in React (TypeScript) and Tailwind CSS
+- Use exact hardcoded hex values or arbitrary Tailwind values (e.g., bg-[#1A1A2E])
+- Make it accessible (aria labels, keyboard navigation)
+- Add smooth hover states and transitions
+
+Provide the complete, ready-to-use code.`,
+        expectedOutput: 'A complete React component (.tsx) fully styled with your design system tokens, with animations and responsive behavior.',
+        tips: 'Remember you can edit the prompt text freely! Start with the most important components: NavBar → Hero → Feature Cards → Footer.',
+        tools: ['Claude'],
+        hideCodePreview: true
+      },
+      {
+        id: 'dai0-s4',
+        stepNumber: 3,
+        title: 'Assemble Pages and Polish',
+        instruction: 'Now combine your components into full pages. Tell the AI which components go on which page, in what order, and ask for micro-interactions.',
+        promptTemplate: `Now assemble the [PAGE NAME] page using the components we built.
+
+**Design System (for any new layout elements):**
+- Primary Color: [PRIMARY COLOR HEX]
+- Secondary Color: [SECONDARY COLOR HEX]
+- Background: [BACKGROUND COLOR HEX]
+- Font Family: [FONT FAMILY NAME]
+
+Page layout (top to bottom):
+1. NavBar component
+2. Hero Section 
+3. [SPECIFIC COMPONENT NAME]
+4. Footer component
+
+Polish Requirements:
+- Page title: "[PAGE SEO TITLE]"
+- Ensure heading hierarchy is correct (one h1 per page)
+- Check that all buttons have a subtle scale on hover (1.02)
+- Mobile layout: ensure navigation collapses to a hamburger menu and Touch targets are minimum 44x44px.`,
+        expectedOutput: 'A complete page component assembling all your individual components, with proper routing, scroll animations, and responsive layout.',
+        tips: 'Now that the page is assembled, click the "Test Live Component" button below to preview the code in your browser! Use specific feedback in chat to tweak the design.',
+        tools: ['Claude']
+      }
+    ],
+    relatedPlaybooks: [
+      { id: 'dai-1', title: 'Designer\'s AI Shipping Playbook (V2)', slug: 'figma-to-production-cowork-claude-code' }
+    ]
+  },
+  {
     id: 'dai-1',
     slug: 'figma-to-production-cowork-claude-code',
     title: "Designer's AI Shipping Playbook (V2)",
@@ -2305,7 +2855,6 @@ export const designerAIPlaybooks: Playbook[] = [
     rating: 4.9,
     isPro: false,
     isNew: true,
-    supportsCodePreview: true,
     tools: ['Claude', 'ChatGPT'],
     beforeYouStart: [
       'Have ideas for your brand colors (e.g., "Deep Purple and Neon Pink")',
@@ -2324,20 +2873,22 @@ export const designerAIPlaybooks: Playbook[] = [
         stepNumber: 1,
         title: 'Define the Structure',
         instruction: 'Ask the AI to generate the raw React structure of your landing page using a modern stack.',
-        promptTemplate: 'Generate a modern landing page for [Product Name]. \n\nIt must be a single file React component using Tailwind CSS. Include a Hero section with a gradient text headline, a 3-column feature grid, and Call to Action section. Use Lucide React icons.',
+        promptTemplate: 'Generate a modern landing page for [PRODUCT NAME]. \n\nIt must be a single file React component using Tailwind CSS. \n\nDesign Requirements:\n- The primary brand color is [PRIMARY TAILWIND COLOR e.g. blue-600]\n- The secondary accent color is [SECONDARY TAILWIND COLOR e.g. emerald-400]\n\nInclude a Hero section with a gradient text headline, a 3-column feature grid, and Call to Action section. The main CTA button should say "[MAIN CTA TEXT]". Use Lucide React icons.',
         expectedOutput: 'Claude will write a complete `App.tsx` file containing the semantic HTML and Tailwind classes.',
-        tips: 'Always specify "single file React component" if you just want something easy to copy and paste!',
-        tools: ['Claude']
+        tips: 'You can freely edit the prompt text before copying it. Always specify "single file React component" if you just want something easy to copy and paste!',
+        tools: ['Claude'],
+        hideCodePreview: true
       },
       {
         id: 'dai2-s2',
         stepNumber: 2,
         title: 'Refine the Aesthetics',
         instruction: 'Review the generated code in the live preview. Iterate on the colors and spacing by asking follow-up questions.',
-        promptTemplate: 'Make the hero section background a dark gradient from #0f172a to #312e81. Increase the padding on the feature cards, and make the main "Get Started" button use a vibrant neon green hover effect.',
+        promptTemplate: 'Make the hero section background a dark gradient from #0f172a to [DARK GRADIENT END HEX]. Increase the padding on the feature cards, and make the main "[MAIN CTA TEXT]" button use a vibrant hover effect with shadow.',
         expectedOutput: 'The AI will update the specific Tailwind classes to match your exact visual requirements.',
-        tips: 'You can use exact hex codes in your prompt. The AI perfectly understands color theory.',
-        tools: ['Claude']
+        tips: 'Now that the basic layout exists, copy this prompt into Claude or v0.dev to iterate! You can use exact hex codes in your prompt — the AI perfectly understands color theory.',
+        tools: ['Claude'],
+        hideCopilot: true
       }
     ],
     relatedPlaybooks: [
@@ -2357,7 +2908,6 @@ export const designerAIPlaybooks: Playbook[] = [
     rating: 4.8,
     isPro: true,
     isNew: true,
-    supportsCodePreview: true,
     tools: ['Claude', 'Gemini'],
     beforeYouStart: [
       'Basic understanding of what metrics you want to display on your dashboard'
@@ -2375,19 +2925,22 @@ export const designerAIPlaybooks: Playbook[] = [
         stepNumber: 1,
         title: 'Generate the Shell',
         instruction: 'Start by generating the layout shell (sidebar, header, content area) before filling it with complex data.',
-        promptTemplate: 'Create a highly modern SaaS Admin Dashboard layout in React and Tailwind CSS. \n\nRequire a dark-mode styled left sidebar with navigation links (Home, Analytics, Settings, Users). Require a top sticky header with a user avatar and search bar. The main content area should have a light gray background.',
+        promptTemplate: 'Create a highly modern SaaS Admin Dashboard layout in React and Tailwind CSS for a [TARGET INDUSTRY OR PLATFORM] application. \n\nRequire a [SIDEBAR THEME e.g. dark-mode] styled left sidebar with navigation links ([SIDEBAR LINK 1], [SIDEBAR LINK 2], [SIDEBAR LINK 3]). Require a top sticky header with a user avatar and search bar. The main content area should have a light gray background.',
         expectedOutput: 'A clean, responsive dashboard shell ready for data widgets.',
-        tips: 'Breaking the generation into "Shell" then "Widgets" helps the AI write more focused, precise code.',
-        tools: ['Claude']
+        tips: 'Remember to edit the sidebar links in the prompt! Breaking the generation into "Shell" then "Widgets" helps the AI write more focused, precise code.',
+        tools: ['Claude'],
+        hideCodePreview: true
       },
       {
         id: 'dai3-s2',
         stepNumber: 2,
         title: 'Add the Data Widgets',
         instruction: 'Now instruct the AI to build the interior widgets and data visualizations.',
-        promptTemplate: 'Inside the main content area of the previous code, add a grid of 4 metric cards (Total Users, Revenue, Active Sessions, Bounce Rate). Below that, add a recent activity data table with 5 mock rows showing user signups.',
+        promptTemplate: 'Inside the main content area of the previous code, add a grid of 4 metric cards ([METRIC 1 TITLE], [METRIC 2 TITLE], [METRIC 3 TITLE], [METRIC 4 TITLE]). \n\nBelow that, add a recent activity data table with 5 mock rows showing [TABLE DATA TYPE e.g. recent transactions]. The table should have status badges (e.g. Completed, Pending).',
         expectedOutput: 'The AI will populate the main content area with beautifully styled data components.',
-        tools: ['Claude']
+        tips: 'Now that the dashboard is assembled, copy this prompt to Claude or v0.dev to generate the full layout!',
+        tools: ['Claude'],
+        hideCopilot: true
       }
     ],
     relatedPlaybooks: [

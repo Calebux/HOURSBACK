@@ -5,6 +5,7 @@ import { ChevronLeft, Save, Zap, Settings, Shield, Link as LinkIcon, ExternalLin
 import { useAuth } from '../contexts/AuthContext';
 import { getProfile, updateProfile } from '../lib/api';
 import { supabase } from '../lib/supabase';
+import { validatePassword } from '../components/AuthModal';
 import { toast } from 'sonner';
 
 export default function SettingsPage() {
@@ -64,6 +65,11 @@ export default function SettingsPage() {
 
             // 2. Update Password if provided
             if (password) {
+                const passwordError = validatePassword(password);
+                if (passwordError) {
+                    throw new Error(passwordError);
+                }
+
                 const { error } = await supabase.auth.updateUser({ password });
                 if (error) throw error;
                 setPassword(''); // Clear field on success

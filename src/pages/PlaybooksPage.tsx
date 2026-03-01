@@ -14,7 +14,8 @@ import {
   BarChart3,
   ChevronLeft,
   Sparkles,
-  LayoutDashboard
+  LayoutDashboard,
+  Bot
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { AuthModal } from '../components/AuthModal';
@@ -128,53 +129,55 @@ export default function PlaybooksPage() {
     (selectedDifficulty !== 'All' ? 1 : 0);
 
   return (
-    <div className="min-h-screen bg-brand-light text-brand-dark">
+    <div className="min-h-screen bg-brand-light text-brand-dark overflow-x-hidden">
       {/* Navigation */}
       <nav className="border-b border-brand-dark/10 bg-brand-light/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="container mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="container mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-brand-dark text-white text-white rounded-full shadow-antigravity-md hover:shadow-antigravity-lg transition-all flex items-center justify-center">
-              <Zap className="w-5 h-5 text-brand-dark" />
+            <div className="w-7 h-7 sm:w-8 sm:h-8 bg-brand-dark text-white text-white rounded-full shadow-antigravity-md hover:shadow-antigravity-lg transition-all flex items-center justify-center">
+              <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-brand-dark" />
             </div>
-            <span className="text-xl font-semibold">Hoursback</span>
+            <span className="text-lg sm:text-xl font-semibold hidden sm:block">Hoursback</span>
           </Link>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1.5 sm:gap-2 md:gap-4">
             <button
               onClick={() => setShowWhatsNew(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#DA7756]/10 to-[#DA7756]/5 border border-[#DA7756]/20 text-[#DA7756] rounded-full text-sm font-medium hover:from-[#DA7756]/15 hover:to-[#DA7756]/10 transition-all"
+              className="flex items-center gap-1 sm:gap-1.5 md:gap-2 px-2.5 sm:px-3 md:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-[#DA7756]/10 to-[#DA7756]/5 border border-[#DA7756]/20 text-[#DA7756] rounded-full text-xs sm:text-sm font-medium hover:from-[#DA7756]/15 hover:to-[#DA7756]/10 transition-all whitespace-nowrap"
             >
-              <Sparkles className="w-4 h-4" />
-              What's New
-              <span className="w-2 h-2 bg-[#DA7756] rounded-full animate-pulse" />
+              <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+              <span className="hidden sm:inline">What's New</span>
+              <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-[#DA7756] rounded-full animate-pulse shrink-0" />
             </button>
             {user ? (
               <>
                 <Link
                   to="/workspace"
-                  className="flex items-center gap-1.5 px-3 py-2 text-sm text-brand-dark/80 hover:text-brand-dark hover:bg-slate-100 rounded-full transition-all"
+                  className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 text-sm text-brand-dark/80 hover:text-brand-dark hover:bg-slate-100 rounded-full transition-all whitespace-nowrap"
                 >
-                  <LayoutDashboard className="w-4 h-4" />
-                  My Progress
+                  <LayoutDashboard className="w-4 h-4 shrink-0" />
+                  <span className="hidden sm:inline">My Progress</span>
                 </Link>
                 <button
                   onClick={() => signOut()}
-                  className="text-sm text-brand-dark/80 hover:text-brand-dark transition-colors"
+                  className="text-xs sm:text-sm text-brand-dark/80 hover:text-brand-dark transition-colors whitespace-nowrap px-1"
                 >
-                  Sign out
+                  <span className="sm:hidden">Out</span>
+                  <span className="hidden sm:inline">Sign out</span>
                 </button>
               </>
             ) : (
               <>
                 <button
                   onClick={() => { setAuthView('signin'); setAuthModalOpen(true); }}
-                  className="text-sm text-brand-dark/80 hover:text-brand-dark transition-colors"
+                  className="text-xs sm:text-sm text-brand-dark/80 hover:text-brand-dark transition-colors whitespace-nowrap px-1"
                 >
-                  Sign in
+                  <span className="sm:hidden">Sign in</span>
+                  <span className="hidden sm:inline">Sign in</span>
                 </button>
                 <button
                   onClick={() => { setAuthView('signup'); setAuthModalOpen(true); }}
-                  className="px-4 py-2 bg-brand-dark text-white text-white rounded-full shadow-antigravity-md hover:shadow-antigravity-lg transition-all text-sm font-medium hover:bg-[#7C3AED] transition-colors"
+                  className="px-3 sm:px-4 py-1.5 sm:py-2 bg-brand-dark text-white rounded-full shadow-antigravity-md hover:shadow-antigravity-lg transition-all text-xs sm:text-sm font-medium hover:bg-[#7C3AED] whitespace-nowrap"
                 >
                   Get Pro
                 </button>
@@ -207,25 +210,25 @@ export default function PlaybooksPage() {
 
           {/* Search and Filter Bar */}
           <motion.div
-            className="mt-10 flex flex-col md:flex-row gap-4"
+            className="mt-10 flex flex-row items-center gap-2 md:gap-4"
             initial={{ opacity: 0, y: 20 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.6, delay: 0.1 }}
           >
             {/* Search */}
-            <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <div className="relative flex-1 min-w-0">
+              <Search className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 w-4 md:w-5 h-4 md:h-5 text-slate-400" />
               <input
                 type="text"
                 placeholder="Search playbooks, tools, or outcomes..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-white shadow-antigravity-md border border-brand-dark/10 border border-brand-dark/10 rounded-full focus:outline-none focus:border-[#635BFF] transition-colors text-brand-dark placeholder:text-slate-400"
+                className="w-full pl-9 md:pl-12 pr-4 h-[46px] bg-white shadow-antigravity-md border border-brand-dark/10 border border-brand-dark/10 rounded-full focus:outline-none focus:border-[#635BFF] transition-colors text-brand-dark placeholder:text-slate-400 text-sm md:text-base text-ellipsis whitespace-nowrap overflow-hidden"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-brand-dark"
+                  className="absolute right-3 md:right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-brand-dark p-1"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -234,24 +237,26 @@ export default function PlaybooksPage() {
 
             {/* Filter Toggle */}
             <button
+              type="button"
               onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center gap-2 px-4 py-3 rounded-full border transition-colors ${showFilters || activeFiltersCount > 0
+              className={`flex items-center justify-center gap-2 px-3 md:px-4 h-[46px] shrink-0 rounded-full border transition-colors ${showFilters || activeFiltersCount > 0
                 ? "bg-brand-dark text-white border-[#635BFF]"
                 : "bg-white shadow-antigravity-md border-brand-dark/10 text-brand-dark/80 hover:bg-slate-50"
                 }`}
             >
-              <Filter className="w-4 h-4" />
+              <Filter className="w-4 h-4 shrink-0" />
               <span className="hidden sm:inline">Filters</span>
               {activeFiltersCount > 0 && (
-                <span className="ml-1 text-xs bg-white/20 px-2 py-0.5 rounded-full">
+                <span className="ml-1 text-xs bg-white/20 px-2 py-0.5 rounded-full shrink-0">
                   {activeFiltersCount}
                 </span>
               )}
             </button>
 
             {/* View Toggle */}
-            <div className="flex items-center bg-white shadow-antigravity-md border border-brand-dark/10 rounded-full p-1 h-[46px]">
+            <div className="flex items-center shrink-0 bg-white shadow-antigravity-md border border-brand-dark/10 rounded-full p-1 h-[46px]">
               <button
+                type="button"
                 onClick={() => setViewMode('grid')}
                 className={`p-2 rounded-full transition-colors ${viewMode === 'grid' ? "bg-slate-100 text-brand-dark" : "text-slate-400 hover:text-brand-dark"
                   }`}
@@ -259,6 +264,7 @@ export default function PlaybooksPage() {
                 <Grid3X3 className="w-4 h-4" />
               </button>
               <button
+                type="button"
                 onClick={() => setViewMode('list')}
                 className={`p-2 rounded-full transition-colors ${viewMode === 'list' ? "bg-slate-100 text-brand-dark" : "text-slate-400 hover:text-brand-dark"
                   }`}
@@ -316,8 +322,10 @@ export default function PlaybooksPage() {
                     <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                   </div>
 
+
                   {activeFiltersCount > 0 && (
                     <button
+                      type="button"
                       onClick={clearFilters}
                       className="text-sm text-brand-dark/70 hover:text-brand-dark flex items-center gap-1"
                     >
@@ -382,9 +390,6 @@ export default function PlaybooksPage() {
                 </Link>
               )}
 
-
-
-
               <motion.div
                 className={
                   viewMode === 'grid'
@@ -395,7 +400,7 @@ export default function PlaybooksPage() {
                 initial="hidden"
                 animate="visible"
               >
-                <AnimatePresence mode='popLayout'>
+                <AnimatePresence>
                   {filteredPlaybooks.map((playbook) => (
                     <PlaybookCard
                       key={playbook.id}
@@ -569,6 +574,12 @@ const PlaybookCard = memo(function PlaybookCard({
             {playbook.coworkCompatible && (
               <span className="px-2 py-0.5 bg-[#DA7756]/10 text-[#DA7756] text-xs rounded-full font-medium">✦ Cowork</span>
             )}
+            {playbook.agentAutomation && (
+              <span className="px-2 py-0.5 bg-[#DA7756]/10 text-[#DA7756] text-xs rounded-full font-medium flex items-center gap-1">
+                <Bot className="w-3 h-3" />
+                Agent
+              </span>
+            )}
           </div>
           <p className="text-brand-dark/70 text-sm truncate">{playbook.subtitle}</p>
           <div className="flex items-center gap-4 mt-2 text-xs text-slate-400">
@@ -627,6 +638,12 @@ const PlaybookCard = memo(function PlaybookCard({
               )}
               {playbook.coworkCompatible && (
                 <span className="px-2 py-1 bg-[#DA7756]/10 text-[#DA7756] text-xs font-medium rounded-full">✦ Cowork</span>
+              )}
+              {playbook.agentAutomation && (
+                <span className="px-2 py-1 bg-[#DA7756]/10 text-[#DA7756] text-xs font-medium rounded-full flex items-center gap-1">
+                  <Bot className="w-3 h-3" />
+                  Agent
+                </span>
               )}
             </div>
             <div className="flex items-center gap-1 text-xs text-slate-400">

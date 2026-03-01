@@ -50,6 +50,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }, []);
 
     const signOut = async () => {
+        localStorage.removeItem('has_pro_access');
         await supabase.auth.signOut();
     };
 

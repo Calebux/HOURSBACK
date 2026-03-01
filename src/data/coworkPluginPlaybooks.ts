@@ -359,69 +359,6 @@ export const coworkPluginPlaybooks: Playbook[] = [
     relatedPlaybooks: []
   },
   {
-    id: 'cwp-7',
-    slug: 'cowork-figma-code-to-canvas',
-    title: 'Figma to Code Automation with Claude Cowork',
-    subtitle: 'Use the new \'Code to Canvas\' Figma plugin to turn prompts into editable layers, run instant accessibility checks, and generate A/B test variants without touching code.',
-    category: 'AI for Designers',
-    difficulty: 'Advanced',
-    timeToComplete: 20,
-    timeSaved: 480,
-    tools: ['Claude Cowork', 'Figma Plugin', 'Code to Canvas'],
-    isPro: true,
-    isNew: true,
-    coworkCompatible: true,
-    completionCount: 840,
-    rating: 4.9,
-    expectedOutcome: 'A complete workflow integrating Claude directly into Figma to generate UI components, fix accessibility issues, and bridge the gap between design and production code.',
-    beforeYouStart: [
-      'Have a Claude Pro subscription ($20/month) with Cowork enabled',
-      'Have edit access to a Figma file or team workspace',
-      'Install the "Claude Cowork" plugin from the Figma Community',
-      'Optional but recommended: Connect your team\'s codebase repo in Cowork Settings'
-    ],
-    steps: [
-      {
-        id: 'cwp-7-step-1',
-        stepNumber: 1,
-        title: 'Generate UI with Code to Canvas',
-        instruction: 'Run the Claude Cowork plugin in Figma. Instead of dragging boxes, simply prompt Claude with your component requirements. Claude will generate a fully functioning code prototype and instantly convert it back into editable Figma layers (auto-layout enabled) using the "Code to Canvas" feature.',
-        promptTemplate: '/design:generate Create a high-converting pricing table with 3 tiers (Basic, Pro, Enterprise). \n\nRequirements:\n- Highlight the Pro tier as "Most Popular"\n- Use our brand variables (Primary: #6366F1)\n- Include a toggle for Monthly/Annual billing (Annual saves 20%)\n- Auto-layout everything so I can adjust padding later.',
-        expectedOutput: 'Claude generates the pricing table components directly on your Figma canvas, fully structured with frames, text nodes, and auto-layout, matching your brand colors.',
-        tips: 'If you have a design system component library published in Figma, tell Claude `/design:use-library [Library Name]` before generating so it uses your existing buttons and typography.',
-        tools: ['Claude Cowork', 'Figma Plugin']
-      },
-      {
-        id: 'cwp-7-step-2',
-        stepNumber: 2,
-        title: 'Run Automated Accessibility Checks',
-        instruction: 'Select a frame in Figma and use the accessibility auditing tool. Claude doesn\'t just tell you what\'s wrong—it generates annotated layers and suggests instant fixes that you can push back to your design.',
-        promptTemplate: '/design:audit-a11y Check this selected frame for WCAG 2.2 AA compliance.\n\nFocus on:\n1. Color contrast for text and interactive elements (buttons, inputs)\n2. Touch target sizes (minimum 44x44px for mobile)\n3. Logical reading order for screen readers\n\nGenerate a new frame next to this one with visual annotations and suggested fixes.',
-        expectedOutput: 'A duplicated frame with stark visual redline annotations pointing out contrast failures, tap target issues, and missing ARIA hints, along with a button to "Apply Fixes" automatically.',
-        tips: 'This is a massive time saver before handoff. You can also run this on legacy designs using "Design Analytics Archaeology" to retroactively fix production UI.',
-        tools: ['Claude Cowork', 'Figma Plugin']
-      },
-      {
-        id: 'cwp-7-step-3',
-        stepNumber: 3,
-        title: 'Generate Data-Driven A/B Variants',
-        instruction: 'Connect your analytics data (Amplitude/Mixpanel) to Cowork. Then, ask Claude to generate design variants optimized for specific conversion goals based on past performance data.',
-        promptTemplate: '/design:variant Generate 3 visual variants of this checkout flow optimized for mobile conversion.\n\nContext from Analytics:\n- Our current drop-off is highest at the shipping address step\n- Users frequently click the "Return to Cart" button by mistake\n\nCreate variants that:\n1. Consolidate shipping and billing if possible\n2. Make the primary CTA stick to the bottom of the viewport on mobile\n3. Reduce the visual weight of secondary actions',
-        expectedOutput: 'Three distinct Figma frames demonstrating different UX approaches to the checkout flow, engineered to solve the specific bottlenecks identified in your analytics.',
-        tips: 'The true power of Cowork is context. If Claude has access to your product analytics via the Databricks or Amplitude integrations, the variants it generates will be mathematically optimized, not just visually different.',
-        tools: ['Claude Cowork', 'Figma Plugin']
-      }
-    ],
-    troubleshooting: [
-      { problem: 'Code to Canvas generated a flat image', solution: 'Make sure your prompt explicitly asks for "editable Figma layers with auto-layout". Sometimes complex SVGs fall back to flat vectors if not specified.' },
-      { problem: 'Claude ignored my design system', solution: 'Ensure your brand token variables are loaded into the Figma file\'s local variables, or provide a CSS text snippet directly in the Cowork chat.' },
-      { problem: 'Data-driven variants hallucinates metrics', solution: 'Check your Cowork connector settings and explicitly run `/data:sync Amplitude` before running the variant generator to refresh the latest conversion data.' }
-    ],
-    relatedPlaybooks: [
-       { id: 'dai-1', title: 'Ship Your App with AI — A Designer\'s Complete Guide', slug: 'ship-your-app-with-ai-designers-guide' }
-    ]
-  },
-  {
     id: 'cwp-8',
     slug: 'claude-code-figma-mcp-workflow',
     title: 'Figma to React with Claude Code & MCP',
@@ -489,8 +426,262 @@ export const coworkPluginPlaybooks: Playbook[] = [
       { problem: 'The generated React component uses weird absolute positioning', solution: 'The source frame in Figma must be using Auto-Layout. If a frame has elements dragged freely onto it, the API reads them as absolute coordinates.' },
       { problem: 'Cannot access Figma link', solution: 'Ensure the link is properly formatted and the Personal Access Token belongs to a Figma account with read access to that file.' }
     ],
-    relatedPlaybooks: [
-       { id: 'cwp-7', title: 'Figma to Code Automation with Claude Cowork', slug: 'cowork-figma-code-to-canvas' }
-    ]
+    relatedPlaybooks: []
+  },
+  {
+    id: 'cwp-9',
+    slug: 'cowork-financial-budget-analysis',
+    title: 'Financial & Budget Analysis Automation',
+    subtitle: 'Turn raw budget spreadsheets into variance reports and leadership slides using the xlsx, docx, and pptx skills.',
+    category: 'Operations',
+    difficulty: 'Intermediate',
+    timeToComplete: 15,
+    timeSaved: 120,
+    tools: ['Claude Cowork', 'xlsx skill', 'docx skill', 'pptx skill', 'Windsor.ai'],
+    isPro: false,
+    isNew: true,
+    coworkCompatible: true,
+    completionCount: 95,
+    rating: 4.8,
+    expectedOutcome: 'A complete financial analysis pipeline that processes messy spreadsheets and outputs formatted Board-ready executive summaries and slide decks.',
+    beforeYouStart: [
+      'A budget vs actuals spreadsheet (CSV/Excel)',
+      'Claude with the xlsx, docx, and pptx skills enabled'
+    ],
+    steps: [
+      {
+        id: 'cwp-9-step-1',
+        stepNumber: 1,
+        title: 'Upload & Clean Data',
+        instruction: 'Share your Excel or CSV file directly in the Cowork chat. The `xlsx` skill will open the file, identify structures, handle messy data, and prepare it for analysis automatically.',
+        promptTemplate: 'This is our Q1 budget vs actuals spreadsheet — analyse it for variances over 10% and flag any categories trending over budget.',
+        expectedOutput: 'Claude processes the file without you needing to clean up merged cells or blank rows manually.',
+        tips: 'Power move: Connect Windsor.ai or Coupler.io to pull live financial data directly from your accounting platform instead of uploading a file manually.',
+        tools: ['Claude Cowork', 'xlsx skill']
+      },
+      {
+        id: 'cwp-9-step-2',
+        stepNumber: 2,
+        title: 'Generate Visualisations',
+        instruction: 'Ask Claude to synthesize the findings visually. The `xlsx` skill will inject charts directly into the spreadsheet.',
+        promptTemplate: 'Add a bar chart comparing budget vs actual by department, and a line chart showing the monthly spend trend.',
+        expectedOutput: 'Visual charts embedded directly into your working dataset.',
+        tips: 'Keep chart requests simple (Bar, Line, Pie) for the highest fidelity output.',
+        tools: ['Claude Cowork', 'xlsx skill']
+      },
+      {
+        id: 'cwp-9-step-3',
+        stepNumber: 3,
+        title: 'Generate Written Narrative',
+        instruction: 'Use the `docx` skill to construct a formal, formatted written report suitable for stakeholders.',
+        promptTemplate: 'Now write a one-page executive summary of the findings as a Word doc. Include key callouts, a variance table, and recommendations.',
+        expectedOutput: 'A fully formatted `.docx` file summarizing the raw dataset.',
+        tips: 'Always ask for the "so what," not just the numbers. Claude will give you actionable recommendations.',
+        tools: ['Claude Cowork', 'docx skill']
+      },
+      {
+        id: 'cwp-9-step-4',
+        stepNumber: 4,
+        title: 'Build the Leadership Slide',
+        instruction: 'Convert the narrative into a presentation. The `pptx` skill will construct a deck using the charts and summary.',
+        promptTemplate: 'Turn the top 3 findings into 3 slides for the board update.',
+        expectedOutput: 'A presentation-ready `.pptx` deck.',
+        tips: 'You can chain skills together! xlsx -> docx -> pptx is the golden workflow.',
+        tools: ['Claude Cowork', 'pptx skill']
+      }
+    ],
+    troubleshooting: [
+      { problem: 'Charts look deformed', solution: 'Explicitly describe the X and Y axes you want when prompting the xlsx skill.' }
+    ],
+    relatedPlaybooks: []
+  },
+  {
+    id: 'cwp-10',
+    slug: 'cowork-marketing-campaign-analysis',
+    title: 'Automated Marketing & Campaign Analysis',
+    subtitle: 'Evaluate campaign performance across multiple channels and produce monthly performance reports instantly.',
+    category: 'Marketing',
+    difficulty: 'Intermediate',
+    timeToComplete: 20,
+    timeSaved: 180,
+    tools: ['Claude Cowork', 'Supermetrics', 'Windsor.ai', 'docx skill', 'pptx skill'],
+    isPro: false,
+    isNew: true,
+    coworkCompatible: true,
+    completionCount: 140,
+    rating: 4.9,
+    expectedOutcome: 'A unified view of ad spend and performance across Google, Meta, and Organic channels natively inside a presentation.',
+    beforeYouStart: [
+      'Install Windsor.ai or Supermetrics from the connector marketplace',
+      'Have target KPIs (e.g. Target CPA, ROAS) ready'
+    ],
+    steps: [
+      {
+        id: 'cwp-10-step-1',
+        stepNumber: 1,
+        title: 'Connect Live Data Sources',
+        instruction: 'Use the marketplace connectors to pull live performance data without needing to export and sanitize CSVs manually.',
+        promptTemplate: 'Pull my Google Ads and Meta Ads performance data for the previous month — I want spend, impressions, clicks, conversions, and CPA by campaign.',
+        expectedOutput: 'Live API extraction straight into Claude\'s context window.',
+        tips: 'Using connectors prevents data latency and copy-paste formatting errors.',
+        tools: ['Claude Cowork', 'Windsor.ai', 'Supermetrics']
+      },
+      {
+        id: 'cwp-10-step-2',
+        stepNumber: 2,
+        title: 'Cross-Channel Analysis',
+        instruction: 'Leverage Claude to compare disparate datasets to find anomalies and highlight top-performing campaigns.',
+        promptTemplate: 'Which campaigns had a CPA above our £25 target? Which channels delivered the best ROAS? Flag anything that looks like an anomaly.\n\nCompare Google vs Meta vs organic — which channel drove the most revenue at the lowest cost?',
+        expectedOutput: 'A synthesized textual breakdown of performance and anomalies.',
+        tips: 'Be specific about what "good" looks like. Don\'t just say "analyse this." Give it your exact Target CPAs.',
+        tools: ['Claude Cowork']
+      },
+      {
+        id: 'cwp-10-step-3',
+        stepNumber: 3,
+        title: 'Build the Performance Report',
+        instruction: 'Generate the raw analytical breakdown into a formal monthly marketing update.',
+        promptTemplate: 'Create a monthly marketing report as a Word document — include an executive summary, channel-by-channel breakdown, top performing creatives, and recommendations for next month.',
+        expectedOutput: 'A clean, formatted `.docx` report to share with stakeholders.',
+        tips: 'You can explicitly ask Claude to format the tables identically each month for consistency.',
+        tools: ['Claude Cowork', 'docx skill']
+      },
+      {
+        id: 'cwp-10-step-4',
+        stepNumber: 4,
+        title: 'Build the Client Deck',
+        instruction: 'Condense the formal report into a digestible visual slide deck.',
+        promptTemplate: 'Now turn this into a 10-slide presentation for the marketing review.',
+        expectedOutput: 'A `.pptx` deck featuring charts, callouts, and next-step recommendations.',
+        tips: 'Tell Claude to limit text-heavy slides to bullet points instead of paragraphs.',
+        tools: ['Claude Cowork', 'pptx skill']
+      }
+    ],
+    troubleshooting: [
+      { problem: 'Connector fails to access data', solution: 'Ensure your Supermetrics/Windsor OAuth tokens are refreshed in the Cowork settings menu.' }
+    ],
+    relatedPlaybooks: []
+  },
+  {
+    id: 'cwp-11',
+    slug: 'cowork-prospect-outreach',
+    title: 'Prospect Research & Personal Outreach',
+    subtitle: 'From prospect research to an automated personalised outreach sequence logged natively to your CRM.',
+    category: 'Sales Ops',
+    difficulty: 'Beginner',
+    timeToComplete: 10,
+    timeSaved: 90,
+    tools: ['Claude Cowork', 'HubSpot', 'Close', 'Gmail'],
+    isPro: false,
+    isNew: true,
+    coworkCompatible: true,
+    completionCount: 205,
+    rating: 4.8,
+    expectedOutcome: 'A heavily researched account profile and a deeply personalized 5-step email sequence automatically synced to your CRM.',
+    beforeYouStart: [
+      'Connect HubSpot, Close, or Attio from the marketplace',
+      'Connect Gmail to draft sequences natively'
+    ],
+    steps: [
+      {
+        id: 'cwp-11-step-1',
+        stepNumber: 1,
+        title: 'Research the Prospect',
+        instruction: 'Feed Claude initial targets and let it synthesize strategy and account profiles from internet access.',
+        promptTemplate: 'I\'m targeting Acme Corp — they\'re a 500-person SaaS company, Series C funded, expanding into Europe. Their main pain point appears to be customer retention. Find out what you can about their positioning.',
+        expectedOutput: 'A robust breakdown of the target account\'s product positioning, news, challenges, and your fit.',
+        tips: 'The more constraints and initial context you give, the deeper the research.',
+        tools: ['Claude Cowork']
+      },
+      {
+        id: 'cwp-11-step-2',
+        stepNumber: 2,
+        title: 'Build a Personalised Outreach Sequence',
+        instruction: 'Draft the multi-touch outreach flow. Use the `Gmail` integration to queue the drafts or copy them out manually.',
+        promptTemplate: 'Write a 5-email sequence for this prospect — initial outreach, follow-up 1 (value add), follow-up 2 (case study), follow-up 3 (direct ask), and a break-up email. Adjust tone for each stage. Reference their European expansion, and connect it to how we\'ve helped similar SaaS companies reduce churn by 30%.',
+        expectedOutput: 'A complete, varied, and heavily targeted email flow.',
+        tips: 'Tell Claude to avoid sales buzzwords explicitly for a more authentic tone.',
+        tools: ['Claude Cowork', 'Gmail']
+      },
+      {
+        id: 'cwp-11-step-3',
+        stepNumber: 3,
+        title: 'Log to CRM',
+        instruction: 'Push all the prospect data, the sequence, and follow-up tasks to your CRM in one go.',
+        promptTemplate: 'Create a contact record for Sarah Jones at Acme Corp, add these emails to the sequence, and set a follow-up task for 3 days after the first send.',
+        expectedOutput: 'Data automatically synced to HubSpot or Close without switching tabs.',
+        tips: 'Ensure your CRM fields match standard naming conventions so the Connector maps them perfectly.',
+        tools: ['Claude Cowork', 'HubSpot', 'Close']
+      }
+    ],
+    troubleshooting: [],
+    relatedPlaybooks: []
+  },
+  {
+    id: 'cwp-12',
+    slug: 'cowork-winning-proposals',
+    title: 'Winning Proposals & Pitch Decks',
+    subtitle: 'Transform a messy client brief into a formal proposal, pricing matrix, and pitch deck using the pdf, docx, and pptx skills.',
+    category: 'Sales Ops',
+    difficulty: 'Advanced',
+    timeToComplete: 25,
+    timeSaved: 360,
+    tools: ['Claude Cowork', 'pdf skill', 'docx skill', 'xlsx skill', 'pptx skill'],
+    isPro: false,
+    isNew: true,
+    coworkCompatible: true,
+    completionCount: 112,
+    rating: 5.0,
+    expectedOutcome: 'A complete RFP/Proposal package generated natively from an initial brief.',
+    beforeYouStart: [
+      'A client brief, RFP, or scope document in PDF format',
+      'Your company\'s standard credentials boilerplate'
+    ],
+    steps: [
+      {
+        id: 'cwp-12-step-1',
+        stepNumber: 1,
+        title: 'Read the Brief',
+        instruction: 'Use the `pdf` skill to ingest complex RFPs and extract the actual success criteria.',
+        promptTemplate: 'Read this client brief and pull out: their key objectives, their timeline, their stated budget, their success criteria, and any red flags I should address in the proposal.',
+        expectedOutput: 'Claude summarizes what actually matters and flags what to address in your pitch.',
+        tips: 'Any PDF that is publicly available (competitor reports, annual reviews) can also be interrogated to strengthen your approach.',
+        tools: ['Claude Cowork', 'pdf skill']
+      },
+      {
+        id: 'cwp-12-step-2',
+        stepNumber: 2,
+        title: 'Build the Proposal Structure & Copy',
+        instruction: 'Use the `docx` skill to construct a fully formatted proposal outline and content body based on the brief.',
+        promptTemplate: 'Based on this brief, suggest a proposal structure for a 12-page Word document. We\'re a brand strategy agency pitching to a retail brand.\n\nWrite the full proposal using this structure. Include an executive summary, our understanding of the brief, our proposed approach, team credentials, timeline, and investment. Here\'s our standard credentials text [paste it].',
+        expectedOutput: 'A formatted `.docx` file complete with document sections and boilerplate injected natively.',
+        tips: 'Feed it context! Your past notes from discovery calls and pricing guidelines dramatically improve the output quality.',
+        tools: ['Claude Cowork', 'docx skill']
+      },
+      {
+        id: 'cwp-12-step-3',
+        stepNumber: 3,
+        title: 'Build the Pricing Model',
+        instruction: 'Construct the financial breakdown using the `xlsx` skill so the client has an editable matrix.',
+        promptTemplate: 'Create a pricing spreadsheet for this project — it\'s a 3-month brand strategy engagement. Break it down by phase: Discovery (£8k), Strategy (£15k), Delivery (£12k). Include a summary tab with totals and an optional add-ons section.',
+        expectedOutput: 'A clean, calculated `.xlsx` pricing workbook.',
+        tips: 'A combination of xlsx and docx enables building a pricing model in a spreadsheet and pulling the summary seamlessly into the Word document.',
+        tools: ['Claude Cowork', 'xlsx skill']
+      },
+      {
+        id: 'cwp-12-step-4',
+        stepNumber: 4,
+        title: 'Create the Pitch Deck',
+        instruction: 'Distill the massive proposal into a visual live meeting presentaton using the `pptx` skill.',
+        promptTemplate: 'Turn this proposal into a 15-slide pitch deck for a face-to-face presentation. Make it more visual and less text-heavy than the document. Lead with the problem, our solution, proof, and the ask.',
+        expectedOutput: 'A visual `.pptx` deck summarizing the extensive proposal logic.',
+        tips: 'Build master templates once, then customize per prospect in seconds.',
+        tools: ['Claude Cowork', 'pptx skill']
+      }
+    ],
+    troubleshooting: [
+      { problem: 'Proposal feels too generic', solution: 'The AI drafts, you refine. Use the output as a strong structural starting point, but always add human insight and relationship context manually before sending.' }
+    ],
+    relatedPlaybooks: []
   }
 ];

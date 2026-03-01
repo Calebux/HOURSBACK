@@ -9,24 +9,26 @@ import {
   Bookmark,
   BarChart3,
   Settings,
+  LayoutDashboard,
   CheckCircle2,
   Trophy,
   Flame,
   Star,
   ArrowRight,
   ChevronRight,
-  Target
+  Target,
+  Bot
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getCategoryColor, type Playbook } from '../data/playbooks';
-import { getSavedPlaybooks, getPlaybookProgress, toggleSavedPlaybook } from '../lib/api';
+import { getSavedPlaybooks, getPlaybookProgress, toggleSavedPlaybook, getProfile } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 
 // --- XP & Skill Level System ---
 const SKILL_LEVELS = [
   { level: 1, title: 'AI Curious', xpRequired: 0, color: '#94A3B8', emoji: '🌱' },
-  { level: 2, title: 'Prompt Apprentice', xpRequired: 50, color: '#3B82F6', emoji: '📘' },
+  { level: 2, title: 'Prompt Apprentice', xpRequired: 50, color: '#3B82F6', emoji: '' },
   { level: 3, title: 'AI Practitioner', xpRequired: 150, color: '#8B5CF6', emoji: '⚡' },
   { level: 4, title: 'Workflow Architect', xpRequired: 350, color: '#F59E0B', emoji: '🏗️' },
   { level: 5, title: 'AI Power User', xpRequired: 600, color: '#EF4444', emoji: '🔥' },
@@ -96,6 +98,7 @@ export default function WorkspacePage() {
   const [currentStreak, setCurrentStreak] = useState(0);
   const [favoriteCategory, setFavoriteCategory] = useState('');
   const [totalCompleted, setTotalCompleted] = useState(0);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     async function loadDashboardData() {
@@ -103,6 +106,9 @@ export default function WorkspacePage() {
       setIsLoading(true);
 
       try {
+        const profile = await getProfile(user.id, user.email || '');
+        setIsAdmin(!!profile?.is_admin);
+
         const saved = await getSavedPlaybooks(user.id);
         const mappedSaved: SavedPlaybook[] = saved.map(p => ({
           ...p,
@@ -208,6 +214,16 @@ export default function WorkspacePage() {
           </Link>
 
           <div className="flex items-center gap-4">
+            {isAdmin && (
+              <Link to="/admin" className="hidden sm:flex items-center gap-1.5 text-sm font-medium text-brand-dark hover:text-[#635BFF] transition-colors bg-brand-dark/5 px-3 py-1.5 rounded-full">
+                <LayoutDashboard className="w-4 h-4" />
+                Admin
+              </Link>
+            )}
+            <Link to="/autopilot" className="hidden sm:flex items-center gap-1.5 text-sm font-medium text-[#DA7756] hover:text-brand-dark transition-colors bg-[#DA7756]/10 px-3 py-1.5 rounded-full">
+              <Bot className="w-4 h-4" />
+              Autopilot
+            </Link>
             <Link to="/playbooks" className="text-sm text-brand-dark/80 hover:text-brand-dark transition-colors">
               Browse Playbooks
             </Link>
