@@ -48,24 +48,14 @@ const GOAL_CATEGORIES: Record<string, string[]> = {
   productivity: ['Operations'],
 };
 
-function getRecommendedPlaybooks(playbooks: Playbook[], onboarding: OnboardingData): Playbook[] {
+function getOnboardingScore(p: Playbook, onboarding: OnboardingData): number {
   const profCats = PROFESSION_CATEGORIES[onboarding.profession] ?? [];
   const goalCats = onboarding.goals.flatMap(g => GOAL_CATEGORIES[g] ?? []);
-  const wantsAutomate = onboarding.goals.includes('automate');
-
-  return playbooks
-    .filter(p => p.category !== 'Claude Crash Course')
-    .map(p => {
-      let score = 0;
-      if (profCats.includes(p.category)) score += 2;
-      if (goalCats.includes(p.category)) score += 1;
-      if (wantsAutomate && p.agentAutomation) score += 1;
-      return { p, score };
-    })
-    .filter(({ score }) => score > 0)
-    .sort((a, b) => b.score - a.score || b.p.completionCount - a.p.completionCount)
-    .slice(0, 6)
-    .map(({ p }) => p);
+  let score = 0;
+  if (profCats.includes(p.category)) score += 2;
+  if (goalCats.includes(p.category)) score += 1;
+  if (onboarding.goals.includes('automate') && p.agentAutomation) score += 1;
+  return score;
 }
 
 const containerVariants = {
@@ -157,7 +147,9 @@ export default function PlaybooksPage() {
 
 
   const filteredPlaybooks = useMemo(() => {
-    return playbooks.filter(playbook => {
+    const base = playbooks.filter(playbook => {
+      if (playbook.category === 'Claude Crash Course') return false;
+
       const matchesSearch =
         playbook.title.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
         playbook.subtitle.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
@@ -166,19 +158,19 @@ export default function PlaybooksPage() {
       const matchesCategory = selectedCategory === 'All' || playbook.category === selectedCategory;
       const matchesDifficulty = selectedDifficulty === 'All' || playbook.difficulty === selectedDifficulty;
 
-      // Hide all crash course playbooks from the main page — they live at /crash-course
-      if (playbook.category === 'Claude Crash Course') {
-        return false;
-      }
-
       return matchesSearch && matchesCategory && matchesDifficulty;
     });
-  }, [playbooks, debouncedSearchQuery, selectedCategory, selectedDifficulty]);
 
-  const recommendedPlaybooks = useMemo(() => {
-    if (!onboarding || debouncedSearchQuery || selectedCategory !== 'All') return [];
-    return getRecommendedPlaybooks(playbooks, onboarding);
-  }, [playbooks, onboarding, debouncedSearchQuery, selectedCategory]);
+    // When no filters active and onboarding is set, sort by preference score
+    if (onboarding && selectedCategory === 'All' && !debouncedSearchQuery) {
+      return [...base].sort((a, b) => {
+        const diff = getOnboardingScore(b, onboarding) - getOnboardingScore(a, onboarding);
+        return diff !== 0 ? diff : b.completionCount - a.completionCount;
+      });
+    }
+
+    return base;
+  }, [playbooks, debouncedSearchQuery, selectedCategory, selectedDifficulty, onboarding]);
 
   const toggleSave = (id: string, _title: string) => {
     setSavedPlaybooks(prev => {
@@ -437,34 +429,6 @@ export default function PlaybooksPage() {
             </div>
           ) : (
             <>
-              {/* Recommended for you */}
-              {recommendedPlaybooks.length > 0 && (
-                <div className="mb-10">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Sparkles className="w-4 h-4 text-[#635BFF]" />
-                    <h2 className="text-base font-semibold text-brand-dark">Recommended for you</h2>
-                  </div>
-                  <motion.div
-                    className="grid md:grid-cols-2 lg:grid-cols-3 gap-4"
-                    variants={containerVariants}
-                    initial="hidden"
-                    animate="visible"
-                  >
-                    {recommendedPlaybooks.map(playbook => (
-                      <PlaybookCard
-                        key={`rec-${playbook.id}`}
-                        playbook={playbook}
-                        viewMode="grid"
-                        isSaved={savedPlaybooks.has(playbook.id)}
-                        onToggleSave={() => toggleSave(playbook.id, playbook.title)}
-                      />
-                    ))}
-                  </motion.div>
-                  <div className="mt-8 border-t border-brand-dark/10" />
-                  <p className="mt-5 text-sm font-semibold text-brand-dark mb-4">All playbooks</p>
-                </div>
-              )}
-
               {/* Claude Crash Course Banner */}
               {selectedCategory === 'All' && debouncedSearchQuery === '' && (
                 <Link to="/crash-course">

@@ -22,13 +22,11 @@ function AppWithOnboarding() {
   useEffect(() => {
     if (!user) return;
 
-    // Only show for email-verified users who haven't completed onboarding
-    const verified = user.email_confirmed_at != null;
     const key = `hb_onboarding_${user.id}`;
     const done = localStorage.getItem(key);
 
-    if (verified && !done) {
-      // Small delay so the page is rendered first
+    if (!done) {
+      // Small delay so the page finishes rendering first
       const t = setTimeout(() => setShowOnboarding(true), 800);
       return () => clearTimeout(t);
     }

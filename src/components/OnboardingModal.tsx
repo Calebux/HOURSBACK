@@ -1,6 +1,12 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Check } from 'lucide-react';
+import {
+  X, Check,
+  Rocket, Briefcase, Megaphone, BarChart3, Users, Film,
+  Dumbbell, GraduationCap, Code2, Sparkles,
+  Bot, BookOpen, Pencil, TrendingUp, Lightbulb, Heart, Terminal, Zap,
+  type LucideIcon,
+} from 'lucide-react';
 
 export interface OnboardingData {
   profession: string;
@@ -14,28 +20,34 @@ interface OnboardingModalProps {
   onDismiss: () => void;
 }
 
-const PROFESSIONS = [
-  { id: 'entrepreneur', label: 'Entrepreneur / Founder', emoji: '🚀' },
-  { id: 'freelancer', label: 'Freelancer / Consultant', emoji: '💼' },
-  { id: 'marketing', label: 'Marketing / Growth', emoji: '📣' },
-  { id: 'finance', label: 'Finance / Accounting', emoji: '📊' },
-  { id: 'sales', label: 'Sales / Business Dev', emoji: '🤝' },
-  { id: 'creator', label: 'Content Creator', emoji: '🎬' },
-  { id: 'fitness', label: 'Fitness / Health', emoji: '💪' },
-  { id: 'student', label: 'Student', emoji: '🎓' },
-  { id: 'developer', label: 'Developer / Engineer', emoji: '⚙️' },
-  { id: 'other', label: 'Something else', emoji: '✨' },
+interface OptionItem {
+  id: string;
+  label: string;
+  Icon: LucideIcon;
+}
+
+const PROFESSIONS: OptionItem[] = [
+  { id: 'entrepreneur', label: 'Entrepreneur / Founder', Icon: Rocket },
+  { id: 'freelancer',   label: 'Freelancer / Consultant', Icon: Briefcase },
+  { id: 'marketing',   label: 'Marketing / Growth',       Icon: Megaphone },
+  { id: 'finance',     label: 'Finance / Accounting',     Icon: BarChart3 },
+  { id: 'sales',       label: 'Sales / Business Dev',     Icon: Users },
+  { id: 'creator',     label: 'Content Creator',          Icon: Film },
+  { id: 'fitness',     label: 'Fitness / Health',         Icon: Dumbbell },
+  { id: 'student',     label: 'Student',                  Icon: GraduationCap },
+  { id: 'developer',   label: 'Developer / Engineer',     Icon: Code2 },
+  { id: 'other',       label: 'Something else',           Icon: Sparkles },
 ];
 
-const GOALS = [
-  { id: 'automate', label: 'Automate my workflows', emoji: '🤖' },
-  { id: 'bookkeeping', label: 'Manage my finances & books', emoji: '📒' },
-  { id: 'marketing_content', label: 'Create marketing content', emoji: '✍️' },
-  { id: 'sales_bd', label: 'Grow sales & find clients', emoji: '📈' },
-  { id: 'learn_ai', label: 'Learn to use AI better', emoji: '🧠' },
-  { id: 'fitness_health', label: 'Plan meals & fitness', emoji: '🥗' },
-  { id: 'coding', label: 'Code faster with AI', emoji: '💻' },
-  { id: 'productivity', label: 'Boost my productivity', emoji: '⚡' },
+const GOALS: OptionItem[] = [
+  { id: 'automate',          label: 'Automate my workflows',      Icon: Bot },
+  { id: 'bookkeeping',       label: 'Manage my finances & books', Icon: BookOpen },
+  { id: 'marketing_content', label: 'Create marketing content',   Icon: Pencil },
+  { id: 'sales_bd',          label: 'Grow sales & find clients',  Icon: TrendingUp },
+  { id: 'learn_ai',          label: 'Learn to use AI better',     Icon: Lightbulb },
+  { id: 'fitness_health',    label: 'Plan meals & fitness',       Icon: Heart },
+  { id: 'coding',            label: 'Code faster with AI',        Icon: Terminal },
+  { id: 'productivity',      label: 'Boost my productivity',      Icon: Zap },
 ];
 
 export function OnboardingModal({ userId, onComplete, onDismiss }: OnboardingModalProps) {
@@ -60,7 +72,6 @@ export function OnboardingModal({ userId, onComplete, onDismiss }: OnboardingMod
       completedAt: new Date().toISOString(),
     };
     localStorage.setItem(`hb_onboarding_${userId}`, JSON.stringify(data));
-    // Notify any mounted page (e.g. PlaybooksPage) that onboarding data is now available
     window.dispatchEvent(new CustomEvent('hb:onboarding-complete'));
     onComplete(data);
   };
@@ -86,7 +97,7 @@ export function OnboardingModal({ userId, onComplete, onDismiss }: OnboardingMod
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="bg-brand-dark px-6 pt-6 pb-5">
+        <div className="bg-brand-dark px-6 pt-6 pb-5 shrink-0">
           <div className="flex items-center justify-between mb-4">
             <span className="text-white/50 text-xs font-medium tracking-widest uppercase">
               Step {step} of 2
@@ -118,12 +129,8 @@ export function OnboardingModal({ userId, onComplete, onDismiss }: OnboardingMod
                 exit={{ opacity: 0, x: 12 }}
                 transition={{ duration: 0.2 }}
               >
-                <h2 className="text-xl font-semibold text-white mb-1">
-                  What do you do?
-                </h2>
-                <p className="text-white/50 text-sm">
-                  We'll put the most useful playbooks at the top for you.
-                </p>
+                <h2 className="text-xl font-semibold text-white mb-1">What do you do?</h2>
+                <p className="text-white/50 text-sm">We'll put the most useful playbooks at the top for you.</p>
               </motion.div>
             ) : (
               <motion.div
@@ -133,12 +140,8 @@ export function OnboardingModal({ userId, onComplete, onDismiss }: OnboardingMod
                 exit={{ opacity: 0, x: 12 }}
                 transition={{ duration: 0.2 }}
               >
-                <h2 className="text-xl font-semibold text-white mb-1">
-                  What are you here to do?
-                </h2>
-                <p className="text-white/50 text-sm">
-                  Pick up to 3 goals — we'll highlight the right playbooks.
-                </p>
+                <h2 className="text-xl font-semibold text-white mb-1">What are you here to do?</h2>
+                <p className="text-white/50 text-sm">Pick up to 3 goals — we'll sort the right playbooks first.</p>
               </motion.div>
             )}
           </AnimatePresence>
@@ -156,18 +159,23 @@ export function OnboardingModal({ userId, onComplete, onDismiss }: OnboardingMod
                 transition={{ duration: 0.2 }}
                 className="grid grid-cols-2 gap-2"
               >
-                {PROFESSIONS.map(p => (
+                {PROFESSIONS.map(({ id, label, Icon }) => (
                   <button
-                    key={p.id}
-                    onClick={() => setProfession(p.id)}
+                    key={id}
+                    onClick={() => setProfession(id)}
                     className={`flex items-center gap-2.5 px-3.5 py-3 rounded-2xl border text-left transition-all ${
-                      profession === p.id
+                      profession === id
                         ? 'bg-brand-dark text-white border-brand-dark shadow-antigravity-sm'
                         : 'bg-white border-brand-dark/10 text-brand-dark hover:border-brand-dark/30 hover:bg-slate-50'
                     }`}
                   >
-                    <span className="text-lg leading-none shrink-0">{p.emoji}</span>
-                    <span className="text-sm font-medium leading-tight">{p.label}</span>
+                    <Icon
+                      className="w-[18px] h-[18px] shrink-0"
+                      strokeWidth={1.5}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <span className="text-sm font-medium leading-tight">{label}</span>
                   </button>
                 ))}
               </motion.div>
@@ -180,13 +188,13 @@ export function OnboardingModal({ userId, onComplete, onDismiss }: OnboardingMod
                 transition={{ duration: 0.2 }}
                 className="grid grid-cols-2 gap-2"
               >
-                {GOALS.map(g => {
-                  const selected = goals.includes(g.id);
+                {GOALS.map(({ id, label, Icon }) => {
+                  const selected = goals.includes(id);
                   const maxReached = goals.length >= 3 && !selected;
                   return (
                     <button
-                      key={g.id}
-                      onClick={() => toggleGoal(g.id)}
+                      key={id}
+                      onClick={() => toggleGoal(id)}
                       disabled={maxReached}
                       className={`flex items-center gap-2.5 px-3.5 py-3 rounded-2xl border text-left transition-all ${
                         selected
@@ -196,9 +204,14 @@ export function OnboardingModal({ userId, onComplete, onDismiss }: OnboardingMod
                             : 'bg-white border-brand-dark/10 text-brand-dark hover:border-brand-dark/30 hover:bg-slate-50'
                       }`}
                     >
-                      <span className="text-lg leading-none shrink-0">{g.emoji}</span>
-                      <span className="text-sm font-medium leading-tight flex-1">{g.label}</span>
-                      {selected && <Check className="w-3.5 h-3.5 shrink-0" />}
+                      <Icon
+                        className="w-[18px] h-[18px] shrink-0"
+                        strokeWidth={1.5}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <span className="text-sm font-medium leading-tight flex-1">{label}</span>
+                      {selected && <Check className="w-3.5 h-3.5 shrink-0" strokeWidth={2} />}
                     </button>
                   );
                 })}
