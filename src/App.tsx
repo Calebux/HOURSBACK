@@ -1,6 +1,9 @@
+import { useState, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
+import { AnimatePresence } from 'framer-motion';
 import { ToastProvider } from './components/ToastProvider';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { OnboardingModal, type OnboardingData } from './components/OnboardingModal';
 import LandingPage from './pages/LandingPage';
 import PlaybooksPage from './pages/PlaybooksPage';
 import PlaybookViewerPage from './pages/PlaybookViewerPage';
@@ -11,23 +14,72 @@ import PlaybookEditorPage from './pages/PlaybookEditorPage';
 import CrashCoursePage from './pages/CrashCoursePage';
 import AutopilotPage from './pages/AutopilotPage';
 
+// Inner component — can use useAuth because it's inside AuthProvider
+function AppWithOnboarding() {
+  const { user } = useAuth();
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+
+    // Only show for email-verified users who haven't completed onboarding
+    const verified = user.email_confirmed_at != null;
+    const key = `hb_onboarding_${user.id}`;
+    const done = localStorage.getItem(key);
+
+    if (verified && !done) {
+      // Small delay so the page is rendered first
+      const t = setTimeout(() => setShowOnboarding(true), 800);
+      return () => clearTimeout(t);
+    }
+  }, [user]);
+
+  const handleOnboardingComplete = (_data: OnboardingData) => {
+    setShowOnboarding(false);
+  };
+
+  const handleOnboardingDismiss = () => {
+    // Mark as dismissed so it doesn't reappear this session
+    if (user) {
+      localStorage.setItem(`hb_onboarding_${user.id}`, JSON.stringify({ dismissed: true, completedAt: new Date().toISOString() }));
+    }
+    setShowOnboarding(false);
+  };
+
+  return (
+    <>
+      <ToastProvider />
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/playbooks" element={<PlaybooksPage />} />
+        <Route path="/playbooks/:slug" element={<PlaybookViewerPage />} />
+        <Route path="/crash-course" element={<CrashCoursePage />} />
+        <Route path="/workspace" element={<WorkspacePage />} />
+        <Route path="/autopilot" element={<AutopilotPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/admin/playbooks/new" element={<PlaybookEditorPage />} />
+        <Route path="/admin/playbooks/:id/edit" element={<PlaybookEditorPage />} />
+      </Routes>
+
+      <AnimatePresence>
+        {showOnboarding && user && (
+          <OnboardingModal
+            userId={user.id}
+            onComplete={handleOnboardingComplete}
+            onDismiss={handleOnboardingDismiss}
+          />
+        )}
+      </AnimatePresence>
+    </>
+  );
+}
+
 function App() {
   return (
     <AuthProvider>
       <Router>
-        <ToastProvider />
-        <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/playbooks" element={<PlaybooksPage />} />
-          <Route path="/playbooks/:slug" element={<PlaybookViewerPage />} />
-          <Route path="/crash-course" element={<CrashCoursePage />} />
-          <Route path="/workspace" element={<WorkspacePage />} />
-          <Route path="/autopilot" element={<AutopilotPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/admin/playbooks/new" element={<PlaybookEditorPage />} />
-          <Route path="/admin/playbooks/:id/edit" element={<PlaybookEditorPage />} />
-        </Routes>
+        <AppWithOnboarding />
       </Router>
     </AuthProvider>
   );

@@ -1466,7 +1466,8 @@ export const getCategoryColor = (category: string): string => {
     'HR': '#0D9488',
     'Product': '#EA580C',
     'Legal': '#475569',
-    'Claude Crash Course': '#DA7756'
+    'Claude Crash Course': '#DA7756',
+    'Fitness & Wellness': '#10B981'
   };
   return colors[category] || '#4F46E5';
 };
@@ -2929,6 +2930,199 @@ export const smbPlaybooks: Playbook[] = [
         expectedOutput: 'A 5-question weekly review template, a Red/Yellow/Green tracking system, a contingency rule for when things fall behind, and a final success question for Day 90.',
         tips: 'The accountability method is more powerful than it sounds. Research consistently shows that sharing progress with even one other person — even informally — doubles the rate of follow-through. Pick a person and tell them your 90-day goal today.'
       }
+    ]
+  },
+
+  // ── Fitness & Wellness ──────────────────────────────────────────────────────
+
+  {
+    id: 'fit-1',
+    title: 'AI Meal Plan Generator',
+    slug: 'ai-meal-plan-generator',
+    category: 'Fitness & Wellness',
+    subtitle: 'Generate a personalised weekly meal plan tailored to your dietary needs, health goals, and taste preferences — in under 5 minutes.',
+    difficulty: 'Beginner',
+    timeToComplete: 5,
+    timeSaved: 120,
+    isPro: false,
+    isNew: true,
+    expectedOutcome: 'A complete 7-day meal plan with breakfast, lunch, dinner, and snacks — customised to your calories, macros, allergies, and food preferences.',
+    tools: ['Claude'],
+    rating: 4.9,
+    completionCount: 1340,
+    beforeYouStart: [
+      'Know your daily calorie target (use a TDEE calculator if unsure — search "TDEE calculator" online).',
+      'Note any food allergies or intolerances (e.g. gluten, dairy, nuts).',
+      'Have a rough idea of your health goal: lose weight, build muscle, maintain, or improve energy.',
+      'Open Claude at claude.ai — the AI Copilot on each step lets you run the prompt directly.'
+    ],
+    troubleshooting: [
+      { problem: 'The meal plan feels too repetitive', solution: 'Add "variety is important to me, include at least 3 different cuisines" to your prompt.' },
+      { problem: 'The calories don\'t match my target', solution: 'Add "Each day should total exactly [X] calories. Show the calorie count per meal." to your prompt.' },
+      { problem: 'I don\'t like some of the foods suggested', solution: 'Run the prompt again with "I dislike [food]. Do not include it or any dish containing it."' }
+    ],
+    steps: [
+      {
+        id: 'fit-1-s1',
+        stepNumber: 1,
+        title: 'Tell Claude your health profile',
+        instruction: 'Give Claude the key details about your body, goals, and dietary restrictions so it can build a plan that actually fits your life.',
+        tools: ['Claude'],
+        promptTemplate: `Please create a personalised 7-day meal plan for me based on the following profile:
+
+**Goal:** [e.g. lose weight / build muscle / maintain / more energy]
+**Daily calorie target:** [e.g. 1,800 kcal]
+**Dietary style:** [e.g. omnivore / vegetarian / vegan / pescatarian / keto / paleo]
+**Allergies or foods to avoid:** [e.g. none / gluten-free / no nuts / no dairy]
+**Meals per day:** [e.g. 3 meals + 2 snacks]
+**Cooking time available:** [e.g. max 30 minutes per meal / I prefer quick recipes]
+**Cuisine preferences:** [e.g. African, Mediterranean, Asian, or no preference]
+
+For each day, list:
+- Breakfast
+- Lunch
+- Dinner
+- Snacks (if applicable)
+- Approximate calories per meal
+
+Keep ingredients practical and budget-friendly. At the end, add a short grocery list grouped by category (produce, proteins, dairy, pantry staples).`,
+        expectedOutput: 'A structured 7-day meal plan with calories per meal and a grouped grocery list at the end.',
+        tips: 'The more specific you are, the better the plan. If you have a calorie goal, include it. If you hate certain vegetables, say so. Claude will remember your preferences within the conversation, so you can ask follow-up questions like "swap out the Tuesday lunch for something high-protein."'
+      },
+      {
+        id: 'fit-1-s2',
+        stepNumber: 2,
+        title: 'Generate a shopping list and meal prep guide',
+        instruction: 'Ask Claude to turn the meal plan into a practical shopping list and a 30-minute Sunday meal prep guide so you actually stick to the plan.',
+        tools: ['Claude'],
+        promptTemplate: `Based on the 7-day meal plan above, please:
+
+1. Consolidate all ingredients into one master shopping list, grouped by supermarket section (produce, meat/fish, dairy, grains, pantry).
+2. List estimated quantities for each item so I know how much to buy.
+3. Create a short Sunday meal-prep guide (max 30 minutes of active prep) that will make weekday meals faster. Focus on things that can be batch-cooked or prepped in advance.
+
+Format the shopping list clearly so I can screenshot it and use it at the store.`,
+        expectedOutput: 'A consolidated shopping list with quantities grouped by aisle, plus a time-saving Sunday prep routine.',
+        tips: 'You can paste this shopping list into any notes app or share it directly. Ask Claude to "add estimated costs for each section" if you want a rough budget too.'
+      },
+      {
+        id: 'fit-1-s3',
+        stepNumber: 3,
+        title: 'Customise and iterate',
+        instruction: 'Refine any meals you don\'t love, swap for convenience options, or ask Claude for recipe cards for your favourite meals in the plan.',
+        tools: ['Claude'],
+        promptTemplate: `I'd like to make a few tweaks to the meal plan:
+
+[Describe your adjustments, e.g.:]
+- Replace the Thursday dinner with a high-protein option under 500 calories
+- I don't have time to cook on Wednesdays — suggest a healthy takeout or ready-meal alternative
+- Give me a detailed recipe card (ingredients + instructions) for [specific meal from the plan]
+- Adjust the whole plan to [new calorie target] kcal per day`,
+        expectedOutput: 'Updated meals, recipe cards, or a revised plan based on your feedback.',
+        tips: 'Treat this as a conversation. Claude remembers the meal plan from earlier in the chat, so you can say "keep everything the same but change breakfast to something with eggs" and it will update just that part.'
+      }
+    ],
+    relatedPlaybooks: [
+      { id: 'fit-2', title: 'Personalised Fitness Plan Builder', slug: 'personalised-fitness-plan-builder' }
+    ]
+  },
+
+  {
+    id: 'fit-2',
+    title: 'Personalised Fitness Plan Builder',
+    slug: 'personalised-fitness-plan-builder',
+    category: 'Fitness & Wellness',
+    subtitle: 'Build a custom workout plan for any body part or goal — whether you have a gym, dumbbells, or just your bodyweight.',
+    difficulty: 'Beginner',
+    timeToComplete: 5,
+    timeSaved: 180,
+    isPro: false,
+    isNew: true,
+    expectedOutcome: 'A detailed weekly workout schedule with exercises, sets, reps, rest periods, and progressive overload guidance — tailored to your fitness level and available equipment.',
+    tools: ['Claude'],
+    rating: 4.8,
+    completionCount: 980,
+    beforeYouStart: [
+      'Decide which body part or goal to focus on: full body, chest, back, legs, core, glutes, arms, or fat loss.',
+      'Know your current fitness level: complete beginner, intermediate, or advanced.',
+      'Know what equipment you have access to: no equipment (bodyweight), dumbbells, resistance bands, or a full gym.',
+      'Open Claude at claude.ai — use the AI Copilot button on each step to run the prompt directly.'
+    ],
+    troubleshooting: [
+      { problem: 'The exercises feel too hard', solution: 'Tell Claude "I\'m finding [exercise] too difficult. Suggest a beginner regression." Claude will suggest an easier variation.' },
+      { problem: 'I don\'t have the equipment listed', solution: 'Say "Replace all exercises requiring [equipment] with bodyweight alternatives." Claude will rebuild the plan accordingly.' },
+      { problem: 'I want more variety', solution: 'Ask "Give me 3 alternative exercises for each movement in the plan." Claude will expand your exercise library.' }
+    ],
+    steps: [
+      {
+        id: 'fit-2-s1',
+        stepNumber: 1,
+        title: 'Define your fitness profile and goal',
+        instruction: 'Tell Claude what you\'re working with — your goal, fitness level, available equipment, and how many days per week you can train — so it can build the right plan for you.',
+        tools: ['Claude'],
+        promptTemplate: `Please build me a personalised fitness plan based on the following:
+
+**Primary focus / goal:** [e.g. build glutes / lose belly fat / full body strength / bigger arms / improve cardio / recover from injury]
+**Fitness level:** [beginner / intermediate / advanced]
+**Available equipment:** [none (bodyweight only) / dumbbells / resistance bands / home gym / full commercial gym]
+**Days per week I can train:** [e.g. 3 / 4 / 5]
+**Session length:** [e.g. 30 minutes / 45 minutes / 60 minutes]
+**Any injuries or areas to avoid:** [e.g. lower back pain, bad knees, shoulder injury, or none]
+
+For each training day, provide:
+- Day name and muscle focus
+- Full exercise list with sets, reps (or duration), and rest periods
+- A brief tip on form or technique for the most important exercise of the day
+- A note on how to progress (progressive overload guidance) once the workout feels too easy
+
+End with a short weekly recovery and stretching recommendation.`,
+        expectedOutput: 'A weekly workout schedule with every exercise, sets, reps, rest times, form tips, and a progression plan.',
+        tips: 'Be honest about your fitness level. A beginner plan built for a beginner is far more effective than an advanced plan you can\'t complete. If you\'re not sure, describe what you can currently do (e.g. "I can do 5 push-ups") and Claude will calibrate the plan for you.'
+      },
+      {
+        id: 'fit-2-s2',
+        stepNumber: 2,
+        title: 'Get a step-by-step guide for your key exercises',
+        instruction: 'Pick 2–3 exercises from the plan that are new to you and ask Claude to explain how to perform them safely and correctly.',
+        tools: ['Claude'],
+        promptTemplate: `For the following exercises from my plan, please give me a detailed step-by-step guide on how to perform each one:
+
+[List 2-3 exercises, e.g.:]
+- Romanian Deadlift
+- Bulgarian Split Squat
+- Cable Lateral Raise
+
+For each exercise:
+1. Starting position (how to set up)
+2. The movement (step-by-step breakdown)
+3. Common mistakes to avoid
+4. How to scale it up or down based on difficulty
+5. A cue or mental trick that helps with form`,
+        expectedOutput: 'Detailed form guides for your chosen exercises with beginner tips and common mistake warnings.',
+        tips: 'You can also ask Claude to describe what a correct rep should feel like (muscle activation cues). For example: "When should I feel the glutes engaging during a hip thrust?" — this is often more useful than purely mechanical instructions.'
+      },
+      {
+        id: 'fit-2-s3',
+        stepNumber: 3,
+        title: 'Build a 4-week progressive overload tracker',
+        instruction: 'Ask Claude to lay out how the plan should progress over 4 weeks so you\'re always improving without overtraining.',
+        tools: ['Claude'],
+        promptTemplate: `Based on the fitness plan above, please create a 4-week progressive overload schedule.
+
+For each week, show:
+- How sets, reps, or weight should change compared to the previous week
+- When to add a deload week (if applicable) and what that looks like
+- How to know when I'm ready to move to the next level of difficulty
+
+Format it as a simple week-by-week table I can follow and check off as I go.
+
+Also add: what results can I realistically expect after 4 weeks if I follow this plan consistently?`,
+        expectedOutput: 'A 4-week progressive plan with clear weekly targets and realistic result expectations.',
+        tips: 'Progressive overload is the single most important principle in fitness. Simply doing the same workout every week leads to plateaus. Even adding one extra rep per week adds up to 52 extra reps over a year — which compounds into significant strength and muscle gains.'
+      }
+    ],
+    relatedPlaybooks: [
+      { id: 'fit-1', title: 'AI Meal Plan Generator', slug: 'ai-meal-plan-generator' }
     ]
   }
 ];

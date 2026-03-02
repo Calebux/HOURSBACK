@@ -903,7 +903,7 @@ function Footer() {
             <ul className="space-y-2 text-sm text-brand-dark/70">
               <li><a href="#" className="hover:text-brand-dark transition-colors">About</a></li>
               <li><a href="#" className="hover:text-brand-dark transition-colors">Careers</a></li>
-              <li><a href="#" className="hover:text-brand-dark transition-colors">Contact</a></li>
+              <li><a href="mailto:petersoncaleb275@gmail.com?subject=Contact%20Inquiry" className="hover:text-brand-dark transition-colors">Contact</a></li>
             </ul>
           </div>
         </div>
