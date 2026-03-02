@@ -728,6 +728,215 @@ Flag anything that looks suspicious with a risk score (Low/Medium/High) and expl
       { id: '15', title: 'Private Equity Deal Screener', slug: 'private-equity-deal-screener' },
       { id: '11', title: 'Cash Flow Projection', slug: 'cash-flow-projection' }
     ]
+  },
+  {
+    id: 'vc-1',
+    slug: 'ultimate-vibe-coding-prompt',
+    title: 'The Ultimate Vibe Coding Prompt',
+    subtitle: 'Turn any idea into a real, working product — with AI as your technical co-founder guiding you from discovery to deployment.',
+    category: 'AI Development',
+    difficulty: 'Intermediate',
+    timeToComplete: 60,
+    timeSaved: 480,
+    completionCount: 3120,
+    rating: 4.9,
+    isPro: false,
+    isNew: true,
+    tools: ['Claude', 'Cursor', 'v0.dev', 'ChatGPT'],
+    beforeYouStart: [
+      'Have your product idea written down — even a rough 2-sentence version',
+      'Access to Claude, ChatGPT, or Cursor (any one works)',
+      'Decide honestly: are you exploring, building for yourself, or launching publicly?',
+      'Block 60–90 minutes of uninterrupted time — this is a building session, not a browsing session'
+    ],
+    expectedOutcome: 'A real, working v1 product — not a mockup, not a prototype. Something you can use, share, or launch. Plus a full handoff document so you\'re never dependent on a single AI conversation.',
+    troubleshooting: [
+      {
+        problem: 'AI gives me a plan but never starts building',
+        solution: 'Add "Stop planning. Start building Step 1 right now. Show me actual code." to your message.'
+      },
+      {
+        problem: 'The build got too complicated too fast',
+        solution: 'Type: "Pause. What is the absolute minimum version of this that works? Build only that." Then expand later.'
+      },
+      {
+        problem: 'AI keeps asking clarifying questions instead of building',
+        solution: 'Say: "Make reasonable assumptions and build. List what you assumed at the end. I\'ll correct anything wrong."'
+      },
+      {
+        problem: 'The output looks like a hackathon project',
+        solution: 'Run Phase 4 again with: "Audit everything for polish. Pretend a design-obsessed founder is reviewing this in 10 minutes."'
+      },
+      {
+        problem: 'I got lost and don\'t know what stage we\'re in',
+        solution: 'Type: "Summarise what we\'ve built so far, what phase we\'re in, and what the next 3 steps are."'
+      },
+      {
+        problem: 'The AI made a decision I don\'t agree with',
+        solution: 'You\'re the product owner. Say "I don\'t want that approach. Give me 3 alternatives and the trade-offs for each."'
+      }
+    ],
+    steps: [
+      {
+        id: 'vc-1-s1',
+        stepNumber: 1,
+        title: 'Activate Your Technical Co-Founder',
+        instruction: 'Start a new conversation in Claude, ChatGPT, or Cursor. Paste the master prompt below — this is the operating system for the entire build session. Fill in your idea and seriousness level before sending. Be as specific as possible about your idea. The more real detail you give, the more real the output.',
+        promptTemplate: `You are now my Technical Co-Founder. Your job is to help me build a real product I can use, share, or launch. Handle all the building, but keep me in the loop and in control at all times.
+
+My Idea:
+[Describe your product idea — what it does, who it's for, what problem it solves. Be specific. Include: the target user, their pain point, and what your product does differently.]
+
+How serious I am:
+[Choose one: Just exploring / I want to use this myself / I want to share it with others / I want to launch it publicly]
+
+Operating Rules for this session:
+- Treat me as the product owner. I make the decisions, you make them happen.
+- Translate all technical decisions into plain language before acting.
+- Push back if I'm overcomplicating things or heading in a bad direction.
+- Be honest about limitations — I'd rather adjust than be disappointed.
+- Never just pick an option — always give me 2-3 choices at decision points.
+- Move fast, but not so fast that I lose track of what's happening.
+- I don't just want it to work — I want to be proud to show it to people.
+- This is real. Not a mockup. Not a prototype. A working product.
+
+Start with Phase 1: Discovery. Ask me the 3-5 most important questions to understand what I actually need — not just what I said.`,
+        expectedOutput: 'The AI acknowledges the brief and asks 3–5 sharp discovery questions that challenge your assumptions and uncover what you actually need.',
+        tips: 'Don\'t skip filling in the variables. A vague idea gets a vague product. Write your idea like you\'re pitching it to a friend who will invest $500 in it.',
+        tools: ['Claude', 'ChatGPT', 'Cursor']
+      },
+      {
+        id: 'vc-1-s2',
+        stepNumber: 2,
+        title: 'Phase 1 — Discovery (Answer the Hard Questions)',
+        instruction: 'Answer the AI\'s discovery questions honestly. Don\'t pad your answers — the AI is trying to find the gap between what you said and what you actually need. After answering, send the follow-up prompt below to push it into planning mode. If the AI challenges your idea, engage with it — it may be saving you from building the wrong thing.',
+        promptTemplate: `[Answer each question above with as much specific detail as you can.]
+
+Additional context:
+- The "must have now" features are: [List 2-3 core features you absolutely need for v1]
+- Features I want later but NOT now: [List anything that feels like scope creep]
+- The one thing that would make me say "this is worth it": [Your success metric]
+
+Now: Based on everything above, tell me if my idea is the right size for v1. If it's too big, suggest a smarter starting point. If it's right-sized, move to Phase 2: Planning.`,
+        expectedOutput: 'A clear verdict: is your v1 idea the right size? If yes, you proceed to planning. If not, the AI proposes a tighter starting point that you can actually finish today.',
+        tips: 'When the AI says "this is too big," listen. A smaller v1 you actually finish beats a grand vision you never ship. You can always build v2.',
+        tools: ['Claude', 'ChatGPT', 'Cursor']
+      },
+      {
+        id: 'vc-1-s3',
+        stepNumber: 3,
+        title: 'Phase 2 — Planning (Lock the Blueprint)',
+        instruction: 'Review the plan the AI proposes. Check that it covers exactly what you need — nothing more, nothing less. Before approving, run the prompt below to pressure-test it. Only move to building once you\'re satisfied with the plan. This is the cheapest moment to make changes.',
+        promptTemplate: `Before we build, I want to pressure-test the plan. Answer these in plain language:
+
+1. What exactly will a user see and do in v1? Walk me through it step by step.
+2. What accounts, services, or tools will I need to set this up? (Be complete — include anything that requires signup or payment)
+3. What are the 2-3 biggest technical risks in this plan, and how are we handling each one?
+4. Complexity check: rate this as Simple / Medium / Ambitious and explain why.
+5. Show me a rough wireframe or text outline of the finished product.
+
+If anything in the plan is unclear or I disagree with an approach, I'll say so now. Otherwise, I'll say "Approved — start Phase 3."`,
+        expectedOutput: 'A complete, plain-language blueprint: what gets built, what you need, the risks, the complexity rating, and a text outline of the finished product.',
+        tips: 'Read the "accounts and services" list carefully. Discovering you need a paid API at Phase 4 kills momentum. Resolve all dependencies before you say "approved."',
+        tools: ['Claude', 'ChatGPT', 'Cursor']
+      },
+      {
+        id: 'vc-1-s4',
+        stepNumber: 4,
+        title: 'Phase 3 — Building (Staged Construction)',
+        instruction: 'Tell the AI to start building. It will work in stages you can see and react to — never moving forward without showing you what it built. Use the prompt below to kick off the build. At each checkpoint, test what was built before saying "continue." If something\'s wrong, say so immediately rather than waiting until the end.',
+        promptTemplate: `Approved. Start Phase 3: Building.
+
+Build in stages. After each stage:
+1. Show me exactly what was built (code, output, or screenshot if possible)
+2. Explain what you just did in one plain-language sentence
+3. Tell me what to test before you continue
+4. List any decision points that need my input before proceeding
+
+Start with Stage 1. Only move to Stage 2 after I confirm Stage 1 works.
+
+If you hit a problem or a fork in the road, stop and give me the options with trade-offs — don't just pick one.`,
+        expectedOutput: 'A working Stage 1 of your product — something you can actually see, click, or test. Clear explanation of what was built, what to test, and what comes next.',
+        tips: 'Test every stage before saying "continue." Bugs are 10x harder to fix after 3 more stages are built on top of them. The best vibe coders are ruthless testers.',
+        tools: ['Claude', 'Cursor', 'v0.dev']
+      },
+      {
+        id: 'vc-1-s5',
+        stepNumber: 5,
+        title: 'Phase 4 — Polish (From Working to Impressive)',
+        instruction: 'Once the core is built and working, run the polish phase. This is what separates a project that looks like it was built in an afternoon from one you\'re proud to show people. Paste the prompt below and give the AI one complete pass to audit and fix everything.',
+        promptTemplate: `Phase 4: Polish. Do a full audit of the current build with the eyes of a design-obsessed founder reviewing it before launch.
+
+Check and fix:
+1. Visual polish — does this look professional? Fix spacing, typography, colours, and alignment issues.
+2. Mobile responsiveness — test every screen on mobile. Fix anything that breaks.
+3. Edge cases — what happens if a user submits an empty form? Enters the wrong format? Has no data yet? Handle all of them gracefully.
+4. Error messages — rewrite any technical errors into friendly, actionable human language.
+5. Loading states — every action that takes time should have a spinner or skeleton. Add them.
+6. Performance — flag anything obviously slow or inefficient and fix it.
+7. "Finished" details — micro-interactions, empty states, success messages. Add the small things that make it feel done.
+
+After each fix, tell me what you changed and why. If something would take significant effort for minimal benefit, flag it as "v2" instead.`,
+        expectedOutput: 'A polished, professional-looking product with no rough edges. Mobile-friendly, edge cases handled, errors humanised, and small details that make it feel finished.',
+        tips: 'Polish is not optional. The difference between "it works" and "I\'m proud of this" is entirely in Phase 4. Block 20 minutes for this — it\'s worth it every time.',
+        tools: ['Claude', 'Cursor', 'v0.dev']
+      },
+      {
+        id: 'vc-1-s6',
+        stepNumber: 6,
+        title: 'Phase 5 — Handoff (Own What You Built)',
+        instruction: 'The handoff phase makes sure you understand and can maintain everything that was built — and that you\'re not dependent on this conversation to keep it running. Paste the prompt below. Save the output somewhere permanent (Notion, Google Doc, GitHub README). This is your product\'s operating manual.',
+        promptTemplate: `Phase 5: Handoff. Create a complete handoff document for this product. Structure it as:
+
+**What Was Built**
+- Plain-language description of the product and every feature in v1
+- Tech stack used and why each choice was made
+
+**How to Use It**
+- Step-by-step instructions for the end user
+- Any setup steps required for a new user
+
+**How to Maintain It**
+- Where to find and edit each part of the codebase
+- How to update content, change settings, or swap out components
+- Any recurring tasks or maintenance required
+
+**How to Deploy** (if not already live)
+- Exact steps to get this live for free or cheaply
+- Recommended hosting platform and why
+
+**What to Build in V2**
+- Top 5 improvements or features to add next, in priority order
+- Anything flagged as "v2" during the build
+
+**Gotchas and Known Limitations**
+- Anything I should know about edge cases, limits, or gotchas in this v1`,
+        expectedOutput: 'A complete handoff document covering what was built, how to use it, how to maintain it, deployment steps, and a V2 roadmap — so you\'re never dependent on this conversation again.',
+        tips: 'Save this document immediately. Paste it into Notion, a Google Doc, or your project\'s README. Future-you will thank you the moment you need to make a change 3 months from now.',
+        tools: ['Claude', 'ChatGPT']
+      }
+    ],
+    agentAutomation: {
+      description: 'Schedule weekly build sessions where the AI reviews your product, identifies what to build next, and prepares a structured brief for your next vibe coding session.',
+      trigger: 'Every Monday morning',
+      actions: [
+        'Review the current state of your product',
+        'Identify the top 3 improvements from the v2 list',
+        'Prepare a structured brief for the next build session',
+        'Flag any maintenance or bug issues found'
+      ],
+      setupSteps: [
+        { title: 'Connect your project', description: 'Add your handoff document and codebase summary to the agent\'s context' },
+        { title: 'Set your cadence', description: 'Choose how often you want build session briefs (weekly recommended)' },
+        { title: 'Define your v2 priorities', description: 'Paste your v2 roadmap from the handoff document so the agent knows what to prioritise' }
+      ],
+      tools: ['Claude', 'Cursor']
+    },
+    relatedPlaybooks: [
+      { id: 'dai-3', title: 'Create a SaaS Dashboard Web App', slug: 'create-saas-dashboard-app' },
+      { id: 'dai-1', title: 'Figma to Production with Claude Code', slug: 'figma-to-production-cowork-claude-code' },
+      { id: 'cwp-8', title: 'Figma to React with Claude Code & MCP', slug: 'claude-code-figma-mcp-workflow' }
+    ]
   }
 ];
 
