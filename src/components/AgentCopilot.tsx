@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Sparkles, Loader2, AlertCircle } from 'lucide-react';
+import { Sparkles, Loader2, AlertCircle, Copy, Check } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 
@@ -13,9 +13,13 @@ export default function AgentCopilot({ prompt, tools = [] }: AgentCopilotProps) 
     const [isGenerating, setIsGenerating] = useState(false);
     const [response, setResponse] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [copied, setCopied] = useState(false);
 
     const handleGenerate = async () => {
-        if (!user) return;
+        if (!user) {
+            setError('Please sign in to use the AI Copilot.');
+            return;
+        }
 
         setIsGenerating(true);
         setError(null);
@@ -144,10 +148,13 @@ export default function AgentCopilot({ prompt, tools = [] }: AgentCopilotProps) 
                             <button
                                 onClick={() => {
                                     navigator.clipboard.writeText(response);
+                                    setCopied(true);
+                                    setTimeout(() => setCopied(false), 2000);
                                 }}
-                                className="text-xs font-medium text-brand-dark/60 hover:text-brand-dark transition-colors bg-white px-3 py-1.5 rounded-full shadow-sm border border-slate-200"
+                                className="text-xs font-medium text-brand-dark/60 hover:text-brand-dark transition-colors bg-white px-3 py-1.5 rounded-full shadow-sm border border-slate-200 flex items-center gap-1"
                             >
-                                Copy Text
+                                {copied ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
+                                {copied ? 'Copied!' : 'Copy Text'}
                             </button>
                             <button
                                 onClick={handleGenerate}

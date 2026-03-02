@@ -43,7 +43,7 @@ serve(async (req) => {
     // 2. Fetch the specific schedule and the user's email
     const { data: schedule, error: scheduleError } = await supabaseAdmin
       .from('scheduled_playbooks')
-      .select('*, auth.users(email)')
+      .select('*, profiles(email)')
       .eq('id', schedule_id)
       .single();
 
@@ -51,9 +51,17 @@ serve(async (req) => {
        throw new Error(`Failed to find schedule: ${scheduleError?.message}`);
     }
 
-    const userEmail = schedule.users?.email;
+    // Bug fix: don't run paused agents
+    if (!schedule.is_active) {
+      return new Response(JSON.stringify({ error: "Schedule is paused" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+      });
+    }
+
+    const userEmail = schedule.profiles?.email;
     const deliveryEmail = schedule.custom_delivery_email || userEmail;
-    
+
     if (!deliveryEmail) throw new Error("Could not determine delivery email");
 
     // 3. Compile the full playbook "Recipe"
@@ -113,24 +121,9 @@ serve(async (req) => {
     // @ts-ignore - The SDK types can be slightly wonky in Deno
     const generatedContent = msg.content[0].text;
 
-    // 5. Save the result to the database logs
-    const { error: logError } = await supabaseAdmin
-        .from('autonomous_runs')
-        .insert({
-            schedule_id: schedule.id,
-            user_id: schedule.user_id,
-            playbook_slug: playbookSlug,
-            generated_content: generatedContent,
-            run_status: 'success'
-        });
-
-    if (logError) {
-        console.error("Failed to log run to database:", logError);
-    }
-
-    // 6. Deliver the result via Email
+    // 5. Deliver the result via Email first
     if (!RESEND_API_KEY) throw new Error("Missing Resend API Key");
-    
+
     const emailHtml = `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #6366f1;">🤖 Your Autonomous Agent Finished Running!</h2>
@@ -160,6 +153,21 @@ serve(async (req) => {
         const errObj = await resendRes.text();
         console.error("Failed to send email via Resend:", errObj);
         throw new Error("Email delivery failed");
+    }
+
+    // 6. Only log as success after email is confirmed delivered
+    const { error: logError } = await supabaseAdmin
+        .from('autonomous_runs')
+        .insert({
+            schedule_id: schedule.id,
+            user_id: schedule.user_id,
+            playbook_slug: playbookSlug,
+            generated_content: generatedContent,
+            run_status: 'success'
+        });
+
+    if (logError) {
+        console.error("Failed to log run to database:", logError);
     }
 
     return new Response(JSON.stringify({ success: true, message: "Agent execution complete and delivered" }), {

@@ -74,7 +74,15 @@ Deno.serve(async (req) => {
       profile = newProfile
     }
 
-    if (profile.copilot_runs <= 0) {
+    // Atomically decrement copilot_runs (only if > 0) to prevent race conditions
+    const { data: decremented, error: decrementError } = await serviceClient
+      .from('profiles')
+      .update({ copilot_runs: profile.copilot_runs - 1 })
+      .eq('id', user.id)
+      .gt('copilot_runs', 0)
+      .select('copilot_runs')
+
+    if (decrementError || !decremented || decremented.length === 0) {
       return new Response(JSON.stringify({ error: 'You have exhausted your Copilot runs. Please upgrade to Pro.' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
@@ -174,16 +182,6 @@ Deno.serve(async (req) => {
 
       const data = await response.json()
       resultText = data.choices[0].message.content
-    }
-
-    // 4. Decrement the user's copilot_runs (using service role to bypass RLS)
-    const { error: updateError } = await serviceClient
-      .from('profiles')
-      .update({ copilot_runs: profile.copilot_runs - 1 })
-      .eq('id', user.id)
-
-    if (updateError) {
-      console.error('Failed to deduct run credit:', updateError)
     }
 
     return new Response(
