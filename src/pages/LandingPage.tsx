@@ -464,6 +464,7 @@ function PricingPlanCard({ plan, isAnnual, onAuthRequired }: { plan: any, isAnnu
 
   const handlePayment = () => {
     console.log("--- FLUTTERWAVE DEBUG ---");
+    console.log("Available Environment Keys:", Object.keys(import.meta.env).filter(k => k.startsWith('VITE_')));
     console.log("User Object:", user);
     console.log("Payment Config:", config);
     console.log("Public Key from Env:", import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY);

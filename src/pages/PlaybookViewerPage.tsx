@@ -105,6 +105,7 @@ export default function PlaybookViewerPage() {
 
   const handlePayment = () => {
     console.log("--- FLUTTERWAVE DEBUG (PlaybookViewer) ---");
+    console.log("Available Environment Keys:", Object.keys(import.meta.env).filter(k => k.startsWith('VITE_')));
     console.log("User Object:", user);
     console.log("Payment Config:", paymentConfig);
     console.log("Public Key from Env:", import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY);
