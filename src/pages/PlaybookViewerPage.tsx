@@ -78,9 +78,9 @@ export default function PlaybookViewerPage() {
   }, [playbook]);
 
   const amountRaw = isAnnual ? 4.49 * 12 : 4.99;
-  const amountNGN = Math.floor(amountRaw * 1500); // Fixed for Flutterwave (NGN instead of Kobo)
+  const amountNGN = Math.floor(amountRaw * 1500);
 
-  const paymentConfig = {
+  const paymentConfig = useMemo(() => ({
     public_key: import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY || '',
     tx_ref: `hb_tx_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
     amount: amountNGN,
@@ -99,7 +99,7 @@ export default function PlaybookViewerPage() {
       description: 'Unlock this Pro playbook instantly',
       logo: 'https://i.ibb.co/L5hY5M0/logo.png',
     },
-  };
+  }), [amountNGN, user?.email, user?.id, user?.user_metadata?.name]);
 
   const handleFlutterPayment = useFlutterwave(paymentConfig);
 
