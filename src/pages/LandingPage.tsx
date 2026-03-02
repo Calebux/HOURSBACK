@@ -463,43 +463,34 @@ function PricingPlanCard({ plan, isAnnual, onAuthRequired }: { plan: any, isAnnu
   const handleFlutterPayment = useFlutterwave(config);
 
   const handlePayment = () => {
-    console.log("Handle payment clicked. Config:", config);
     if (!user) {
-      console.log("No user found, showing auth modal");
       if (onAuthRequired) onAuthRequired();
       return;
     }
 
-    try {
-      console.log("Calling handleFlutterPayment...");
-      handleFlutterPayment({
-        callback: async (response) => {
-          console.log("Flutterwave callback response:", response);
-          if (response.status === 'successful') {
-            closePaymentModal();
-            alert("Payment successful! Welcome to Pro.");
-            localStorage.setItem('has_pro_access', 'true');
-            if (user?.id) {
-              try {
-                await updateProfile(user.id, { subscription_status: 'pro' });
-              } catch (err) {
-                console.error("Failed to update profile", err);
-              }
+    handleFlutterPayment({
+      callback: async (response) => {
+        if (response.status === 'successful') {
+          closePaymentModal();
+          alert("Payment successful! Welcome to Pro.");
+          localStorage.setItem('has_pro_access', 'true');
+          if (user?.id) {
+            try {
+              await updateProfile(user.id, { subscription_status: 'pro' });
+            } catch (err) {
+              console.error("Failed to update profile", err);
             }
-            window.location.href = '/playbooks';
-          } else {
-            console.warn("Payment status not successful:", response.status);
-            alert("Payment failed or was incomplete. Please try again.");
-            closePaymentModal();
           }
-        },
-        onClose: () => {
-          console.log("Payment modal closed by user");
+          window.location.href = '/playbooks';
+        } else {
+          alert("Payment failed or was incomplete. Please try again.");
+          closePaymentModal();
         }
-      });
-    } catch (err) {
-      console.error("Error calling handleFlutterPayment:", err);
-    }
+      },
+      onClose: () => {
+        console.log("Payment modal closed by user");
+      }
+    });
   };
 
   return (
