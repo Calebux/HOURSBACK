@@ -2935,6 +2935,100 @@ export const smbPlaybooks: Playbook[] = [
 
 export const claudeCrashCoursePlaybooks: Playbook[] = [
   {
+    id: 'cc-0',
+    slug: 'ai-for-real-life-plain-english-guide',
+    title: 'AI for Real Life: A Plain English Guide',
+    subtitle: 'Based on Anthropic\'s AI Fluency Framework — the 4 skills everyone needs to use AI confidently, simply explained.',
+    category: 'Claude Crash Course',
+    difficulty: 'Beginner',
+    timeToComplete: 15,
+    timeSaved: 60,
+    completionCount: 5120,
+    rating: 4.9,
+    isPro: false,
+    isNew: true,
+    tools: ['Claude', 'ChatGPT'],
+    beforeYouStart: [
+      'No prior AI experience needed — this is the starting point.',
+      'Open Claude (claude.ai) or ChatGPT in a browser tab so you can try things as you read.',
+      'Bring one real task from your life or work to use as a practice example throughout.'
+    ],
+    expectedOutcome: 'A clear mental model of what AI is, what it is good for, and when not to trust it — plus the 4D Framework you can apply to every AI interaction from this moment on.',
+    troubleshooting: [
+      {
+        problem: 'I tried AI once and the answer was wrong or useless',
+        solution: 'One bad answer is not a verdict on AI — it is a prompt problem. The most common cause: the question was too vague. Read the Description step in this lesson, then try again with more context. Rephrasing almost always gets a dramatically better result.'
+      },
+      {
+        problem: 'I don\'t know if I can trust what AI tells me',
+        solution: 'Good instinct — that is exactly what Discernment is for. The rule: trust AI more for creative and explanatory tasks, trust it less for specific facts, dates, and statistics. When it matters, verify the specific claims with a quick search or a qualified professional.'
+      },
+      {
+        problem: 'I feel like I\'m cheating by using AI for work or school',
+        solution: 'Context matters. Using AI to draft a first version you then edit, improve, and own is a tool — like using a calculator for maths. Submitting AI output as entirely your own unedited work in a context that prohibits it is dishonest. The Diligence section of this lesson covers exactly this line.'
+      },
+      {
+        problem: 'AI doesn\'t remember what I told it last time',
+        solution: 'That is by design — most AI tools do not have memory between separate conversations. Every new chat is a blank slate. Always give context at the start: who you are, what you need, and any relevant background. Think of it as briefing a new but very capable assistant each time.'
+      },
+      {
+        problem: 'I\'m worried about privacy — what should I not share with AI?',
+        solution: 'Never paste passwords, government ID numbers, bank details, or sensitive personal information about other people. Treat the AI chat window like a work email — professional use is fine, but anything you would not want visible to others should stay out.'
+      }
+    ],
+    relatedPlaybooks: [
+      { id: 'cc-1', title: 'Your First Conversation with Claude', slug: 'claude-101-your-first-conversation' },
+      { id: 'cc-2', title: 'Prompt Engineering Essentials', slug: 'claude-102-prompt-engineering-essentials' }
+    ],
+    steps: [
+      {
+        id: 'cc0-s1',
+        stepNumber: 1,
+        title: 'What Even Is AI?',
+        instruction: 'Before learning how to use AI well, understand what it actually is — and what it is not. This removes the mystery and the fear at the same time.\n\nThink of AI (like Claude or ChatGPT) as a very well-read assistant who has read billions of articles, books, and websites. It does not "think" like a human — it predicts useful responses based on patterns it learned. It is incredibly helpful for a huge range of tasks, but it is not magic, and it makes mistakes.\n\nThe single most important thing to understand upfront: You are always the human in charge. AI is a tool — you decide what to do with what it gives you. It amplifies your thinking; it does not replace it.',
+        promptTemplate: 'I have never really used AI before and I want to understand what it is and what it is actually good at. I am a [DESCRIBE YOURSELF — e.g. small business owner / student / teacher / office worker]. Tell me in plain, simple language:\n1. What AI is and how it works (no technical jargon)\n2. What it is genuinely best at\n3. What it is bad at or gets wrong\n4. One thing that surprises most people when they first use it\n\nKeep the whole answer under 250 words and write it like you\'re talking to a curious person, not a tech student.',
+        expectedOutput: 'A plain-English explanation of AI tailored to your background — what it is, what it is good for, and its real limitations. No jargon, no hype.',
+        tips: 'Notice how Claude answers. It will be clear, direct, and probably shorter than you expected. That is by design — you asked for plain language and a word limit. That is the Description skill already at work.'
+      },
+      {
+        id: 'cc0-s2',
+        stepNumber: 2,
+        title: 'Delegation — Know What to Hand Off',
+        instruction: 'Delegation is figuring out which tasks are worth giving to AI — and which ones you should keep for yourself. Getting this right saves time and avoids the biggest mistakes people make.\n\nGreat things to delegate to AI:\nWriting first drafts of emails, essays, or reports. Summarizing long documents. Brainstorming ideas. Explaining confusing topics in simple terms. Translating content. Creating to-do lists or project plans.\n\nKeep these for yourself:\nFinal decisions that affect people\'s lives. Anything requiring your personal judgment or values. Tasks where accuracy is life-or-death (medical, legal, financial). Anything requiring very recent information (AI knowledge has a cutoff date).',
+        promptTemplate: 'I need to write a [DESCRIBE THE TASK — e.g. "tricky email to my landlord about a broken heating system" / "complaint letter to a company" / "proposal to my manager for a new idea"].\n\nHelp me write a polite but firm first draft. Here is the key context:\n[DESCRIBE YOUR SITUATION IN 2-3 SENTENCES]\n\nKeep it under 150 words. I will review it and decide what to send.',
+        expectedOutput: 'A ready-to-edit first draft of your real task — something that would have taken you 20 minutes of staring at a blank screen, produced in seconds. You review it, tweak it, and send it. The judgment is still yours.',
+        tips: 'The magic phrase is "I will review it and decide what to send." You are delegating the hard part — the blank page — not the final call. Try this with one real task from your life right now.'
+      },
+      {
+        id: 'cc0-s3',
+        stepNumber: 3,
+        title: 'Description — Know How to Ask',
+        instruction: 'The better you explain what you want, the better AI responds. Think of it like giving directions — vague directions get you lost.\n\nWeak prompt: "Write something about dogs"\nStrong prompt: "Write a fun 3-paragraph intro for a blog about dog training for busy parents. Casual tone, no jargon, include one surprising dog fact."\n\nWeak prompt: "Help with my resume"\nStrong prompt: "I am applying for a retail job with no experience. Help me write a 1-page resume highlighting my communication skills and reliability. No generic corporate language."\n\nThe quick-start formula to remember:\n"I am [who you are]. I need [what you want]. The context is [relevant background]. Please give me [format, length, tone]."',
+        promptTemplate: 'I am a [WHO YOU ARE]. I need [WHAT YOU WANT — be specific]. The context is [RELEVANT BACKGROUND — what is this for, who will see it, why does it matter]. Please give me [FORMAT — e.g. a short paragraph / a bullet list / a table / a 3-step plan] that is [TONE — e.g. friendly and casual / professional / simple enough for a 12-year-old to understand]. Keep it under [WORD COUNT].\n\nDo not include [ANYTHING YOU DO NOT WANT — e.g. jargon / bullet points / an introduction paragraph].\n\nHere is a real example to replace the brackets above:\n"I am a small business owner with no marketing background. I need 5 Instagram caption ideas for our summer sale on handmade candles. The context is our brand is warm, cozy, and eco-friendly — we sell to women 25-45. Please give me 5 short captions, casual and fun tone. Keep each under 150 characters. Do not use hashtags — I\'ll add those myself."',
+        expectedOutput: 'A precise, immediately usable response that matches what you actually wanted — not a generic answer to a vague question. The quality of the output should feel noticeably better than a vague prompt would produce.',
+        tips: 'Fill in the formula with your real task right now. Compare the result to what you would have gotten from a vague prompt. The difference is the whole lesson.'
+      },
+      {
+        id: 'cc0-s4',
+        stepNumber: 4,
+        title: 'Discernment — Know When to Trust It',
+        instruction: 'AI can be wrong, outdated, or confidently make things up. This is called "hallucination" — and it is real. Discernment is knowing when to trust the output and when to verify it.\n\nTrust AI more for:\nGeneral knowledge and explanations. Creative tasks (writing, brainstorming, editing). Summarizing documents you give it. Explaining a concept in simple terms.\n\nAlways double-check:\nSpecific statistics, dates, and numbers. Medical, legal, or financial advice. Recent news or events. Specific names, links, or citations.\n\nThe Description-Discernment loop:\nIf the answer does not seem right, rephrase your question, get a new answer, and check again. It is a conversation, not a one-shot deal.',
+        promptTemplate: 'Tell me [ASK FOR A SPECIFIC FACT OR CLAIM — e.g. "what is the current interest rate in Nigeria" / "what is the current price of petrol" / "what happened in the news this week"].\n\nAfter you answer, tell me honestly: how confident are you in this information, and is there anything about this answer I should verify independently before acting on it?\n\nNote: This prompt is designed to teach Discernment. Watch how the AI responds about its own confidence and limitations.',
+        expectedOutput: 'An answer followed by an honest caveat from the AI about what it knows, what it might have wrong, and what you should verify. A trustworthy AI tool will flag its own uncertainty — that is a sign of a good system, not a weakness.',
+        tips: 'The simple habit to build: after every AI answer, ask yourself three questions. Does this feel right? Can I verify this quickly? Would it matter if it were wrong? If the answer to the last question is yes — verify before you act.'
+      },
+      {
+        id: 'cc0-s5',
+        stepNumber: 5,
+        title: 'Diligence — Stay Responsible',
+        instruction: 'Diligence means using AI responsibly without becoming over-reliant on it. You are accountable for everything you do with AI\'s output.\n\nWhat Diligence looks like in practice:\nDo not copy-paste blindly — read it, edit it, and make it yours. Do not share private information (passwords, ID numbers, sensitive personal details). Be honest about AI use when it matters — at school, at work, in professional contexts. Think about whether the content could mislead someone. Keep learning as AI evolves — tools change fast.\n\nCommon mistakes people make:\nTreating AI like a search engine that finds facts (it generates answers and can make things up). Giving up after one bad answer instead of rephrasing. Trusting it blindly for medical, legal, or financial questions. Thinking it knows you — AI does not remember past conversations. Being afraid to experiment — there is no wrong way to try.',
+        promptTemplate: 'Review the following content I got from an AI and give me your honest assessment:\n\n[PASTE ANY AI-GENERATED TEXT HERE — an email draft, an essay paragraph, a summary, whatever you generated in the earlier steps]\n\nTell me:\n1. What looks good and is ready to use as-is\n2. What should be changed, improved, or made more personal\n3. What specific facts or claims (if any) I should verify before using this\n4. One thing that sounds a bit "AI-ish" that I should rewrite in my own voice\n\nThis is a Diligence review — help me use this responsibly.',
+        expectedOutput: 'An honest editorial review of AI-generated content, flagging what is solid, what needs your personal touch, and what claims need verification before you rely on them.',
+        tips: 'Apply this review habit to every important piece of AI output before you use it. After a few weeks it becomes automatic — you will instinctively read AI responses critically rather than accepting them wholesale. That habit is worth more than any single AI tip.'
+      }
+    ]
+  },
+  {
     id: 'cc-1',
     slug: 'claude-101-your-first-conversation',
     title: 'Your First Conversation with Claude',
@@ -3007,6 +3101,7 @@ export const claudeCrashCoursePlaybooks: Playbook[] = [
       }
     ],
     relatedPlaybooks: [
+      { id: 'cc-0', title: 'AI for Real Life: A Plain English Guide', slug: 'ai-for-real-life-plain-english-guide' },
       { id: 'cc-2', title: 'Prompt Engineering Essentials', slug: 'claude-102-prompt-engineering-essentials' },
       { id: 'cc-3', title: 'Working with Files & Data', slug: 'claude-103-working-with-files-and-data' }
     ]

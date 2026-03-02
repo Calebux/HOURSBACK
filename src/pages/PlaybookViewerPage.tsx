@@ -554,13 +554,13 @@ export default function PlaybookViewerPage() {
               {/* Expected Outcome */}
               <motion.div
                 variants={fadeInUp}
-                className="bg-green-500/10 border border-green-500/20 rounded-3xl p-6 mb-6"
+                className="bg-green-500/10 border border-green-500/20 rounded-3xl p-5 sm:p-6 mb-6"
               >
                 <h3 className="font-semibold mb-2 text-green-700 flex items-center gap-2">
-                  <CheckCircle2 className="w-5 h-5" />
+                  <CheckCircle2 className="w-5 h-5 shrink-0" />
                   What You&apos;ll Have
                 </h3>
-                <p className="text-green-900/80">{playbook.expectedOutcome}</p>
+                <p className="text-green-900/80 text-sm sm:text-base leading-relaxed break-words">{playbook.expectedOutcome}</p>
               </motion.div>
 
               {/* Steps or Pro Blur Paywall */}
@@ -647,23 +647,23 @@ export default function PlaybookViewerPage() {
                         }`}
                     >
                       {/* Step Header */}
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-3xl flex items-center justify-center text-lg font-bold ${completedSteps.has(index)
+                      <div className="flex flex-col gap-3 mb-4 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className={`w-10 h-10 shrink-0 rounded-3xl flex items-center justify-center text-lg font-bold ${completedSteps.has(index)
                             ? 'bg-green-500 text-brand-dark'
                             : currentStep === index
-                              ? 'bg-brand-dark text-white text-white'
+                              ? 'bg-brand-dark text-white'
                               : 'bg-slate-50 text-brand-dark/70'
                             }`}>
                             {completedSteps.has(index) ? <CheckCircle2 className="w-6 h-6" /> : step.stepNumber}
                           </div>
-                          <h2 className="text-xl font-semibold">{step.title}</h2>
+                          <h2 className="text-lg sm:text-xl font-semibold leading-snug break-words min-w-0">{step.title}</h2>
                         </div>
 
                         {step.tools && (
-                          <div className="flex gap-2">
+                          <div className="flex flex-wrap gap-2 shrink-0">
                             {step.tools.map(tool => (
-                              <span key={tool} className="px-2 py-1 bg-white shadow-antigravity-md border border-brand-dark/10 text-xs text-brand-dark/70 rounded">
+                              <span key={tool} className="px-2 py-1 bg-white shadow-antigravity-md border border-brand-dark/10 text-xs text-brand-dark/70 rounded whitespace-nowrap">
                                 {tool}
                               </span>
                             ))}
@@ -672,34 +672,34 @@ export default function PlaybookViewerPage() {
                       </div>
 
                       {/* Instruction */}
-                      <p className="text-brand-dark/80 leading-relaxed mb-6">{step.instruction}</p>
+                      <p className="text-brand-dark/80 leading-relaxed mb-6 break-words">{step.instruction}</p>
 
                       {/* Prompt Template */}
                       {step.promptTemplate && (
                         <div className="mb-6">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex flex-col gap-1">
+                          <div className="flex flex-col gap-2 mb-2 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="flex flex-col gap-1 min-w-0">
                               <span className="text-sm font-semibold text-brand-dark flex items-center gap-1.5">
-                                <FileText className="w-4 h-4 text-[#635BFF]" />
+                                <FileText className="w-4 h-4 text-[#635BFF] shrink-0" />
                                 Your Customized Prompt
                               </span>
-                              <p className="text-xs text-brand-dark/60 max-w-sm">
-                                Copy this prompt and paste it into Claude.ai or v0.dev. Once your layout is generated, mark this step as complete.
+                              <p className="text-xs text-brand-dark/60">
+                                Copy this prompt and paste it into Claude.ai or ChatGPT. Fill in any variables first, then copy.
                               </p>
                             </div>
                             <button
                               onClick={() => handleCopyPrompt(getInjectedPrompt(step.promptTemplate!))}
-                              className="bg-brand-blue/10 px-3 py-1.5 rounded-full text-xs font-medium text-brand-blue hover:bg-brand-blue/20 flex items-center gap-1.5 transition-colors"
+                              className="bg-brand-blue/10 px-3 py-2 rounded-full text-xs font-medium text-brand-blue hover:bg-brand-blue/20 flex items-center justify-center gap-1.5 transition-colors shrink-0 self-start sm:self-auto"
                             >
                               {copiedPrompt === getInjectedPrompt(step.promptTemplate!) ? (
                                 <><Check className="w-3.5 h-3.5" /> Copied</>
                               ) : (
-                                <><Copy className="w-3.5 h-3.5" /> Copy Configured Prompt</>
+                                <><Copy className="w-3.5 h-3.5" /> Copy Prompt</>
                               )}
                             </button>
                           </div>
                           <div className="bg-brand-dark rounded-3xl overflow-hidden border border-brand-dark/10 relative group">
-                            <pre className="p-6 text-sm text-slate-300 whitespace-pre-wrap font-mono overflow-x-auto leading-relaxed">
+                            <pre className="p-4 sm:p-6 text-sm text-slate-300 whitespace-pre-wrap font-mono overflow-x-auto leading-relaxed">
                               {getInjectedPrompt(step.promptTemplate)}
                             </pre>
                           </div>
@@ -719,17 +719,17 @@ export default function PlaybookViewerPage() {
 
                       {/* Expected Output */}
                       {step.expectedOutput && (
-                        <div className="mb-6 p-4 bg-white shadow-antigravity-md border border-brand-dark/10 rounded-full border border-brand-dark/10">
-                          <p className="text-sm text-brand-dark/70 mb-1">Expected result:</p>
-                          <p className="text-sm text-brand-dark/80">{step.expectedOutput}</p>
+                        <div className="mb-6 p-4 bg-white shadow-antigravity-md border border-brand-dark/10 rounded-2xl">
+                          <p className="text-xs font-medium text-brand-dark/50 mb-1.5 uppercase tracking-wide">Expected result</p>
+                          <p className="text-sm text-brand-dark/80 leading-relaxed break-words">{step.expectedOutput}</p>
                         </div>
                       )}
 
                       {/* Pro Tip */}
                       {step.tips && (
-                        <div className="mb-6 flex gap-3 p-4 bg-brand-dark text-white/10 rounded-full border border-[#635BFF]/20">
-                          <Lightbulb className="w-5 h-5 text-brand-blue shrink-0" />
-                          <p className="text-sm text-brand-blue/90">{step.tips}</p>
+                        <div className="mb-6 flex gap-3 p-4 bg-brand-dark rounded-2xl border border-[#635BFF]/20">
+                          <Lightbulb className="w-5 h-5 text-green-400 shrink-0 mt-0.5" />
+                          <p className="text-sm text-white/80 leading-relaxed break-words">{step.tips}</p>
                         </div>
                       )}
 
