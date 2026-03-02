@@ -104,14 +104,7 @@ export default function PlaybookViewerPage() {
   const handleFlutterPayment = useFlutterwave(paymentConfig);
 
   const handlePayment = () => {
-    console.log("--- FLUTTERWAVE DEBUG (PlaybookViewer) ---");
-    console.log("Available Environment Keys:", Object.keys(import.meta.env).filter(k => k.startsWith('VITE_')));
-    console.log("User Object:", user);
-    console.log("Payment Config:", paymentConfig);
-    console.log("Public Key from Env:", import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY);
-
     try {
-      console.log("Executing handleFlutterPayment...");
       handleFlutterPayment({
         callback: async (response) => {
           console.log("Flutterwave Callback Response (PlaybookViewer):", response);

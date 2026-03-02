@@ -69,9 +69,12 @@ export default function LandingPage() {
         transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
       >
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <img src="/logo.png" alt="Hoursback Logo" className="w-8 h-8 rounded-xl shadow-antigravity-sm" />
-            <span className="text-xl font-semibold">Hoursback</span>
+          <Link to="/" className="flex items-center">
+            <img
+              src="/logo.png"
+              alt="Hoursback Logo"
+              className="h-10 w-auto mix-blend-multiply"
+            />
           </Link>
 
           <div className="hidden md:flex items-center gap-8 text-sm text-brand-dark/80">
@@ -360,11 +363,10 @@ function AutopilotSection() {
                         <p className="text-xs text-white/40">{run.time}</p>
                       </div>
                     </div>
-                    <span className={`text-xs font-medium px-3 py-1 rounded-full ${
-                      run.status === 'Delivered' ? 'bg-emerald-500/20 text-emerald-300' :
-                      run.status === 'Running'   ? 'bg-blue-500/20 text-blue-300' :
-                                                   'bg-amber-500/20 text-amber-300'
-                    }`}>
+                    <span className={`text-xs font-medium px-3 py-1 rounded-full ${run.status === 'Delivered' ? 'bg-emerald-500/20 text-emerald-300' :
+                      run.status === 'Running' ? 'bg-blue-500/20 text-blue-300' :
+                        'bg-amber-500/20 text-amber-300'
+                      }`}>
                       {run.status}
                     </span>
                   </div>
@@ -631,23 +633,14 @@ function PricingPlanCard({ plan, isAnnual, onAuthRequired }: { plan: any, isAnnu
   const handleFlutterPayment = useFlutterwave(config);
 
   const handlePayment = () => {
-    console.log("--- FLUTTERWAVE DEBUG ---");
-    console.log("Available Environment Keys:", Object.keys(import.meta.env).filter(k => k.startsWith('VITE_')));
-    console.log("User Object:", user);
-    console.log("Payment Config:", config);
-    console.log("Public Key from Env:", import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY);
-
     if (!user) {
-      console.log("No user found, redirecting to signup/signin");
       if (onAuthRequired) onAuthRequired();
       return;
     }
 
     try {
-      console.log("Executing handleFlutterPayment...");
       handleFlutterPayment({
         callback: async (response) => {
-          console.log("Flutterwave Callback Response:", response);
           if (response.status === 'successful' || response.status === 'completed') {
             closePaymentModal();
             alert("Payment successful! Welcome to Pro.");
