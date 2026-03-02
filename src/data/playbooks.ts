@@ -2089,6 +2089,847 @@ export const smbPlaybooks: Playbook[] = [
         expectedOutput: 'A product-vision prompt to guide the AI clustering.'
       }
     ]
+  },
+
+  // ─── SMB BOOKKEEPING PLAYBOOKS ────────────────────────────────────────────
+
+  {
+    id: 'smb-bk-1',
+    slug: 'ai-bookkeeper-weekly-transaction-categorization',
+    title: 'AI Bookkeeper: Weekly Transaction Categorization',
+    subtitle: 'Categorize a week of business spending in 15 minutes — works whether your records are in Excel, a notebook, a shoebox of receipts, or a bank statement.',
+    category: 'Finance',
+    difficulty: 'Beginner',
+    timeToComplete: 15,
+    timeSaved: 180,
+    completionCount: 892,
+    rating: 4.9,
+    isPro: false,
+    isNew: true,
+    tools: ['ChatGPT', 'Claude', 'Excel', 'Google Sheets'],
+    beforeYouStart: [
+      'Your spending records for the week in ANY format — an Excel spreadsheet you built yourself, a notebook with handwritten entries, a stack of paper receipts, a printed bank statement, or a photo of your records. All of these work.',
+      'A rough list of the expense categories you want to use (e.g. Rent, Supplies, Staff, Marketing, Transport). If you don\'t have one, the AI will suggest categories for your business type.',
+      'Access to ChatGPT (free tier works) or Claude — just the chat window, nothing else needed.',
+      'Optional: a simple blank Excel or Google Sheet to paste the cleaned results into.'
+    ],
+    expectedOutcome: 'Every transaction from the week labeled with the correct category, a clean table you can save in Excel or Google Sheets, and a one-paragraph plain-English summary of where the money went.',
+    agentAutomation: {
+      description: 'Connect your bank via Plaid or a CSV export to Make.com, let AI auto-categorize every transaction, and push the results straight into your accounting software — zero manual data entry.',
+      trigger: 'Every Sunday at 11 PM, Make.com fetches the week\'s transactions from your bank export in Google Drive.',
+      actions: [
+        'Download new transaction rows from a watched Google Sheet (your bank CSV dump)',
+        'Send transactions in batches to Claude via API for categorization against your chart of accounts',
+        'Write categorized rows back to a "Ledger" Google Sheet tab',
+        'Create a draft journal entry in QuickBooks Online or Xero via their API',
+        'Email you a summary of flagged transactions that need your manual review'
+      ],
+      setupSteps: [
+        { title: 'Set Up Your Master Google Sheet', description: "Create a Google Sheet with two tabs: 'Raw Imports' (where you paste your bank CSV each week) and 'Categorized Ledger' (where AI results land). Add columns: Date, Description, Amount, Category, Notes, Confidence. Share the sheet with your Make.com Google Sheets connection." },
+        { title: 'Configure the Make.com Scenario', description: "In Make.com, create a scenario. Add a 'Google Sheets — Watch New Rows' trigger pointed at your 'Raw Imports' tab. Set it to run every Sunday at 11 PM. This fires the automation whenever you paste new bank transactions into the sheet." },
+        { title: 'Add the Claude/OpenAI Categorization Module', description: "Add an 'OpenAI — Create a Chat Completion' module (or HTTP module for Claude). Set the model to gpt-4o or claude-sonnet. In the prompt field, inject the transaction row data dynamically: 'Categorize this transaction: [Date] [Description] [Amount]. Chart of accounts: [paste your list]. Reply ONLY with the category name and a confidence score 1-10.'" },
+        { title: 'Write Results Back to the Ledger', description: "Add a 'Google Sheets — Update a Row' module to write the AI\'s category and confidence score into the 'Categorized Ledger' tab. Add a condition: if confidence < 7, also set a 'Needs Review' flag in a separate column." },
+        { title: 'Push to QuickBooks or Xero', description: "Add a QuickBooks Online 'Create Expense' module (or Xero 'Create Bank Transaction'). Map: Date → Date, Amount → Amount, Category → Account. For Wave or FreshBooks, use their CSV import instead — export the Categorized Ledger tab as CSV and import it manually each week." }
+      ],
+      tools: ['Make.com', 'Google Sheets', 'Claude', 'QuickBooks Online', 'Xero']
+    },
+    troubleshooting: [
+      {
+        problem: 'The AI keeps miscategorizing the same vendor (e.g. puts "AWS" under Utilities instead of Software)',
+        solution: 'Add a "Known Vendors" section to your prompt: "Always categorize transactions containing \'AWS\' or \'Amazon Web Services\' as Software & Subscriptions." Keep a running list and paste it at the top of your prompt each week.'
+      },
+      {
+        problem: 'My bank export has combined transactions (e.g. "PAYROLL" covers multiple employees)',
+        solution: 'Ask the AI to split it: "This transaction description is \'PAYROLL $8,500\'. I have 3 employees: [names and salaries]. Split this into separate line items per employee under the Payroll category."'
+      },
+      {
+        problem: 'QuickBooks import fails due to CSV format errors',
+        solution: 'QuickBooks expects columns in this exact order: Date (MM/DD/YYYY), Description, Amount (negative for expenses). Ask Claude: "Reformat this ledger into QuickBooks-compatible CSV format with columns: Date, Description, Amount. Expenses should be negative numbers."'
+      },
+      {
+        problem: 'Wave or FreshBooks does not accept my CSV',
+        solution: 'Wave requires: Date, Description, Withdrawal Amount, Deposit Amount (separate columns). FreshBooks needs: Date, Category, Amount, Currency, Notes. Tell the AI which platform you use and ask it to reformat accordingly.'
+      },
+      {
+        problem: 'I have hundreds of transactions — the AI hits the context limit',
+        solution: 'Process in batches of 50 transactions at a time. Paste 50, get the output, paste the next 50. Alternatively, filter out small transactions under $5 first — they\'re rarely worth the categorization effort.'
+      }
+    ],
+    relatedPlaybooks: [
+      { id: 'smb-bk-2', title: 'Monthly Financial Snapshot & P&L Analyzer', slug: 'monthly-financial-snapshot-pl-analyzer' },
+      { id: 'smb-bk-3', title: 'Invoice & Cash Flow Guardian', slug: 'invoice-cash-flow-guardian' },
+      { id: 'smb-bk-4', title: 'Tax Season Prep Assistant', slug: 'tax-season-prep-assistant' }
+    ],
+    steps: [
+      {
+        id: 'smb-bk-1-s1',
+        stepNumber: 1,
+        title: 'Get Your Records Into the AI (Any Format Works)',
+        instruction: 'You do not need a bank CSV or accounting software. You just need a list of what you spent and received this week — in any form. Pick the method that matches how you actually track money:\n\n• PAPER RECEIPTS / NOTEBOOK: Flip through your receipts or notebook and type each transaction as a simple line: Date, What it was for, Amount. Takes 5-10 minutes.\n• EXCEL / GOOGLE SHEETS: Copy and paste the rows directly from your spreadsheet into the chat.\n• PRINTED BANK STATEMENT: Read across the rows and type the entries. Skip the opening balance, interest lines, and any personal transactions.\n• PHONE PHOTOS: Take a photo of your notebook or receipt pile, upload it to ChatGPT (or Claude), and it will read the text for you automatically.',
+        promptTemplate: 'I need help categorizing my business transactions for the week of [WEEK START DATE] to [WEEK END DATE].\n\nMy business is: [e.g. a small hair salon / a freelance graphic designer / a food vendor / a cleaning company]\n\nHere are all my transactions for the week. I have listed them as: Date, Description, Amount (I used a minus sign for money I spent, and a plus sign for money I received):\n\n[TYPE OR PASTE YOUR TRANSACTIONS HERE — examples below]\n- Mon 3 Mar | Bought cleaning supplies at Shoprite | -₦4,500\n- Mon 3 Mar | Client payment from Adaeze | +₦35,000\n- Tue 4 Mar | Fuel for delivery | -₦3,200\n- Wed 5 Mar | Bought packaging materials | -₦8,000\n- Thu 6 Mar | Paid part-time helper | -₦12,000\n- Fri 7 Mar | Client payment from Emeka | +₦20,000\n- Sat 8 Mar | Mobile data subscription | -₦2,500\n\nI do not have a formal chart of accounts — please suggest appropriate categories for a business like mine, then categorize each transaction.',
+        expectedOutput: 'The AI suggests 6-8 appropriate expense and income categories for your business type, then immediately categorizes every transaction you typed into a clean table.',
+        tips: 'If you have a photo of your records, upload the image directly to ChatGPT or Claude and say "Read all the transactions in this image and list them as Date, Description, Amount." Then paste what it reads into the next prompt. This turns a paper notebook into digital records in under 2 minutes.',
+        tools: ['ChatGPT', 'Claude']
+      },
+      {
+        id: 'smb-bk-1-s2',
+        stepNumber: 2,
+        title: 'Feed the AI Your Chart of Accounts',
+        instruction: 'Before categorizing, give the AI your exact expense categories so it uses your terminology — not generic defaults. This step is the difference between output you can import and output you have to clean up.',
+        promptTemplate: 'Here is my complete Chart of Accounts. When categorizing my transactions, you MUST use only these exact category names — do not invent new ones:\n\nINCOME CATEGORIES:\n- [e.g. Services Revenue]\n- [e.g. Product Sales]\n- [e.g. Consulting Fees]\n\nEXPENSE CATEGORIES:\n- [e.g. Rent & Office Space]\n- [e.g. Payroll & Contractor Fees]\n- [e.g. Software & Subscriptions]\n- [e.g. Marketing & Advertising]\n- [e.g. Meals & Entertainment (50% deductible)]\n- [e.g. Travel & Transportation]\n- [e.g. Office Supplies & Equipment]\n- [e.g. Professional Services (Legal/Accounting)]\n- [e.g. Bank Fees & Interest]\n- [e.g. Utilities]\n- [e.g. Insurance]\n- [e.g. Owner\'s Draw / Distributions]\n- [e.g. Transfers — NOT an expense]\n\nIf you cannot confidently categorize a transaction, label it "NEEDS REVIEW" and explain why.',
+        expectedOutput: 'The AI acknowledges the categories and notes any ambiguous ones it may have trouble distinguishing (e.g. the difference between Contractor Fees vs Professional Services).',
+        tips: 'Don\'t have a formal chart of accounts yet? Ask the AI: "I run a [type of business]. Create a chart of accounts with 10-15 categories appropriate for a small business filing Schedule C taxes in the US."'
+      },
+      {
+        id: 'smb-bk-1-s3',
+        stepNumber: 3,
+        title: 'Run the Categorization',
+        instruction: 'Paste all your transactions and request categorized output in a format ready for import. The key is asking for structured output — a table or CSV — not prose.',
+        promptTemplate: 'Here are all my transactions for the week. Categorize each one using ONLY the chart of accounts I provided. Return the results as a table with these exact columns:\n\nDate | Description | Amount | Category | Notes\n\nRules:\n- Amounts: use negative numbers for expenses, positive for income\n- For transfers between my own accounts, use category "Transfers — NOT an expense"\n- If a description is ambiguous (e.g. just a last name or a random code), label it "NEEDS REVIEW" and note what additional info would help\n- Round amounts to 2 decimal places\n\nHere are the transactions:\n[PASTE ALL TRANSACTION ROWS FROM YOUR CSV]',
+        expectedOutput: 'A clean table with every transaction categorized. Ambiguous ones are flagged as NEEDS REVIEW with an explanation.',
+        tips: 'If the table gets cut off (AI hits its output limit), just say "continue from where you left off" and it will pick up at the next transaction.'
+      },
+      {
+        id: 'smb-bk-1-s4',
+        stepNumber: 4,
+        title: 'Review Flagged Items & Spot-Check',
+        instruction: 'Focus your attention on the NEEDS REVIEW items. These are typically ATM withdrawals, peer-to-peer payments (Venmo, Zelle), vague merchant names, or anything unusual. Also spot-check 5-10% of auto-categorized items — AI gets 95% right, but that last 5% needs your judgment.',
+        promptTemplate: 'These transactions were flagged as NEEDS REVIEW:\n\n[PASTE THE FLAGGED ROWS]\n\nFor each one, here is the additional context:\n- [e.g. "The $450 Zelle to John Smith is a contractor payment for social media work"]\n- [e.g. "The $89.99 charge from AMZN*MKTP is office paper I ordered"]\n- [e.g. "The $200 ATM withdrawal was for a team lunch — it\'s Meals & Entertainment"]\n\nUpdate the categories based on this context and give me the final corrected rows in the same table format.',
+        expectedOutput: 'All previously flagged transactions now correctly categorized with your context applied.',
+        tips: 'Keep a running "Known Transactions" doc. Over time, recurring vendors get categorized correctly by default — you\'ll only need to review truly new or unusual items.'
+      },
+      {
+        id: 'smb-bk-1-s5',
+        stepNumber: 5,
+        title: 'Format for Import & Get Your Weekly Summary',
+        instruction: 'Convert the final table to a platform-ready import file and generate a plain-English summary of the week\'s financials you can paste into your team Slack or personal records.',
+        promptTemplate: 'Here is my final categorized ledger for the week:\n\n[PASTE FINAL TABLE]\n\nPlease do two things:\n\n1. IMPORT FILE: Reformat this as a CSV ready to import into [CHOOSE: QuickBooks Online / Xero / Wave / FreshBooks / Excel]. For QuickBooks, format: Date (MM/DD/YYYY), Name, Memo, Amount (negative = expense). For Xero: Date, Description, Amount, Account Code. For Wave/FreshBooks: I will specify the format. Output the raw CSV text I can copy and save as a .csv file.\n\n2. WEEKLY SUMMARY: Write a 3-sentence plain-English summary of this week\'s finances: total income, total expenses by category, and one observation about anything unusual or notable. Format it as a Slack-ready message.',
+        expectedOutput: 'A copy-paste-ready CSV for your accounting platform and a 3-sentence financial summary for your records.',
+        tips: 'In QuickBooks Online, import via: Banking > Upload Transactions. In Xero: Accounting > Bank Accounts > Import. In Wave: Transactions > Import. In FreshBooks: Expenses > Import.'
+      }
+    ]
+  },
+
+  {
+    id: 'smb-bk-2',
+    slug: 'monthly-financial-snapshot-pl-analyzer',
+    title: 'Monthly Financial Snapshot & P&L Analyzer',
+    subtitle: 'Turn a month of income and spending into a clear Profit & Loss statement — works from a notebook, Excel file, receipts, or any records you already have.',
+    category: 'Finance',
+    difficulty: 'Beginner',
+    timeToComplete: 20,
+    timeSaved: 240,
+    completionCount: 654,
+    rating: 4.8,
+    isPro: false,
+    isNew: true,
+    tools: ['ChatGPT', 'Claude', 'Excel', 'Google Sheets'],
+    beforeYouStart: [
+      'A rough list of what you earned and what you spent this month — from any source: a notebook, an Excel file you built yourself, receipts you collected in a folder, or just your memory of the main transactions.',
+      'Approximate totals are fine. Even if you don\'t have every small transaction, the AI can work with your best estimates to give you a meaningful P&L.',
+      'If you ran last month\'s numbers already (even roughly), have those handy — the AI will compare the two months for you.',
+      'Access to ChatGPT or Claude — no special software, just the chat window.'
+    ],
+    expectedOutcome: 'A clean Profit & Loss statement for the month, an AI-generated narrative explaining what the numbers mean, 3 specific observations about trends, and a one-page financial snapshot ready to share with a business partner, investor, or accountant.',
+    agentAutomation: {
+      description: 'On the 1st of every month, the agent pulls your prior month\'s categorized ledger from Google Sheets, computes the P&L, compares it to the prior month, and emails you a formatted financial snapshot before you\'ve had your morning coffee.',
+      trigger: 'First day of every month at 7 AM.',
+      actions: [
+        'Pull all categorized transactions from prior month from Google Sheets Ledger tab',
+        'Group by category and compute totals using a formula step in Make.com',
+        'Send the grouped totals to Claude with a comparison prompt',
+        'Format AI narrative + P&L table into an HTML email',
+        'Send finished Monthly Snapshot email to owner and any co-owners or accountants'
+      ],
+      setupSteps: [
+        { title: 'Structure Your Ledger Sheet', description: "Ensure your Google Sheet Ledger has a \'Month\' column (add one with =TEXT(A2,\"YYYY-MM\") formula). This lets Make.com filter rows by month automatically without complex date logic." },
+        { title: 'Create the Monthly Aggregation Step', description: "In Make.com, use a \'Google Sheets — Search Rows\' module to pull all rows where Month = last month. Feed those into a \'Tools — Array Aggregator\' module grouped by the Category column, summing the Amount column. This gives you totals per category." },
+        { title: 'Send Totals to Claude', description: "Add an HTTP module to call the Claude API. Build a prompt that includes the aggregated totals, your prior month\'s totals (stored in a separate Summary sheet), and asks for P&L narrative. Store Claude\'s response in a variable." },
+        { title: 'Build and Send the Email', description: "Use Make.com\'s Gmail or Resend module to compose an HTML email. Include the P&L table (formatted from your aggregation data) and the AI narrative text. Send to the business owner\'s email and optionally CC your accountant." },
+        { title: 'Archive the Summary', description: "Add a final \'Google Sheets — Add Row\' step to write the monthly totals into a \'Monthly Summary\' tab. This builds your historical record automatically — you\'ll use it for year-over-year comparisons later." }
+      ],
+      tools: ['Make.com', 'Google Sheets', 'Claude', 'Gmail']
+    },
+    troubleshooting: [
+      {
+        problem: 'My revenue categories are mixed up (some invoices were partially paid across months)',
+        solution: 'Tell the AI: "Some payments are partial — I received $2,000 of a $5,000 invoice. Only count cash actually received this month, not the full invoice value. We use cash-basis accounting." This is critical: always clarify cash-basis vs accrual-basis before the analysis.'
+      },
+      {
+        problem: 'The AI P&L shows profit, but I know I\'m losing money — something is off',
+        solution: 'The most common culprit: owner\'s draws, loan repayments, or inventory purchases are being counted as expenses. Confirm with: "Is owner\'s draw ($X) included as an expense? It should reduce cash but not appear on the P&L. Same for any loan principal payments."'
+      },
+      {
+        problem: 'I have both business and personal expenses mixed in the same account',
+        solution: 'Before analysis: "Please ignore any transaction I\'ve labeled \'Personal\' in the Notes column. These are not business expenses. Calculate the P&L using only the categorized business transactions."'
+      },
+      {
+        problem: 'Comparing to last month is misleading because of a big one-time expense',
+        solution: 'Tell the AI: "In [month], I had a one-time equipment purchase of $3,200 under Office Supplies. Please flag this as non-recurring when analyzing the month-over-month trend so it doesn\'t distort the comparison."'
+      }
+    ],
+    relatedPlaybooks: [
+      { id: 'smb-bk-1', title: 'AI Bookkeeper: Weekly Transaction Categorization', slug: 'ai-bookkeeper-weekly-transaction-categorization' },
+      { id: 'smb-bk-3', title: 'Invoice & Cash Flow Guardian', slug: 'invoice-cash-flow-guardian' },
+      { id: 'smb-bk-4', title: 'Tax Season Prep Assistant', slug: 'tax-season-prep-assistant' }
+    ],
+    steps: [
+      {
+        id: 'smb-bk-2-s1',
+        stepNumber: 1,
+        title: 'Compile Monthly Totals by Category',
+        instruction: 'Before talking to the AI, do a quick grouping of your transactions. In Excel or Google Sheets, use a SUMIF formula or a Pivot Table to add up all amounts by category for the month. This gives the AI structured numbers instead of hundreds of raw rows — faster, cheaper, and more accurate.',
+        promptTemplate: 'I need help building a Profit & Loss statement for [BUSINESS NAME] for the month of [MONTH, YEAR]. \n\nWe are a [DESCRIBE YOUR BUSINESS TYPE e.g. freelance design studio / retail shop / SaaS startup]. We use [cash-basis / accrual-basis] accounting.\n\nHere are our totals by category for [MONTH]:\n\nINCOME:\n- [Category]: $[Amount]\n- [Category]: $[Amount]\n\nEXPENSES:\n- [Category]: $[Amount]\n- [Category]: $[Amount]\n- [Category]: $[Amount]\n[...add all expense lines]\n\nFor reference, last month\'s net profit/loss was $[AMOUNT].\n\nAre you ready to analyze this? Confirm the accounting basis and ask me if you need any clarification before proceeding.',
+        expectedOutput: 'The AI confirms the structure, asks any clarifying questions (cash vs accrual, owner\'s draw treatment, etc.), and signals it\'s ready to build the P&L.',
+        tips: 'In Google Sheets: =SUMIF(C:C,"Software & Subscriptions",D:D) where C is your Category column and D is the Amount column. In Excel: use Data > PivotTable with Category as Row and Amount as Value.'
+      },
+      {
+        id: 'smb-bk-2-s2',
+        stepNumber: 2,
+        title: 'Generate the Formatted P&L Statement',
+        instruction: 'Ask the AI to produce a formal Profit & Loss statement in a clean, readable format. Request the standard accounting structure — Gross Profit, Operating Expenses, Net Profit — not just a flat list.',
+        promptTemplate: 'Using the numbers I just provided, create a formatted Profit & Loss (Income Statement) for [MONTH YEAR]. Use standard accounting structure:\n\n1. REVENUE — list all income categories with subtotal\n2. COST OF GOODS SOLD (COGS) — if applicable for my business, separate direct costs from overhead\n3. GROSS PROFIT — Revenue minus COGS\n4. OPERATING EXPENSES — list all expense categories with subtotal\n5. OPERATING INCOME — Gross Profit minus Operating Expenses\n6. OTHER INCOME/EXPENSES — interest, one-time items\n7. NET PROFIT (LOSS) — the bottom line\n\nAlso include a column showing the percentage of revenue each line item represents. Format as a clean table I can paste into Excel.',
+        expectedOutput: 'A structured P&L table with all your numbers organized by section, subtotals, and a "% of Revenue" column for each line item.',
+        tips: 'If your business is a service business (no COGS), tell the AI to skip COGS and go straight from Revenue to Operating Expenses.'
+      },
+      {
+        id: 'smb-bk-2-s3',
+        stepNumber: 3,
+        title: 'Get the AI Financial Narrative',
+        instruction: 'A table of numbers tells you what happened. A narrative tells you what it means. Ask the AI to explain the P&L in plain English — identifying wins, concerns, and anomalies a human might miss buried in the rows.',
+        promptTemplate: 'Now analyze this P&L and write a financial narrative for [MONTH YEAR]. Structure it as:\n\n**Executive Summary** (2 sentences: overall profitability and the most important thing to know)\n\n**What Went Well** (2-3 bullet points: revenue drivers, costs that stayed controlled, improvements vs prior month)\n\n**Areas of Concern** (2-3 bullet points: expense categories growing faster than revenue, margin compression, any category that looks unusual)\n\n**Key Metrics**\n- Gross Margin: X%\n- Net Margin: X%\n- Largest Expense Category: [name] at X% of revenue\n- Month-over-Month Net Profit Change: +/-$X (+/-X%)\n\n**One Question to Investigate** (the single thing in these numbers that you, as a financial advisor, would want to dig into further)\n\nWrite this as if you are a CFO presenting to a small business owner who is smart but not a trained accountant.',
+        expectedOutput: 'A clear, human-readable analysis of the month — not just a repeat of the numbers, but actual interpretation and insight.',
+        tips: 'Share this narrative with your business partner, spouse-CFO, or accountant instead of just sending raw numbers. It makes review meetings dramatically shorter.'
+      },
+      {
+        id: 'smb-bk-2-s4',
+        stepNumber: 4,
+        title: 'Build a 3-Month Trend View',
+        instruction: 'Single-month data is a snapshot; three months is a trend. If you have prior months\' data, use this step to identify whether your margins are expanding or contracting — the most critical signal for a small business.',
+        promptTemplate: 'Here are the Net Profit and top expense category totals for the past 3 months:\n\n[MONTH 1]: Revenue $[X], Expenses $[X], Net Profit $[X], Top Expense: [Category] $[X]\n[MONTH 2]: Revenue $[X], Expenses $[X], Net Profit $[X], Top Expense: [Category] $[X]\n[MONTH 3]: Revenue $[X], Expenses $[X], Net Profit $[X], Top Expense: [Category] $[X]\n\nBased on this 3-month trend:\n1. Is revenue growing, flat, or declining? At what rate?\n2. Are expenses growing slower, equal to, or faster than revenue?\n3. Is net margin improving or compressing? By how much?\n4. Which single expense category is growing the fastest? Is it proportional to revenue growth?\n5. If this trend continues for 3 more months, what will the business\'s financial position look like?\n\nBe direct and specific — use percentages and dollar amounts, not vague language.',
+        expectedOutput: 'A data-backed trend analysis with specific growth rates, margin trajectory, and a forward-looking projection based on current direction.',
+        tips: 'No prior month data? Run this playbook for just the current month and use it as Month 1. Build your historical record month by month — by Month 4 you\'ll have real trend data.'
+      },
+      {
+        id: 'smb-bk-2-s5',
+        stepNumber: 5,
+        title: 'Create the Shareable Financial Snapshot',
+        instruction: 'Package everything into a single one-page summary you can share with a business partner, send to your accountant, or keep in your records. This is your Monthly Business Review document.',
+        promptTemplate: 'Create a one-page Monthly Financial Snapshot for [BUSINESS NAME] — [MONTH YEAR]. Combine the P&L table, the narrative, and the trend data into a document with this structure:\n\n**[BUSINESS NAME] — Monthly Financial Snapshot — [MONTH YEAR]**\n\n📊 AT A GLANCE\n- Total Revenue: $X\n- Total Expenses: $X\n- Net Profit/Loss: $X (X% margin)\n- vs. Last Month: +/-$X (+/-X%)\n\n💰 P&L SUMMARY TABLE\n[formatted P&L]\n\n📈 WHAT HAPPENED THIS MONTH\n[2-3 sentence narrative]\n\n⚠️ WATCH LIST\n[any flagged items]\n\n✅ NEXT STEPS\n- [1 financial action to take this month based on the analysis]\n- [1 cost to investigate or reduce]\n- [1 revenue opportunity highlighted by the data]\n\nFormat this cleanly so I can paste it into a Google Doc or email it to my accountant.',
+        expectedOutput: 'A complete, professional Monthly Financial Snapshot document — ready to share, store, or present.',
+        tips: 'Save this as a Google Doc with the naming convention: "[Business Name] — Financial Snapshot — [Month Year]". Create a folder called "Monthly Financials" and build the archive. Your future accountant and future self will thank you.'
+      }
+    ]
+  },
+
+  {
+    id: 'smb-bk-3',
+    slug: 'invoice-cash-flow-guardian',
+    title: 'Invoice & Cash Flow Guardian',
+    subtitle: 'Never lose track of who owes you money — even if you track invoices in a notebook or Excel. Get a payment follow-up email and a 30-day cash projection in one session.',
+    category: 'Finance',
+    difficulty: 'Beginner',
+    timeToComplete: 20,
+    timeSaved: 200,
+    completionCount: 478,
+    rating: 4.9,
+    isPro: false,
+    isNew: true,
+    tools: ['ChatGPT', 'Claude', 'Excel', 'FreshBooks', 'QuickBooks', 'Wave'],
+    beforeYouStart: [
+      'A mental or written list of clients who owe you money — even just names and rough amounts is enough to start. If you have a notebook, Excel file, or handwritten invoice book, have it open.',
+      'A rough sense of your current bank or mobile money balance (even an approximation works for the cash flow forecast).',
+      'A rough list of your biggest upcoming expenses this month — rent, staff, supplier payments, airtime.',
+      'Access to ChatGPT or Claude — free tier is sufficient. No accounting software needed.'
+    ],
+    expectedOutcome: 'A prioritized list of overdue invoices ranked by urgency, ready-to-send personalized follow-up emails for each overdue client, and a 30-day cash flow projection showing your expected runway.',
+    agentAutomation: {
+      description: 'Every Monday morning, the agent checks your QuickBooks or FreshBooks for overdue invoices, drafts personalized collection emails for any invoice over 7 days past due, sends them automatically (or queues for approval), and updates you with a weekly cash position report.',
+      trigger: 'Every Monday at 8 AM.',
+      actions: [
+        'Query QuickBooks Online or FreshBooks API for all open invoices past their due date',
+        'Filter to invoices more than 7 days overdue',
+        'Send each overdue invoice to Claude with client context to draft a personalized follow-up email',
+        'Queue emails in Gmail Drafts for owner approval (or send automatically if confidence is high)',
+        'Compile all outstanding amounts and upcoming known expenses into a cash flow summary',
+        'Email the weekly Cash Position Report to the business owner'
+      ],
+      setupSteps: [
+        { title: 'Connect QuickBooks or FreshBooks to Make.com', description: "In Make.com, create a new scenario. Search for \'QuickBooks Online\' and add a \'Search Invoices\' module. Authenticate with your QuickBooks account. Set filters: Status = Unpaid AND Due Date is before Today. Alternatively, use the FreshBooks \'List Invoices\' module with status = \'overdue\'." },
+        { title: 'Build the Overdue Filter', description: "Add a \'Router\' module in Make.com to split invoices by urgency: Path 1: Due date was 7-14 days ago (Gentle reminder). Path 2: Due date was 15-30 days ago (Firm reminder). Path 3: Due date was 30+ days ago (Final notice). Each path sends a different tone prompt to Claude." },
+        { title: 'Draft Collection Emails with Claude', description: "For each path, add an HTTP module calling the Claude API. Include the invoice details (client name, amount, invoice number, days overdue) and ask Claude to write a professional email matching the urgency tier. Store the draft email text in a variable." },
+        { title: 'Create Gmail Drafts', description: "Add a \'Gmail — Create a Draft\' module for each path. Map: To = client email (from your invoice data), Subject = \'Invoice #[number] — Payment Reminder\', Body = Claude\'s email draft. You\'ll review and send from Gmail — it stays in Drafts until you approve." },
+        { title: 'Send the Weekly Cash Report', description: "After processing all invoices, add a \'Gmail — Send an Email\' module to send yourself a weekly summary: Total AR Outstanding: $X | Invoices 7-14 days: $X | 15-30 days: $X | 30+ days: $X | Estimated next 30 days cash receipts: $X." }
+      ],
+      tools: ['Make.com', 'QuickBooks Online', 'FreshBooks', 'Claude', 'Gmail']
+    },
+    troubleshooting: [
+      {
+        problem: 'A client disputes the invoice amount — the AI collection email makes things worse',
+        solution: 'Before pasting any invoice into the AI, add a Notes column to your list. If an invoice is disputed, note it. In your prompt, tell the AI: "This invoice is disputed. The client claims [brief reason]. Write a conciliatory email that opens dialogue rather than demanding payment."'
+      },
+      {
+        problem: 'My cash flow forecast is wildly off because of unpredictable client payment timing',
+        solution: 'Add a "Historical Pay Rate" to each client entry: "Client A always pays within 3 days of reminder. Client B consistently pays 15 days after due date." Tell the AI to use this when building the projection instead of assuming payment on the due date.'
+      },
+      {
+        problem: 'I have a large project deposit coming in next month — should I include it?',
+        solution: 'Yes, but flag it: "Include $8,000 expected project deposit from [Client] around [Date] but flag it as \'Expected — Not Confirmed\' in the projection. Show me both a scenario where it arrives and a scenario where it is delayed by 2 weeks."'
+      },
+      {
+        problem: 'My Wave account does not show aging — I only see a list of invoices',
+        solution: 'In Wave, go to Accounting > Invoices, set filter to "Overdue", and export to CSV. Then paste the export into the AI and say: "Calculate the number of days overdue for each invoice based on today\'s date of [TODAY\'S DATE]."'
+      }
+    ],
+    relatedPlaybooks: [
+      { id: 'smb-bk-1', title: 'AI Bookkeeper: Weekly Transaction Categorization', slug: 'ai-bookkeeper-weekly-transaction-categorization' },
+      { id: 'smb-bk-2', title: 'Monthly Financial Snapshot & P&L Analyzer', slug: 'monthly-financial-snapshot-pl-analyzer' },
+      { id: 'smb-bk-4', title: 'Tax Season Prep Assistant', slug: 'tax-season-prep-assistant' }
+    ],
+    steps: [
+      {
+        id: 'smb-bk-3-s1',
+        stepNumber: 1,
+        title: 'Build Your Accounts Receivable Aging Report',
+        instruction: 'Export all open invoices from your platform (QuickBooks, FreshBooks, Wave, Xero, or a manual spreadsheet). You need: client name, invoice number, invoice amount, due date, and days overdue. This is your AR Aging — the foundation for everything that follows.',
+        promptTemplate: 'I need help managing my accounts receivable. Here is my current list of outstanding invoices as of today, [TODAY\'S DATE]:\n\nClient Name | Invoice # | Amount | Invoice Date | Due Date | Days Overdue\n[Client A] | [INV-001] | [$X] | [Date] | [Date] | [X days]\n[Client B] | [INV-002] | [$X] | [Date] | [Date] | [X days]\n[...paste all rows]\n\nBusiness context: [describe your payment terms, e.g. "We net-30 for all clients. Clients over 60 days get referred to collections."]\n\nFirst, organize these into aging buckets:\n- Current (not yet due)\n- 1-15 days overdue\n- 16-30 days overdue\n- 31-60 days overdue\n- 60+ days overdue (critical)\n\nProvide totals for each bucket and flag the 3 highest-priority invoices I should contact today.',
+        expectedOutput: 'A structured AR Aging table with bucket totals and a prioritized action list for your most urgent collection calls or emails.',
+        tips: 'In QuickBooks: Reports > Accounts Receivable Aging. In FreshBooks: Reports > Accounts Aging. In Wave: Accounting > Invoices > filter Overdue. In Xero: Reports > Aged Receivables. Export all of these as CSV.'
+      },
+      {
+        id: 'smb-bk-3-s2',
+        stepNumber: 2,
+        title: 'Write Personalized Collection Emails',
+        instruction: 'Generic "payment reminder" emails get ignored. Personalized ones that reference the specific project, the relationship, and the exact amount get paid. Use the AI to write 3 tiers of collection emails: gentle (1-15 days), firm (16-30 days), and urgent (31-60+ days).',
+        promptTemplate: 'Write collection emails for the following overdue invoices. Adjust the tone based on how overdue each invoice is:\n\nFOR EACH INVOICE BELOW, write a separate email:\n\n[INVOICE 1]\n- Client: [Client Name]\n- Amount: $[Amount]\n- Days Overdue: [X]\n- Project: [Brief description of what you delivered]\n- Prior contact: [e.g. "No prior follow-up" or "Emailed once on [date]"]\n- Relationship: [e.g. "Long-term client, usually pays on time" or "New client, first project"]\n\n[INVOICE 2]\n- Client: [Client Name]\n- Amount: $[Amount]\n- Days Overdue: [X]\n[...]\n\nEmail guidelines:\n- 1-15 days overdue: warm and helpful tone, assume it was an oversight, offer a payment link\n- 16-30 days: firm and professional, reference prior emails if any, give a specific deadline to respond\n- 31+ days: serious tone, reference consequences (late fees if applicable, potential hold on future work), suggest a payment plan if needed\n- Keep each email under 100 words — shorter gets more responses\n- Always include the Invoice # and Amount in the subject line\n- End with a specific call-to-action (pay by link, reply to discuss, call me at X)',
+        expectedOutput: 'Ready-to-send email drafts for each overdue client, properly calibrated in tone to the severity of the overdue status.',
+        tips: 'Never send collection emails on a Friday — they get buried over the weekend. Tuesday and Wednesday mornings have the highest open and response rates.'
+      },
+      {
+        id: 'smb-bk-3-s3',
+        stepNumber: 3,
+        title: 'Build Your 30-Day Cash Flow Projection',
+        instruction: 'Cash flow is not about profit — it\'s about timing. A business can be profitable on paper and still miss payroll. This step projects your actual bank account balance for the next 30 days based on what you expect to collect and what you know you\'ll spend.',
+        promptTemplate: 'Help me build a 30-day cash flow projection. Here is my current financial situation:\n\nCURRENT BANK BALANCE: $[Amount]\n\nEXPECTED CASH INFLOWS (next 30 days):\n- Invoice #[X] from [Client] — $[Amount] — expected by [Date] (probability: [High/Medium/Low])\n- Invoice #[X] from [Client] — $[Amount] — expected by [Date] (probability: [High/Medium/Low])\n- [Any other expected income]\n\nKNOWN CASH OUTFLOWS (next 30 days):\n- Payroll/Contractors: $[Amount] on [Date(s)]\n- Rent/Office: $[Amount] on [Date]\n- Software subscriptions: $[Amount] (spread across month)\n- [Other known bills]\n\nBuild a week-by-week projection table:\nWeek | Opening Balance | Inflows | Outflows | Closing Balance | Flag\n\nFor the "Flag" column: mark any week where the closing balance drops below $[YOUR MINIMUM COMFORT LEVEL] as ⚠️ CASH CRUNCH RISK.\n\nAlso give me 2 scenarios: Optimistic (all high/medium invoices pay on time) and Conservative (only high-probability invoices pay on time).',
+        expectedOutput: 'A week-by-week cash flow table for the next 30 days with both optimistic and conservative scenarios, and any cash crunch weeks flagged.',
+        tips: 'Set your minimum comfort level at 1 month of operating expenses. If your monthly expenses are $12,000, flag any week where the balance drops below $12,000.'
+      },
+      {
+        id: 'smb-bk-3-s4',
+        stepNumber: 4,
+        title: 'Identify Risk & Get a Collection Strategy',
+        instruction: 'Based on the aging report and cash flow projection, ask the AI to prioritize your collection effort and suggest practical tactics for your most at-risk invoices.',
+        promptTemplate: 'Based on my AR aging report and 30-day cash flow projection, help me build a collection strategy.\n\nMy situation:\n- Total AR outstanding: $[Amount]\n- Invoices 30+ days overdue: $[Amount] across [X] clients\n- Cash flow crunch risk: [Yes — Week of [Date] / No — we\'re comfortable]\n\nFor my three highest-risk invoices:\n1. [Client A] — $[Amount] — [X] days overdue\n2. [Client B] — $[Amount] — [X] days overdue\n3. [Client C] — $[Amount] — [X] days overdue\n\nFor each one, recommend:\n- The most effective next action (call, email, certified letter, payment plan offer, collections referral)\n- What to say — give me a 2-sentence phone script if a call is recommended\n- Whether to offer a payment plan and at what terms\n- At what point (number of days) I should stop internal collection and consider a collections agency or small claims court (given that I\'m in [YOUR STATE/COUNTRY])\n\nAlso: what is the one thing I should change in my invoicing process to prevent these situations in the future?',
+        expectedOutput: 'A per-client collection playbook with specific next actions, phone scripts, and a systemic recommendation to reduce future AR issues.',
+        tips: 'The best preventive measure for late payments: require a 25-50% deposit upfront and net-14 instead of net-30. The AI will likely suggest this — implement it on your next new client engagement.'
+      }
+    ]
+  },
+
+  {
+    id: 'smb-bk-4',
+    slug: 'tax-season-prep-assistant',
+    title: 'Tax Season Prep Assistant',
+    subtitle: 'Turn a year of transactions into a complete tax-ready package: deduction analysis, Schedule C breakdown, and accountant handoff checklist — in one session.',
+    category: 'Finance',
+    difficulty: 'Intermediate',
+    timeToComplete: 45,
+    timeSaved: 600,
+    completionCount: 312,
+    rating: 4.9,
+    isPro: true,
+    isNew: true,
+    tools: ['ChatGPT', 'Claude', 'Excel', 'QuickBooks', 'Wave', 'Xero'],
+    beforeYouStart: [
+      'Your annual income and expense records in any format — a year-end Excel summary, a notebook with monthly totals, physical receipts gathered in a folder, or even rough mental estimates of the main categories. You do not need formal accounting records.',
+      'Your business structure: Sole Proprietor / Self-Employed, Limited Company, Partnership, or other. If you\'re not sure, describe how you operate and the AI will help identify it.',
+      'A rough figure for total income received during the year (check your bank statements or mobile money history if unsure).',
+      'A rough figure for your biggest expenses — staff, rent, supplies, transport, marketing. Estimates are acceptable as a starting point.',
+      'Any major purchases (equipment, vehicles) or loans made during the year — these often have special tax treatment.'
+    ],
+    expectedOutcome: 'A complete Schedule C-ready expense breakdown (or equivalent for your entity type), a prioritized list of all deductions you may have missed, a red-flag report of items likely to trigger IRS scrutiny, and a complete accountant handoff package your CPA can use to file immediately.',
+    agentAutomation: {
+      description: 'In January, the agent automatically pulls your full prior year\'s transactions, groups them by IRS category, checks for common missed deductions, cross-references 1099 income reported vs income recorded, and delivers a complete tax prep package to you and your accountant before tax season starts.',
+      trigger: 'January 5th at 9 AM (annual run).',
+      actions: [
+        'Pull all transactions from the prior year from the Google Sheets Ledger archive',
+        'Group by IRS-aligned expense categories and compute annual totals',
+        'Check totals against prior year for significant changes that could trigger audit flags',
+        'Send data to Claude for deduction gap analysis and red-flag check',
+        'Compile the full tax prep report as a formatted PDF-ready Google Doc',
+        'Email the report to the business owner and their accountant CC'
+      ],
+      setupSteps: [
+        { title: 'Build the Annual Ledger Archive', description: "Ensure all 12 months of categorized transactions are in your Google Sheets Ledger with a \'Year\' column (add =YEAR(A2) formula). This lets the automation pull a full year\'s data with a single filter. If you used the weekly categorization playbook all year, this is already done." },
+        { title: 'Map Categories to IRS Schedule C Lines', description: "In a separate tab, create a mapping table: Your Category Name → IRS Schedule C Line. Example: \'Software & Subscriptions\' → Line 18 (Office Expense). \'Business Meals\' → Line 24b (Meals — 50% deductible). This mapping tells Make.com how to regroup your categories for tax purposes." },
+        { title: 'Configure the Annual Make.com Scenario', description: "Create a new Make.com scenario. Set the trigger to \'Schedule — At a Specific Date/Time\' set to January 5. Add a \'Google Sheets — Search Rows\' module filtered to Year = prior year. Run the rows through the category mapping table using a \'Tools — Set Variable\' or \'Router\' module." },
+        { title: 'Generate the Tax Report with Claude', description: "After aggregating all categories, send the totals to Claude via HTTP module. Use the Tax Deduction Analysis prompt (see Step 3 of this playbook). Store the response as a Google Doc using the \'Google Docs — Create a Document\' module, formatting the content into the final report." },
+        { title: 'Deliver to Accountant', description: "Use \'Gmail — Send Email\' with the Google Doc link attached. CC your accountant. Subject line: \'[Business Name] — [Year] Tax Prep Package — Ready for Review\'. This gives your CPA everything they need to file with minimal back-and-forth." }
+      ],
+      tools: ['Make.com', 'Google Sheets', 'Claude', 'Google Docs', 'Gmail']
+    },
+    troubleshooting: [
+      {
+        problem: 'My categories do not match standard IRS Schedule C lines — my accountant is confused',
+        solution: 'Ask the AI: "Here are my custom expense category names and totals. Map each one to the correct IRS Schedule C line number (Part II) and flag any that don\'t have a clear match. For ambiguous ones, suggest the closest line and explain the rationale." Give the output to your accountant — it bridges the gap between your tracking system and the tax form.'
+      },
+      {
+        problem: 'I have both personal and business use for my car / phone / home office — how do I split?',
+        solution: 'Use the AI to calculate the deductible portion: "I used my car for both business and personal driving. I drove approximately [X] total miles this year. My mileage log shows [X] business miles. Calculate the business-use percentage and the deductible amount using the standard IRS mileage rate for [YEAR]." Same approach for home office: business sq ft ÷ total sq ft = deductible percentage of rent, utilities, and internet.'
+      },
+      {
+        problem: 'The AI flagged several transactions as potential audit risks — should I be worried?',
+        solution: 'Audit flags are warnings, not convictions. For each flagged item, the AI will explain why it\'s unusual (e.g., meals over 50% of revenue, home office over 300 sq ft, 100% auto use). For each one, make sure you have documentation: receipts, mileage logs, photos of your home office. Tell your accountant about the flags before filing — they can advise whether to include, modify, or exclude the deduction.'
+      },
+      {
+        problem: 'I received income but no 1099 — do I still have to report it?',
+        solution: 'Yes. All business income is taxable regardless of whether a 1099 was issued. Ask the AI: "My records show I received $[X] from [Client] but I haven\'t received a 1099-NEC from them. Is this income still reportable? How should it appear on my Schedule C?" The answer is always yes — the IRS requires self-reporting of all income.'
+      },
+      {
+        problem: 'I missed deductions in previous years — can I go back and claim them?',
+        solution: 'In the US, you can amend returns up to 3 years back. Ask the AI: "I have a list of business expenses I failed to deduct in [YEAR]. Here are the amounts by category. What is the estimated tax refund I may be eligible for if I file an amended return (Form 1040-X)?" This is a conversation to continue with your CPA, but the AI can give you a rough estimate.'
+      }
+    ],
+    relatedPlaybooks: [
+      { id: 'smb-bk-1', title: 'AI Bookkeeper: Weekly Transaction Categorization', slug: 'ai-bookkeeper-weekly-transaction-categorization' },
+      { id: 'smb-bk-2', title: 'Monthly Financial Snapshot & P&L Analyzer', slug: 'monthly-financial-snapshot-pl-analyzer' },
+      { id: 'smb-bk-3', title: 'Invoice & Cash Flow Guardian', slug: 'invoice-cash-flow-guardian' }
+    ],
+    steps: [
+      {
+        id: 'smb-bk-4-s1',
+        stepNumber: 1,
+        title: 'Compile & Validate Your Annual Totals',
+        instruction: 'Before touching taxes, verify your numbers are complete and accurate. Missing transactions are the #1 cause of incorrect returns. Use this step to compile all income and all expenses for the tax year and let the AI check for obvious gaps.',
+        promptTemplate: 'I am preparing my taxes for the [TAX YEAR] tax year. My business is [BUSINESS NAME], structured as a [Sole Proprietor / Single-Member LLC / S-Corp / Partnership]. I am [located in / operating in] [STATE/COUNTRY].\n\nHere are my annual totals from my accounting records:\n\nTOTAL GROSS INCOME: $[Amount]\nSource breakdown:\n- [Income Source 1]: $[Amount]\n- [Income Source 2]: $[Amount]\n\nTOTAL EXPENSES BY CATEGORY:\n- [Category 1]: $[Amount]\n- [Category 2]: $[Amount]\n- [Category 3]: $[Amount]\n[...all categories]\n\nNET PROFIT (Income minus Expenses): $[Amount]\n\nAdditional context:\n- 1099-NEC forms received totaling: $[Amount] (or "none received")\n- Equipment/asset purchases over $500: [list items and amounts, or "none"]\n- Home office: [Yes — X sq ft of X total sq ft / No]\n- Business vehicle miles driven: [X miles / not applicable]\n- Business loans taken out: [Yes — $X / No]\n\nFirst, check if my net profit makes sense given my revenue and expense levels. Flag anything that looks incomplete, inconsistent, or unusually high/low for a business of my type.',
+        expectedOutput: 'A validation check on your numbers — the AI will flag any category that looks suspiciously low (possible missing transactions), unusually high (possible double-counting), or inconsistent with the business type.',
+        tips: 'Cross-check total income against your bank deposits for the year. They should match (within a few hundred dollars for timing differences). If they\'re off by more than $1,000, you likely have missing income or unrecorded transactions.'
+      },
+      {
+        id: 'smb-bk-4-s2',
+        stepNumber: 2,
+        title: 'Run the Missed Deductions Scan',
+        instruction: 'Most small business owners miss 3-5 legitimate deductions every year. The AI will compare your expense categories against a comprehensive checklist of commonly-overlooked deductions for your business type and flag anything you may have forgotten to track.',
+        promptTemplate: 'Based on my expense totals for [TAX YEAR], check for commonly missed tax deductions. My business is [TYPE: e.g. freelance designer / retail shop / consulting firm / e-commerce seller].\n\nHere are my current recorded deductions:\n[PASTE YOUR EXPENSE CATEGORY TOTALS]\n\nCheck specifically for these commonly missed categories — tell me if I have recorded something in each, and if my amount seems unusually low for a business like mine:\n\n1. Home Office Deduction — did I record anything? My home office is [X] sq ft of my [X] sq ft home.\n2. Business Vehicle / Mileage — I drove approximately [X] business miles.\n3. Health Insurance Premiums — as a self-employed person, 100% may be deductible.\n4. Retirement Contributions — SEP-IRA, Solo 401(k), or SIMPLE IRA contributions.\n5. Professional Development — courses, books, certifications, conferences.\n6. Business Banking Fees — account fees, wire fees, merchant processing fees.\n7. Professional Subscriptions — industry publications, software tools.\n8. Business Insurance — liability, E&O, business owner\'s policy.\n9. Startup Costs — if this is my first year or I launched a new product line.\n10. Section 179 Deduction — immediate expensing of equipment/technology purchases.\n11. Qualified Business Income (QBI) Deduction — the 20% pass-through deduction for eligible businesses.\n12. Bad Debt — uncollectable invoices written off.\n\nFor each one I may have missed or under-recorded, tell me: (a) what the potential deduction is, (b) what documentation I need, and (c) the estimated tax savings at a 25% effective rate.',
+        expectedOutput: 'A gap analysis listing every potential missed deduction, estimated dollar value, required documentation, and estimated tax savings for each.',
+        tips: 'The home office deduction alone is worth an average of $1,500-$3,000 for a typical freelancer or consultant. If you have a dedicated workspace at home, make sure you\'re claiming it.'
+      },
+      {
+        id: 'smb-bk-4-s3',
+        stepNumber: 3,
+        title: 'Map to Schedule C / Tax Form Categories',
+        instruction: 'Your bookkeeping categories and IRS form lines don\'t always match 1:1. This step translates your internal categories into the exact line items your accountant needs to fill out Schedule C (or the equivalent for your entity type).',
+        promptTemplate: 'Map my expense categories to the correct IRS Schedule C (Form 1040) line items for [TAX YEAR]. My updated deductions after the missed-deductions scan are:\n\n[PASTE YOUR FINAL EXPENSE TOTALS BY CATEGORY]\n\nAdditional items to include:\n- Home Office Deduction: $[Amount] (using simplified method: $5/sq ft × [X] sq ft = $[Total], capped at $1,500 / OR actual expense method: X% of rent + utilities)\n- Vehicle: $[X] business miles × $[CURRENT IRS RATE] = $[Amount]\n- Section 179 equipment expensing: $[Amount] for [description of item]\n\nFor each of my categories, assign:\n1. The correct Schedule C Part II line number (e.g., Line 8: Advertising, Line 18: Office Expense, Line 22: Supplies)\n2. The exact dollar amount to enter on that line\n3. Any that require a separate supporting form or schedule (like Form 8829 for home office, Form 4562 for depreciation)\n\nOutput this as a table my accountant can use directly:\n\nSchedule C Line | Description | Amount | Supporting Form Needed\n\nAlso calculate my Schedule C net profit (Line 31) and estimated self-employment tax (15.3% of 92.35% of net profit).',
+        expectedOutput: 'A complete Schedule C mapping table with every line filled in, the net profit figure, and estimated self-employment tax — everything your accountant needs to file.',
+        tips: 'For S-Corp filers: replace "Schedule C" with "Form 1120-S." For partnerships: "Form 1065." Ask the AI to use the correct form for your entity type — the line numbering is different.'
+      },
+      {
+        id: 'smb-bk-4-s4',
+        stepNumber: 4,
+        title: 'Audit Risk Check — Flag Before Filing',
+        instruction: 'The IRS uses statistical models to flag returns that deviate from norms for businesses of your type and size. This step runs your numbers through common audit triggers so you can either document properly or reconsider a deduction before filing.',
+        promptTemplate: 'Review my [TAX YEAR] Schedule C numbers for common IRS audit risk factors. Here are my final figures:\n\n- Gross Revenue: $[Amount]\n- Net Profit: $[Amount]\n- Net Profit Margin: [X%]\n- Total Meals & Entertainment: $[Amount] ([X%] of revenue)\n- Auto/Mileage Deduction: $[Amount] ([X%] of revenue)\n- Home Office Deduction: $[Amount]\n- Travel: $[Amount]\n- Contract Labor (1099s issued): $[Amount] to [X] contractors\n- Total Deductions: $[Amount] ([X%] of gross revenue)\n\nCheck for these IRS red flags:\n1. Net profit margin below 25% (or negative) for multiple years — signals hobby loss rules may apply\n2. Meals & entertainment over 1-2% of revenue — high audit risk\n3. Auto use claimed at 100% — nearly always flagged\n4. Home office claimed on rented home plus high travel — double-dipping risk\n5. Round number deductions (e.g. exactly $10,000 for supplies) — suggests estimation, not records\n6. Contract labor amounts that don\'t match 1099s filed\n7. Business losses for 3+ consecutive years — IRS may reclassify as a hobby\n\nFor each flag you find, tell me:\n- The specific risk level (Low / Medium / High)\n- What documentation to prepare before filing\n- Whether I should reconsider the deduction amount or be confident if I have records',
+        expectedOutput: 'A red-flag report with risk levels, documentation requirements, and specific guidance on any deductions to reconsider or strengthen with documentation.',
+        tips: 'A red flag does not mean do not take the deduction — it means document it thoroughly. If you have the receipts, mileage log, and a legitimate business purpose, you can take any legitimate deduction confidently.'
+      },
+      {
+        id: 'smb-bk-4-s5',
+        stepNumber: 5,
+        title: 'Generate the Accountant Handoff Package',
+        instruction: 'Package everything into a single document your accountant can pick up and use without asking you 20 follow-up questions. A well-organized handoff saves you accountant fees and gets your return filed faster.',
+        promptTemplate: 'Create a complete Accountant Handoff Package for [BUSINESS NAME] — [TAX YEAR] Taxes. Compile all our analysis into a single, professional document:\n\n---\n**[BUSINESS NAME] — TAX YEAR [YEAR] — ACCOUNTANT PACKAGE**\n**Prepared: [TODAY\'S DATE]**\n**Entity Type: [Sole Proprietor / LLC / S-Corp]**\n**EIN (or SSN): [I will add this manually]**\n**Accounting Method: [Cash / Accrual]**\n\n**SECTION 1: BUSINESS OVERVIEW**\n- Business description: [brief description]\n- Significant changes in [TAX YEAR]: [list any major changes — new revenue streams, new employees, moved offices, etc.]\n\n**SECTION 2: INCOME SUMMARY**\n[Total income with source breakdown]\n[1099s received list]\n\n**SECTION 3: DEDUCTIONS — SCHEDULE C READY**\n[The complete line-by-line Schedule C mapping table]\n\n**SECTION 4: SPECIAL ITEMS REQUIRING ACCOUNTANT REVIEW**\n[The red-flag items and documentation notes]\n[Home office calculation method used]\n[Vehicle/mileage details]\n[Section 179 assets]\n\n**SECTION 5: DOCUMENTS ATTACHED**\n(I will complete this manually with the actual documents I am providing)\n☐ Bank statements — all 12 months\n☐ Credit card statements — business cards\n☐ All 1099-NEC received\n☐ All 1099-NEC issued to contractors (if any)\n☐ Home office floor plan or lease\n☐ Mileage log\n☐ Equipment purchase receipts\n☐ Prior year tax return (for comparison)\n\n**SECTION 6: QUESTIONS FOR MY ACCOUNTANT**\n[List any areas of uncertainty identified during our analysis]\n\n---\n\nFormat this as a clean document I can export to PDF and email alongside my source documents.',
+        expectedOutput: 'A complete, professional tax package ready to hand to your accountant — covering income, deductions, special items, and a document checklist — that minimizes back-and-forth and gets your return filed efficiently.',
+        tips: 'Send this package to your accountant in January, not April. Accountants charge 20-40% more for rush filings and give less thorough attention to returns that arrive in the final weeks. Early filers also get faster refunds and are less likely to be victims of tax identity theft.'
+      }
+    ]
+  },
+
+  // ─── BUSINESS DECISION PLAYBOOKS ──────────────────────────────────────────
+
+  {
+    id: 'smb-bd-1',
+    slug: 'profit-margin-analyzer-most-profitable-work',
+    title: 'Profit Margin Analyzer: Find Your Most Profitable Work',
+    subtitle: 'Discover which clients, products, or services actually make you money — and which ones secretly drain you. Make the decision to focus or cut in one session.',
+    category: 'Finance',
+    difficulty: 'Beginner',
+    timeToComplete: 20,
+    timeSaved: 300,
+    completionCount: 541,
+    rating: 4.9,
+    isPro: false,
+    isNew: true,
+    tools: ['ChatGPT', 'Claude'],
+    beforeYouStart: [
+      'A rough list of the main things your business sells or does — products, services, or client types.',
+      'Rough revenue figures for each (what you charge / what you earned from each).',
+      'A sense of what each one costs you to deliver — time, materials, staff, transport. Estimates are fine.',
+      'Access to ChatGPT or Claude. No spreadsheets required — this runs entirely in the chat.'
+    ],
+    expectedOutcome: 'A ranked profitability table for every product, service, or client type — showing which ones make the most money per hour of effort. Plus a clear recommendation: what to do more of, what to raise prices on, and what to consider cutting.',
+    agentAutomation: {
+      description: 'Every month, the agent pulls your revenue by product/service from your records, calculates margins against your known cost structures, and emails you a ranked profitability report — so you always know which work is worth saying yes to.',
+      trigger: 'First Monday of every month.',
+      actions: [
+        'Pull monthly revenue totals by product or service line from Google Sheets',
+        'Apply your cost-per-unit or cost-per-hour estimates to calculate gross margin per line',
+        'Rank all lines by net margin percentage',
+        'Send Claude the ranked list to generate a plain-English recommendations memo',
+        'Email the full profitability report to the business owner'
+      ],
+      setupSteps: [
+        { title: 'Build a Revenue Tracking Sheet', description: "Create a Google Sheet with columns: Product/Service | Units Sold | Revenue | Direct Cost | Gross Profit | Margin%. Fill in each line at the end of every month. This becomes the input for the automation." },
+        { title: 'Set Up the Monthly Make.com Trigger', description: "In Make.com, create a scenario triggered on the first Monday of the month. Add a 'Google Sheets — Read Range' module to pull the prior month's revenue rows." },
+        { title: 'Calculate Margins in Make.com', description: "Use a 'Tools — Set Variable' module to compute Gross Profit = Revenue - Direct Cost, and Margin% = (Gross Profit / Revenue) × 100 for each row. Sort the output by Margin% descending." },
+        { title: 'Generate AI Recommendations', description: "Send the ranked table to Claude via an HTTP module. Prompt: 'Here is our product/service profitability for last month. Write a short memo identifying our 2 most profitable lines to grow, 1 line with a margin problem to investigate, and 1 action to take this month.'" },
+        { title: 'Deliver the Report', description: "Use Gmail to send the full table + AI memo to the business owner. Subject: '[Business Name] — Profitability Report — [Month Year]'." }
+      ],
+      tools: ['Make.com', 'Google Sheets', 'Claude', 'Gmail']
+    },
+    troubleshooting: [
+      {
+        problem: 'I don\'t know the exact cost of delivering each service — I just charge a flat rate',
+        solution: 'Start with time. Ask yourself: "How many hours does this typically take me or my team?" Then multiply by your effective hourly cost (monthly overhead ÷ monthly working hours). Even a rough hourly rate reveals which work pays well and which does not.'
+      },
+      {
+        problem: 'My most profitable product is one I don\'t enjoy doing',
+        solution: 'This is a real business decision, not just a math problem. Tell the AI: "This service has the best margin but I dislike doing it. What are my options — can I systemize it, delegate it, or charge enough more to make it worth my time?" The AI will think through the tradeoffs with you.'
+      },
+      {
+        problem: 'My margins are very different per client even for the same service',
+        solution: 'Do a client-level profitability analysis. List each client, what they pay you, and roughly how much time/effort they require. You\'ll almost always find 20% of clients generate 80% of profit — and some clients are genuinely not worth keeping.'
+      }
+    ],
+    relatedPlaybooks: [
+      { id: 'smb-bd-2', title: 'Pricing Strategy Reset', slug: 'pricing-strategy-reset' },
+      { id: 'smb-bd-3', title: 'Hire or Stay Solo: The Financial Decision', slug: 'hire-or-stay-solo-financial-decision' },
+      { id: 'smb-bk-2', title: 'Monthly Financial Snapshot & P&L Analyzer', slug: 'monthly-financial-snapshot-pl-analyzer' }
+    ],
+    steps: [
+      {
+        id: 'smb-bd-1-s1',
+        stepNumber: 1,
+        title: 'List Every Way You Make Money',
+        instruction: 'Before comparing, you need a complete list of everything you sell or do. This includes products, services, client types, and even side revenue streams. Do not leave anything out — the goal is to see the full picture, not the flattering one.',
+        promptTemplate: 'I need help understanding which parts of my business are actually most profitable. I run [DESCRIBE YOUR BUSINESS — e.g. a tailoring shop / a digital marketing agency / a food catering business / an IT support company].\n\nHere is every way I currently make money:\n1. [Product/Service/Client Type 1] — I charge [amount per unit / per hour / per project]\n2. [Product/Service/Client Type 2] — I charge [amount per unit / per hour / per project]\n3. [Product/Service/Client Type 3] — I charge [amount per unit / per hour / per project]\n[...list all]\n\nFor context, last month my total revenue was approximately [AMOUNT] and I work roughly [X hours per week / I have X employees].\n\nAcknowledge the list and ask me the cost questions I need to answer to calculate actual profitability for each.',
+        expectedOutput: 'The AI acknowledges your revenue streams and asks focused questions about direct costs and time investment for each — prompting you to think about costs you may have overlooked.',
+        tips: 'Be honest about the low-performers. Many business owners omit services they secretly know are not making money. The whole point of this exercise is to find them.'
+      },
+      {
+        id: 'smb-bd-1-s2',
+        stepNumber: 2,
+        title: 'Build the Profitability Table',
+        instruction: 'Now answer the cost questions and let the AI calculate the real margins. You do not need exact figures — good estimates will reveal the winners and losers clearly enough to make decisions.',
+        promptTemplate: 'Here are my costs for each revenue stream:\n\n[PRODUCT/SERVICE 1]: [e.g. "charges ₦15,000. Materials cost ₦4,000. Takes me 2 hours of my time."]\n[PRODUCT/SERVICE 2]: [e.g. "charges ₦50,000/month retainer. No materials. Takes about 10 hours of work per month."]\n[PRODUCT/SERVICE 3]: [e.g. "charges ₦8,000. Materials ₦5,500. 30 minutes to make."]\n\nMy approximate cost for 1 hour of my own time (or my team\'s time) is [e.g. ₦3,000/hour — based on my monthly overhead of ₦300,000 divided by 100 working hours]. If you think I should calculate this differently, tell me.\n\nBuild a profitability table with these columns:\nProduct/Service | Price | Direct Costs | Time Cost | Total Cost | Gross Profit | Margin% | Profit per Hour\n\nSort by Margin% from highest to lowest.',
+        expectedOutput: 'A complete profitability table ranked from most to least profitable, with Margin% and Profit per Hour — the two most decision-relevant metrics.',
+        tips: 'Profit per Hour is the most important column. A service charging twice as much can still be less profitable if it takes 5x longer. Find the work that makes the most money per hour of effort.'
+      },
+      {
+        id: 'smb-bd-1-s3',
+        stepNumber: 3,
+        title: 'Get the Strategic Recommendation',
+        instruction: 'The table tells you what is true. Now ask the AI to tell you what to do about it — with specific, actionable recommendations based on your numbers.',
+        promptTemplate: 'Based on this profitability table, give me a strategic recommendation structured as:\n\n🏆 DOUBLE DOWN ON (highest margin, highest value)\n- Which 1-2 products/services to prioritize, promote more, or expand\n- Why they are the strongest, and what would happen if I did 30% more volume in these\n\n⚠️ FIX OR REPRICE (decent volume, poor margin)\n- Which products/services are earning revenue but leaving money on the table\n- Specific suggestion: should I raise prices, cut costs, or both? By how much?\n\n🔴 CONSIDER CUTTING OR OUTSOURCING (worst margin, most time)\n- Which work might not be worth doing at current rates\n- If I cut this, what is the impact on total revenue vs total profit? Would I actually be better off?\n\n📊 ONE KEY INSIGHT\n- The single most important thing you notice in this data that I might be missing\n\nBe direct and specific. Give me numbers, not vague advice.',
+        expectedOutput: 'A clear 3-part strategic recommendation covering what to grow, what to fix, and what to cut — with specific reasoning tied to your actual numbers.',
+        tips: 'The "cut" recommendation is often the most valuable but hardest to act on. Give yourself 30 days to test raising the price on low-margin work before cutting it — you may find some clients accept the higher rate.'
+      },
+      {
+        id: 'smb-bd-1-s4',
+        stepNumber: 4,
+        title: 'Set a 30-Day Focus Decision',
+        instruction: 'A profitability analysis is only useful if it changes something you do. Use this final step to commit to one specific decision based on the data — and get the AI to build the plan for executing it.',
+        promptTemplate: 'Based on the analysis, I want to make the following change in the next 30 days:\n\n[Choose one and fill in the blank:]\n- "I want to increase revenue from [BEST MARGIN SERVICE] by [X%] in the next 30 days."\n- "I want to raise the price of [LOW MARGIN SERVICE] from [CURRENT PRICE] to [NEW PRICE]."\n- "I want to reduce the time I spend on [LOWEST PROFIT/HR SERVICE] by [X hours/week] and redirect that time to [BETTER SERVICE]."\n- "I want to drop [UNPROFITABLE SERVICE] entirely and replace it with more [BEST SERVICE] work."\n\nFor the goal I chose above, give me:\n1. A specific 30-day action plan (weekly milestones, not vague goals)\n2. The expected impact on monthly profit if I succeed\n3. The one obstacle most likely to stop me and how to pre-empt it',
+        expectedOutput: 'A 30-day action plan tied directly to your most profitable opportunity — with weekly milestones, projected profit impact, and a pre-emptive plan for the most likely obstacle.',
+        tips: 'Put the 30-day plan somewhere you will see it every day. This analysis is worthless if it lives only in a chat window. Copy it into your phone notes, print it, or paste it into a WhatsApp message to yourself.'
+      }
+    ]
+  },
+
+  {
+    id: 'smb-bd-2',
+    slug: 'pricing-strategy-reset',
+    title: 'Pricing Strategy Reset',
+    subtitle: 'Find out if you are undercharging, calculate your true cost to deliver, benchmark against the market, and get a step-by-step script for raising your prices.',
+    category: 'Finance',
+    difficulty: 'Beginner',
+    timeToComplete: 25,
+    timeSaved: 240,
+    completionCount: 723,
+    rating: 4.8,
+    isPro: false,
+    isNew: true,
+    tools: ['ChatGPT', 'Claude'],
+    beforeYouStart: [
+      'Your current prices for your main products or services.',
+      'A rough estimate of your monthly business expenses — rent, staff, materials, transport, utilities.',
+      'A rough idea of how many hours per week you work in the business.',
+      'Access to ChatGPT or Claude — free tier works.'
+    ],
+    expectedOutcome: 'Your minimum viable price (the floor you cannot go below without losing money), a market-benchmarked recommended price range, and a word-for-word script for communicating a price increase to existing clients without losing them.',
+    agentAutomation: {
+      description: 'Every quarter, the agent runs a pricing health check — comparing your current rates against your cost structure, checking whether margins are being squeezed as costs rise, and flagging any service where you may be losing money without realizing it.',
+      trigger: 'First day of every quarter (Jan 1, Apr 1, Jul 1, Oct 1).',
+      actions: [
+        'Pull current price list from a Google Sheet',
+        'Pull latest monthly expense totals from the Bookkeeping Ledger sheet',
+        'Recalculate minimum viable prices based on updated costs',
+        'Compare current prices to minimum viable prices — flag any that are below the threshold',
+        'Send a Pricing Health Check email: which services need a price review and by how much'
+      ],
+      setupSteps: [
+        { title: 'Create a Pricing Sheet', description: "Add a new tab to your Google Sheets workbook called 'Pricing'. Columns: Service Name | Current Price | Min Viable Price | Last Updated | Notes. Fill in manually after doing this playbook. Update Min Viable Price each quarter." },
+        { title: 'Set Up Quarterly Make.com Trigger', description: "In Make.com, use a 'Schedule' trigger set to run on the 1st of January, April, July, and October at 9 AM. This fires the quarterly pricing review." },
+        { title: 'Pull Costs and Prices', description: "Add two 'Google Sheets — Read Range' modules: one pulling the current price list, one pulling the last 3 months of expense totals from your Ledger. This gives the automation fresh cost data every quarter." },
+        { title: 'Calculate and Compare', description: "Use a 'Tools — Set Variable' module to compute monthly cost per hour: Total Monthly Expenses ÷ Total Monthly Working Hours. Then for each service, compute Min Viable Price = (Hours Required × Cost Per Hour) + (Materials Cost × 1.2 markup). Flag any where Current Price < Min Viable Price." },
+        { title: 'Send the Pricing Health Check', description: "Use Gmail to email yourself a summary table: Service | Current Price | Min Viable Price | Status (OK / BELOW COST / NEEDS REVIEW). Add Claude to write a one-paragraph commentary on the most urgent issue." }
+      ],
+      tools: ['Make.com', 'Google Sheets', 'Claude', 'Gmail']
+    },
+    troubleshooting: [
+      {
+        problem: 'I\'m scared to raise prices because I\'ll lose clients',
+        solution: 'Tell the AI your specific fear: "I want to raise prices by 20% but I\'m worried client X will leave — they make up 40% of my revenue." The AI will model the actual risk for you: how many clients can you afford to lose and still come out ahead? The answer is often more than you think.'
+      },
+      {
+        problem: 'My competitors charge much less than what the AI recommends',
+        solution: 'Lower-priced competitors are usually less skilled, slower, or not making money — they will eventually raise prices or close. Ask the AI: "My competitor charges [X] but my minimum viable price is [Y]. How do I position my offering to justify the price difference to a skeptical client?"'
+      },
+      {
+        problem: 'I have clients on long-term contracts at old prices — I can\'t raise those',
+        solution: 'Raise prices only on new clients first. This builds confidence. Then, when existing contracts come up for renewal, apply the new pricing. Ask the AI to write a contract renewal letter that introduces the new rate professionally.'
+      }
+    ],
+    relatedPlaybooks: [
+      { id: 'smb-bd-1', title: 'Profit Margin Analyzer: Find Your Most Profitable Work', slug: 'profit-margin-analyzer-most-profitable-work' },
+      { id: 'smb-bd-3', title: 'Hire or Stay Solo: The Financial Decision', slug: 'hire-or-stay-solo-financial-decision' },
+      { id: 'smb-bk-2', title: 'Monthly Financial Snapshot & P&L Analyzer', slug: 'monthly-financial-snapshot-pl-analyzer' }
+    ],
+    steps: [
+      {
+        id: 'smb-bd-2-s1',
+        stepNumber: 1,
+        title: 'Calculate Your True Cost to Deliver',
+        instruction: 'Most business owners set prices based on gut feel or competitor copying — without ever calculating what it actually costs to deliver their work. This step builds your real cost baseline. Without it, any price is a guess.',
+        promptTemplate: 'Help me calculate the true cost to deliver my main products/services so I can set prices that actually make me money.\n\nMy business: [DESCRIBE YOUR BUSINESS]\n\nMY MONTHLY FIXED COSTS (expenses that happen whether I have clients or not):\n- Rent/workspace: [Amount]\n- Staff wages (if any): [Amount]\n- Phone & internet: [Amount]\n- Equipment loans/leases: [Amount]\n- Software/tools: [Amount]\n- Transport (regular): [Amount]\n- Other: [Amount]\nTotal Monthly Fixed Costs: [Sum]\n\nMY WORKING HOURS: I work approximately [X hours per week] on billable/production work. That is about [X × 4 = X hours per month].\n\nMY MAIN PRODUCTS/SERVICES AND THEIR DIRECT COSTS:\n1. [Service/Product A] — takes approximately [X hours] to deliver + materials cost approximately [Amount]\n2. [Service/Product B] — takes approximately [X hours] to deliver + materials cost approximately [Amount]\n3. [Service/Product C] — takes approximately [X hours] to deliver + materials cost approximately [Amount]\n\nCalculate:\n1. My true hourly overhead cost (Fixed Costs ÷ Monthly Working Hours)\n2. The full cost to deliver each product/service (Time × Hourly Overhead + Materials)\n3. My current price vs. actual cost for each — am I making or losing money?',
+        expectedOutput: 'A breakdown of your true cost to deliver each product/service, your effective hourly overhead rate, and a direct comparison showing whether your current prices are profitable.',
+        tips: 'If your effective hourly overhead rate surprises you (it usually does), that is the point of this exercise. Many small business owners discover they have been effectively paying themselves less than minimum wage on their worst-performing services.'
+      },
+      {
+        id: 'smb-bd-2-s2',
+        stepNumber: 2,
+        title: 'Set Your Minimum Viable Price Floor',
+        instruction: 'The minimum viable price is the lowest price you can charge and still cover all your costs. Below this number, every sale loses you money. This is your absolute floor — not your target price, just the number you can never go below.',
+        promptTemplate: 'Based on my cost analysis, calculate the Minimum Viable Price (MVP) for each product/service. The MVP must:\n- Cover 100% of direct material costs\n- Cover the allocated overhead for the time it takes to deliver\n- Leave at least [X%] gross margin (I want at least [15% / 20% / 30%] — tell me what is typical for my business type)\n\nFor each product/service:\n1. State the Minimum Viable Price (floor)\n2. State my current price\n3. State whether I am: ABOVE floor (profitable), AT floor (breaking even), or BELOW floor (losing money)\n4. State the recommended price increase to reach my target margin\n\nAlso: what is a reasonable target margin for a business like mine? Give me context on what similar businesses in my industry typically operate at.',
+        expectedOutput: 'A clear price floor for every product/service, your current price vs. the floor, and a specific recommended price for each based on target margin.',
+        tips: 'If your current price is below your minimum viable price for any service, that is the most urgent thing you have learned today. Do not take another order at that price until you have a plan.'
+      },
+      {
+        id: 'smb-bd-2-s3',
+        stepNumber: 3,
+        title: 'Benchmark Against the Market',
+        instruction: 'Your cost floor tells you what you cannot charge below. The market tells you what customers are willing to pay. The gap between the two is your pricing opportunity. This step positions your price where it belongs — not the cheapest, and not randomly expensive.',
+        promptTemplate: 'Help me benchmark my prices against the market for my business type.\n\nMy business: [DESCRIBE] operating in [CITY/REGION/COUNTRY]\nMy current prices:\n- [Service A]: [Current Price]\n- [Service B]: [Current Price]\n- [Service C]: [Current Price]\n\nBased on your knowledge of market rates for businesses like mine:\n1. What is the typical LOW-END price range in my market for each service? (the budget option)\n2. What is the typical MID-MARKET price range? (competent, established providers)\n3. What is the typical PREMIUM price range? (specialists, high reputation)\n4. Where does my current pricing sit relative to these tiers?\n5. What would I need to demonstrate or change to justify charging mid-market or premium rates?\n\nThen give me a recommended price for each service that:\n- Is above my minimum viable price floor\n- Is appropriate for my current reputation and client base\n- Has room to grow as my reputation improves\n\nBe specific. Give me actual numbers, not ranges.',
+        expectedOutput: 'A market benchmark for each service, your current position in the market (budget/mid/premium), and a specific recommended price that is both profitable and market-justified.',
+        tips: 'If you have been charging budget prices, do not jump straight to premium — move to mid-market first. A 20-30% price increase with the right framing loses far fewer clients than you fear.'
+      },
+      {
+        id: 'smb-bd-2-s4',
+        stepNumber: 4,
+        title: 'Get the Price Increase Script',
+        instruction: 'Knowing the right price means nothing if you cannot tell your clients about it. This step gives you a word-for-word script for announcing a price increase — for both new and existing clients — that is honest, professional, and does not apologize unnecessarily.',
+        promptTemplate: 'Write me two price increase communications:\n\nCONTEXT:\n- My new prices take effect: [DATE — ideally 30-60 days from now]\n- My current price for [MAIN SERVICE]: [Old Price]\n- My new price for [MAIN SERVICE]: [New Price] — a [X%] increase\n- I have been working with some clients for [X months/years]\n- The main reason for the increase: [choose one — rising costs / I have underpriced for years / I have invested in improving my skills/service / market rates have increased]\n\nCOMMUNICATION 1: Email to existing long-term clients\n- Warm and personal in tone\n- Acknowledge the relationship\n- Explain (briefly) the reason without over-apologizing\n- Give them a clear effective date\n- Offer: the old rate is locked in for any work booked before [DATE]\n- End with confidence and a clear next step\n\nCOMMUNICATION 2: Updated new client quote/proposal language\n- Professional, value-focused\n- Frame the price as an investment, not a cost\n- No mention of it being a recent increase\n- 2-3 sentences maximum for the pricing section of a proposal\n\nDo not use weak language like "I\'m sorry to inform you" or "I hope you understand." Be direct and confident.',
+        expectedOutput: 'Two ready-to-use communications: one personalized email for existing clients and one updated proposal pricing paragraph for new clients.',
+        tips: 'Most clients who leave after a price increase were already low-value clients. Studies show 80-90% of clients accept reasonable price increases from providers they trust. The key is giving enough notice and framing it around value, not cost.'
+      }
+    ]
+  },
+
+  {
+    id: 'smb-bd-3',
+    slug: 'hire-or-stay-solo-financial-decision',
+    title: 'Hire or Stay Solo: The Financial Decision',
+    subtitle: 'Stop guessing whether you can afford to hire. Build the full financial model — employee vs contractor, break-even revenue, and the exact month it starts making sense.',
+    category: 'Finance',
+    difficulty: 'Intermediate',
+    timeToComplete: 30,
+    timeSaved: 300,
+    completionCount: 289,
+    rating: 4.9,
+    isPro: false,
+    isNew: true,
+    tools: ['ChatGPT', 'Claude'],
+    beforeYouStart: [
+      'Your current monthly revenue (rough figure is fine).',
+      'Your current monthly costs (rent, supplies, transport, your own take-home pay).',
+      'A sense of what role you want to fill — what work would this person do, and roughly what you would pay them.',
+      'An honest assessment of how many hours per week you are currently overwhelmed, working on things that someone else could do.'
+    ],
+    expectedOutcome: 'A full cost comparison of employee vs contractor, the exact break-even revenue you need to justify the hire, a month-by-month projection for the first 6 months after hiring, and a clear decision recommendation based on your numbers.',
+    agentAutomation: {
+      description: 'When your monthly revenue consistently hits your hiring threshold for 3 consecutive months, the agent automatically flags that you have crossed the financial break-even for hiring and sends you a ready-to-use job post draft and a suggested first-month onboarding schedule.',
+      trigger: 'Monthly revenue check — fires when 3-month average exceeds your hiring break-even threshold.',
+      actions: [
+        'Check current 3-month average revenue from the Google Sheets Monthly Summary tab',
+        'Compare against the hiring break-even threshold calculated in this playbook',
+        'If threshold is exceeded for 3 consecutive months, trigger the hiring decision alert',
+        'Send alert email with a drafted job description and a financial summary showing why the math now works',
+        'Optionally post the job to relevant platforms via API (LinkedIn, local job boards)'
+      ],
+      setupSteps: [
+        { title: 'Record Your Hiring Break-Even Number', description: "After completing this playbook, add your hiring break-even revenue figure to a 'Business Decisions' tab in your Google Sheets. This is the number Make.com will monitor each month." },
+        { title: 'Set Up the Monthly Revenue Check', description: "In Make.com, create a scenario triggered on the 1st of each month. Pull the last 3 months of revenue totals from your Google Sheets Monthly Summary tab. Calculate the 3-month average." },
+        { title: 'Build the Threshold Logic', description: "Add a 'Filter' module: only continue if the 3-month average is greater than or equal to your hiring break-even figure. This prevents false alarms from one good month." },
+        { title: 'Send the Hiring Green-Light Alert', description: "If the filter passes for 3 consecutive months (track this with a counter in a Google Sheet cell), send yourself an email: 'Your revenue has supported a hire for 3 straight months. The math works. Here is your job post draft and the financial summary.'" }
+      ],
+      tools: ['Make.com', 'Google Sheets', 'Claude', 'Gmail']
+    },
+    troubleshooting: [
+      {
+        problem: 'I want to hire but I can\'t afford to pay someone a full salary',
+        solution: 'Start with a part-time contractor, not an employee. A contractor for 10 hours/week at market rates gives you 80% of the capacity boost at 25% of the cost and zero administrative overhead. The AI will model this option for you.'
+      },
+      {
+        problem: 'The break-even revenue seems impossibly high given my current numbers',
+        solution: 'This is the most useful output of the exercise. If the break-even is far above your current revenue, your next priority is revenue growth, not hiring. Ask: "Given that I cannot yet afford to hire, what is the most high-leverage thing I can do in the next 90 days to close the gap?"'
+      },
+      {
+        problem: 'I\'m worried about managing someone — I\'ve never been a boss',
+        solution: 'This playbook addresses the financial decision only. For the management side, ask the AI separately: "I have never managed anyone before. I am about to hire my first employee for [role]. What are the 5 things I must do right in the first 30 days to set this up for success?"'
+      }
+    ],
+    relatedPlaybooks: [
+      { id: 'smb-bd-1', title: 'Profit Margin Analyzer: Find Your Most Profitable Work', slug: 'profit-margin-analyzer-most-profitable-work' },
+      { id: 'smb-bd-2', title: 'Pricing Strategy Reset', slug: 'pricing-strategy-reset' },
+      { id: 'smb-bd-4', title: 'Business Health Score & 90-Day Action Plan', slug: 'business-health-score-90-day-action-plan' }
+    ],
+    steps: [
+      {
+        id: 'smb-bd-3-s1',
+        stepNumber: 1,
+        title: 'Model the Full Cost of the Hire',
+        instruction: 'Most business owners dramatically underestimate the true cost of a hire. The salary or daily rate is only the beginning. This step calculates the full economic cost so you are not surprised six months in.',
+        promptTemplate: 'Help me calculate the true total cost of my first hire. I am considering two options and want to compare them.\n\nMY BUSINESS CONTEXT:\n- Business type: [DESCRIBE]\n- Current monthly revenue: approximately [AMOUNT]\n- Current monthly profit (what I take home): approximately [AMOUNT]\n- Location: [CITY, COUNTRY]\n\nOPTION A — FULL-TIME EMPLOYEE:\n- Role: [e.g. junior assistant / driver / production helper / admin staff]\n- Planned salary: [AMOUNT per month]\n- Expected working hours: [X hours/week]\n\nOPTION B — PART-TIME CONTRACTOR:\n- Same role but contracted\n- Expected hours per week: [X hours]\n- Rate you would pay: [AMOUNT per hour OR per day OR per deliverable]\n\nFor each option, calculate:\n1. Monthly salary/contractor cost\n2. Employer taxes and social contributions (if applicable in my country)\n3. Onboarding and training time cost (assume [X weeks] at [X hours/week] of my own time at [my effective hourly rate])\n4. Equipment/tools/workspace cost for the new person: [List what they would need, or say "nothing additional needed"]\n5. TOTAL true monthly cost for each option\n6. Annual cost for each option\n\nWhich option is cheaper for the first year? By how much?',
+        expectedOutput: 'A complete cost comparison of employee vs contractor for the first year — including all hidden costs, not just the headline rate.',
+        tips: 'Employers consistently underestimate onboarding cost. A new person takes 4-8 weeks to reach full productivity, during which they require your time and attention. Model this honestly or your projections will look better than reality.'
+      },
+      {
+        id: 'smb-bd-3-s2',
+        stepNumber: 2,
+        title: 'Calculate Your Break-Even Revenue',
+        instruction: 'The break-even revenue is the monthly revenue you need to cover all your existing costs PLUS the cost of the new hire AND still take home what you need. Below this number, hiring costs you money. Above it, you are fine.',
+        promptTemplate: 'Calculate my hiring break-even revenue — the monthly revenue I need before a hire makes financial sense.\n\nMY CURRENT FINANCIALS:\n- Monthly fixed costs (before my pay): [AMOUNT]\n- My target monthly take-home pay: [AMOUNT — what I need to live comfortably]\n- Current average monthly revenue: [AMOUNT]\n- Current average monthly profit margin: approximately [X%]\n\nTHE HIRE:\n- Total monthly cost of hire (from Step 1): [AMOUNT]\n- Expected productivity ramp: [X months] before this person is fully productive\n- Expected revenue uplift from the hire: [Choose one]\n  a) "Direct revenue generator — I expect them to generate [AMOUNT] additional revenue per month once trained"\n  b) "Capacity liberator — by taking [X hours/week] off my plate, I can take on [AMOUNT] more client work"\n  c) "No direct revenue impact — they support operations only"\n\nCalculate:\n1. Break-even revenue (the number I need to cover everything including the hire)\n2. How far am I from that number today? What % growth do I need?\n3. Time to break-even: At my current growth rate of approximately [X% per month], when would I naturally hit this revenue?\n4. Risk scenario: What happens to my finances if the hire does not generate the expected uplift for 3 months?\n\nGive me a month-by-month projection for the first 6 months after hiring.',
+        expectedOutput: 'Your specific break-even revenue number, how far you are from it today, a projected timeline to reach it, and a 6-month post-hire financial projection.',
+        tips: 'If your break-even date is more than 18 months away at your current growth rate, the hire is premature. If it is less than 6 months away, the hire is likely overdue and the cost of NOT hiring (lost capacity, burnout) may already be affecting your growth.'
+      },
+      {
+        id: 'smb-bd-3-s3',
+        stepNumber: 3,
+        title: 'The Capacity Audit — Is This Actually the Right Problem?',
+        instruction: 'Sometimes what looks like a hiring problem is actually a pricing problem or a time-management problem. Before committing to a hire, do an honest audit of where your time actually goes — you might find a cheaper solution.',
+        promptTemplate: 'Before I commit to hiring, help me audit whether this is the right solution.\n\nI feel I need to hire because: [describe the actual problem — e.g. "I\'m working 70-hour weeks and still missing deadlines" / "I can\'t take on new clients because I\'m at capacity" / "I spend all my time on admin instead of the work I\'m good at"]\n\nHere is a rough breakdown of how I spend my 50 working hours this week:\n- [Task/activity 1]: [X hours]\n- [Task/activity 2]: [X hours]\n- [Task/activity 3]: [X hours]\n- [Admin/paperwork/invoicing/messages]: [X hours]\n- [Travel/logistics]: [X hours]\n- [Other]: [X hours]\n\nOf these, the tasks I MUST do myself (only I can do these):\n[List them]\n\nOf these, tasks someone else could learn to do with training:\n[List them]\n\nOf these, tasks I could eliminate, automate, or stop doing entirely:\n[List them]\n\nAnalyze this and tell me:\n1. What is the minimum type of help I actually need? (Full-time / Part-time / Specific task only)\n2. Is there an automation or system that could solve part of this without hiring at all?\n3. If I raised my prices by 20%, could I afford to serve fewer clients at higher margin without needing to hire?\n4. What is your final recommendation: hire now, hire in [X months], or solve differently?',
+        expectedOutput: 'An honest analysis of whether hiring is actually the right solution — or whether a pricing change, delegation, or automation could solve the capacity problem at lower cost.',
+        tips: 'The most common finding: business owners spend 10-15 hours per week on admin tasks (invoicing, messages, scheduling, record-keeping) that could be handled by a virtual assistant for a fraction of a full hire\'s cost.'
+      }
+    ]
+  },
+
+  {
+    id: 'smb-bd-4',
+    slug: 'business-health-score-90-day-action-plan',
+    title: 'Business Health Score & 90-Day Action Plan',
+    subtitle: 'Score your business across 5 dimensions, pinpoint the single biggest lever for growth, and get a concrete 90-day plan to pull it — in one focused session.',
+    category: 'Finance',
+    difficulty: 'Beginner',
+    timeToComplete: 30,
+    timeSaved: 400,
+    completionCount: 418,
+    rating: 4.9,
+    isPro: false,
+    isNew: true,
+    tools: ['ChatGPT', 'Claude'],
+    beforeYouStart: [
+      'Rough figures for your monthly revenue and main expenses — even estimates are fine.',
+      'A sense of how many clients or customers you have and how often they come back.',
+      'An honest assessment of what is working and what is frustrating you about the business right now.',
+      'Access to ChatGPT or Claude — free tier works. This is a thinking session, not a data session.'
+    ],
+    expectedOutcome: 'A Business Health Score across 5 dimensions (Revenue, Margin, Cash, Growth, Risk), a diagnosis of your biggest constraint, and a specific 90-day action plan with weekly milestones targeting the highest-leverage opportunity in your business right now.',
+    agentAutomation: {
+      description: 'Every quarter, the agent automatically re-scores your Business Health across all 5 dimensions using your latest financial data, compares the score to last quarter, and delivers an updated 90-day plan focused on your new top constraint.',
+      trigger: 'First day of every quarter.',
+      actions: [
+        'Pull latest 3-month revenue, expense, and cash data from Google Sheets',
+        'Calculate updated scores for all 5 health dimensions',
+        'Compare to prior quarter scores to detect improvement or decline',
+        'Send data to Claude to identify the current top constraint and generate a fresh 90-day plan',
+        'Deliver the Quarterly Business Review email with scores, trend arrows, and the new 90-day plan'
+      ],
+      setupSteps: [
+        { title: 'Create a Business Health Tracker Tab', description: "Add a tab to your Google Sheets called 'Health Scores'. Columns: Quarter | Revenue Score | Margin Score | Cash Score | Growth Score | Risk Score | Overall Score | Top Constraint. After each quarterly review, enter your scores manually. This builds a historical record of business health over time." },
+        { title: 'Set Up the Quarterly Make.com Scenario', description: "Create a Make.com scenario triggered on January 1, April 1, July 1, and October 1. Pull the prior quarter's financial totals from your Monthly Summary tab. Calculate the 5 health scores using the scoring formulas from this playbook." },
+        { title: 'Generate the Updated 90-Day Plan', description: "Send the 5 scores and the prior quarter's top constraint to Claude via HTTP. Prompt: 'Here are our business health scores for Q[X]. Our prior top constraint was [X]. Identify the current top constraint, compare to last quarter, and generate a specific 90-day action plan for the new priority.'" },
+        { title: 'Deliver the Quarterly Business Review', description: "Use Gmail to send a Quarterly Business Review email with: a scorecard table with trend arrows (up/down/flat per dimension), a 2-paragraph AI narrative on what the scores mean, and the 90-day action plan. This becomes your quarterly board meeting with yourself." }
+      ],
+      tools: ['Make.com', 'Google Sheets', 'Claude', 'Gmail']
+    },
+    troubleshooting: [
+      {
+        problem: 'My scores are all low and I feel overwhelmed about where to start',
+        solution: 'This is exactly why the playbook forces a single top constraint. You cannot fix everything at once. Trust the process: fix the one biggest problem with full focus for 90 days, then reassess. A business that improves one dimension per quarter is a dramatically different business in 2 years.'
+      },
+      {
+        problem: 'The AI identifies Cash as my top constraint but I thought it was Growth',
+        solution: 'Cash always beats growth as a priority. A business can survive slow growth for years. A business that runs out of cash is dead in weeks. Work the cash problem first — the growth plan means nothing if you cannot make payroll next month.'
+      },
+      {
+        problem: 'My 90-day plan feels too ambitious — I can\'t do all of this while running the business',
+        solution: 'Tell the AI: "This plan has too many actions for someone running a business solo with [X hours/week] available. Reduce it to the 3 highest-impact actions only and sequence them so I\'m doing one thing at a time, not five things poorly."'
+      }
+    ],
+    relatedPlaybooks: [
+      { id: 'smb-bd-1', title: 'Profit Margin Analyzer: Find Your Most Profitable Work', slug: 'profit-margin-analyzer-most-profitable-work' },
+      { id: 'smb-bd-2', title: 'Pricing Strategy Reset', slug: 'pricing-strategy-reset' },
+      { id: 'smb-bd-3', title: 'Hire or Stay Solo: The Financial Decision', slug: 'hire-or-stay-solo-financial-decision' },
+      { id: 'smb-bk-2', title: 'Monthly Financial Snapshot & P&L Analyzer', slug: 'monthly-financial-snapshot-pl-analyzer' }
+    ],
+    steps: [
+      {
+        id: 'smb-bd-4-s1',
+        stepNumber: 1,
+        title: 'Score Your Business Across 5 Dimensions',
+        instruction: 'Before you can improve, you need an honest baseline. The Business Health Score measures five distinct areas of your business — each one can be strong while another is critically weak. Answering these questions as honestly as possible will give you a diagnosis, not just a description.',
+        promptTemplate: 'I want to score my business across 5 health dimensions and identify my top growth constraint. I\'ll answer honestly and I want you to be direct with me — not reassuring.\n\nMY BUSINESS: [DESCRIBE — type, size, how long operating, country]\n\n--- DIMENSION 1: REVENUE ---\n- Monthly revenue range: [AMOUNT]\n- Is revenue growing, flat, or declining over the last 6 months? [GROWING / FLAT / DECLINING]\n- Do I have enough clients, or am I too dependent on 1-2 big ones? [DIVERSIFIED / 1-2 BIG CLIENTS ONLY]\n- Is my revenue predictable (recurring/retainer) or unpredictable (project by project)? [PREDICTABLE / UNPREDICTABLE]\n\n--- DIMENSION 2: MARGIN ---\n- My approximate net profit margin (what I keep after all expenses): [X%]\n- Is my margin stable, improving, or shrinking? [STABLE / IMPROVING / SHRINKING]\n- Do I know which products/services make the most money? [YES / NO / ROUGHLY]\n\n--- DIMENSION 3: CASH ---\n- How many months of operating expenses do I have in cash/savings right now? [X months]\n- Do I struggle to pay bills on time or do I always have enough? [STRUGGLE / FINE]\n- Do clients pay me on time, or do I chase invoices frequently? [ON TIME / FREQUENT CHASING]\n\n--- DIMENSION 4: GROWTH ---\n- How do new clients/customers find me? [REFERRALS / SOCIAL MEDIA / ADS / WALK-IN / NETWORKING / OTHER]\n- Do I have a consistent way of getting new clients, or does it happen randomly? [CONSISTENT SYSTEM / RANDOM]\n- Have I grown revenue in the last 12 months? By approximately how much? [X% / FLAT / DECLINED]\n\n--- DIMENSION 5: RISK ---\n- If my biggest client left tomorrow, what % of revenue would disappear? [X%]\n- Do I have any key staff or suppliers I depend on completely? [YES — [describe] / NO]\n- Do I have any legal, tax, or compliance issues outstanding? [YES — [describe] / NO]\n\nScore each dimension 1-10 (1=critical problem, 10=excellent) and give me an OVERALL HEALTH SCORE (1-10). Then identify my SINGLE TOP CONSTRAINT — the one dimension that, if fixed, would have the biggest positive impact on everything else.',
+        expectedOutput: 'A scored Business Health assessment across all 5 dimensions, an overall score, and an identified top constraint — the single biggest problem holding the business back.',
+        tips: 'The dimension that is hardest to answer honestly is almost always the one that needs the most attention. If you catch yourself softening a score, push back and answer with the true number.'
+      },
+      {
+        id: 'smb-bd-4-s2',
+        stepNumber: 2,
+        title: 'Diagnose the Root Cause of Your Top Constraint',
+        instruction: 'A score tells you what the problem is. A diagnosis tells you why it exists. The same symptom (e.g. low cash) can have a dozen different causes — and the wrong cure for the actual cause wastes months of effort.',
+        promptTemplate: 'My top constraint is [TOP CONSTRAINT DIMENSION FROM STEP 1] with a score of [X/10].\n\nHere is more detail on what I observe about this problem:\n[Write 3-5 sentences describing what you actually see happening. Be specific. For example: "I always seem to have money coming in but then I check my bank and it\'s gone. I have been doing this for 2 years and I\'m never sure if I\'ll make payroll next month. I think the problem is my clients pay slowly but I\'m not sure."]\n\nBased on my score and description, diagnose the ROOT CAUSE of this problem. Do not accept my framing at face value — probe deeper. Common root causes include:\n\nFor Cash problems: Poor payment terms, high overhead, profit leaking to owner draws, seasonal patterns, invoice delays, pricing too low\nFor Revenue problems: No lead generation system, over-reliance on referrals, pricing, poor conversion, wrong target market\nFor Margin problems: Underpricing, scope creep, inefficient delivery, hidden costs, wrong service mix\nFor Growth problems: No marketing, invisible brand, serving wrong clients, geography limit, capacity ceiling\nFor Risk problems: Key person dependency, single client concentration, no cash buffer, unresolved legal issues\n\nGive me:\n1. Your diagnosis of the most likely root cause (not the symptom)\n2. The diagnostic question I should ask myself to confirm whether this is the true root cause\n3. What "fixing this" would look like in concrete, observable terms — how would I know it is solved?',
+        expectedOutput: 'A root cause diagnosis that goes deeper than the surface symptom, a self-diagnostic question to confirm the diagnosis, and a clear definition of what "fixed" looks like.',
+        tips: 'If the AI identifies a root cause that feels uncomfortable or challenges your assumptions — that is probably the right answer. Easy diagnoses lead to easy but ineffective solutions.'
+      },
+      {
+        id: 'smb-bd-4-s3',
+        stepNumber: 3,
+        title: 'Build Your 90-Day Action Plan',
+        instruction: 'Ninety days is long enough to make real progress and short enough to stay focused. This step converts your diagnosis into a specific, weekly-level action plan with clear milestones. The plan should have one primary goal, not ten.',
+        promptTemplate: 'Build me a 90-day action plan to solve my top constraint: [TOP CONSTRAINT]\nRoot cause identified: [ROOT CAUSE FROM STEP 2]\n\nMY CONSTRAINTS:\n- Hours available per week for improvement work (not day-to-day operations): [X hours/week]\n- Budget available for this initiative: approximately [AMOUNT or "zero budget — free actions only"]\n- Skills I can use: [e.g. "I can design, I can write, I am good with people but not tech"]\n- Support available: [e.g. "I work alone" / "I have 1 staff member who can help" / "I have a business partner"]\n\nStructure the plan as:\n\n🎯 THE 90-DAY GOAL\n[One specific, measurable outcome — not a vague improvement but a number]\n\n📅 MONTH 1: FOUNDATION (Weeks 1-4)\nWeek 1: [Specific action]\nWeek 2: [Specific action]\nWeek 3: [Specific action]\nWeek 4: [Specific action]\nMonth 1 Milestone: [What should be true by end of Month 1?]\n\n📅 MONTH 2: EXECUTION (Weeks 5-8)\n[Weekly actions]\nMonth 2 Milestone: [What should be true?]\n\n📅 MONTH 3: SCALE (Weeks 9-12)\n[Weekly actions]\nMonth 3 Milestone: [Final measurable outcome]\n\n⚠️ THE ONE BIGGEST RISK\n[What is the most likely thing that will derail this plan? What is the pre-emptive solution?]\n\n📊 HOW I\'LL TRACK PROGRESS\n[One number to track weekly that shows whether the plan is working]',
+        expectedOutput: 'A specific 90-day action plan with weekly-level milestones, a single measurable goal, a risk pre-emption strategy, and one weekly tracking metric.',
+        tips: 'Print this plan or save it as your phone wallpaper. The difference between a business owner who implements and one who does not is almost never intelligence or capability — it is visibility. Make the plan impossible to ignore.'
+      },
+      {
+        id: 'smb-bd-4-s4',
+        stepNumber: 4,
+        title: 'Set Your Weekly Review Ritual',
+        instruction: 'A plan without a review ritual is just a wish. This final step sets up the simplest possible weekly check-in to keep you on track — 10 minutes every Friday that will compound into real results over 90 days.',
+        promptTemplate: 'Create a weekly review ritual for my 90-day plan. I want the simplest possible structure that will take no more than 10 minutes every Friday.\n\nMy 90-day goal: [PASTE FROM STEP 3]\nMy weekly tracking metric: [PASTE FROM STEP 3]\n\nBuild me:\n\n1. A weekly review template I fill in every Friday (5 questions max, all answerable in 2 minutes)\n2. A simple scoring system: Green (on track), Yellow (slightly behind), Red (off track) — with clear definitions of what each colour means for my specific plan\n3. A rule: "If I am Red for 2 weeks in a row, I will [specific action — adjust the plan / ask for help / change the approach]"\n4. A suggested accountability method for someone running a business mostly alone: [e.g. weekly WhatsApp message to a friend / posting a number to a business group / putting a sticker on a visible chart]\n5. The ONE question I should ask myself at the end of Week 12 to decide whether the 90-day plan was a success',
+        expectedOutput: 'A 5-question weekly review template, a Red/Yellow/Green tracking system, a contingency rule for when things fall behind, and a final success question for Day 90.',
+        tips: 'The accountability method is more powerful than it sounds. Research consistently shows that sharing progress with even one other person — even informally — doubles the rate of follow-through. Pick a person and tell them your 90-day goal today.'
+      }
+    ]
   }
 ];
 
