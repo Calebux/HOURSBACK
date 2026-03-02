@@ -68,16 +68,17 @@ export default function LandingPage() {
         animate={{ y: 0 }}
         transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
       >
-        <div className="container mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="relative container mx-auto px-6 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center">
             <img
               src="/logo.png"
               alt="Hoursback Logo"
-              className="h-9 w-auto"
+              className="h-[52px] w-auto mix-blend-multiply"
             />
           </Link>
 
-          <div className="hidden md:flex items-center gap-8 text-sm text-brand-dark/80">
+          {/* Absolutely centered so links stay in the true middle regardless of logo width */}
+          <div className="absolute left-1/2 -translate-x-1/2 hidden md:flex items-center gap-8 text-sm text-brand-dark/80">
             <Link to="/playbooks" className="hover:text-brand-dark transition-colors">Playbooks</Link>
             <a href="#pricing" className="hover:text-brand-dark transition-colors">Pricing</a>
             <a href="#features" className="hover:text-brand-dark transition-colors">Features</a>
