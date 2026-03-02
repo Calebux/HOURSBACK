@@ -60,6 +60,8 @@ export function OnboardingModal({ userId, onComplete, onDismiss }: OnboardingMod
       completedAt: new Date().toISOString(),
     };
     localStorage.setItem(`hb_onboarding_${userId}`, JSON.stringify(data));
+    // Notify any mounted page (e.g. PlaybooksPage) that onboarding data is now available
+    window.dispatchEvent(new CustomEvent('hb:onboarding-complete'));
     onComplete(data);
   };
 
@@ -80,7 +82,7 @@ export function OnboardingModal({ userId, onComplete, onDismiss }: OnboardingMod
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 16 }}
         transition={{ type: 'spring', damping: 24, stiffness: 300 }}
-        className="relative w-full max-w-lg bg-brand-light rounded-3xl shadow-2xl overflow-hidden"
+        className="relative w-full max-w-lg bg-brand-light rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
@@ -143,7 +145,7 @@ export function OnboardingModal({ userId, onComplete, onDismiss }: OnboardingMod
         </div>
 
         {/* Body */}
-        <div className="p-5">
+        <div className="p-5 overflow-y-auto flex-1">
           <AnimatePresence mode="wait">
             {step === 1 ? (
               <motion.div

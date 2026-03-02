@@ -107,16 +107,22 @@ export default function PlaybooksPage() {
   // Load onboarding data when user is available
   useEffect(() => {
     if (!user) return;
-    const raw = localStorage.getItem(`hb_onboarding_${user.id}`);
-    if (!raw) return;
-    try {
-      const parsed = JSON.parse(raw) as OnboardingData;
-      if (parsed.profession && parsed.goals?.length) {
-        setOnboarding(parsed);
+    const readOnboarding = () => {
+      const raw = localStorage.getItem(`hb_onboarding_${user.id}`);
+      if (!raw) return;
+      try {
+        const parsed = JSON.parse(raw) as OnboardingData;
+        if (parsed.profession && parsed.goals?.length) {
+          setOnboarding(parsed);
+        }
+      } catch {
+        // ignore malformed data
       }
-    } catch {
-      // ignore malformed data
-    }
+    };
+    readOnboarding();
+    // Also refresh immediately if the modal is completed while this page is open
+    window.addEventListener('hb:onboarding-complete', readOnboarding);
+    return () => window.removeEventListener('hb:onboarding-complete', readOnboarding);
   }, [user]);
 
   // Load data
