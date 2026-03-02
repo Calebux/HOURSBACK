@@ -206,11 +206,8 @@ export default function WorkspacePage() {
       {/* Navigation */}
       <nav className="border-b border-brand-dark/10 bg-brand-light/80 backdrop-blur-md sticky top-0 z-50">
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-brand-dark rounded-full shadow-antigravity-md flex items-center justify-center">
-              <Zap className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-xl font-semibold">Hoursback</span>
+          <Link to="/" className="flex items-center">
+            <img src="/logo.png" alt="Hoursback" className="h-9 w-auto" />
           </Link>
 
           <div className="flex items-center gap-4">

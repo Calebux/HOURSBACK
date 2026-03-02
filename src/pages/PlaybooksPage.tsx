@@ -197,11 +197,8 @@ export default function PlaybooksPage() {
       {/* Navigation */}
       <nav className="border-b border-brand-dark/10 bg-brand-light/80 backdrop-blur-md sticky top-0 z-50">
         <div className="container mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 bg-brand-dark text-white text-white rounded-full shadow-antigravity-md hover:shadow-antigravity-lg transition-all flex items-center justify-center">
-              <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-brand-dark" />
-            </div>
-            <span className="text-lg sm:text-xl font-semibold hidden sm:block">Hoursback</span>
+          <Link to="/" className="flex items-center">
+            <img src="/logo.png" alt="Hoursback" className="h-8 sm:h-9 w-auto" />
           </Link>
 
           <div className="flex items-center gap-1.5 sm:gap-2 md:gap-4">
