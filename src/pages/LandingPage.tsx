@@ -463,34 +463,47 @@ function PricingPlanCard({ plan, isAnnual, onAuthRequired }: { plan: any, isAnnu
   const handleFlutterPayment = useFlutterwave(config);
 
   const handlePayment = () => {
+    console.log("--- FLUTTERWAVE DEBUG ---");
+    console.log("User Object:", user);
+    console.log("Payment Config:", config);
+    console.log("Public Key from Env:", import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY);
+
     if (!user) {
+      console.log("No user found, redirecting to signup/signin");
       if (onAuthRequired) onAuthRequired();
       return;
     }
 
-    handleFlutterPayment({
-      callback: async (response) => {
-        if (response.status === 'successful') {
-          closePaymentModal();
-          alert("Payment successful! Welcome to Pro.");
-          localStorage.setItem('has_pro_access', 'true');
-          if (user?.id) {
-            try {
-              await updateProfile(user.id, { subscription_status: 'pro' });
-            } catch (err) {
-              console.error("Failed to update profile", err);
+    try {
+      console.log("Executing handleFlutterPayment...");
+      handleFlutterPayment({
+        callback: async (response) => {
+          console.log("Flutterwave Callback Response:", response);
+          if (response.status === 'successful') {
+            closePaymentModal();
+            alert("Payment successful! Welcome to Pro.");
+            localStorage.setItem('has_pro_access', 'true');
+            if (user?.id) {
+              try {
+                await updateProfile(user.id, { subscription_status: 'pro' });
+              } catch (err) {
+                console.error("Failed to update profile", err);
+              }
             }
+            window.location.href = '/playbooks';
+          } else {
+            console.warn("Payment Fail/Incomplete:", response.status);
+            alert("Payment failed or was incomplete. Please try again.");
+            closePaymentModal();
           }
-          window.location.href = '/playbooks';
-        } else {
-          alert("Payment failed or was incomplete. Please try again.");
-          closePaymentModal();
+        },
+        onClose: () => {
+          console.log("Flutterwave modal closed");
         }
-      },
-      onClose: () => {
-        console.log("Payment modal closed by user");
-      }
-    });
+      });
+    } catch (err) {
+      console.error("CRITICAL: Error calling handleFlutterPayment:", err);
+    }
   };
 
   return (

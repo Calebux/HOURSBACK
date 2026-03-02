@@ -104,29 +104,42 @@ export default function PlaybookViewerPage() {
   const handleFlutterPayment = useFlutterwave(paymentConfig);
 
   const handlePayment = () => {
-    handleFlutterPayment({
-      callback: async (response) => {
-        if (response.status === 'successful') {
-          closePaymentModal();
-          toast.success("Payment successful! Welcome to Pro Playbooks.");
-          setIsProUser(true);
-          localStorage.setItem('has_pro_access', 'true');
-          if (user) {
-            try {
-              await updateProfile(user.id, { subscription_status: 'pro' });
-            } catch (err) {
-              console.error("Failed to persist pro status to DB:", err);
+    console.log("--- FLUTTERWAVE DEBUG (PlaybookViewer) ---");
+    console.log("User Object:", user);
+    console.log("Payment Config:", paymentConfig);
+    console.log("Public Key from Env:", import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY);
+
+    try {
+      console.log("Executing handleFlutterPayment...");
+      handleFlutterPayment({
+        callback: async (response) => {
+          console.log("Flutterwave Callback Response (PlaybookViewer):", response);
+          if (response.status === 'successful') {
+            closePaymentModal();
+            toast.success("Payment successful! Welcome to Pro Playbooks.");
+            setIsProUser(true);
+            localStorage.setItem('has_pro_access', 'true');
+            if (user) {
+              try {
+                await updateProfile(user.id, { subscription_status: 'pro' });
+              } catch (err) {
+                console.error("Failed to persist pro status to DB:", err);
+              }
             }
+          } else {
+            console.warn("Payment Fail/Incomplete (PlaybookViewer):", response.status);
+            toast.error("Payment failed or was incomplete. Please try again.");
+            closePaymentModal();
           }
-        } else {
-          toast.error("Payment failed or was incomplete. Please try again.");
-          closePaymentModal();
+        },
+        onClose: () => {
+          console.log("Flutterwave modal closed (PlaybookViewer)");
+          toast.info("Payment cancelled");
         }
-      },
-      onClose: () => {
-        toast.info("Payment cancelled");
-      }
-    });
+      });
+    } catch (err) {
+      console.error("CRITICAL: Error calling handleFlutterPayment (PlaybookViewer):", err);
+    }
   };
 
   useEffect(() => {
