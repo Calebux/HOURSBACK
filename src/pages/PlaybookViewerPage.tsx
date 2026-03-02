@@ -81,7 +81,7 @@ export default function PlaybookViewerPage() {
   const amountNGN = Math.floor(amountRaw * 1500);
 
   const paymentConfig = useMemo(() => ({
-    public_key: import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY || 'FLWPUBK_TEST-c238448928c9962ffef2924e9a77b31b-X',
+    public_key: import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY || 'FLWPUBK-d5505534622ae398b9500e9b6f82cb18-X',
     tx_ref: `hb_tx_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
     amount: amountNGN,
     currency: 'NGN',
