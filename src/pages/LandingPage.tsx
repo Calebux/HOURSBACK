@@ -12,7 +12,12 @@ import {
   Menu,
   X,
   ArrowRight,
-  Lightbulb
+  Lightbulb,
+  Bot,
+  CalendarClock,
+  Mail,
+  Sparkles,
+  PauseCircle
 } from 'lucide-react';
 import { AuthModal } from '../components/AuthModal';
 import { useAuth } from '../contexts/AuthContext';
@@ -174,7 +179,7 @@ export default function LandingPage() {
                 variants={fadeInUp}
                 className="text-lg md:text-xl text-brand-dark/70 leading-relaxed font-medium max-w-2xl text-center"
               >
-                Accept AI agents, offer financial services, and implement custom revenue models—from your first prompt to your billionth API call.
+                Turn any business workflow into an AI agent that runs on a schedule, delivers results to your inbox, and never forgets. Bookkeeping, outreach and financial analysis. All on autopilot.
               </motion.p>
 
               <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -219,6 +224,7 @@ export default function LandingPage() {
       </section>
 
       <HowItWorksSection />
+      <AutopilotSection />
       <PlaybookPreviewSection />
       <FeaturesSection />
       <PricingSection onAuthRequired={() => { setAuthView('signup'); setAuthModalOpen(true); }} />
@@ -235,6 +241,167 @@ export default function LandingPage() {
   );
 }
 
+
+function AutopilotSection() {
+  const features = [
+    {
+      icon: <CalendarClock className="w-5 h-5" />,
+      title: 'Schedule once, runs forever',
+      desc: 'Set any playbook to run daily, weekly, or monthly. The agent activates on schedule without you lifting a finger.'
+    },
+    {
+      icon: <Bot className="w-5 h-5" />,
+      title: 'AI does the full job',
+      desc: 'The agent reads your configuration, executes every step, and produces a finished result — not a half-done draft.'
+    },
+    {
+      icon: <Mail className="w-5 h-5" />,
+      title: 'Results delivered to your inbox',
+      desc: 'Every run lands in your email as a polished report. No dashboard to check, no tool to log into.'
+    },
+    {
+      icon: <PauseCircle className="w-5 h-5" />,
+      title: 'Pause, adjust, resume anytime',
+      desc: 'Change the schedule, update the variables, or pause the agent at any time. Full control, zero friction.'
+    }
+  ];
+
+  const mockRuns = [
+    { name: 'Weekly Bookkeeping', status: 'Delivered', time: '08:00 AM', color: 'bg-emerald-400' },
+    { name: 'Monthly P&L Snapshot', status: 'Running', time: '07:45 AM', color: 'bg-blue-400' },
+    { name: 'Invoice Follow-ups', status: 'Queued', time: '09:00 AM', color: 'bg-amber-400' },
+  ];
+
+  return (
+    <section className="py-32 bg-brand-dark text-white relative overflow-hidden">
+      {/* Ambient glow accents */}
+      <div className="absolute top-0 right-0 w-[700px] h-[700px] bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="container mx-auto px-6 relative z-10">
+
+        {/* Header */}
+        <div className="text-center mb-20">
+          <div className="inline-flex items-center gap-2 bg-white/10 border border-white/15 rounded-full px-4 py-1.5 text-sm font-medium mb-8">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            Autopilot Agents
+          </div>
+          <h2 className="text-4xl md:text-6xl font-semibold mb-6 leading-tight max-w-3xl mx-auto">
+            Set it once.{' '}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">
+              Your agent handles the rest.
+            </span>
+          </h2>
+          <p className="text-lg md:text-xl text-white/60 max-w-2xl mx-auto leading-relaxed">
+            Schedule any playbook and your AI agent wakes up, does the full job, and drops the finished result in your inbox. Every day, while you sleep.
+          </p>
+        </div>
+
+        {/* Two columns */}
+        <div className="grid md:grid-cols-2 gap-16 items-center max-w-6xl mx-auto">
+
+          {/* Left: Feature list */}
+          <div className="space-y-8">
+            {features.map((f, i) => (
+              <div key={i} className="flex gap-5 group">
+                <div className="w-10 h-10 rounded-2xl bg-white/10 border border-white/10 flex items-center justify-center shrink-0 group-hover:bg-indigo-500/30 group-hover:border-indigo-400/30 transition-all duration-300">
+                  <span className="text-indigo-300">{f.icon}</span>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-white mb-1">{f.title}</h3>
+                  <p className="text-white/55 text-sm leading-relaxed">{f.desc}</p>
+                </div>
+              </div>
+            ))}
+
+            <div className="pt-4">
+              <Link to="/autopilot">
+                <motion.button
+                  className="px-6 py-3 bg-white text-brand-dark rounded-full font-medium flex items-center gap-2 text-sm group hover:bg-white/90 transition-all"
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                >
+                  <Sparkles className="w-4 h-4 text-indigo-500" />
+                  Set up your first agent
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </motion.button>
+              </Link>
+            </div>
+          </div>
+
+          {/* Right: Mock agent dashboard card */}
+          <div className="relative">
+            {/* Outer glow */}
+            <div className="absolute inset-0 bg-indigo-500/20 rounded-3xl blur-2xl scale-95 pointer-events-none" />
+
+            <div className="relative bg-white/5 border border-white/10 rounded-3xl overflow-hidden backdrop-blur-sm">
+
+              {/* Card header */}
+              <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Bot className="w-4 h-4 text-indigo-400" />
+                  <span className="text-sm font-medium text-white/80">Autopilot Dashboard</span>
+                </div>
+                <span className="text-xs text-white/40">Today, 08:12 AM</span>
+              </div>
+
+              {/* Agent rows */}
+              <div className="p-4 space-y-3">
+                {mockRuns.map((run, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center justify-between bg-white/5 hover:bg-white/8 border border-white/8 rounded-2xl px-5 py-4 transition-all group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className={`w-2 h-2 rounded-full ${run.color} ${run.status === 'Running' ? 'animate-pulse' : ''}`} />
+                      <div>
+                        <p className="text-sm font-medium text-white">{run.name}</p>
+                        <p className="text-xs text-white/40">{run.time}</p>
+                      </div>
+                    </div>
+                    <span className={`text-xs font-medium px-3 py-1 rounded-full ${
+                      run.status === 'Delivered' ? 'bg-emerald-500/20 text-emerald-300' :
+                      run.status === 'Running'   ? 'bg-blue-500/20 text-blue-300' :
+                                                   'bg-amber-500/20 text-amber-300'
+                    }`}>
+                      {run.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Email delivery preview */}
+              <div className="mx-4 mb-4 bg-gradient-to-br from-indigo-500/15 to-purple-500/10 border border-indigo-400/20 rounded-2xl p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <Mail className="w-4 h-4 text-indigo-300" />
+                  <span className="text-xs font-medium text-indigo-200">Delivered to your inbox</span>
+                </div>
+                <p className="text-xs text-white/50 leading-relaxed">
+                  <span className="text-white/80 font-medium">Weekly Bookkeeping Report · </span>
+                  14 transactions categorized, 2 flagged for review. Net expenses this week: ₦47,200. View full report →
+                </p>
+              </div>
+
+              {/* Bottom stat strip */}
+              <div className="border-t border-white/10 px-6 py-4 grid grid-cols-3 gap-4 text-center">
+                {[
+                  { label: 'Agents active', value: '3' },
+                  { label: 'Runs this month', value: '24' },
+                  { label: 'Hours saved', value: '18 hrs' },
+                ].map((s, i) => (
+                  <div key={i}>
+                    <p className="text-lg font-bold text-white">{s.value}</p>
+                    <p className="text-xs text-white/40">{s.label}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
 
 function HowItWorksSection() {
   const steps = [
@@ -405,9 +572,9 @@ function FeaturesSection() {
       description: "AI tools change fast. We update playbooks when interfaces change. You're never stuck with outdated instructions."
     },
     {
-      icon: <BarChart3 className="w-6 h-6" />,
-      title: "Measurable ROI",
-      description: "Track time saved per playbook, per person, per team. Export reports to show leadership the impact."
+      icon: <Bot className="w-6 h-6" />,
+      title: "Autopilot agents",
+      description: "Schedule any playbook to run automatically. Your AI agent executes every step and delivers a finished report to your inbox — no manual trigger needed."
     }
   ];
 
