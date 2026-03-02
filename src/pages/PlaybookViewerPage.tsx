@@ -115,7 +115,7 @@ export default function PlaybookViewerPage() {
       handleFlutterPayment({
         callback: async (response) => {
           console.log("Flutterwave Callback Response (PlaybookViewer):", response);
-          if (response.status === 'successful') {
+          if (response.status === 'successful' || response.status === 'completed') {
             closePaymentModal();
             toast.success("Payment successful! Welcome to Pro Playbooks.");
             setIsProUser(true);

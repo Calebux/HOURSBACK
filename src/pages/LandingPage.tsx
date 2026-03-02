@@ -480,7 +480,7 @@ function PricingPlanCard({ plan, isAnnual, onAuthRequired }: { plan: any, isAnnu
       handleFlutterPayment({
         callback: async (response) => {
           console.log("Flutterwave Callback Response:", response);
-          if (response.status === 'successful') {
+          if (response.status === 'successful' || response.status === 'completed') {
             closePaymentModal();
             alert("Payment successful! Welcome to Pro.");
             localStorage.setItem('has_pro_access', 'true');
