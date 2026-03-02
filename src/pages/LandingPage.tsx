@@ -73,7 +73,7 @@ export default function LandingPage() {
             <img
               src="/logo.png"
               alt="Hoursback Logo"
-              className="h-[52px] w-auto mix-blend-multiply"
+              className="h-[52px] w-auto bg-[#F8F9FA]"
             />
           </Link>
 
