@@ -1,4 +1,4 @@
-import type { Playbook } from './playbooks';
+import type { Playbook } from '../types/playbook';
 
 export const coworkPluginPlaybooks: Playbook[] = [
   {
