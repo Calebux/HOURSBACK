@@ -67,9 +67,31 @@ export default function AutopilotModal({ isOpen, onClose, playbook, variables, u
             return;
         }
 
+        // Validate custom email if provided
+        if (customEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customEmail.trim())) {
+            toast.error('Please enter a valid delivery email address.');
+            return;
+        }
+
         setIsScheduling(true);
 
         try {
+            // Check for duplicate schedule (only on create)
+            if (!isEditMode) {
+                const { data: existing } = await supabase
+                    .from('scheduled_playbooks')
+                    .select('id')
+                    .eq('user_id', userId)
+                    .eq('playbook_slug', playbook.slug)
+                    .single();
+
+                if (existing) {
+                    toast.error('You already have an agent scheduled for this playbook. Edit it from the Autopilot Dashboard.');
+                    setIsScheduling(false);
+                    return;
+                }
+            }
+
             const payload = {
                 user_id: userId,
                 playbook_slug: playbook.slug,

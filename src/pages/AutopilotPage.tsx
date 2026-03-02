@@ -68,6 +68,8 @@ export default function AutopilotPage() {
         if (!error) {
             setSchedules(prev => prev.map(s => s.id === id ? { ...s, is_active: !currentStatus } : s));
             toast.success(currentStatus ? 'Agent paused' : 'Agent resumed');
+        } else {
+            toast.error('Failed to update agent status. Please try again.');
         }
     };
 
