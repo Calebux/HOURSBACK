@@ -25,7 +25,7 @@ import { fetchPlaybooks } from '../lib/api';
 import type { OnboardingData } from '../components/OnboardingModal';
 
 const PROFESSION_CATEGORIES: Record<string, string[]> = {
-  entrepreneur: ['Marketing', 'Business Development', 'Operations', 'Finance'],
+  entrepreneur: ['Marketing', 'Business Development', 'Operations', 'Finance', 'Risk & Strategy'],
   freelancer: ['Marketing', 'Sales Ops', 'Operations'],
   marketing: ['Marketing', 'Business Development'],
   finance: ['Finance', 'Business Development'],
@@ -366,6 +366,7 @@ export default function PlaybooksPage() {
                       <option value="Product">Product</option>
                       <option value="Legal">Legal</option>
                       <option value="Fitness & Wellness">Fitness &amp; Wellness</option>
+                      <option value="Risk & Strategy">Risk &amp; Strategy</option>
                     </select>
                     <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                   </div>

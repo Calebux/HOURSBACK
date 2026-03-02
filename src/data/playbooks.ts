@@ -1467,7 +1467,8 @@ export const getCategoryColor = (category: string): string => {
     'Product': '#EA580C',
     'Legal': '#475569',
     'Claude Crash Course': '#DA7756',
-    'Fitness & Wellness': '#10B981'
+    'Fitness & Wellness': '#10B981',
+    'Risk & Strategy': '#DC2626'
   };
   return colors[category] || '#4F46E5';
 };
@@ -3124,6 +3125,643 @@ Also add: what results can I realistically expect after 4 weeks if I follow this
     relatedPlaybooks: [
       { id: 'fit-1', title: 'AI Meal Plan Generator', slug: 'ai-meal-plan-generator' }
     ]
+  },
+
+  // ── Business Research ────────────────────────────────────────────────────────
+
+  {
+    id: 'biz-res-1',
+    title: 'AI Competitor Intelligence Report',
+    slug: 'ai-competitor-intelligence-report',
+    category: 'Business Development',
+    subtitle: 'Map your competitive landscape, uncover rival weaknesses, and build a sharp positioning statement — all in under 30 minutes.',
+    difficulty: 'Beginner',
+    timeToComplete: 30,
+    timeSaved: 300,
+    isPro: false,
+    isNew: true,
+    expectedOutcome: 'A structured competitor intelligence brief with a positioning statement that clearly differentiates your business.',
+    tools: ['Claude'],
+    rating: 4.8,
+    completionCount: 870,
+    beforeYouStart: [
+      'Know the names of 2–4 direct competitors (Google them if needed).',
+      'Have a one-sentence description of your own business ready.',
+      'Open Claude at claude.ai — every step has a Copilot prompt you can run directly.',
+    ],
+    troubleshooting: [
+      { problem: 'I don\'t know who my competitors are', solution: 'Start Step 1 with just your product description and ask Claude: "Who are the top 5 competitors in this space?" It will identify them for you.' },
+      { problem: 'Claude\'s information about a competitor seems outdated', solution: 'Paste the competitor\'s homepage text into the chat and ask Claude to analyse it directly. This is more reliable than relying on its training data.' },
+    ],
+    steps: [
+      {
+        id: 'biz-res-1-s1',
+        stepNumber: 1,
+        title: 'Map the competitive landscape',
+        instruction: 'Give Claude your business context and competitor names so it can build a side-by-side comparison of the market.',
+        tools: ['Claude'],
+        promptTemplate: `I need a competitor analysis for my business. Here is the context:
+
+**My business:** [Describe what you do and who you serve in 2-3 sentences]
+**My competitors:** [List 2-4 competitor names, e.g. Company A, Company B, Company C]
+**My market/industry:** [e.g. B2B SaaS for accountants, local restaurant delivery, freelance design services]
+
+For each competitor, please create a table showing:
+1. Their primary product or service
+2. Target customer
+3. Price positioning (premium / mid-market / budget)
+4. Key strengths (top 2)
+5. Visible weaknesses or gaps (top 2)
+6. What they are known for (their "claim to fame")
+
+End with a 3-sentence summary of the overall competitive landscape.`,
+        expectedOutput: 'A competitor comparison table with a landscape summary.',
+        tips: 'If Claude doesn\'t have information on a niche competitor, paste their website\'s "About" or homepage text into the same message — Claude can analyse any text you give it.',
+      },
+      {
+        id: 'biz-res-1-s2',
+        stepNumber: 2,
+        title: 'Find the gaps your competitors are ignoring',
+        instruction: 'Based on the competitive map, ask Claude to identify underserved customer needs and market white spaces your business could own.',
+        tools: ['Claude'],
+        promptTemplate: `Based on the competitive analysis above, please identify:
+
+1. **Customer pain points no one is fully solving** — what are buyers in this market still complaining about even with existing solutions?
+2. **Underserved customer segments** — is there a specific type of buyer, geography, or use case that all the competitors seem to overlook?
+3. **Positioning white space** — is there a value proposition (e.g. simplest, fastest, most personal, most affordable for a specific group) that no competitor currently owns clearly?
+4. **Emerging trends** — what shifts in the market (technology, regulation, buyer behaviour) could create a new opportunity in the next 12–24 months?
+
+Present this as a ranked list of opportunities, most actionable first.`,
+        expectedOutput: 'A ranked list of market gaps and untapped opportunities.',
+        tips: 'The white space analysis is the most valuable output here. Ask Claude to go deeper on whichever gap resonates most: "Tell me more about the [gap]. What would a business need to do to credibly own that position?"',
+      },
+      {
+        id: 'biz-res-1-s3',
+        stepNumber: 3,
+        title: 'Write your differentiated positioning statement',
+        instruction: 'Use the gap analysis to craft a sharp one-sentence positioning statement that tells customers exactly why they should choose you over anyone else.',
+        tools: ['Claude'],
+        promptTemplate: `Based on everything above — the competitive landscape and the gaps we identified — please write 3 positioning statement options for my business.
+
+Each statement should follow this structure:
+"For [specific target customer], [my business] is the [category] that [key benefit] because [reason to believe]."
+
+Make each option bet on a different competitive angle:
+- Option 1: Bet on simplicity / ease
+- Option 2: Bet on a specific customer segment we can serve better than anyone else
+- Option 3: Bet on the biggest unmet need we identified
+
+Then recommend which one you think is strongest and why.`,
+        expectedOutput: '3 positioning statement options with a recommended choice and rationale.',
+        tips: 'Pick one and test it. Paste it into your website headline, a LinkedIn post, or a 30-second pitch. The market will tell you which one lands. You can always run this step again in 3 months as your market evolves.',
+      },
+    ],
+    relatedPlaybooks: [
+      { id: 'smb-bd-1', title: 'Profit Margin Analyzer', slug: 'profit-margin-analyzer-most-profitable-work' },
+      { id: 'risk-1', title: 'Business Risk Scorecard', slug: 'business-risk-scorecard' },
+    ],
+  },
+
+  // ── Sales ────────────────────────────────────────────────────────────────────
+
+  {
+    id: 'sales-ai-1',
+    title: 'AI Cold Outreach Machine',
+    slug: 'ai-cold-outreach-machine',
+    category: 'Sales Ops',
+    subtitle: 'Build a hyper-personalised outreach sequence for any prospect in minutes — emails, LinkedIn messages, and objection responses included.',
+    difficulty: 'Beginner',
+    timeToComplete: 20,
+    timeSaved: 240,
+    isPro: false,
+    isNew: true,
+    expectedOutcome: 'A 3-touch outreach sequence (email + LinkedIn + follow-up) personalised to a specific prospect, plus a ready-made objection-handling guide.',
+    tools: ['Claude'],
+    rating: 4.9,
+    completionCount: 1540,
+    beforeYouStart: [
+      'Know who you are trying to reach — their job title, company, and ideally their name.',
+      'Have a clear one-sentence description of what you are selling and the primary pain it solves.',
+      'Have the prospect\'s LinkedIn URL or company website open in another tab.',
+    ],
+    troubleshooting: [
+      { problem: 'My emails sound too formal or robotic', solution: 'Add this to your prompt: "Write in a conversational, direct tone — like a trusted peer, not a sales rep. No buzzwords." Claude will adjust the register immediately.' },
+      { problem: 'I don\'t know enough about the prospect to personalise', solution: 'Paste their LinkedIn "About" section or a recent post they made into the chat. Ask Claude to identify a relevant hook based on that content.' },
+    ],
+    steps: [
+      {
+        id: 'sales-ai-1-s1',
+        stepNumber: 1,
+        title: 'Build your ideal customer profile and hook',
+        instruction: 'Define exactly who you are targeting and what business pain they are most likely feeling right now — this becomes the foundation of every message.',
+        tools: ['Claude'],
+        promptTemplate: `Help me build a sharp outreach profile for the following prospect:
+
+**Prospect name:** [e.g. Sarah Mensah]
+**Job title:** [e.g. Head of Operations]
+**Company:** [e.g. Trove Logistics — 50-person freight company in Lagos]
+**What I sell:** [e.g. AI-powered route optimisation software that cuts delivery costs by 15-20%]
+**Primary pain I solve:** [e.g. Rising fuel costs and manual dispatch errors causing late deliveries]
+
+Based on this, please tell me:
+1. The #1 business pain Sarah is most likely stressed about in her role right now
+2. The outcome she is personally responsible for that my product directly impacts
+3. A relevant conversation hook (something timely — an industry trend, a recent news event, or a challenge common at her stage of growth)
+4. The single most compelling stat or result I should lead with in my outreach`,
+        expectedOutput: 'A sharp prospect profile with a pain point, personal outcome, hook, and lead stat.',
+        tips: 'The "personal outcome" is often more powerful than the business outcome. A Head of Operations doesn\'t just want lower costs — they want to be the person who solved the delivery problem. Frame your message around their win, not just the company\'s.',
+      },
+      {
+        id: 'sales-ai-1-s2',
+        stepNumber: 2,
+        title: 'Write a 3-touch outreach sequence',
+        instruction: 'Generate a complete multi-touch sequence — first email, LinkedIn connection note, and a follow-up — all personalised to the prospect profile.',
+        tools: ['Claude'],
+        promptTemplate: `Based on the prospect profile above, write a 3-touch outreach sequence:
+
+**Touch 1 — Cold email (subject line + body)**
+- Max 100 words
+- Open with the hook, not a product pitch
+- One specific pain point
+- One result/stat
+- One clear, low-friction call to action (e.g. "Worth a 15-min call this week?")
+
+**Touch 2 — LinkedIn connection request note**
+- Max 300 characters
+- Personal, not salesy
+- Reference something specific about their work or company
+
+**Touch 3 — Follow-up email (3 days after Touch 1)**
+- Max 80 words
+- Don't repeat the same angle — try a different hook or offer a resource
+- Make it easy to say "not now" rather than pushing for a yes
+
+Label each touch clearly. Keep the tone warm, direct, and human.`,
+        expectedOutput: 'A complete 3-touch sequence ready to copy and send.',
+        tips: 'The best follow-up emails acknowledge that the person is busy and make it easy to respond with a single word. Try ending with: "Is this even on your radar for [quarter]?" — it\'s binary and requires almost no effort to answer.',
+      },
+      {
+        id: 'sales-ai-1-s3',
+        stepNumber: 3,
+        title: 'Prepare your objection-handling guide',
+        instruction: 'Anticipate the 5 most likely objections for this specific prospect and get sharp, non-pushy responses ready before your first conversation.',
+        tools: ['Claude'],
+        promptTemplate: `Based on what I sell ([your product/service]) and the prospect profile above, write an objection-handling guide for my sales conversations.
+
+For each of the 5 most likely objections, provide:
+1. The exact objection (word-for-word how a prospect typically says it)
+2. What the prospect really means underneath that objection
+3. A 2-3 sentence response that acknowledges, reframes, and moves forward
+4. A follow-up question to keep the conversation going
+
+The 5 objections to cover:
+- "We don't have budget right now"
+- "We're already using [competitor]"
+- "Now isn't a good time"
+- "I need to talk to [someone else] first"
+- [Most industry-specific objection for my product]
+
+Keep the responses conversational — not scripted.`,
+        expectedOutput: 'A 5-objection handling guide with reframes and follow-up questions.',
+        tips: 'The most important column is "what they really mean." Most objections are not the literal words being said. "No budget" often means "I\'m not convinced the ROI is worth it yet." Once you understand the real concern, the response writes itself.',
+      },
+    ],
+    relatedPlaybooks: [
+      { id: 'smb-1', title: '30-Day Social Media Content Engine', slug: '30-day-social-media-content-engine' },
+      { id: 'biz-res-1', title: 'AI Competitor Intelligence Report', slug: 'ai-competitor-intelligence-report' },
+    ],
+  },
+
+  // ── Risk Analysis ────────────────────────────────────────────────────────────
+
+  {
+    id: 'risk-1',
+    title: 'Business Risk Scorecard',
+    slug: 'business-risk-scorecard',
+    category: 'Risk & Strategy',
+    subtitle: 'Identify, score, and build mitigation plans for the top risks threatening your business — before they become emergencies.',
+    difficulty: 'Intermediate',
+    timeToComplete: 25,
+    timeSaved: 360,
+    isPro: false,
+    isNew: true,
+    expectedOutcome: 'A prioritised risk register with likelihood scores, impact ratings, and actionable mitigation plans for your top 5 business risks.',
+    tools: ['Claude'],
+    rating: 4.7,
+    completionCount: 620,
+    beforeYouStart: [
+      'Think about your business model — how do you make money and where could that break?',
+      'Consider your key dependencies: suppliers, staff, clients, technology, or regulations.',
+      'This works for any business stage — a side hustle, growing SMB, or established company.',
+    ],
+    troubleshooting: [
+      { problem: 'The risks feel too generic', solution: 'In Step 1, give Claude more specific details about your business: your revenue model, your biggest client concentration, your key supplier, and your team size. The more specific the input, the more specific the risks.' },
+      { problem: 'I don\'t know how to score risks', solution: 'Use the 1–5 scale Claude suggests. When in doubt, ask: "How would this risk affect my revenue in the next 90 days?" If the answer is "significantly," score it high impact.' },
+    ],
+    steps: [
+      {
+        id: 'risk-1-s1',
+        stepNumber: 1,
+        title: 'Identify your business risk categories',
+        instruction: 'Give Claude a snapshot of your business so it can generate a tailored risk inventory across all the key risk categories.',
+        tools: ['Claude'],
+        promptTemplate: `I want to identify and analyse risks for my business. Here is the context:
+
+**Business type:** [e.g. freelance marketing agency / retail shop / SaaS startup / logistics company]
+**Revenue model:** [e.g. monthly retainers / product sales / subscription fees / per-project]
+**Team size:** [e.g. just me / 3-person team / 15 employees]
+**Stage:** [e.g. just launched / 2 years in / scaling rapidly]
+**Key dependencies:** [e.g. 2 main clients make up 80% of revenue / rely on one supplier / fully remote team]
+**Industry:** [e.g. digital marketing, food & beverage, fintech, logistics]
+
+Based on this, please identify the top 8–10 risks across these categories:
+- Financial risks (cash flow, client concentration, pricing)
+- Operational risks (team, technology, processes)
+- Market risks (competition, demand shifts, pricing pressure)
+- Compliance & legal risks (regulations, contracts, IP)
+- Reputation risks (online reviews, social media, PR)
+
+For each risk, write one sentence describing what it looks like in practice for MY specific business.`,
+        expectedOutput: 'A tailored list of 8–10 specific, named risks across all categories.',
+        tips: 'Don\'t skip the "key dependencies" field. A business with 80% of revenue from one client has a fundamentally different risk profile than one with 50 clients. Claude needs that context to give you useful, non-generic risks.',
+      },
+      {
+        id: 'risk-1-s2',
+        stepNumber: 2,
+        title: 'Score and prioritise your risks',
+        instruction: 'Rate each risk by likelihood and impact so you know which ones deserve your attention first.',
+        tools: ['Claude'],
+        promptTemplate: `For the risks identified above, please create a Risk Scorecard table with the following columns:
+
+| Risk | Likelihood (1–5) | Impact if it happens (1–5) | Risk Score (L × I) | Priority |
+
+Scoring guide:
+- Likelihood: 1 = very unlikely, 3 = possible, 5 = already happening or very likely in 6 months
+- Impact: 1 = minor inconvenience, 3 = significant disruption, 5 = could end the business
+
+After scoring, rank the top 5 risks by Risk Score and explain in 1–2 sentences why each scored that way for my specific business.
+
+Then identify: which 1–2 risks are most urgent to address in the next 30 days?`,
+        expectedOutput: 'A scored risk table with top 5 prioritised risks and a 30-day urgent action list.',
+        tips: 'High likelihood + high impact = your house is on fire. High impact + low likelihood = buy insurance. Low impact + high likelihood = manage it with a process. This matrix tells you where to spend your energy versus where to just have a backup plan.',
+      },
+      {
+        id: 'risk-1-s3',
+        stepNumber: 3,
+        title: 'Build your mitigation plan',
+        instruction: 'For your top 5 risks, get specific, actionable steps to either reduce the likelihood, reduce the impact, or have a contingency ready.',
+        tools: ['Claude'],
+        promptTemplate: `For the top 5 risks identified and scored above, please create a Mitigation Plan for each one.
+
+For each risk, provide:
+1. **Prevention action** — one concrete step I can take to reduce the likelihood of this risk happening (with a specific next action I can do this week)
+2. **Contingency plan** — if this risk does happen, what are the first 3 steps I should take?
+3. **Early warning signal** — what is the first sign I would notice that this risk is becoming real? (so I catch it early)
+4. **Owner** — for a small team, who should be responsible for monitoring this risk? (by role, e.g. founder, ops lead, finance)
+
+Format as a clear table or section per risk. Be specific and actionable — not generic advice.`,
+        expectedOutput: 'A 5-risk mitigation plan with prevention actions, contingency steps, and early warning signals.',
+        tips: 'The early warning signal is the most underused column. Most businesses only act when the risk has already hit. Identify one leading indicator per risk — for example, "if outstanding invoices exceed 45 days" is an early warning for a cash flow crisis — and check it monthly.',
+      },
+    ],
+    relatedPlaybooks: [
+      { id: 'biz-res-1', title: 'AI Competitor Intelligence Report', slug: 'ai-competitor-intelligence-report' },
+      { id: 'smb-bd-4', title: 'Business Health Score & 90-Day Action Plan', slug: 'business-health-score-90-day-action-plan' },
+    ],
+  },
+
+  // ── Marketing ────────────────────────────────────────────────────────────────
+
+  {
+    id: 'mktg-ai-1',
+    title: '60-Minute AI Marketing Strategy',
+    slug: '60-minute-ai-marketing-strategy',
+    category: 'Marketing',
+    subtitle: 'Build a complete go-to-market strategy — positioning, channels, messaging, and a 90-day campaign plan — faster than any agency brief.',
+    difficulty: 'Intermediate',
+    timeToComplete: 40,
+    timeSaved: 480,
+    isPro: false,
+    isNew: true,
+    expectedOutcome: 'A clear marketing strategy doc with positioning, top 3 channels, core messaging pillars, and a 90-day campaign plan with weekly actions.',
+    tools: ['Claude'],
+    rating: 4.8,
+    completionCount: 1120,
+    beforeYouStart: [
+      'Know your target customer — who is the specific person you are trying to reach?',
+      'Know your primary goal: get more leads, increase brand awareness, retain customers, or launch a new product.',
+      'Have your monthly marketing budget in mind (even a rough range).',
+    ],
+    troubleshooting: [
+      { problem: 'The strategy feels too broad', solution: 'Add more constraints: "I have a ₦200k/month budget, a team of 2, and I only want to focus on Lagos for now." Constraints are what make strategies actionable.' },
+      { problem: 'I\'m not sure which channels to focus on', solution: 'Tell Claude "I\'m a complete beginner with all channels." It will recommend the 1-2 that offer the best ROI for your specific business type and audience.' },
+    ],
+    steps: [
+      {
+        id: 'mktg-ai-1-s1',
+        stepNumber: 1,
+        title: 'Define your positioning and target customer',
+        instruction: 'Build a precise customer profile and a clear positioning statement — this is the foundation everything else rests on.',
+        tools: ['Claude'],
+        promptTemplate: `I need to build a marketing strategy for my business. Here is the context:
+
+**Business:** [What you do and who you serve in 2-3 sentences]
+**Primary goal:** [e.g. generate 20 new leads per month / increase brand awareness / launch new product / grow from 100 to 500 customers]
+**Target customer:** [Describe the person: their job/role, age range, location, what they care about, their biggest frustration related to what you sell]
+**Budget (monthly):** [e.g. under ₦100k / ₦200-500k / no fixed budget]
+**Current marketing:** [What you already do — social media, word of mouth, ads, events, nothing]
+**Competitors:** [2-3 names if you know them]
+
+Based on this, please:
+1. Write a one-sentence customer persona that captures who I am really speaking to
+2. Identify their top 3 buying motivations (why they would pay for my solution)
+3. Identify their top 2 buying objections (what stops them from buying)
+4. Write a positioning statement: "For [persona], [my brand] is the [category] that [benefit] because [reason to believe]."`,
+        expectedOutput: 'A customer persona, buying motivations, objections, and positioning statement.',
+        tips: 'The "buying objections" are often more useful than the motivations. Knowing exactly what stops someone from buying tells you exactly what your marketing needs to address. Build your messaging around eliminating those objections.',
+      },
+      {
+        id: 'mktg-ai-1-s2',
+        stepNumber: 2,
+        title: 'Choose your channels and core messaging',
+        instruction: 'Select the 2–3 channels where your customers actually spend time and build a messaging framework that works across all of them.',
+        tools: ['Claude'],
+        promptTemplate: `Based on the positioning and customer profile above, please recommend:
+
+**Channel Strategy:**
+1. The top 3 marketing channels I should focus on (from: Instagram, LinkedIn, TikTok, Facebook, Google Ads, content/SEO, email, WhatsApp, events, partnerships, referrals)
+2. For each channel: why it fits my customer, what type of content works best, and realistic expectations for my budget level
+3. Which channel to start with if I can only do one
+
+**Messaging Framework:**
+1. My hero message — the single most important thing I want people to associate with my brand (10 words or less)
+2. Three messaging pillars — the 3 main themes I should consistently communicate (one sentence each)
+3. Proof points — 3 specific facts, results, or stories that make my claims believable
+4. A tagline option (max 7 words)`,
+        expectedOutput: 'A channel recommendation with rationale and a messaging framework.',
+        tips: 'Most small businesses try to be on every channel and do none of them well. Pick 2 channels and master them for 90 days before adding more. Consistency beats variety every time.',
+      },
+      {
+        id: 'mktg-ai-1-s3',
+        stepNumber: 3,
+        title: 'Build your 90-day campaign plan',
+        instruction: 'Turn the strategy into a concrete 90-day action plan with monthly themes, weekly actions, and measurable goals.',
+        tools: ['Claude'],
+        promptTemplate: `Based on our positioning, channels, and messaging above, create a 90-day marketing campaign plan.
+
+Structure it as:
+**Month 1 — Foundation (Weeks 1–4):** Theme + 3 weekly content/campaign actions + 1 key metric to hit
+**Month 2 — Growth (Weeks 5–8):** Theme + 3 weekly content/campaign actions + 1 key metric to hit
+**Month 3 — Scale (Weeks 9–12):** Theme + 3 weekly content/campaign actions + 1 key metric to hit
+
+For each weekly action, be specific (e.g. "Post 3x on Instagram: 1 behind-the-scenes, 1 customer result, 1 educational" — not just "post on Instagram").
+
+End with:
+- 5 KPIs I should track monthly
+- One quick win I can execute in the next 7 days to build momentum`,
+        expectedOutput: 'A 90-day marketing calendar with weekly actions and monthly KPIs.',
+        tips: 'The "quick win in 7 days" is the most important output. Don\'t file this strategy away — execute the quick win today or tomorrow. Momentum compounds. A strategy that stays in a doc is worth nothing.',
+      },
+    ],
+    relatedPlaybooks: [
+      { id: 'smb-1', title: '30-Day Social Media Content Engine', slug: '30-day-social-media-content-engine' },
+      { id: 'biz-res-1', title: 'AI Competitor Intelligence Report', slug: 'ai-competitor-intelligence-report' },
+    ],
+  },
+
+  // ── Financial Analysis ───────────────────────────────────────────────────────
+
+  {
+    id: 'fin-analysis-1',
+    title: 'Business Financial Health Check',
+    slug: 'business-financial-health-check',
+    category: 'Finance',
+    subtitle: 'Feed Claude your revenue, costs, and cash flow numbers and get a frank diagnosis of your financial health — with a clear action plan.',
+    difficulty: 'Beginner',
+    timeToComplete: 20,
+    timeSaved: 180,
+    isPro: false,
+    isNew: true,
+    expectedOutcome: 'A financial health score with a breakdown of your profitability, cash flow, and cost structure — plus 3 specific actions to improve each area.',
+    tools: ['Claude'],
+    rating: 4.8,
+    completionCount: 980,
+    beforeYouStart: [
+      'Pull up your last 3 months of revenue and expense figures — from a spreadsheet, bank statement, or accounting app.',
+      'Know your rough fixed costs (rent, salaries, subscriptions) vs variable costs (materials, commissions).',
+      'No accounting knowledge needed — Claude will explain everything in plain English.',
+    ],
+    troubleshooting: [
+      { problem: 'I don\'t have exact numbers', solution: 'Use estimates. Round to the nearest ₦10,000 or $1,000. The analysis is about identifying patterns and ratios, not exact precision.' },
+      { problem: 'My numbers look bad — I\'m nervous to share them', solution: 'Claude has no memory between conversations and no way to share your data. Be honest with the numbers — a financial diagnosis only helps if it\'s based on real figures.' },
+    ],
+    steps: [
+      {
+        id: 'fin-analysis-1-s1',
+        stepNumber: 1,
+        title: 'Input your revenue and costs',
+        instruction: 'Give Claude your financial snapshot for the last 3 months so it can calculate your key ratios and identify patterns.',
+        tools: ['Claude'],
+        promptTemplate: `Please analyse the financial health of my business based on the following data:
+
+**Business type:** [e.g. service business, product-based, SaaS, retail]
+**Currency:** [e.g. NGN, USD, GBP]
+
+**Last 3 months revenue:**
+- Month 1: [amount]
+- Month 2: [amount]
+- Month 3: [amount]
+
+**Monthly fixed costs (same every month):**
+[List each: e.g. Rent: X, Staff/salaries: X, Software subscriptions: X, Loan repayments: X]
+
+**Monthly variable costs (change with sales):**
+[List each: e.g. Raw materials: X, Freelancer fees: X, Ad spend: X, Delivery costs: X]
+
+**Average payment terms:** [e.g. clients pay immediately / net 30 days / net 60 days]
+**Outstanding unpaid invoices right now:** [amount or "none"]
+
+From this data, please calculate and explain:
+1. Average monthly revenue and revenue trend (growing / flat / declining)
+2. Gross profit margin
+3. Net profit margin
+4. Fixed cost ratio (fixed costs as % of revenue)
+5. Cash conversion cycle — how long does it take from selling to receiving cash?`,
+        expectedOutput: 'Calculated financial ratios with plain-English explanations of what each means for your business.',
+        tips: 'Don\'t guess at your margins — if you\'ve never calculated them before, this step alone is worth the 5 minutes it takes. Most business owners are surprised by their actual net margin when they see it written down.',
+      },
+      {
+        id: 'fin-analysis-1-s2',
+        stepNumber: 2,
+        title: 'Get your financial health diagnosis',
+        instruction: 'Ask Claude to benchmark your numbers and give you a frank assessment of where your business stands financially.',
+        tools: ['Claude'],
+        promptTemplate: `Based on the financial data and ratios above, please give me a frank financial health diagnosis:
+
+1. **Overall financial health score:** Rate my business out of 10 across these dimensions:
+   - Profitability (am I making enough margin?)
+   - Cash flow (can I pay my bills reliably?)
+   - Revenue stability (is income predictable?)
+   - Cost efficiency (am I spending wisely?)
+
+2. **The #1 financial strength** of my business right now
+
+3. **The #1 financial risk** I should address in the next 90 days
+
+4. **Red flags** — are there any numbers that would concern a banker or investor? What are they and why?
+
+5. **How do my margins compare** to typical benchmarks for a [business type] business?
+
+Be direct and honest — I need accurate feedback, not reassurance.`,
+        expectedOutput: 'A financial health scorecard with strengths, risks, red flags, and benchmark comparisons.',
+        tips: 'The benchmark comparison is eye-opening. A 10% net margin in retail is excellent; in consulting it\'s low. Industry context changes how you should interpret your own numbers.',
+      },
+      {
+        id: 'fin-analysis-1-s3',
+        stepNumber: 3,
+        title: 'Build your financial improvement plan',
+        instruction: 'Get a specific, prioritised action plan to improve your weakest financial metrics in the next 90 days.',
+        tools: ['Claude'],
+        promptTemplate: `Based on the financial diagnosis above, please create a 90-day financial improvement plan.
+
+Focus on the 3 most impactful areas to improve. For each area:
+
+1. **The metric to improve** (e.g. net margin, cash flow timing, cost ratio)
+2. **Current state vs target** (e.g. "Net margin is 8% — target 15% by end of 90 days")
+3. **3 specific actions** to get there (with a first step I can take this week)
+4. **How to measure progress** — one number I check monthly
+
+Also answer:
+- If I could only do ONE thing to improve my financial health in the next 30 days, what would it be and why?
+- Are there any costs I should consider cutting based on the data I shared?
+- Is there any revenue I might be leaving on the table?`,
+        expectedOutput: 'A 90-day financial improvement plan with specific actions and monthly progress metrics.',
+        tips: 'The "one thing" question forces prioritisation. Financial improvement tries to do too many things at once and ends up doing none of them. Pick the single highest-leverage action and do it well for 30 days.',
+      },
+    ],
+    relatedPlaybooks: [
+      { id: 'smb-bd-1', title: 'Profit Margin Analyzer', slug: 'profit-margin-analyzer-most-profitable-work' },
+      { id: 'biz-loan-1', title: 'Business Loan Application Prep Kit', slug: 'business-loan-application-prep-kit' },
+    ],
+  },
+
+  // ── Business Loan ────────────────────────────────────────────────────────────
+
+  {
+    id: 'biz-loan-1',
+    title: 'Business Loan Application Prep Kit',
+    slug: 'business-loan-application-prep-kit',
+    category: 'Finance',
+    subtitle: 'Prepare everything a lender needs to say yes — your business narrative, financial summary, and a lender comparison — all in one session.',
+    difficulty: 'Intermediate',
+    timeToComplete: 35,
+    timeSaved: 420,
+    isPro: false,
+    isNew: true,
+    expectedOutcome: 'A loan-ready business narrative, a clean financial summary document, a list of the best-fit lenders for your profile, and a checklist of documents to gather.',
+    tools: ['Claude'],
+    rating: 4.7,
+    completionCount: 540,
+    beforeYouStart: [
+      'Know how much you want to borrow and exactly what you will use it for.',
+      'Have your last 6–12 months of revenue figures available.',
+      'Know whether your business is registered and how long it has been operating.',
+    ],
+    troubleshooting: [
+      { problem: 'My financials are not strong enough to qualify', solution: 'Run the Financial Health Check playbook first to improve your numbers before applying. Lenders look at trend — even 3 months of improving margins helps your case.' },
+      { problem: 'I don\'t know which type of loan to apply for', solution: 'Step 3 of this playbook will help you identify the right product. If unsure, tell Claude your situation and it will explain the options available for your business profile.' },
+    ],
+    steps: [
+      {
+        id: 'biz-loan-1-s1',
+        stepNumber: 1,
+        title: 'Write your business loan narrative',
+        instruction: 'Every lender wants to understand your business and why you need the loan. Claude will help you write a compelling, credible narrative that answers their key questions before they ask.',
+        tools: ['Claude'],
+        promptTemplate: `Help me write a compelling business loan narrative. Here is my information:
+
+**Business name:** [name]
+**What the business does:** [2-3 sentences]
+**Years in operation:** [e.g. 2 years]
+**Legal structure:** [e.g. sole proprietor / LLC / limited company]
+**Number of employees:** [e.g. 5 full-time, 3 part-time]
+**Monthly revenue (average last 6 months):** [amount]
+**Loan amount requested:** [amount]
+**Exact purpose of the loan:** [Be specific — e.g. "Purchase a second delivery van to fulfil a new contract with XYZ company" or "Fund 3 months of inventory ahead of the holiday season"]
+**How the loan will directly generate revenue:** [e.g. "The new van will allow us to take on 8 more deliveries per day, generating an estimated additional ₦400k/month in revenue"]
+**How I plan to repay it:** [e.g. "Monthly revenue comfortably covers repayments — our current net profit is X, and the loan repayment would be Y"]
+
+Write a 3-paragraph loan narrative that:
+1. Introduces the business and establishes credibility
+2. Explains the specific use of funds and the business opportunity
+3. Demonstrates repayment ability and future outlook
+
+Write in a professional but confident tone.`,
+        expectedOutput: 'A 3-paragraph loan narrative ready to include in any application.',
+        tips: 'The most common mistake in loan applications is being vague about the use of funds. "Working capital" is not a use of funds. "Purchase 500 units of product X at ₦2,000 each to fulfil a confirmed order from client Y" is. Lenders fund plans, not intentions.',
+      },
+      {
+        id: 'biz-loan-1-s2',
+        stepNumber: 2,
+        title: 'Prepare your financial summary',
+        instruction: 'Build a clean, lender-ready financial summary from your numbers — including a simple 12-month cash flow projection.',
+        tools: ['Claude'],
+        promptTemplate: `Based on the loan narrative above, help me prepare a financial summary document for lenders.
+
+Here are my financial details:
+
+**Last 12 months revenue (monthly):**
+[Paste or type each month: e.g. Jan: X, Feb: X, Mar: X...]
+
+**Monthly operating costs (fixed):**
+[List: staff, rent, utilities, subscriptions, etc.]
+
+**Monthly variable costs:**
+[List: materials, commissions, delivery, etc.]
+
+**Current outstanding debt/loans:** [amount or "none"]
+**Current bank balance:** [approximate]
+**Outstanding receivables (money owed to you):** [approximate]
+
+Please create:
+1. A clean financial summary table (revenue, costs, gross profit, net profit for each of last 6 months)
+2. Key financial ratios a lender will look at: debt-to-income ratio, profit margin, revenue growth rate
+3. A simple 12-month cash flow projection assuming the loan is approved (show monthly inflow, outflow, and net cash including loan repayment)
+4. A "Loan Impact" section: how the loan changes my financial position and when I break even on the investment`,
+        expectedOutput: 'A financial summary table, key ratios, 12-month cash flow projection, and loan impact analysis.',
+        tips: 'The 12-month projection is where many applicants fall down. Be realistic — lenders have seen thousands of projections and they know when numbers are inflated. A conservative projection you can defend is far more credible than an optimistic one you can\'t.',
+      },
+      {
+        id: 'biz-loan-1-s3',
+        stepNumber: 3,
+        title: 'Identify the right lenders and gather your documents',
+        instruction: 'Match your profile to the right loan products, create a targeted lender list, and get a complete document checklist so nothing delays your application.',
+        tools: ['Claude'],
+        promptTemplate: `Based on my business profile and loan request above, help me identify the best funding options.
+
+**My profile summary:**
+- Business age: [X years]
+- Monthly revenue: [amount]
+- Loan amount: [amount]
+- Country/location: [e.g. Nigeria, UK, Ghana, USA]
+- Credit history: [good / fair / limited / unknown]
+- Collateral available: [yes — describe / no]
+- Registered business: [yes / no]
+
+Please provide:
+1. **Best-fit loan types** for my profile (e.g. SME bank loan, microfinance, invoice financing, government-backed loan, revenue-based financing) — explain why each does or doesn't fit
+2. **3 specific lenders or programs** in my country/region to apply to first, with notes on their typical requirements
+3. **A complete document checklist** — every document I will likely need for a standard SME loan application
+4. **Red flags to fix before applying** — based on my profile, what might cause a rejection and what can I do about it now?
+5. **One thing I can do this week** to move my application forward`,
+        expectedOutput: 'A lender shortlist, document checklist, red flags to address, and a next-step action.',
+        tips: 'Apply to 2–3 lenders simultaneously, not sequentially. Each application takes weeks to process. Spreading applications doesn\'t hurt your chances — it multiplies them. If one declines, you still have others in progress.',
+      },
+    ],
+    relatedPlaybooks: [
+      { id: 'fin-analysis-1', title: 'Business Financial Health Check', slug: 'business-financial-health-check' },
+      { id: 'smb-bd-4', title: 'Business Health Score & 90-Day Action Plan', slug: 'business-health-score-90-day-action-plan' },
+    ],
   }
 ];
 
