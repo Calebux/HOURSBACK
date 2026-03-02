@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { HashRouter as Router, Routes, Route } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { ToastProvider } from './components/ToastProvider';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -17,6 +17,7 @@ import AutopilotPage from './pages/AutopilotPage';
 // Inner component — can use useAuth because it's inside AuthProvider
 function AppWithOnboarding() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
@@ -34,6 +35,7 @@ function AppWithOnboarding() {
 
   const handleOnboardingComplete = (_data: OnboardingData) => {
     setShowOnboarding(false);
+    navigate('/playbooks');
   };
 
   const handleOnboardingDismiss = () => {
