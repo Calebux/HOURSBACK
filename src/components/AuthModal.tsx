@@ -93,7 +93,13 @@ export function AuthModal({ isOpen, onClose, defaultView = 'signin' }: AuthModal
                 onClose();
             }
         } catch (err: any) {
-            setError(err.message || 'An error occurred during authentication.');
+            const errorMessage = err.message || '';
+            if (errorMessage.toLowerCase().includes('confirm') || errorMessage.toLowerCase().includes('check your email')) {
+                // If it's a confirmation error, show the success view instead of an error message
+                setView('success');
+            } else {
+                setError(errorMessage || 'An error occurred during authentication.');
+            }
         } finally {
             setIsLoading(false);
         }
