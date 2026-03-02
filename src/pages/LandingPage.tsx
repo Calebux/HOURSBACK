@@ -207,6 +207,7 @@ export default function LandingPage() {
                 )}
 
                 <motion.button
+                  onClick={() => window.location.href = 'mailto:petersoncaleb275@gmail.com?subject=Sales%20Inquiry'}
                   className="px-6 py-3 bg-transparent text-brand-dark rounded-full font-medium hover:bg-brand-dark/5 transition-all flex items-center justify-center gap-2 text-base group"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
@@ -846,7 +847,10 @@ function CTASection() {
               Start free playbook
             </button>
           </Link>
-          <button className="px-8 py-4 bg-white/60 backdrop-blur-xl shadow-antigravity-md border border-brand-dark/10 rounded-full font-medium text-lg hover:bg-slate-50 transition-colors">
+          <button
+            onClick={() => window.location.href = 'mailto:petersoncaleb275@gmail.com?subject=Sales%20Inquiry'}
+            className="px-8 py-4 bg-white/60 backdrop-blur-xl shadow-antigravity-md border border-brand-dark/10 rounded-full font-medium text-lg hover:bg-slate-50 transition-colors"
+          >
             Talk to sales
           </button>
         </div>
