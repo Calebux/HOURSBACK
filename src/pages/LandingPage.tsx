@@ -440,7 +440,7 @@ function PricingPlanCard({ plan, isAnnual, onAuthRequired }: { plan: any, isAnnu
   const amountNGN = Math.floor(amountRaw * 1500); // Flutterwave amount in NGN directly
 
   const config = useMemo(() => ({
-    public_key: import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY || '',
+    public_key: import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY || 'FLWPUBK_TEST-c238448928c9962ffef2924e9a77b31b-X',
     tx_ref: `hb_tx_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
     amount: amountNGN,
     currency: 'NGN',
