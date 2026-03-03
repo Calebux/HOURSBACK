@@ -97,7 +97,7 @@ export default function PlaybookViewerPage() {
     customizations: {
       title: 'Hoursback Pro Playbook',
       description: 'Unlock this Pro playbook instantly',
-      logo: 'https://i.ibb.co/L5hY5M0/logo.png',
+      logo: '/logo.png',
     },
   }), [amountNGN, user?.email, user?.id, user?.user_metadata?.name]);
 
