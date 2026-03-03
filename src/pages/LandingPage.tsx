@@ -71,15 +71,16 @@ export default function LandingPage() {
         <div className="relative container mx-auto px-6 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center">
             <img
-              src="/logo.png"
+              src="/logo.svg"
               alt="Hoursback Logo"
-              className="h-[58px] w-auto mix-blend-multiply"
+              className="h-[36px] w-auto"
             />
           </Link>
 
           {/* Absolutely centered so links stay in the true middle regardless of logo width */}
           <div className="absolute left-1/2 -translate-x-1/2 hidden md:flex items-center gap-8 text-sm text-brand-dark/80">
             <Link to="/playbooks" className="hover:text-brand-dark transition-colors">Playbooks</Link>
+            <a href="#enterprise" className="hover:text-brand-dark transition-colors font-medium text-brand-blue">Enterprise</a>
             <a href="#pricing" className="hover:text-brand-dark transition-colors">Pricing</a>
             <a href="#features" className="hover:text-brand-dark transition-colors">Features</a>
           </div>
@@ -133,6 +134,7 @@ export default function LandingPage() {
           >
             <div className="px-6 py-4 space-y-4">
               <Link to="/playbooks" className="block text-brand-dark/80 hover:text-brand-dark transition-colors" onClick={() => setMobileMenuOpen(false)}>Playbooks</Link>
+              <a href="#enterprise" className="block text-brand-blue font-medium hover:text-brand-dark transition-colors" onClick={() => setMobileMenuOpen(false)}>Enterprise (Done-For-You)</a>
               <Link to="/dashboard" className="block text-brand-dark/80 hover:text-brand-dark transition-colors" onClick={() => setMobileMenuOpen(false)}>Dashboard</Link>
               <a href="#pricing" className="block text-brand-dark/80 hover:text-brand-dark transition-colors" onClick={() => setMobileMenuOpen(false)}>Pricing</a>
               <a href="#features" className="block text-brand-dark/80 hover:text-brand-dark transition-colors" onClick={() => setMobileMenuOpen(false)}>Features</a>
@@ -229,6 +231,7 @@ export default function LandingPage() {
       </section>
 
       <HowItWorksSection />
+      <EnterpriseSection />
       <AutopilotSection />
       <PlaybookPreviewSection />
       <FeaturesSection />
@@ -236,13 +239,109 @@ export default function LandingPage() {
       <FAQSection />
       <CTASection />
       <Footer />
-      {/* AuthModal component */}
       <AuthModal
         isOpen={authModalOpen}
         onClose={() => setAuthModalOpen(false)}
         defaultView={authView}
       />
     </div>
+  );
+}
+
+function EnterpriseSection() {
+  const services = [
+    {
+      title: "Claude Migration workshop",
+      price: "$2,500+",
+      desc: "Stop playing LLMs on hard mode. We'll migrate your team from ChatGPT to Claude in one day, including memory imports and project setup.",
+      features: ["On-site or remote workshop", "Team memory migration", "Initial Project structure setup"]
+    },
+    {
+      title: "Custom Agent / SOP Mapping",
+      price: "$5,000/mo",
+      desc: "We interview your team, record your chaos, and turn your SOPs into autonomous Claude agents that run your business for you.",
+      features: ["Workflow transcription", "Custom Skill creation", "Agentic process automation"]
+    },
+    {
+      title: "Done-For-You Dashboard",
+      price: "$10,000+",
+      desc: "A custom interface that reacts to your business. We build the dashboards so you can manage your operations, not manually run them.",
+      features: ["Custom React interfaces", "MCP integration builds", "End-to-end maintenance"]
+    }
+  ];
+
+  return (
+    <section id="enterprise" className="py-32 bg-white relative overflow-hidden">
+      {/* Background decoration */}
+      <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-brand-blue/5 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="container mx-auto px-6 relative z-10">
+        <div className="text-center mb-20">
+          <div className="inline-flex items-center gap-2 bg-brand-blue/10 border border-brand-blue/15 rounded-full px-4 py-1.5 text-sm font-medium mb-8 text-brand-blue">
+            <Users className="w-4 h-4" />
+            Hoursback for Teams
+          </div>
+          <h2 className="text-4xl md:text-6xl font-semibold mb-6 leading-tight max-w-4xl mx-auto">
+            Scale your intelligence layer with{' '}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-blue to-purple-600">
+              Done-For-You automation.
+            </span>
+          </h2>
+          <p className="text-lg md:text-xl text-brand-dark/60 max-w-2xl mx-auto leading-relaxed">
+            You don't need "AI consulting." You need autonomy. We build the systems that make your business run itself.
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          {services.map((service, i) => (
+            <div key={i} className="bg-gray-50 border border-gray-100 rounded-[32px] p-8 flex flex-col hover:shadow-antigravity-md transition-all group">
+              <div className="mb-6">
+                <h3 className="text-2xl font-semibold mb-2">{service.title}</h3>
+                <div className="text-brand-blue font-bold text-lg mb-4">{service.price}</div>
+                <p className="text-brand-dark/70 text-sm leading-relaxed">{service.desc}</p>
+              </div>
+
+              <ul className="space-y-3 mb-8 flex-grow">
+                {service.features.map((f, j) => (
+                  <li key={j} className="flex items-center gap-2 text-sm text-brand-dark/80">
+                    <CheckCircle2 className="w-4 h-4 text-brand-blue" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+
+              <button
+                onClick={() => window.location.href = `mailto:petersoncaleb275@gmail.com?subject=Inquiry:%20${encodeURIComponent(service.title)}`}
+                className="w-full py-3 bg-brand-dark text-white rounded-full font-medium hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 group"
+              >
+                Inquire now
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-20 p-10 bg-brand-dark rounded-[40px] text-white overflow-hidden relative">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-brand-blue/20 rounded-full blur-3xl pointer-events-none" />
+          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+            <div className="max-w-xl text-center md:text-left">
+              <h3 className="text-3xl font-semibold mb-4">Migration as a Service (MaaS)</h3>
+              <p className="text-white/60 text-lg">
+                Still using personal ChatGPT accounts? Your team is playing LLMs on hard mode. We'll migrate your entire company context to Claude Projects and MCP in less than 48 hours.
+              </p>
+            </div>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => window.location.href = 'mailto:petersoncaleb275@gmail.com?subject=Migration%20Consulting'}
+              className="px-8 py-4 bg-white text-brand-dark rounded-full font-bold text-lg shadow-xl"
+            >
+              Book 48h Migration
+            </motion.button>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 

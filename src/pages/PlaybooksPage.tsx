@@ -198,7 +198,7 @@ export default function PlaybooksPage() {
       <nav className="border-b border-brand-dark/10 bg-brand-light/80 backdrop-blur-md sticky top-0 z-50">
         <div className="container mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center">
-            <img src="/logo.png" alt="Hoursback" className="h-[58px] w-auto mix-blend-multiply" />
+            <img src="/logo.svg" alt="Hoursback" className="h-[36px] w-auto" />
           </Link>
 
           <div className="flex items-center gap-1.5 sm:gap-2 md:gap-4">
@@ -367,6 +367,8 @@ export default function PlaybooksPage() {
                       <option value="Legal">Legal</option>
                       <option value="Fitness & Wellness">Fitness &amp; Wellness</option>
                       <option value="Risk & Strategy">Risk &amp; Strategy</option>
+                      <option value="Industry Deep Dives">Industry Deep Dives</option>
+                      <option value="Lead Magnets">Lead Magnets</option>
                     </select>
                     <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                   </div>
