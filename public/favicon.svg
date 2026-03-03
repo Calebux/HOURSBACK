@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- Blue background circle -->
+  <circle cx="16" cy="16" r="16" fill="#4285F4"/>
+
+  <!-- 270° counter-clockwise arc (white) -->
+  <!-- centre (16,16) radius 10 — from 12 o'clock (16,6) CCW to 3 o'clock (26,16) -->
+  <path d="M 16,6 A 10,10 0 1,0 26,16"
+        stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+
+  <!-- Hour hand → 10 o'clock -->
+  <line x1="16" y1="16" x2="10.5" y2="12.5"
+        stroke="white" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Minute hand → 2 o'clock -->
+  <line x1="16" y1="16" x2="22" y2="12"
+        stroke="white" stroke-width="1.6" stroke-linecap="round"/>
+
+  <!-- Centre dot -->
+  <circle cx="16" cy="16" r="1.8" fill="white"/>
+</svg>
