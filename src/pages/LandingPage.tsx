@@ -22,10 +22,11 @@ import {
 } from 'lucide-react';
 import { AuthModal } from '../components/AuthModal';
 import { useAuth } from '../contexts/AuthContext';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { pricingPlans } from '../data/playbooks';
 import { useFlutterwave, closePaymentModal } from 'flutterwave-react-v3';
 import { updateProfile } from '../lib/api';
+import { toast } from 'sonner';
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 30 },
@@ -51,6 +52,7 @@ export default function LandingPage() {
   const [authView, setAuthView] = useState<'signin' | 'signup'>('signin'); // New state for auth view
   const { user, signOut } = useAuth(); // Using AuthContext
 
+  const navigate = useNavigate();
   const heroRef = useRef<HTMLElement>(null); // Changed type from HTMLDivElement to HTMLElement
 
   useEffect(() => {
@@ -81,14 +83,17 @@ export default function LandingPage() {
           {/* Absolutely centered so links stay in the true middle regardless of logo width */}
           <div className="absolute left-1/2 -translate-x-1/2 hidden md:flex items-center gap-8 text-sm text-brand-dark/80">
             <Link to="/playbooks" className="hover:text-brand-dark transition-colors">Playbooks</Link>
-            <a href="#pricing" className="hover:text-brand-dark transition-colors">Pricing</a>
-            <a href="#features" className="hover:text-brand-dark transition-colors">Features</a>
+            <button onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-brand-dark transition-colors cursor-pointer">Pricing</button>
+            <button onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-brand-dark transition-colors cursor-pointer">Features</button>
           </div>
 
           <div className="flex items-center gap-4">
-            <Link to="/workspace" className="hidden sm:block text-sm text-brand-dark/80 hover:text-brand-dark transition-colors">
+            <button
+              onClick={() => { if (user) { navigate('/workspace'); } else { setAuthView('signup'); setAuthModalOpen(true); } }}
+              className="hidden sm:block text-sm text-brand-dark/80 hover:text-brand-dark transition-colors cursor-pointer"
+            >
               My Workspace
-            </Link>
+            </button>
 
             {user ? (
               <button
@@ -107,7 +112,7 @@ export default function LandingPage() {
                 </button>
                 <motion.button
                   onClick={() => { setAuthView('signup'); setAuthModalOpen(true); }}
-                  className="hidden sm:block px-4 py-2 bg-brand-dark text-white rounded-full text-sm font-medium hover:bg-gray-100 transition-colors"
+                  className="hidden sm:block px-4 py-2 bg-brand-dark text-white rounded-full text-sm font-medium hover:bg-brand-dark/80 transition-colors"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
@@ -134,13 +139,16 @@ export default function LandingPage() {
           >
             <div className="px-6 py-4 space-y-4">
               <Link to="/playbooks" className="block text-brand-dark/80 hover:text-brand-dark transition-colors" onClick={() => setMobileMenuOpen(false)}>Playbooks</Link>
-              <a href="#pricing" className="block text-brand-dark/80 hover:text-brand-dark transition-colors" onClick={() => setMobileMenuOpen(false)}>Pricing</a>
-              <a href="#features" className="block text-brand-dark/80 hover:text-brand-dark transition-colors" onClick={() => setMobileMenuOpen(false)}>Features</a>
-              <button className="block w-full" onClick={() => { setAuthView('signup'); setAuthModalOpen(true); setMobileMenuOpen(false); }}> {/* Modified for AuthModal */}
-                <button className="w-full px-4 py-2 bg-brand-dark text-white rounded-full text-sm font-medium">
-                  Get started
-                </button>
-              </button>
+              <button onClick={() => { document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' }); setMobileMenuOpen(false); }} className="block text-left text-brand-dark/80 hover:text-brand-dark transition-colors cursor-pointer">Pricing</button>
+              <button onClick={() => { document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' }); setMobileMenuOpen(false); }} className="block text-left text-brand-dark/80 hover:text-brand-dark transition-colors cursor-pointer">Features</button>
+              {user ? (
+                <button onClick={() => { navigate('/workspace'); setMobileMenuOpen(false); }} className="block text-left text-brand-dark/80 hover:text-brand-dark transition-colors cursor-pointer">My Workspace</button>
+              ) : (
+                <>
+                  <button onClick={() => { setAuthView('signin'); setAuthModalOpen(true); setMobileMenuOpen(false); }} className="block text-left text-brand-dark/80 hover:text-brand-dark transition-colors cursor-pointer">Sign in</button>
+                  <button onClick={() => { setAuthView('signup'); setAuthModalOpen(true); setMobileMenuOpen(false); }} className="w-full px-4 py-2 bg-brand-dark text-white rounded-full text-sm font-medium text-center">Get started</button>
+                </>
+              )}
             </div>
           </motion.div>
         )}
@@ -164,9 +172,9 @@ export default function LandingPage() {
             variants={fadeInUp}
             className="text-4xl md:text-6xl font-semibold tracking-tight text-brand-dark leading-[1.08] max-w-4xl"
           >
-            The exact AI prompts your business needs{' '}
+            The exact AI prompts and workflows your business needs{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-blue to-purple-500">
-              and workflows to complete tasks in less time.
+              to complete tasks in less time.
             </span>
           </motion.h1>
 
@@ -779,7 +787,7 @@ function PricingPlanCard({ plan, isAnnual, onAuthRequired }: { plan: any, isAnnu
         callback: async (response) => {
           if (response.status === 'successful' || response.status === 'completed') {
             closePaymentModal();
-            alert("Payment successful! Welcome to Pro.");
+            toast.success("Payment successful! Welcome to Pro.");
             localStorage.setItem('has_pro_access', 'true');
             if (user?.id) {
               try {
@@ -791,7 +799,7 @@ function PricingPlanCard({ plan, isAnnual, onAuthRequired }: { plan: any, isAnnu
             window.location.href = '/playbooks';
           } else {
             console.warn("Payment Fail/Incomplete:", response.status);
-            alert("Payment failed or was incomplete. Please try again.");
+            toast.error("Payment failed or was incomplete. Please try again.");
             closePaymentModal();
           }
         },
@@ -858,7 +866,7 @@ function PricingPlanCard({ plan, isAnnual, onAuthRequired }: { plan: any, isAnnu
           } else if (plan.name === 'Pro') {
             if (!isPro) handlePayment();
           } else {
-            window.location.href = '#/playbooks';
+            window.location.href = '/playbooks';
           }
         }}
         disabled={plan.name === 'Pro' && isPro}
@@ -1010,7 +1018,7 @@ function Footer() {
             <h4 className="font-semibold mb-4">Product</h4>
             <ul className="space-y-2 text-sm text-brand-dark/70">
               <li><Link to="/playbooks" className="hover:text-brand-dark transition-colors">Playbooks</Link></li>
-              <li><a href="#pricing" className="hover:text-brand-dark transition-colors">Pricing</a></li>
+              <li><button onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-brand-dark transition-colors cursor-pointer">Pricing</button></li>
               <li><a href="#" className="hover:text-brand-dark transition-colors">Enterprise</a></li>
             </ul>
           </div>
@@ -1036,7 +1044,7 @@ function Footer() {
 
         <div className="pt-8 border-t border-brand-dark/10 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-slate-400 text-sm">
-            © 2024 Hoursback. All rights reserved.
+            © 2025 Hoursback. All rights reserved.
           </p>
           <div className="flex gap-6 text-brand-dark/70">
             <a href="#" className="hover:text-brand-dark transition-colors">Twitter</a>

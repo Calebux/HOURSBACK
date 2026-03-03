@@ -10,9 +10,11 @@ import {
     CheckCircle2,
     Sparkles
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { getCategoryColor } from '../data/playbooks';
 import { claudeCrashCoursePlaybooks } from '../data/playbooks';
+import { useAuth } from '../contexts/AuthContext';
+import { AuthModal } from '../components/AuthModal';
 
 const containerVariants = {
     hidden: { opacity: 0 },
@@ -35,11 +37,20 @@ export default function CrashCoursePage() {
     const headerRef = useRef<HTMLElement>(null);
     const isInView = useInView(headerRef, { once: true });
     const [completedLessons, setCompletedLessons] = useState<Set<string>>(new Set());
+    const { user, isLoading: authLoading } = useAuth();
+    const navigate = useNavigate();
+    const [authModalOpen, setAuthModalOpen] = useState(false);
 
     useEffect(() => {
         const saved = localStorage.getItem('crashCourseCompleted');
         if (saved) setCompletedLessons(new Set(JSON.parse(saved)));
     }, []);
+
+    useEffect(() => {
+        if (!authLoading && !user) {
+            setAuthModalOpen(true);
+        }
+    }, [authLoading, user]);
 
     const playbooks = claudeCrashCoursePlaybooks;
     const totalMinutes = playbooks.reduce((sum, pb) => sum + pb.timeToComplete, 0);
@@ -226,6 +237,12 @@ export default function CrashCoursePage() {
                     </motion.div>
                 </div>
             </section>
+
+            <AuthModal
+                isOpen={authModalOpen}
+                onClose={() => { setAuthModalOpen(false); navigate('/playbooks'); }}
+                defaultView="signup"
+            />
         </div>
     );
 }

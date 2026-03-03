@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Bot, Calendar, Clock, CheckCircle2, Play, Pause, ExternalLink, XCircle, ChevronLeft, Edit2, Trash2 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Bot, Calendar, Clock, CheckCircle2, Play, Pause, ExternalLink, XCircle, ChevronLeft, Edit2, Trash2, AlertTriangle } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { mockPlaybooks, smbPlaybooks, coworkPlaybooks, designerAIPlaybooks, coworkPluginPlaybooks } from '../data/playbooks';
 import AutopilotModal from '../components/AutopilotModal';
+import { AuthModal } from '../components/AuthModal';
 import { toast } from 'sonner';
 
 interface ScheduledPlaybook {
@@ -30,11 +31,14 @@ interface AutonomousRun {
 const allPlaybooks = [...mockPlaybooks, ...smbPlaybooks, ...coworkPlaybooks, ...designerAIPlaybooks, ...coworkPluginPlaybooks];
 
 export default function AutopilotPage() {
-    const { user } = useAuth();
+    const { user, isLoading: authLoading } = useAuth();
+    const navigate = useNavigate();
     const [schedules, setSchedules] = useState<ScheduledPlaybook[]>([]);
     const [runs, setRuns] = useState<AutonomousRun[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'agents' | 'history'>('agents');
+    const [authModalOpen, setAuthModalOpen] = useState(false);
+    const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null);
 
     // Edit modal state
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -59,6 +63,12 @@ export default function AutopilotPage() {
         fetchAutopilotData();
     }, [user]);
 
+    useEffect(() => {
+        if (!authLoading && !user) {
+            setAuthModalOpen(true);
+        }
+    }, [authLoading, user]);
+
     const toggleScheduleStatus = async (id: string, currentStatus: boolean) => {
         const { error } = await supabase
             .from('scheduled_playbooks')
@@ -74,8 +84,6 @@ export default function AutopilotPage() {
     };
 
     const handleDelete = async (id: string) => {
-        if (!window.confirm('Are you sure you want to delete this agent? This cannot be undone.')) return;
-
         const { error } = await supabase
             .from('scheduled_playbooks')
             .delete()
@@ -85,7 +93,8 @@ export default function AutopilotPage() {
             toast.error('Failed to delete agent');
         } else {
             setSchedules(prev => prev.filter(s => s.id !== id));
-            toast.success('Agent deleted permanently');
+            setConfirmingDelete(null);
+            toast.success('Agent deleted');
         }
     };
 
@@ -186,27 +195,38 @@ export default function AutopilotPage() {
                                             )}
                                         </div>
                                         <div className="flex items-center gap-1">
-                                            <button
-                                                onClick={() => toggleScheduleStatus(schedule.id, schedule.is_active)}
-                                                className="p-2 hover:bg-slate-50 border border-transparent hover:border-brand-dark/10 rounded-xl transition-all text-brand-dark/50 hover:text-brand-dark"
-                                                title={schedule.is_active ? 'Pause Agent' : 'Resume Agent'}
-                                            >
-                                                {schedule.is_active ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
-                                            </button>
-                                            <button
-                                                onClick={() => handleEdit(schedule)}
-                                                className="p-2 hover:bg-slate-50 border border-transparent hover:border-brand-dark/10 rounded-xl transition-all text-brand-dark/50 hover:text-brand-dark"
-                                                title="Edit Agent"
-                                            >
-                                                <Edit2 className="w-4 h-4" />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(schedule.id)}
-                                                className="p-2 hover:bg-red-50 border border-transparent hover:border-red-200 rounded-xl transition-all text-brand-dark/30 hover:text-red-500"
-                                                title="Delete Agent"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
+                                            {confirmingDelete === schedule.id ? (
+                                                <div className="flex items-center gap-1.5 bg-red-50 border border-red-200 rounded-xl px-2 py-1">
+                                                    <AlertTriangle className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                                                    <span className="text-xs text-red-600 font-medium">Delete?</span>
+                                                    <button onClick={() => handleDelete(schedule.id)} className="text-xs font-bold text-red-600 hover:text-red-800 px-1">Yes</button>
+                                                    <button onClick={() => setConfirmingDelete(null)} className="text-xs text-brand-dark/50 hover:text-brand-dark px-1">No</button>
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    <button
+                                                        onClick={() => toggleScheduleStatus(schedule.id, schedule.is_active)}
+                                                        className="p-2 hover:bg-slate-50 border border-transparent hover:border-brand-dark/10 rounded-xl transition-all text-brand-dark/50 hover:text-brand-dark"
+                                                        title={schedule.is_active ? 'Pause Agent' : 'Resume Agent'}
+                                                    >
+                                                        {schedule.is_active ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleEdit(schedule)}
+                                                        className="p-2 hover:bg-slate-50 border border-transparent hover:border-brand-dark/10 rounded-xl transition-all text-brand-dark/50 hover:text-brand-dark"
+                                                        title="Edit Agent"
+                                                    >
+                                                        <Edit2 className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setConfirmingDelete(schedule.id)}
+                                                        className="p-2 hover:bg-red-50 border border-transparent hover:border-red-200 rounded-xl transition-all text-brand-dark/30 hover:text-red-500"
+                                                        title="Delete Agent"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </>
+                                            )}
                                         </div>
                                     </div>
 
@@ -283,7 +303,7 @@ export default function AutopilotPage() {
                     onClose={() => {
                         setIsModalOpen(false);
                         setEditingSchedule(null);
-                        fetchAutopilotData(); // Refresh list after edit
+                        fetchAutopilotData();
                     }}
                     playbook={allPlaybooks.find(p => p.slug === editingSchedule.playbook_slug) || (editingSchedule.playbook_data as any)}
                     variables={editingSchedule.variables}
@@ -295,6 +315,12 @@ export default function AutopilotPage() {
                     }}
                 />
             )}
+
+            <AuthModal
+                isOpen={authModalOpen}
+                onClose={() => { setAuthModalOpen(false); navigate('/playbooks'); }}
+                defaultView="signup"
+            />
         </div>
     );
 }

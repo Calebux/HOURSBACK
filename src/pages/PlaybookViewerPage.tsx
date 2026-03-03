@@ -23,11 +23,12 @@ import {
   RotateCcw,
   X
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { getCategoryColor, type Playbook, mockPlaybooks, smbPlaybooks, coworkPlaybooks, coworkPluginPlaybooks, designerAIPlaybooks } from '../data/playbooks';
 import { fetchPlaybookBySlug, checkIsSaved, toggleSavedPlaybook, getSinglePlaybookProgress, updatePlaybookProgress, getProfile, updateProfile } from '../lib/api';
 import { useFlutterwave, closePaymentModal } from 'flutterwave-react-v3';
 import { useAuth } from '../contexts/AuthContext';
+import { AuthModal } from '../components/AuthModal';
 import WebhookExecutor from '../components/WebhookExecutor';
 import AgentCopilot from '../components/AgentCopilot';
 import AutopilotModal from '../components/AutopilotModal';
@@ -54,7 +55,9 @@ export default function PlaybookViewerPage() {
   const [showCelebration, setShowCelebration] = useState(false);
   const [copiedPrompt, setCopiedPrompt] = useState<string | null>(null);
   const [variables, setVariables] = useState<Record<string, string>>({});
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
+  const navigate = useNavigate();
+  const [authModalOpen, setAuthModalOpen] = useState(false);
   const [isAnnual, setIsAnnual] = useState(false);
   const [isProUser, setIsProUser] = useState(false);
   const [userRating, setUserRating] = useState<number>(0);
@@ -147,6 +150,13 @@ export default function PlaybookViewerPage() {
     };
     loadPlaybook();
   }, [slug]);
+
+  // Auth gate — show signup modal for unauthenticated visitors
+  useEffect(() => {
+    if (!authLoading && !user) {
+      setAuthModalOpen(true);
+    }
+  }, [authLoading, user]);
 
   // Handle Agent Guide Modal
   useEffect(() => {
@@ -1031,6 +1041,12 @@ export default function PlaybookViewerPage() {
           </div>
         )}
       </AnimatePresence>
+
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => { setAuthModalOpen(false); navigate('/playbooks'); }}
+        defaultView="signup"
+      />
     </div>
   );
 }
