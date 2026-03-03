@@ -245,12 +245,12 @@ export default function LandingPage() {
               {/* Playbook cards grid */}
               <div className="px-4 pb-4 grid grid-cols-3 gap-2.5 flex-1 overflow-hidden">
                 {[
-                  { title: 'Financial Health Check', desc: 'Paste your numbers and get a plain-English breakdown of your cash flow and profit.', cat: 'Finance', time: '12 min', badge: 'bg-blue-100 text-blue-700' },
-                  { title: 'Cold Outreach Machine', desc: 'Write personalised cold emails in minutes using proven sales prompts.', cat: 'Sales', time: '8 min', badge: 'bg-green-100 text-green-700' },
-                  { title: '60-Min Marketing Plan', desc: 'Answer 5 questions and get a full content strategy ready to execute.', cat: 'Marketing', time: '10 min', badge: 'bg-purple-100 text-purple-700' },
-                  { title: 'Competitor Intelligence', desc: 'Find out exactly what your competitors are doing and where you can beat them.', cat: 'Research', time: '15 min', badge: 'bg-orange-100 text-orange-700' },
-                  { title: 'Risk Scorecard', desc: 'Spot the biggest risks in your business before they become problems.', cat: 'Risk', time: '9 min', badge: 'bg-red-100 text-red-700' },
-                  { title: 'Loan Prep Kit', desc: 'Prepare everything a lender needs in the right format, first time.', cat: 'Finance', time: '11 min', badge: 'bg-yellow-100 text-yellow-700' },
+                  { title: 'Financial Health Check', desc: 'Paste your numbers and get a plain-English breakdown of your cash flow and profit.', outcome: 'Cash flow report + profit breakdown', cat: 'Finance', time: '12 min', steps: 5, badge: 'bg-blue-100 text-blue-700' },
+                  { title: 'Cold Outreach Machine', desc: 'Write personalised cold emails in minutes using proven sales prompts.', outcome: '10 ready-to-send cold emails', cat: 'Sales', time: '8 min', steps: 4, badge: 'bg-green-100 text-green-700' },
+                  { title: '60-Min Marketing Plan', desc: 'Answer 5 questions and get a full content strategy ready to execute.', outcome: '30-day content calendar + channel plan', cat: 'Marketing', time: '10 min', steps: 6, badge: 'bg-purple-100 text-purple-700' },
+                  { title: 'Competitor Intelligence', desc: 'Find out exactly what your competitors are doing and where you can beat them.', outcome: 'Competitor matrix + gap analysis', cat: 'Research', time: '15 min', steps: 7, badge: 'bg-orange-100 text-orange-700' },
+                  { title: 'Risk Scorecard', desc: 'Spot the biggest risks in your business before they become problems.', outcome: 'Prioritised risk register + action plan', cat: 'Risk', time: '9 min', steps: 4, badge: 'bg-red-100 text-red-700' },
+                  { title: 'Loan Prep Kit', desc: 'Prepare everything a lender needs in the right format, first time.', outcome: 'Lender-ready financial summary doc', cat: 'Finance', time: '11 min', steps: 5, badge: 'bg-yellow-100 text-yellow-700' },
                 ].map((p, i) => (
                   <div
                     key={i}
@@ -259,7 +259,10 @@ export default function LandingPage() {
                     <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full w-fit ${p.badge}`}>{p.cat}</span>
                     <p className="text-[11px] font-semibold text-brand-dark leading-tight mt-0.5">{p.title}</p>
                     <p className="text-[9px] text-brand-dark/55 leading-snug">{p.desc}</p>
-                    <p className="text-[9px] text-brand-dark/35 mt-auto pt-1">⏱ {p.time} · Claude AI</p>
+                    <div className="mt-1 px-1.5 py-1 bg-brand-light rounded-lg">
+                      <p className="text-[8.5px] text-brand-dark/50 font-medium leading-snug">✦ {p.outcome}</p>
+                    </div>
+                    <p className="text-[9px] text-brand-dark/35 mt-auto pt-1">⏱ {p.time} · {p.steps} steps · Claude AI</p>
                   </div>
                 ))}
               </div>
