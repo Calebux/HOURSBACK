@@ -3781,31 +3781,31 @@ export const claudeCrashCoursePlaybooks: Playbook[] = [
     isNew: true,
     tools: ['Claude', 'ChatGPT'],
     beforeYouStart: [
-      'No prior AI experience needed — this is the starting point.',
+      'No prior AI experience is needed. This is your starting point.',
       'Open Claude (claude.ai) or ChatGPT in a browser tab so you can try things as you read.',
       'Bring one real task from your life or work to use as a practice example throughout.'
     ],
-    expectedOutcome: 'A clear mental model of what AI is, what it is good for, and when not to trust it — plus the 4D Framework you can apply to every AI interaction from this moment on.',
+    expectedOutcome: 'A clear mental model of what AI is, what it is good for, and when not to trust it. You will also learn the 4D Framework you can apply to every AI interaction from this moment on.',
     troubleshooting: [
       {
         problem: 'I tried AI once and the answer was wrong or useless',
-        solution: 'One bad answer is not a verdict on AI — it is a prompt problem. The most common cause: the question was too vague. Read the Description step in this lesson, then try again with more context. Rephrasing almost always gets a dramatically better result.'
+        solution: "One bad answer is not a verdict on AI; it's usually just a prompt problem. The most common cause is that the question was too vague. Read the Description step in this lesson, then try again with more context. Rephrasing almost always gets a dramatically better result."
       },
       {
         problem: 'I don\'t know if I can trust what AI tells me',
-        solution: 'Good instinct — that is exactly what Discernment is for. The rule: trust AI more for creative and explanatory tasks, trust it less for specific facts, dates, and statistics. When it matters, verify the specific claims with a quick search or a qualified professional.'
+        solution: "Good instinct, as that's exactly what Discernment is for. The simple rule is to trust AI more for creative and explanatory tasks, and trust it less for specific facts, dates, and statistics. When it matters, verify the specific claims with a quick search or a qualified professional."
       },
       {
         problem: 'I feel like I\'m cheating by using AI for work or school',
-        solution: 'Context matters. Using AI to draft a first version you then edit, improve, and own is a tool — like using a calculator for maths. Submitting AI output as entirely your own unedited work in a context that prohibits it is dishonest. The Diligence section of this lesson covers exactly this line.'
+        solution: "Context matters. Using AI to draft a first version you then edit, improve, and own is a tool, much like using a calculator for maths. Submitting AI output as entirely your own unedited work in a context that prohibits it is dishonest. The Diligence section of this lesson covers exactly this line."
       },
       {
         problem: 'AI doesn\'t remember what I told it last time',
-        solution: 'That is by design — most AI tools do not have memory between separate conversations. Every new chat is a blank slate. Always give context at the start: who you are, what you need, and any relevant background. Think of it as briefing a new but very capable assistant each time.'
+        solution: "That's by design, since most AI tools do not have memory between separate conversations. Every new chat is a blank slate. Always give context at the start including who you are, what you need, and any relevant background. Think of it as briefing a new but very capable assistant each time."
       },
       {
         problem: 'I\'m worried about privacy — what should I not share with AI?',
-        solution: 'Never paste passwords, government ID numbers, bank details, or sensitive personal information about other people. Treat the AI chat window like a work email — professional use is fine, but anything you would not want visible to others should stay out.'
+        solution: "Never paste passwords, government ID numbers, bank details, or sensitive personal information about other people. Treat the AI chat window like a work email where professional use is fine, but anything you would not want visible to others should stay out."
       }
     ],
     relatedPlaybooks: [
@@ -3818,8 +3818,8 @@ export const claudeCrashCoursePlaybooks: Playbook[] = [
         stepNumber: 1,
         title: 'What Even Is AI?',
         tools: ['Claude'],
-        instruction: 'Before learning how to use AI well, understand what it actually is — and what it is not. This removes the mystery and the fear at the same time.\n\nThink of AI (like Claude or ChatGPT) as a very well-read assistant who has read billions of articles, books, and websites. It does not "think" like a human — it predicts useful responses based on patterns it learned. It is incredibly helpful for a huge range of tasks, but it is not magic, and it makes mistakes.\n\nThe single most important thing to understand upfront: You are always the human in charge. AI is a tool — you decide what to do with what it gives you. It amplifies your thinking; it does not replace it.',
-        promptTemplate: 'I have never really used AI before and I want to understand what it is and what it is actually good at. I am a [DESCRIBE YOURSELF — e.g. small business owner / student / teacher / office worker]. Tell me in plain, simple language:\n1. What AI is and how it works (no technical jargon)\n2. What it is genuinely best at\n3. What it is bad at or gets wrong\n4. One thing that surprises most people when they first use it\n\nKeep the whole answer under 250 words and write it like you\'re talking to a curious person, not a tech student.',
+        instruction: 'Before learning how to use AI well, understand what it actually is and what it is not. This removes the mystery and the fear at the same time.\n\nThink of AI (like Claude or ChatGPT) as a very well-read assistant who has read billions of articles, books, and websites. It does not "think" like a human; instead, it predicts useful responses based on patterns it learned. It is incredibly helpful for a huge range of tasks, but it is not magic, and it makes mistakes.\n\nThe single most important thing to understand upfront is that you are always the human in charge. AI is a tool and you decide what to do with what it gives you. It amplifies your thinking; it does not replace it.',
+        promptTemplate: "I have never really used AI before and I want to understand what it is and what it is actually good at. I am a [DESCRIBE YOURSELF, for example a small business owner, student, teacher, or office worker]. Tell me in plain, simple language:\n1. What AI is and how it works (no technical jargon)\n2. What it is genuinely best at\n3. What it is bad at or gets wrong\n4. One thing that surprises most people when they first use it\n\nKeep the whole answer under 250 words and write it like you're talking to a curious person, not a tech student.",
         expectedOutput: 'A plain-English explanation of AI tailored to your background — what it is, what it is good for, and its real limitations. No jargon, no hype.',
         tips: 'Notice how Claude answers. It will be clear, direct, and probably shorter than you expected. That is by design — you asked for plain language and a word limit. That is the Description skill already at work.'
       },
@@ -3828,7 +3828,7 @@ export const claudeCrashCoursePlaybooks: Playbook[] = [
         stepNumber: 2,
         title: 'Delegation — Know What to Hand Off',
         tools: ['Claude'],
-        instruction: 'Delegation is figuring out which tasks are worth giving to AI — and which ones you should keep for yourself. Getting this right saves time and avoids the biggest mistakes people make.\n\nGreat things to delegate to AI:\nWriting first drafts of emails, essays, or reports. Summarizing long documents. Brainstorming ideas. Explaining confusing topics in simple terms. Translating content. Creating to-do lists or project plans.\n\nKeep these for yourself:\nFinal decisions that affect people\'s lives. Anything requiring your personal judgment or values. Tasks where accuracy is life-or-death (medical, legal, financial). Anything requiring very recent information (AI knowledge has a cutoff date).',
+        instruction: 'Delegation is figuring out which tasks are worth giving to AI and which ones you should keep for yourself. Getting this right saves time and avoids the biggest mistakes people make.\n\nGreat things to delegate to AI include writing first drafts of emails, essays, or reports, as well as summarizing long documents, brainstorming ideas, explaining confusing topics in simple terms, translating content, and creating to-do lists or project plans.\n\nYou should keep final decisions that affect people\'s lives for yourself, along with anything requiring your personal judgment or values, tasks where accuracy is life-or-death (medical, legal, financial), and anything requiring very recent information since AI knowledge has a cutoff date.',
         promptTemplate: 'I need to write a [DESCRIBE THE TASK — e.g. "tricky email to my landlord about a broken heating system" / "complaint letter to a company" / "proposal to my manager for a new idea"].\n\nHelp me write a polite but firm first draft. Here is the key context:\n[DESCRIBE YOUR SITUATION IN 2-3 SENTENCES]\n\nKeep it under 150 words. I will review it and decide what to send.',
         expectedOutput: 'A ready-to-edit first draft of your real task — something that would have taken you 20 minutes of staring at a blank screen, produced in seconds. You review it, tweak it, and send it. The judgment is still yours.',
         tips: 'The magic phrase is "I will review it and decide what to send." You are delegating the hard part — the blank page — not the final call. Try this with one real task from your life right now.'
@@ -3839,7 +3839,7 @@ export const claudeCrashCoursePlaybooks: Playbook[] = [
         title: 'Description — Know How to Ask',
         tools: ['Claude'],
         instruction: 'The better you explain what you want, the better AI responds. Think of it like giving directions — vague directions get you lost.\n\nWeak prompt: "Write something about dogs"\nStrong prompt: "Write a fun 3-paragraph intro for a blog about dog training for busy parents. Casual tone, no jargon, include one surprising dog fact."\n\nWeak prompt: "Help with my resume"\nStrong prompt: "I am applying for a retail job with no experience. Help me write a 1-page resume highlighting my communication skills and reliability. No generic corporate language."\n\nThe quick-start formula to remember:\n"I am [who you are]. I need [what you want]. The context is [relevant background]. Please give me [format, length, tone]."',
-        promptTemplate: 'I am a [WHO YOU ARE]. I need [WHAT YOU WANT — be specific]. The context is [RELEVANT BACKGROUND — what is this for, who will see it, why does it matter]. Please give me [FORMAT — e.g. a short paragraph / a bullet list / a table / a 3-step plan] that is [TONE — e.g. friendly and casual / professional / simple enough for a 12-year-old to understand]. Keep it under [WORD COUNT].\n\nDo not include [ANYTHING YOU DO NOT WANT — e.g. jargon / bullet points / an introduction paragraph].\n\nHere is a real example to replace the brackets above:\n"I am a small business owner with no marketing background. I need 5 Instagram caption ideas for our summer sale on handmade candles. The context is our brand is warm, cozy, and eco-friendly — we sell to women 25-45. Please give me 5 short captions, casual and fun tone. Keep each under 150 characters. Do not use hashtags — I\'ll add those myself."',
+        promptTemplate: 'I am a [WHO YOU ARE]. I need [WHAT YOU WANT — be specific]. The context is [RELEVANT BACKGROUND: what is this for, who will see it, and why does it matter]. Please give me [FORMAT, for example a short paragraph, a bullet list, a table, or a 3-step plan] that is [TONE, for example friendly and casual, professional, or simple enough for a 12-year-old to understand]. Keep it under [WORD COUNT].\n\nDo not include [ANYTHING YOU DO NOT WANT, such as jargon, bullet points, or an introduction paragraph].\n\nHere is a real example to replace the brackets above:\n"I am a small business owner with no marketing background. I need 5 Instagram caption ideas for our summer sale on handmade candles. The context is our brand is warm, cozy, and eco-friendly and we sell to women 25-45. Please give me 5 short captions in a casual and fun tone. Keep each under 150 characters and do not use hashtags, as I\'ll add those myself."',
         expectedOutput: 'A precise, immediately usable response that matches what you actually wanted — not a generic answer to a vague question. The quality of the output should feel noticeably better than a vague prompt would produce.',
         tips: 'Fill in the formula with your real task right now. Compare the result to what you would have gotten from a vague prompt. The difference is the whole lesson.'
       },
@@ -3848,7 +3848,7 @@ export const claudeCrashCoursePlaybooks: Playbook[] = [
         stepNumber: 4,
         title: 'Discernment — Know When to Trust It',
         tools: ['Claude'],
-        instruction: 'AI can be wrong, outdated, or confidently make things up. This is called "hallucination" — and it is real. Discernment is knowing when to trust the output and when to verify it.\n\nTrust AI more for:\nGeneral knowledge and explanations. Creative tasks (writing, brainstorming, editing). Summarizing documents you give it. Explaining a concept in simple terms.\n\nAlways double-check:\nSpecific statistics, dates, and numbers. Medical, legal, or financial advice. Recent news or events. Specific names, links, or citations.\n\nThe Description-Discernment loop:\nIf the answer does not seem right, rephrase your question, get a new answer, and check again. It is a conversation, not a one-shot deal.',
+        instruction: "AI can be wrong, outdated, or confidently make things up. This is called 'hallucination' and it is real. Discernment is knowing when to trust the output and when to verify it.\n\nYou can trust AI more for general knowledge and explanations, along with creative tasks like writing, brainstorming, and editing. It's also great for summarizing documents you provide and explaining concepts in simple terms.\n\nYou should always double-check specific statistics, dates, and numbers, as well as medical, legal, or financial advice. Recent news or events and specific names, links, or citations also require verification.\n\nThe Description-Discernment loop suggests that if the answer does not seem right, you should rephrase your question, get a new answer, and check again. It is a conversation, not a one-shot deal.",
         promptTemplate: 'Tell me [ASK FOR A SPECIFIC FACT OR CLAIM — e.g. "what is the current interest rate in Nigeria" / "what is the current price of petrol" / "what happened in the news this week"].\n\nAfter you answer, tell me honestly: how confident are you in this information, and is there anything about this answer I should verify independently before acting on it?\n\nNote: This prompt is designed to teach Discernment. Watch how the AI responds about its own confidence and limitations.',
         expectedOutput: 'An answer followed by an honest caveat from the AI about what it knows, what it might have wrong, and what you should verify. A trustworthy AI tool will flag its own uncertainty — that is a sign of a good system, not a weakness.',
         tips: 'The simple habit to build: after every AI answer, ask yourself three questions. Does this feel right? Can I verify this quickly? Would it matter if it were wrong? If the answer to the last question is yes — verify before you act.'
@@ -3858,7 +3858,7 @@ export const claudeCrashCoursePlaybooks: Playbook[] = [
         stepNumber: 5,
         title: 'Diligence — Stay Responsible',
         tools: ['Claude'],
-        instruction: 'Diligence means using AI responsibly without becoming over-reliant on it. You are accountable for everything you do with AI\'s output.\n\nWhat Diligence looks like in practice:\nDo not copy-paste blindly — read it, edit it, and make it yours. Do not share private information (passwords, ID numbers, sensitive personal details). Be honest about AI use when it matters — at school, at work, in professional contexts. Think about whether the content could mislead someone. Keep learning as AI evolves — tools change fast.\n\nCommon mistakes people make:\nTreating AI like a search engine that finds facts (it generates answers and can make things up). Giving up after one bad answer instead of rephrasing. Trusting it blindly for medical, legal, or financial questions. Thinking it knows you — AI does not remember past conversations. Being afraid to experiment — there is no wrong way to try.',
+        instruction: "Diligence means using AI responsibly without becoming over-reliant on it. You are accountable for everything you do with AI's output.\n\nIn practice, diligence means you should not copy-paste blindly; instead, read it, edit it, and make it yours. Avoid sharing private information like passwords, ID numbers, or sensitive personal details. Be honest about AI use when it matters, such as at school, at work, or in professional contexts. Always think about whether the content could mislead someone and keep learning as AI tools change fast.\n\nCommon mistakes include treating AI like a search engine that finds facts, since it actually generates answers and can make things up. Don't give up after one bad answer; try rephrasing instead. You should also avoid trusting it blindly for medical, legal, or financial questions, and remember that AI does not know you or remember past conversations.",
         promptTemplate: 'Review the following content I got from an AI and give me your honest assessment:\n\n[PASTE ANY AI-GENERATED TEXT HERE — an email draft, an essay paragraph, a summary, whatever you generated in the earlier steps]\n\nTell me:\n1. What looks good and is ready to use as-is\n2. What should be changed, improved, or made more personal\n3. What specific facts or claims (if any) I should verify before using this\n4. One thing that sounds a bit "AI-ish" that I should rewrite in my own voice\n\nThis is a Diligence review — help me use this responsibly.',
         expectedOutput: 'An honest editorial review of AI-generated content, flagging what is solid, what needs your personal touch, and what claims need verification before you rely on them.',
         tips: 'Apply this review habit to every important piece of AI output before you use it. After a few weeks it becomes automatic — you will instinctively read AI responses critically rather than accepting them wholesale. That habit is worth more than any single AI tip.'
@@ -3884,7 +3884,7 @@ export const claudeCrashCoursePlaybooks: Playbook[] = [
       'One real work task you need help with today',
       '10 minutes of uninterrupted focus'
     ],
-    expectedOutcome: 'A complete, useful work deliverable produced through a multi-turn conversation with Claude — plus the confidence to start any future conversation effectively.',
+    expectedOutcome: "A complete, useful work deliverable produced through a multi-turn conversation with Claude. You'll also gain the confidence to start any future conversation effectively.",
     troubleshooting: [
       {
         problem: 'Claude gives a generic, textbook-style answer',
@@ -3896,15 +3896,15 @@ export const claudeCrashCoursePlaybooks: Playbook[] = [
       },
       {
         problem: 'Claude misunderstood what I wanted',
-        solution: 'Don\'t start over. Reply with: "Not quite — I meant [X]. Specifically, I need [concrete deliverable]." Claude corrects well from feedback.'
+        solution: "Don't start over. Reply with: 'Not quite, I meant [X]. Specifically, I need [concrete deliverable].' Claude corrects well from feedback."
       }
     ],
     steps: [
       {
         id: 'cc1-s1',
         stepNumber: 1,
-        title: 'Set the Stage — Tell Claude Who You Are',
-        instruction: 'Before asking anything, give Claude a one-sentence snapshot of your role, your context, and the problem you\'re solving. This single step eliminates 80% of generic responses.',
+        title: 'Set the Stage: Tell Claude Who You Are',
+        instruction: "Before asking anything, give Claude a one-sentence snapshot of your role, your context, and the problem you're solving. This single step eliminates the vast majority of generic responses.",
         promptTemplate: `I work as a [YOUR ROLE] at a [COMPANY TYPE / INDUSTRY].\n\nRight now I am working on [SPECIFIC PROJECT OR CHALLENGE]. My goal is to [WHAT SUCCESS LOOKS LIKE].\n\nTalk to me like a sharp colleague who already knows my field — skip the basics and be direct.`,
         expectedOutput: 'Claude should reply acknowledging your context and asking a clarifying question, or dive straight into useful guidance tailored to your situation.',
         tips: 'Example: "I work as a product marketing manager at a B2B SaaS startup. Right now I am working on our Q3 launch messaging for a new analytics feature. My goal is to have three positioning angles ready for our messaging workshop on Friday. Talk to me like a sharp colleague who already knows my field — skip the basics and be direct."'
@@ -3914,7 +3914,13 @@ export const claudeCrashCoursePlaybooks: Playbook[] = [
         stepNumber: 2,
         title: 'Ask for a Concrete Deliverable',
         instruction: 'Now that Claude has context, ask for something specific you can actually use. Be precise about format, length, and audience.',
-        promptTemplate: `Now write me a [DELIVERABLE TYPE] that I can [HOW YOU WILL USE IT].\n\nRequirements:\n- Audience: [WHO WILL READ/SEE THIS]\n- Length: [WORD COUNT OR FORMAT CONSTRAINT]\n- Tone: [PROFESSIONAL / CASUAL / PERSUASIVE / etc.]\n- Must include: [ANY NON-NEGOTIABLE ELEMENTS]`,
+        promptTemplate: `Now write me a [DELIVERABLE TYPE] that I can [HOW YOU WILL USE IT].
+
+Please follow these requirements:
+Audience: [WHO WILL READ/SEE THIS]
+Length: [WORD COUNT OR FORMAT CONSTRAINT]
+Tone: [PROFESSIONAL, CASUAL, PERSUASIVE, etc.]
+Must include: [ANY NON-NEGOTIABLE ELEMENTS]`,
         expectedOutput: 'A structured, ready-to-use deliverable matching your specifications — not a vague suggestion or outline.',
         tips: 'Example: "Now write me a one-page competitive positioning brief that I can present at our Friday workshop. Audience: VP of Marketing and two PMMs. Length: 400 words max. Tone: confident and data-driven. Must include: our differentiator vs. Mixpanel, one customer proof point, and a suggested tagline."'
       },
@@ -3923,18 +3929,30 @@ export const claudeCrashCoursePlaybooks: Playbook[] = [
         stepNumber: 3,
         title: 'Iterate — Give Feedback Like a Colleague',
         instruction: 'Claude\'s first draft is a starting point. Reply with specific feedback: what to keep, what to cut, what to change. This is where the real value happens.',
-        promptTemplate: `This is [GOOD / CLOSE / OFF-TRACK]. Here is my feedback:\n\n- Keep: [WHAT WORKED]\n- Change: [WHAT NEEDS TO BE DIFFERENT AND WHY]\n- Add: [ANYTHING MISSING]\n- Remove: [ANYTHING UNNECESSARY]\n\nRevise it with these changes.`,
+        promptTemplate: `This is [GOOD / CLOSE / OFF-TRACK]. Here is my feedback:
+
+Keep: [WHAT WORKED]
+Change: [WHAT NEEDS TO BE DIFFERENT AND WHY]
+Add: [ANYTHING MISSING]
+Remove: [ANYTHING UNNECESSARY]
+
+Revise it with these changes.`,
         expectedOutput: 'An improved second draft that incorporates your feedback while preserving what was already working.',
-        tips: 'Example: "This is close. Keep the structure and the Mixpanel comparison. Change the tagline — it\'s too generic, make it edgier and outcome-focused. Add a stat about our average implementation time (it\'s 2 days vs. their 2 weeks). Remove the paragraph about market size — the audience already knows this. Revise it with these changes."'
+        tips: 'Example: "This is close. Keep the structure and the Mixpanel comparison. Change the tagline because it\'s too generic and make it edgier and outcome-focused. Add a stat about our average implementation time (it\'s 2 days vs. their 2 weeks). Remove the paragraph about market size, as the audience already knows this. Revise it with these changes."'
       },
       {
         id: 'cc1-s4',
         stepNumber: 4,
         title: 'Reshape the Output',
         instruction: 'Once the content is right, ask Claude to reformat it for a different context. This shows how one conversation can produce multiple assets.',
-        promptTemplate: `Now take this same content and turn it into:\n\n1. A [NEW FORMAT 1] — for [USE CASE 1]\n2. A [NEW FORMAT 2] — for [USE CASE 2]\n\nKeep the core messaging identical. Adapt only the length and format.`,
+        promptTemplate: `Now take this same content and turn it into:
+
+1. A [NEW FORMAT 1]: for [USE CASE 1]
+2. A [NEW FORMAT 2]: for [USE CASE 2]
+
+Keep the core messaging identical. Adapt only the length and format.`,
         expectedOutput: 'The same core content reshaped into two new formats, ready to use in different contexts.',
-        tips: 'Example: "Now take this same content and turn it into: 1. A 3-slide executive summary — for our Slack channel update to leadership. 2. A 5-bullet email — for the sales team to use in competitive deals. Keep the core messaging identical. Adapt only the length and format."'
+        tips: 'Example: "Now take this same content and turn it into: 1. A 3-slide executive summary for our Slack channel update to leadership. 2. A 5-bullet email for the sales team to use in competitive deals. Keep the core messaging identical and adapt only the length and format."'
       }
     ],
     relatedPlaybooks: [
@@ -3958,11 +3976,11 @@ export const claudeCrashCoursePlaybooks: Playbook[] = [
     isNew: true,
     tools: ['Claude'],
     beforeYouStart: [
-      'Completed Playbook 1 or basic familiarity with Claude',
+      'Completion of Playbook 1 or basic familiarity with Claude',
       'A real writing, analysis, or brainstorming task',
-      '15 minutes'
+      '15 minutes of focus'
     ],
-    expectedOutcome: 'Hands-on experience with 5 reusable prompt patterns — Role Assignment, Chain of Thought, Few-Shot Examples, Constraint Setting, and Structured Output — that you can remix for any future task.',
+    expectedOutcome: 'Hands-on experience with five reusable prompt patterns including Role Assignment, Chain of Thought, Few-Shot Examples, Constraint Setting, and Structured Output. You can remix these for any future task.',
     troubleshooting: [
       {
         problem: 'Claude ignores my formatting instructions',
@@ -3981,7 +3999,7 @@ export const claudeCrashCoursePlaybooks: Playbook[] = [
       {
         id: 'cc2-s1',
         stepNumber: 1,
-        title: 'Pattern 1 — Role Assignment',
+        title: 'Pattern 1: Role Assignment',
         instruction: 'Assign Claude an expert persona to activate domain-specific knowledge. This consistently improves output quality for specialized tasks.',
         promptTemplate: `You are a [SPECIFIC EXPERT ROLE] with 15 years of experience in [DOMAIN].\n\nA client has asked you: "[PASTE THE ACTUAL QUESTION OR TASK]"\n\nRespond as this expert would — with specific recommendations, not generic advice. Reference real frameworks, tools, or methodologies from this field.`,
         expectedOutput: 'A response noticeably more specific and expert-level than a generic prompt would produce — using industry terminology and frameworks appropriately.',
@@ -3990,7 +4008,7 @@ export const claudeCrashCoursePlaybooks: Playbook[] = [
       {
         id: 'cc2-s2',
         stepNumber: 2,
-        title: 'Pattern 2 — Chain of Thought',
+        title: 'Pattern 2: Chain of Thought',
         instruction: 'Force Claude to show its reasoning step by step. This dramatically improves accuracy on complex analysis, math, and strategic decisions.',
         promptTemplate: `I need you to [ANALYSIS OR DECISION TASK].\n\nThink through this step by step:\n1. First, identify [RELEVANT FACTORS]\n2. Then, analyze [KEY RELATIONSHIPS]\n3. Then, weigh [TRADEOFFS]\n4. Finally, give me your recommendation with reasoning\n\nShow your work at each step.`,
         expectedOutput: 'A structured analysis that walks through the reasoning, making it easy to spot where you agree or disagree with Claude\'s logic.',
@@ -3999,7 +4017,7 @@ export const claudeCrashCoursePlaybooks: Playbook[] = [
       {
         id: 'cc2-s3',
         stepNumber: 3,
-        title: 'Pattern 3 — Few-Shot Examples',
+        title: 'Pattern 3: Few-Shot Examples',
         instruction: 'Show Claude 1-2 examples of what good output looks like. This is the fastest way to get Claude to match your voice, format, or quality bar.',
         promptTemplate: `I need you to write [CONTENT TYPE] in a specific style. Here are examples of what good looks like:\n\n---\nExample 1:\n[PASTE A REAL EXAMPLE YOU LIKE]\n---\nExample 2:\n[PASTE ANOTHER EXAMPLE]\n---\n\nNow write one for: [YOUR SPECIFIC TOPIC/CONTEXT]\n\nMatch the tone, structure, and level of detail from the examples.`,
         expectedOutput: 'Output that closely mirrors the style and quality of your examples, applied to your new topic.',
@@ -4008,16 +4026,23 @@ export const claudeCrashCoursePlaybooks: Playbook[] = [
       {
         id: 'cc2-s4',
         stepNumber: 4,
-        title: 'Pattern 4 — Constraint Setting',
+        title: 'Pattern 4: Constraint Setting',
         instruction: 'Set hard boundaries on length, format, audience, and what to exclude. Constraints force Claude to be concise and relevant instead of comprehensive and rambling.',
-        promptTemplate: `Write a [DELIVERABLE] about [TOPIC].\n\nConstraints:\n- Maximum [X] words\n- Written for [SPECIFIC AUDIENCE] — assume they already know [BASELINE KNOWLEDGE]\n- Use [BULLET POINTS / NUMBERED LIST / PARAGRAPHS]\n- Do NOT include [THINGS TO EXCLUDE]\n- Every point must include [REQUIRED ELEMENT — e.g., a specific example, a metric, an action item]`,
+        promptTemplate: `Write a [DELIVERABLE] about [TOPIC].
+
+Please keep these constraints in mind:
+Maximum [X] words
+Written for [SPECIFIC AUDIENCE] (assume they already know [BASELINE KNOWLEDGE])
+Use [BULLET POINTS, NUMBERED LIST, or PARAGRAPHS]
+Do NOT include [THINGS TO EXCLUDE]
+Every point must include [REQUIRED ELEMENT, for example a specific example, a metric, or an action item]`,
         expectedOutput: 'A tightly scoped deliverable that respects every constraint — no filler, no fluff.',
         tips: 'Try it: "Write a project status update about our mobile app redesign. Constraints: Maximum 200 words. Written for our CEO — assume she knows the project background. Use bullet points. Do NOT include technical details or timelines already shared. Every point must include a specific decision or risk that needs her attention."'
       },
       {
         id: 'cc2-s5',
         stepNumber: 5,
-        title: 'Pattern 5 — Structured Output',
+        title: 'Pattern 5: Structured Output',
         instruction: 'Tell Claude exactly what structure you want the output in. Tables, JSON, specific section headers — Claude follows structural instructions very precisely.',
         promptTemplate: `Analyze [TOPIC/DATA] and present the results in this exact structure:\n\n## [Section 1 Name]\n[What to include]\n\n## [Section 2 Name]\n[What to include]\n\n## [Section 3 Name]\nPresent this as a table with columns: [COL1] | [COL2] | [COL3]\n\n## Bottom Line\nOne paragraph: what does this mean and what should I do next?`,
         expectedOutput: 'Output that follows your exact template structure, making it immediately usable without reformatting.',
@@ -4045,14 +4070,14 @@ export const claudeCrashCoursePlaybooks: Playbook[] = [
     tools: ['Claude'],
     beforeYouStart: [
       'A PDF, DOCX, or CSV file you actually need to analyze',
-      'Optionally: a screenshot or chart image you want Claude to interpret',
+      'Optional: a screenshot or chart image you want Claude to interpret',
       'Claude Pro or Free account (free allows limited uploads)'
     ],
-    expectedOutcome: 'A completed analysis of your real document — summary, extracted data, identified issues, or a reformatted output — all produced through file upload + targeted prompts.',
+    expectedOutcome: 'A completed analysis of your real document including a summary, extracted data, identified issues, or reformatted output. Everything is produced through file upload and targeted prompts.',
     troubleshooting: [
       {
         problem: 'Claude says it can\'t read the file',
-        solution: 'Check the file type — Claude supports PDF, DOCX, CSV, TXT, PNG, JPEG, and more. If it\'s a proprietary format, export it to PDF first.'
+        solution: 'Check the file type. Claude supports PDF, DOCX, CSV, TXT, PNG, JPEG, and more. If it\'s a proprietary format, export it to PDF first.'
       },
       {
         problem: 'Claude misses important details in a long document',
@@ -4069,7 +4094,17 @@ export const claudeCrashCoursePlaybooks: Playbook[] = [
         stepNumber: 1,
         title: 'The Smart Summary — Extract What Matters',
         instruction: 'Upload a document and ask Claude to summarize it for a specific audience and purpose. The key is telling Claude WHY you need the summary — this shapes what it prioritizes.',
-        promptTemplate: `I just uploaded [DOCUMENT NAME]. Here is what I need:\n\nSummarize this document for [SPECIFIC AUDIENCE] who needs to [SPECIFIC PURPOSE].\n\nStructure:\n- Executive summary (3 sentences max)\n- Key findings or decisions (bullet points)\n- Action items or open questions\n- Anything surprising or concerning\n\nSkip background context the audience already knows. Focus on what is new, changed, or requires a decision.`,
+        promptTemplate: `I just uploaded [DOCUMENT NAME]. Here is what I need:
+
+Summarize this document for [SPECIFIC AUDIENCE] who needs to [SPECIFIC PURPOSE].
+
+Please structure the summary as follows:
+An executive summary (3 sentences max)
+Key findings or decisions
+Action items or open questions
+Anything surprising or concerning
+
+Skip the background context the audience already knows and focus on what is new, changed, or requires a decision.`,
         expectedOutput: 'A purpose-driven summary that highlights what matters to your audience — not a generic document overview.',
         tips: 'Try it with a meeting transcript: "Summarize this document for our VP of Engineering who missed the meeting and needs to know what was decided, what\'s blocked, and what he needs to weigh in on. Skip background context — he knows the project. Focus on decisions, blockers, and his action items."'
       },
@@ -4078,8 +4113,17 @@ export const claudeCrashCoursePlaybooks: Playbook[] = [
         stepNumber: 2,
         title: 'Data Extraction — Pull Structure from Chaos',
         instruction: 'Upload a messy document (contract, report, email thread) and ask Claude to extract specific data points into a structured format.',
-        promptTemplate: `From this uploaded document, extract the following into a table:\n\n| [Column 1] | [Column 2] | [Column 3] | [Column 4] |\n\nRules:\n- If a value is not explicitly stated, write "Not specified"\n- If a value is ambiguous, write your best interpretation + "(inferred)"\n- Include the page number or section where you found each data point\n\nAfter the table, list any inconsistencies or red flags you noticed.`,
-        expectedOutput: 'A clean, structured table pulling specific data points from an unstructured source, with page references and flagged issues.',
+        promptTemplate: `From this uploaded document, extract the following into a table:
+
+| [Column 1] | [Column 2] | [Column 3] | [Column 4] |
+
+Please follow these rules:
+If a value is not explicitly stated, write 'Not specified'
+If a value is ambiguous, write your best interpretation and mention it's inferred
+Include the page number or section where you found each data point
+
+After the table, list any inconsistencies or red flags you noticed.`,
+        expectedOutput: 'A clean, structured table pulling specific data points from an unstructured source with page references and flagged issues.',
         tips: 'Try it with a vendor contract: "Extract: Vendor Name | Contract Value | Start Date | End Date | Auto-Renewal Terms | Termination Notice Period | Key SLA Commitments. After the table, list any inconsistencies or clauses that seem unusual."'
       },
       {
@@ -4087,17 +4131,34 @@ export const claudeCrashCoursePlaybooks: Playbook[] = [
         stepNumber: 3,
         title: 'Image + Screenshot Analysis',
         instruction: 'Upload a chart, screenshot, whiteboard photo, or UI mockup. Claude can read visual content and turn it into structured text or actionable analysis.',
-        promptTemplate: `I uploaded [IMAGE TYPE — e.g., a screenshot of our analytics dashboard / a photo of our whiteboard / a chart from a report].\n\nDo the following:\n1. Describe what you see in detail\n2. Extract all data points, numbers, or text visible in the image\n3. [SPECIFIC ASK — e.g., identify the top 3 trends / flag any concerning metrics / convert the whiteboard notes into a structured task list]\n\nPresent your analysis as [FORMAT — e.g., bullet points / a table / a formatted summary].`,
+        promptTemplate: `I uploaded [IMAGE TYPE, for example a screenshot of our analytics dashboard, a photo of our whiteboard, or a chart from a report].
+
+Please do the following:
+1. Describe what you see in detail
+2. Extract all data points, numbers, or text visible in the image
+3. [SPECIFIC ASK, for example identify the top 3 trends, flag concerning metrics, or convert whiteboard notes into a structured task list]
+
+Please present your analysis as [FORMAT, such as bullet points, a table, or a formatted summary].`,
         expectedOutput: 'A text-based extraction and analysis of the visual content, structured in your requested format.',
-        tips: 'Try it: Upload a screenshot of a cluttered Jira board and ask Claude to "List every visible ticket with its status and assignee in a table. Then identify which tickets appear blocked and suggest a priority order for our standup tomorrow."'
+        tips: 'Try it: Upload a screenshot of a cluttered Jira board and ask Claude to list every visible ticket with its status and assignee in a table. Then identify which tickets appear blocked and suggest a priority order for our standup tomorrow.'
       },
       {
         id: 'cc3-s4',
         stepNumber: 4,
         title: 'Compare and Cross-Reference',
         instruction: 'Upload two related documents and ask Claude to compare them. This is powerful for contract redlines, version comparisons, or competitive analysis.',
-        promptTemplate: `I uploaded two documents:\n- Document A: [NAME / DESCRIPTION]\n- Document B: [NAME / DESCRIPTION]\n\nCompare them and produce:\n\n1. **What changed** — key differences between A and B (table format)\n2. **What's new in B** — anything added that wasn't in A\n3. **What's missing from B** — anything in A that was removed\n4. **Risk assessment** — any changes that could be problematic and why\n\nBe specific. Quote exact language where differences matter.`,
-        expectedOutput: 'A structured comparison with specific differences called out, additions and removals identified, and risk flags for material changes.',
+        promptTemplate: `I uploaded two documents:
+Document A: [NAME / DESCRIPTION]
+Document B: [NAME / DESCRIPTION]
+
+Compare them and produce:
+1. What changed: key differences between A and B (table format)
+2. What's new in B: anything added that wasn't in A
+3. What's missing from B: anything in A that was removed
+4. Risk assessment: any changes that could be problematic and why
+
+Be specific. Quote exact language where differences matter.`,
+        expectedOutput: 'A structured comparison with specific differences called out, along with additions, removals, and risk flags for material changes.',
         tips: 'Try it with two versions of a proposal, contract, or policy document. This saves hours of manual redlining.'
       }
     ],
@@ -4122,10 +4183,10 @@ export const claudeCrashCoursePlaybooks: Playbook[] = [
     tools: ['Claude'],
     beforeYouStart: [
       'Claude Pro, Max, Team, or Enterprise account (Projects require a paid plan)',
-      '2-3 reference documents you frequently re-explain to AI (brand guidelines, templates, specs)',
+      'Two to three reference documents you frequently re-explain to AI, like brand guidelines or templates',
       'A recurring workflow where you want consistency across conversations'
     ],
-    expectedOutcome: 'A fully configured Claude Project with uploaded knowledge, custom instructions, and a test conversation proving that Claude correctly references your documents and follows your rules without being reminded.',
+    expectedOutcome: 'A fully configured Claude Project with uploaded knowledge and custom instructions, along with a test conversation to prove that Claude correctly references your documents without being reminded.',
     troubleshooting: [
       {
         problem: 'Claude doesn\'t seem to reference my uploaded documents',
@@ -4145,17 +4206,37 @@ export const claudeCrashCoursePlaybooks: Playbook[] = [
         id: 'cc4-s1',
         stepNumber: 1,
         title: 'Create Your Project and Name It',
-        instruction: 'Go to claude.ai/projects and create a new project. Give it a specific, outcome-oriented name — not a vague label.',
-        promptTemplate: `Before creating the project, ask Claude to help you scope it:\n\n"I want to set up a Claude Project for [WORKFLOW — e.g., writing customer case studies / preparing board meeting materials / managing our product launch].\n\nHelp me define:\n1. What documents should I upload as the knowledge base?\n2. What project instructions would ensure consistency?\n3. What should this project NOT be used for (scope boundaries)?\n\nKeep each answer to 3-5 bullet points."`,
-        expectedOutput: 'A clear project scope with recommended documents, instructions, and boundaries — giving you a setup checklist before you start.',
-        tips: 'Great project names: "Q3 Product Launch Content", "Client Onboarding — Acme Corp", "Weekly Sales Report Generator". Bad names: "Marketing Stuff", "Misc", "Project 1".'
+        instruction: 'Go to claude.ai/projects and create a new project. Give it a specific, outcome-oriented name rather than a vague label.',
+        promptTemplate: `Before creating the project, ask Claude to help you scope it by saying:
+
+"I want to set up a Claude Project for [WORKFLOW, such as writing customer case studies or managing our product launch].
+
+Please help me define:
+1. What documents should I upload as the knowledge base?
+2. What project instructions would ensure consistency?
+3. What should this project NOT be used for in terms of scope boundaries?
+
+Please keep each answer concise."`,
+        expectedOutput: 'A clear project scope with recommended documents, instructions, and boundaries, which gives you a setup checklist before you start.',
+        tips: "Great project names include 'Q3 Product Launch Content', 'Client Onboarding for Acme Corp', or 'Weekly Sales Report Generator'. Avoid vague names like 'Marketing Stuff', 'Misc', or 'Project 1'.",
       },
       {
         id: 'cc4-s2',
         stepNumber: 2,
         title: 'Write Bulletproof Project Instructions',
-        instruction: 'Your project instructions are the rules Claude follows in every conversation within the project. Write them like you\'re onboarding a new team member — specific, unambiguous, and prioritized.',
-        promptTemplate: `Help me write project instructions for a Claude Project called "[PROJECT NAME]".\n\nContext: [WHAT THIS PROJECT IS FOR — 2 sentences]\n\nI need instructions that cover:\n1. Role: Who should Claude act as in this project?\n2. Tone: [FORMAL / CONVERSATIONAL / TECHNICAL / etc.]\n3. Format rules: [DEFAULT OUTPUT FORMAT — e.g., always use bullet points, always include an executive summary]\n4. Must-do rules: [THINGS CLAUDE MUST ALWAYS DO — e.g., cite uploaded documents, use our company terminology]\n5. Must-avoid rules: [THINGS CLAUDE MUST NEVER DO — e.g., never suggest competitor products, never use passive voice]\n\nWrite these as clear, numbered instructions I can paste directly into the Project Instructions field. Keep it under 300 words.`,
+        instruction: "Your project instructions are the rules Claude follows in every conversation within the project. Write them like you're onboarding a new team member by being specific, unambiguous, and prioritized.",
+        promptTemplate: `Help me write project instructions for a Claude Project called "[PROJECT NAME]".
+
+Context: [WHAT THIS PROJECT IS FOR in two sentences]
+
+I need instructions that cover:
+1. Role: Who should Claude act as in this project?
+2. Tone: [FORMAL, CONVERSATIONAL, or TECHNICAL]
+3. Format rules: [DEFAULT OUTPUT FORMAT, for example always use bullet points or an executive summary]
+4. Must-do rules: [THINGS CLAUDE MUST ALWAYS DO, like citing uploaded documents or using company terminology]
+5. Must-avoid rules: [THINGS CLAUDE MUST NEVER DO, like never suggesting competitor products or using passive voice]
+
+Please write these as clear, numbered instructions I can paste directly into the Project Instructions. Keep it under 300 words.`,
         expectedOutput: 'A copy-paste-ready set of project instructions, numbered and specific enough that Claude can follow them without ambiguity.',
         tips: 'Try it: "Help me write project instructions for a Claude Project called \'Customer Case Studies\'. Context: We create 2-page case studies for enterprise SaaS customers. They follow a Problem → Solution → Results structure. I need instructions covering: Role (B2B content strategist), Tone (professional but not stiff), Format (always use our case study template structure), Must-do (always ask for specific metrics and customer quotes), Must-avoid (never use jargon our customers wouldn\'t know)."'
       },
@@ -4163,17 +4244,34 @@ export const claudeCrashCoursePlaybooks: Playbook[] = [
         id: 'cc4-s3',
         stepNumber: 3,
         title: 'Upload Your Knowledge Base',
-        instruction: 'Upload the documents Claude should reference across all conversations in this project. Use descriptive filenames — Claude uses filenames to locate content.',
-        promptTemplate: `After uploading your documents, test that Claude can find and reference them:\n\n"Based on the uploaded documents, answer these questions:\n1. What is the main topic of [DOCUMENT NAME]?\n2. Find the specific section in [DOCUMENT NAME] that covers [TOPIC].\n3. If I asked you to [COMMON TASK IN THIS PROJECT], which uploaded documents would you reference and why?\n\nQuote specific passages from the documents in your answers."`,
+        instruction: 'Upload the documents Claude should reference across all conversations in this project. Use descriptive filenames, as Claude uses filenames to locate content.',
+        promptTemplate: `After uploading your documents, test that Claude can find and reference them:
+
+"Based on the uploaded documents, please answer these questions:
+1. What is the main topic of [DOCUMENT NAME]?
+2. Find the specific section in [DOCUMENT NAME] that covers [TOPIC].
+3. If I asked you to [COMMON TASK IN THIS PROJECT], which uploaded documents would you reference and why?
+
+Please quote specific passages from the documents in your answers."`,
         expectedOutput: 'Claude should accurately reference your uploaded documents, quote specific passages, and explain which documents it would use for different tasks.',
-        tips: 'Name files descriptively: "Q4-2024-Brand-Voice-Guidelines.pdf" is way better than "guidelines_v2_final.pdf". Upload 3-5 focused documents rather than one massive file. Claude handles multiple specific files better than one 200-page omnibus.'
+        tips: "Name files descriptively, as 'Q4-2024-Brand-Voice-Guidelines.pdf' is much better than 'guidelines_v2_final.pdf'. Upload three to five focused documents rather than one massive file, since Claude handles multiple specific files better than a single large one.",
       },
       {
         id: 'cc4-s4',
         stepNumber: 4,
-        title: 'The Acid Test — Run a Real Task',
-        instruction: 'Put your project through a real-world test. Give Claude a task you\'d normally do yourself and check whether it follows your instructions and references your documents without being reminded.',
-        promptTemplate: `[Give Claude a real task from your workflow — no special hints or reminders]\n\nExample task prompts:\n- "Write a case study introduction for [CLIENT NAME] based on these call notes: [PASTE NOTES]"\n- "Draft this week's board update using the latest metrics: [PASTE DATA]"\n- "Review this email draft and align it with our brand voice: [PASTE DRAFT]"\n\nAfter Claude responds, evaluate:\n- Did it follow the tone from my instructions?\n- Did it reference the uploaded documents?\n- Did it respect the must-do and must-avoid rules?`,
+        title: 'The Acid Test: Run a Real Task',
+        instruction: "Put your project through a real-world test. Give Claude a task you'd normally do yourself and check whether it follows your instructions and references your documents without being reminded.",
+        promptTemplate: `[Give Claude a real task from your workflow without any special hints or reminders]
+
+Example task prompts:
+Write a case study introduction for [CLIENT NAME] based on these call notes: [PASTE NOTES]
+Draft this week's board update using the latest metrics: [PASTE DATA]
+Review this email draft and align it with our brand voice: [PASTE DRAFT]
+
+After Claude responds, please evaluate:
+Did it follow the tone from my instructions?
+Did it reference the uploaded documents?
+Did it respect the must-do and must-avoid rules?`,
         expectedOutput: 'A deliverable that follows your project rules and references your knowledge base without being explicitly reminded — proving the project setup works.',
         tips: 'If Claude misses a rule, don\'t fix it in the conversation — fix it in the project instructions. Your instructions should be good enough to work for any new conversation in this project.'
       },
@@ -4207,11 +4305,11 @@ export const claudeCrashCoursePlaybooks: Playbook[] = [
     isNew: true,
     tools: ['Claude'],
     beforeYouStart: [
-      'A Claude account with Artifacts enabled (Settings → Feature Preview)',
+      'A Claude account with Artifacts enabled in settings',
       'An idea for a simple tool, calculator, or document you need',
-      'No coding knowledge required — Claude writes all the code'
+      'No coding knowledge is required, since Claude writes all the code'
     ],
-    expectedOutcome: 'At least two working artifacts: a practical interactive tool (calculator, form, or dashboard) and a polished document — both ready to download or share.',
+    expectedOutcome: 'At least two working artifacts: a practical interactive tool like a calculator or dashboard, and a polished document, both ready to download or share.',
     troubleshooting: [
       {
         problem: 'Claude responds in the chat instead of creating an artifact',
@@ -4231,8 +4329,23 @@ export const claudeCrashCoursePlaybooks: Playbook[] = [
         id: 'cc5-s1',
         stepNumber: 1,
         title: 'Build a Practical Calculator or Tool',
-        instruction: 'Ask Claude to build an interactive tool you\'d actually use at work. Describe what it should do, what inputs it needs, and what output it shows. No coding knowledge needed.',
-        promptTemplate: `Build me an interactive [TOOL TYPE] as an artifact.\n\nWhat it does:\n- [CORE FUNCTION — e.g., calculates ROI for our marketing campaigns]\n\nInputs I need to enter:\n- [INPUT 1 — e.g., campaign budget]\n- [INPUT 2 — e.g., expected conversion rate]\n- [INPUT 3 — e.g., average deal size]\n\nOutput it should show:\n- [OUTPUT 1 — e.g., projected ROI percentage]\n- [OUTPUT 2 — e.g., break-even point]\n- [OUTPUT 3 — e.g., a visual chart of projected returns]\n\nDesign: Clean and professional. Use a modern dark theme. Make it look like a real product, not a prototype.`,
+        instruction: "Ask Claude to build an interactive tool you'd actually use at work. Describe what it should do, what inputs it needs, and what output it shows. You won't need any coding knowledge.",
+        promptTemplate: `Build me an interactive [TOOL TYPE] as an artifact.
+
+What it does:
+[CORE FUNCTION, for example calculating ROI for marketing campaigns]
+
+Inputs I need to enter:
+[INPUT 1, like campaign budget]
+[INPUT 2, like expected conversion rate]
+[INPUT 3, like average deal size]
+
+Output it should show:
+[OUTPUT 1, like projected ROI percentage]
+[OUTPUT 2, like break-even point]
+[OUTPUT 3, like a visual chart of projected returns]
+
+Design: Please keep it clean, professional, and modern. Make it look like a real product rather than a prototype.`,
         expectedOutput: 'A working interactive artifact with input fields, calculations, and visual output — rendered in the artifact panel, ready to use.',
         tips: 'Try it: "Build me an interactive SaaS pricing calculator as an artifact. Inputs: number of users, plan tier (starter/growth/enterprise), billing period (monthly/annual). Output: monthly cost, annual cost, savings from annual billing, and a comparison table across all tiers. Design: Clean and professional with a blue/white color scheme."'
       },
@@ -4240,8 +4353,23 @@ export const claudeCrashCoursePlaybooks: Playbook[] = [
         id: 'cc5-s2',
         stepNumber: 2,
         title: 'Create a Polished Document or Report',
-        instruction: 'Use artifacts to create formatted documents — project plans, reports, templates — that you can download as real files.',
-        promptTemplate: `Create a [DOCUMENT TYPE] as an artifact.\n\nTopic: [SUBJECT]\nAudience: [WHO WILL READ THIS]\nLength: [PAGE / WORD TARGET]\n\nStructure it as:\n1. [SECTION 1]\n2. [SECTION 2]\n3. [SECTION 3]\n4. [SECTION 4]\n\nInclude:\n- [SPECIFIC ELEMENTS — e.g., an executive summary, data tables, recommendations]\n\nStyle: Professional and polished. This will be shared externally.`,
+        instruction: 'Use artifacts to create formatted documents like project plans or reports that you can download as real files.',
+        promptTemplate: `Create a [DOCUMENT TYPE] as an artifact.
+
+Topic: [SUBJECT]
+Audience: [WHO WILL READ THIS]
+Length: [PAGE or WORD TARGET]
+
+Please structure it as:
+1. [SECTION 1]
+2. [SECTION 2]
+3. [SECTION 3]
+4. [SECTION 4]
+
+Include:
+[SPECIFIC ELEMENTS, such as an executive summary, data tables, or recommendations]
+
+Style: Please keep it professional and polished as this will be shared externally.`,
         expectedOutput: 'A rendered, formatted document in the artifact panel that you can preview, copy, and download.',
         tips: 'Try it: "Create a quarterly business review template as an artifact. Structure: 1. Executive Summary, 2. Key Metrics (as a table with YoY comparison columns), 3. Highlights & Lowlights, 4. Next Quarter Priorities, 5. Resource Requests. Each section should have placeholder text showing what to fill in. Style: clean, corporate, ready to present."'
       },
@@ -4249,8 +4377,17 @@ export const claudeCrashCoursePlaybooks: Playbook[] = [
         id: 'cc5-s3',
         stepNumber: 3,
         title: 'Build a Visual Diagram or Flowchart',
-        instruction: 'Ask Claude to create Mermaid diagrams for processes, org charts, user flows, or system architecture. These render as real, visual diagrams in the artifact panel.',
-        promptTemplate: `Create a [DIAGRAM TYPE — flowchart / sequence diagram / org chart / user journey] as a Mermaid diagram artifact.\n\nShow: [WHAT THE DIAGRAM SHOULD ILLUSTRATE]\n\nInclude:\n- [KEY NODES or STEPS]\n- [DECISION POINTS if it's a flowchart]\n- [CONNECTIONS between elements]\n\nKeep it readable — no more than [N] nodes. Use clear, short labels.`,
+        instruction: 'Ask Claude to create visual diagrams for processes, org charts, or user flows. These render as real diagrams in the artifact panel.',
+        promptTemplate: `Create a [DIAGRAM TYPE, such as a flowchart or org chart] as a Mermaid diagram artifact.
+
+Please show: [WHAT THE DIAGRAM SHOULD ILLUSTRATE]
+
+Include:
+[KEY NODES or STEPS]
+[DECISION POINTS if it's a flowchart]
+[CONNECTIONS between elements]
+
+Keep it readable with a limited number of nodes and use clear, short labels.`,
         expectedOutput: 'A rendered visual diagram in the artifact panel, showing your process or structure as a clean, shareable graphic.',
         tips: 'Try it: "Create a customer support escalation flowchart as a Mermaid diagram artifact. Show: Ticket comes in → auto-categorize (billing/technical/general) → each category has different routing → escalation triggers at 24h and 48h → resolution or manager review. Include decision points for: severity level, SLA breach, and VIP customer flag. Keep it under 15 nodes."'
       },
@@ -4285,14 +4422,14 @@ export const claudeCrashCoursePlaybooks: Playbook[] = [
     tools: ['Claude'],
     beforeYouStart: [
       'Claude Pro or Max account with Web Search enabled',
-      'Research Mode toggle enabled (bottom-left of the chat interface)',
+      'Research Mode toggle enabled at the bottom of the chat interface',
       'A complex question that needs multiple sources to answer properly'
     ],
-    expectedOutcome: 'A cite-backed research report synthesizing information from multiple web sources and (optionally) your connected integrations — ready to share with stakeholders.',
+    expectedOutcome: 'A cite-backed research report synthesizing information from multiple sources, ready to share with stakeholders.',
     troubleshooting: [
       {
         problem: 'Research is taking too long (30+ minutes)',
-        solution: 'Your prompt is too broad. Next time, be more specific: narrow the scope, add constraints, or define the exact sections you want.'
+        solution: 'Your prompt is too broad. Next time, be more specific by narrowing the scope, adding constraints, or defining the exact sections you want.'
       },
       {
         problem: 'The report doesn\'t cover what I actually needed',
@@ -4300,7 +4437,7 @@ export const claudeCrashCoursePlaybooks: Playbook[] = [
       },
       {
         problem: 'Citations are from low-quality sources',
-        solution: 'Add: "Prioritize data from: industry reports, company filings, and established publications. Deprioritize blog posts and forums unless they provide unique data."'
+        solution: 'Add: "Prioritize data from industry reports, company filings, and established publications. Deprioritize blog posts and forums unless they provide unique data."'
       }
     ],
     steps: [
@@ -4308,8 +4445,30 @@ export const claudeCrashCoursePlaybooks: Playbook[] = [
         id: 'cc6-s1',
         stepNumber: 1,
         title: 'Write a Research Brief — Tell Claude What to Investigate',
-        instruction: 'Enable Research mode (the toggle at the bottom-left of the chat interface turns blue). Then write a structured research prompt — think of it as a brief to a research analyst.',
-        promptTemplate: `Research the following topic and produce a comprehensive report:\n\n**Topic:** [SPECIFIC RESEARCH QUESTION]\n\n**Context:** I need this for [PURPOSE — e.g., a board presentation / market entry decision / competitive analysis]. My audience is [WHO WILL READ THIS].\n\n**Scope:**\n- Focus areas: [LIST 3-5 SPECIFIC AREAS]\n- Time frame: [CURRENT / LAST 12 MONTHS / LAST 5 YEARS]\n- Geography: [GLOBAL / US ONLY / SPECIFIC REGIONS]\n\n**Report structure:**\n1. Executive Summary (200 words)\n2. [SECTION 2 WITH SPECIFIC FOCUS]\n3. [SECTION 3 WITH SPECIFIC FOCUS]\n4. [SECTION 4 WITH SPECIFIC FOCUS]\n5. Key Risks and Open Questions\n6. Recommended Next Steps\n\n**Requirements:**\n- Cite all claims with sources\n- Include data and numbers wherever possible\n- Flag any areas where data is limited or conflicting`,
+        instruction: "Enable Research mode by clicking the toggle at the bottom-left. Then write a structured research prompt, thinking of it as a brief to a research analyst.",
+        promptTemplate: `Research the following topic and produce a comprehensive report:
+
+**Topic:** [SPECIFIC RESEARCH QUESTION]
+
+**Context:** I need this for [PURPOSE, for example a board presentation or market entry decision]. My audience is [WHO WILL READ THIS].
+
+**Scope:**
+Focus areas: [LIST SPECIFIC AREAS]
+Time frame: [CURRENT or RECENT]
+Geography: [GLOBAL or SPECIFIC REGIONS]
+
+**Report structure:**
+1. Executive Summary
+2. [SECTION 2 WITH SPECIFIC FOCUS]
+3. [SECTION 3 WITH SPECIFIC FOCUS]
+4. [SECTION 4 WITH SPECIFIC FOCUS]
+5. Key Risks and Open Questions
+6. Recommended Next Steps
+
+**Requirements:**
+Please cite all claims with sources
+Include data and numbers wherever possible
+Flag any areas where data is limited or conflicting`,
         expectedOutput: 'Claude will work for 5-15 minutes, conducting multiple searches, and deliver a structured research report with citations.',
         tips: 'Try it: "Research the current state of AI-powered customer support tools and produce a report. Context: I\'m evaluating vendors for our 50-person support team. Focus areas: top 5 players by market share, pricing models, implementation timelines, customer satisfaction scores. Structure: Executive Summary, Market Landscape (table), Vendor Deep Dives (top 5), Build vs Buy Analysis, Recommended Shortlist."'
       },
@@ -4318,7 +4477,18 @@ export const claudeCrashCoursePlaybooks: Playbook[] = [
         stepNumber: 2,
         title: 'Competitive Landscape Deep Dive',
         instruction: 'Use Research mode for competitive intelligence — Claude will pull from multiple sources to build a comprehensive picture of your competitive landscape.',
-        promptTemplate: `Run a competitive analysis on [YOUR COMPANY/PRODUCT] vs these competitors: [COMPETITOR 1], [COMPETITOR 2], [COMPETITOR 3].\n\nFor each competitor, investigate:\n1. Core product and positioning (one paragraph each)\n2. Pricing (specific tiers and numbers if publicly available)\n3. Recent announcements or product launches (last 6 months)\n4. Customer reviews — common praise and complaints\n5. Estimated company size and funding\n\nPresent as a comparison table where possible.\n\nThen add a section called "Our Opportunity" — based on competitor gaps and customer complaints, where should we focus?\n\nCite everything.`,
+        promptTemplate: `Run a competitive analysis on [YOUR COMPANY/PRODUCT] vs these competitors: [COMPETITOR 1], [COMPETITOR 2], [COMPETITOR 3].
+
+For each competitor, investigate:
+1. Core product and positioning
+2. Pricing (specific tiers and numbers if publicly available)
+3. Recent announcements or product launches
+4. Customer reviews including common praise and complaints
+5. Estimated company size and funding
+
+Present as a comparison table where possible.
+
+Then add a section called 'Our Opportunity' based on competitor gaps and customer complaints, telling us where we should focus. Please cite everything.`,
         expectedOutput: 'A structured competitive analysis with specific data points, comparison tables, and an opportunity assessment — all cited.',
         tips: 'This prompt beats generic competitor research because it asks for specifics (pricing tiers, recent launches, review sentiment) rather than allowing Claude to stay surface-level.'
       },
@@ -4327,7 +4497,22 @@ export const claudeCrashCoursePlaybooks: Playbook[] = [
         stepNumber: 3,
         title: 'Research + Internal Data Combo',
         instruction: 'If you have Google Workspace connected, Claude can combine web research with your internal documents, emails, and calendar for richer analysis.',
-        promptTemplate: `I need you to combine web research with my connected Google Workspace data.\n\n**External research:**\n- [WHAT TO RESEARCH ON THE WEB — e.g., industry benchmarks for SaaS metrics in our space]\n\n**Internal context to pull in:**\n- [WHAT TO LOOK FOR IN MY CONNECTED TOOLS — e.g., recent emails or docs mentioning our Q4 targets]\n\n**Deliverable:**\nA [REPORT TYPE] that compares our internal situation against the external benchmarks.\n\nStructure:\n1. Industry Benchmarks (from web research)\n2. Our Current Performance (from internal data)\n3. Gap Analysis (comparing the two)\n4. Recommended Actions (prioritized, specific)`,
+        promptTemplate: `I need you to combine web research with my internal data.
+
+**External research:**
+[WHAT TO RESEARCH ON THE WEB, for example industry benchmarks]
+
+**Internal context to pull in:**
+[WHAT TO LOOK FOR IN MY CONNECTED TOOLS, like recent emails or documents]
+
+**Deliverable:**
+A [REPORT TYPE] that compares our internal situation against the external benchmarks.
+
+Structure:
+1. Industry Benchmarks
+2. Our Current Performance
+3. Gap Analysis
+4. Recommended Actions (prioritized and specific)`,
         expectedOutput: 'A report that blends external research with your internal data — comparing your company\'s situation against market benchmarks.',
         tips: 'If you don\'t have Google Workspace connected, you can upload internal documents directly to the chat and combine them with Research mode\'s web results.'
       },
@@ -4336,7 +4521,16 @@ export const claudeCrashCoursePlaybooks: Playbook[] = [
         stepNumber: 4,
         title: 'Turn Research into Actions',
         instruction: 'After Claude delivers the research report, use a follow-up prompt to turn insights into a concrete action plan.',
-        promptTemplate: `Based on the research report you just produced, create an action plan.\n\nFor each recommendation:\n- **Action:** What specifically to do (one sentence)\n- **Owner:** What role should own this (e.g., Head of Product, Marketing Lead)\n- **Timeline:** Suggested deadline or timeframe\n- **Dependencies:** What needs to happen first\n- **Success metric:** How we'll know this worked\n\nPrioritize by impact. Put quick wins (under 1 week) at the top.\nFormat as a numbered list I can paste into our project tracker.`,
+        promptTemplate: `Based on the research report you just produced, please create an action plan.
+
+For each recommendation:
+Action: what specifically to do
+Owner: what role should own this
+Timeline: suggested deadline or timeframe
+Dependencies: what needs to happen first
+Success metric: how we'll know this worked
+
+Please prioritize by impact and put quick wins at the top. Format this as a numbered list I can paste into our project tracker.`,
         expectedOutput: 'A prioritized, assignable action plan derived from the research findings — ready to paste into Notion, Asana, Jira, or any project management tool.',
         tips: 'This two-step approach (research first → action plan second) consistently produces better results than trying to get research + recommendations in one prompt. The research builds Claude\'s context so the action plan is grounded in specifics.'
       }
