@@ -1,36 +1,29 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 190 46" fill="none">
-  <defs>
-    <marker id="swoosh-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto" markerUnits="userSpaceOnUse">
-      <polygon points="0 0, 8 3, 0 6" fill="#4285F4"/>
-    </marker>
-  </defs>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 182 42" fill="none">
+  <!--
+    HoursBack logo
+    Icon: bold counter-clockwise arc (undo/rewind symbol) — "get your hours back"
+    Mark: hoursback wordmark in dark semi-bold
+    Background: fully transparent
+  -->
 
-  <!-- Clock outline -->
-  <circle cx="23" cy="23" r="18" stroke="#202124" stroke-width="2.2"/>
+  <!-- 270° counter-clockwise arc  -->
+  <!-- centre (21,21) radius 13 — from 12 o'clock (21,8) CCW to 3 o'clock (34,21) -->
+  <path d="M 21,8 A 13,13 0 1,0 34,21"
+        stroke="#4285F4" stroke-width="3.6" stroke-linecap="round"/>
 
-  <!-- Hour ticks at 12, 3, 6, 9 -->
-  <line x1="23" y1="5.5"  x2="23"   y2="9.5"  stroke="#202124" stroke-width="2" stroke-linecap="round"/>
-  <line x1="40.5" y1="23" x2="36.5" y2="23"   stroke="#202124" stroke-width="2" stroke-linecap="round"/>
-  <line x1="23"  y1="40.5" x2="23"  y2="36.5" stroke="#202124" stroke-width="2" stroke-linecap="round"/>
-  <line x1="5.5"  y1="23" x2="9.5"  y2="23"   stroke="#202124" stroke-width="2" stroke-linecap="round"/>
+  <!-- Arrowhead at 3 o'clock — points downward (direction of CCW travel) -->
+  <polygon points="30,21 38,21 34,27.5" fill="#4285F4"/>
 
-  <!-- Hour hand → 10 o'clock -->
-  <line x1="23" y1="23" x2="14" y2="18" stroke="#202124" stroke-width="2.2" stroke-linecap="round"/>
-  <!-- Minute hand → 2 o'clock (10 past) -->
-  <line x1="23" y1="23" x2="34" y2="17" stroke="#202124" stroke-width="2.2" stroke-linecap="round"/>
-  <!-- Centre dot -->
-  <circle cx="23" cy="23" r="2.2" fill="#202124"/>
-
-  <!-- Blue swoosh arrow from lower-left → upper-right -->
-  <path d="M 5,37 C 9,22 23,13 38,8"
-        stroke="#4285F4" stroke-width="2.6" stroke-linecap="round"
-        marker-end="url(#swoosh-arrow)"/>
+  <!-- Small pivot dot — clock centre -->
+  <circle cx="21" cy="21" r="2.2" fill="#4285F4"/>
 
   <!-- Wordmark -->
-  <text x="51" y="31"
-        font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
-        font-weight="700"
-        font-size="21"
-        fill="#202124"
-        letter-spacing="-0.4">hoursback</text>
+  <text
+    x="49" y="27"
+    font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
+    font-weight="600"
+    font-size="20"
+    fill="#202124"
+    letter-spacing="-0.3"
+  >hoursback</text>
 </svg>
