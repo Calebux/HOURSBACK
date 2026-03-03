@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
+import { ContainerScroll } from '../components/ContainerScroll';
 import {
   Clock,
   Zap,
@@ -80,7 +81,6 @@ export default function LandingPage() {
           {/* Absolutely centered so links stay in the true middle regardless of logo width */}
           <div className="absolute left-1/2 -translate-x-1/2 hidden md:flex items-center gap-8 text-sm text-brand-dark/80">
             <Link to="/playbooks" className="hover:text-brand-dark transition-colors">Playbooks</Link>
-            <a href="#enterprise" className="hover:text-brand-dark transition-colors font-medium text-brand-blue">Enterprise</a>
             <a href="#pricing" className="hover:text-brand-dark transition-colors">Pricing</a>
             <a href="#features" className="hover:text-brand-dark transition-colors">Features</a>
           </div>
@@ -134,8 +134,6 @@ export default function LandingPage() {
           >
             <div className="px-6 py-4 space-y-4">
               <Link to="/playbooks" className="block text-brand-dark/80 hover:text-brand-dark transition-colors" onClick={() => setMobileMenuOpen(false)}>Playbooks</Link>
-              <a href="#enterprise" className="block text-brand-blue font-medium hover:text-brand-dark transition-colors" onClick={() => setMobileMenuOpen(false)}>Enterprise (Done-For-You)</a>
-              <Link to="/dashboard" className="block text-brand-dark/80 hover:text-brand-dark transition-colors" onClick={() => setMobileMenuOpen(false)}>Dashboard</Link>
               <a href="#pricing" className="block text-brand-dark/80 hover:text-brand-dark transition-colors" onClick={() => setMobileMenuOpen(false)}>Pricing</a>
               <a href="#features" className="block text-brand-dark/80 hover:text-brand-dark transition-colors" onClick={() => setMobileMenuOpen(false)}>Features</a>
               <button className="block w-full" onClick={() => { setAuthView('signup'); setAuthModalOpen(true); setMobileMenuOpen(false); }}> {/* Modified for AuthModal */}
@@ -149,91 +147,129 @@ export default function LandingPage() {
       </motion.nav>
 
       {/* Hero Section */}
-      <section
-        ref={heroRef}
-        className="relative min-h-[90vh] flex flex-col justify-center pt-32 pb-20 bg-white glass-grid-line-x"
-      >
-        {/* Stripe Mural Background (User Provided Image) */}
-        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none rounded-b-[40px] opacity-40">
-          <img src="/mural2.png" alt="Animated Hero Mural" className="w-full h-full object-cover animate-float-slow" />
+      <section ref={heroRef} className="relative bg-white overflow-hidden">
+        {/* Mural background */}
+        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none opacity-30">
+          <img src="/mural2.png" alt="" className="w-full h-full object-cover animate-float-slow" />
         </div>
 
-        <div className="container mx-auto px-6 relative z-10 w-full glass-grid-line-y text-center flex flex-col items-center">
-          <motion.div
-            className="w-full max-w-4xl flex flex-col items-center"
-            initial="hidden"
-            animate="visible"
-            variants={staggerContainer}
+        {/* ── Static copy — always visible above the fold ── */}
+        <motion.div
+          className="relative z-10 pt-[212px] pb-6 flex flex-col items-center gap-4 text-center container mx-auto px-6"
+          initial="hidden"
+          animate="visible"
+          variants={staggerContainer}
+        >
+          <motion.h1
+            variants={fadeInUp}
+            className="text-4xl md:text-6xl font-semibold tracking-tight text-brand-dark leading-[1.08] max-w-4xl"
           >
-            {/* Headline Group */}
-            <div className="flex flex-col items-center mb-10">
+            The exact AI prompts your business needs{' '}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-blue to-purple-500">
+              and workflows to complete tasks in less time.
+            </span>
+          </motion.h1>
 
-              <motion.h1
-                variants={fadeInUp}
-                className="text-5xl md:text-7xl font-semibold tracking-tight text-brand-dark leading-[1.05] w-full"
-              >
-                Turn hours of busy work into<br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-blue to-purple-500">
-                  executed minutes.
-                </span>
-              </motion.h1>
-            </div>
+          <motion.p
+            variants={fadeInUp}
+            className="text-base md:text-lg text-brand-dark/70 leading-relaxed font-normal max-w-xl"
+          >
+            Not sure what to say to AI? HoursBack gives you step-by-step playbooks with expert-written prompts for finance, sales, marketing and more. Follow the steps, get real results. Then automate everything on autopilot.
+          </motion.p>
 
-            {/* Subheadline & CTA */}
-            <div className="flex flex-col items-center gap-10">
-              <motion.p
-                variants={fadeInUp}
-                className="text-lg md:text-xl text-brand-dark/70 leading-relaxed font-medium max-w-2xl text-center"
-              >
-                Turn any business workflow into an AI agent that runs on a schedule, delivers results to your inbox, and never forgets. Bookkeeping, outreach and financial analysis. All on autopilot.
-              </motion.p>
-
-              <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                {user ? (
-                  <Link to="/playbooks">
-                    <motion.button
-                      className="px-6 py-3 bg-brand-dark text-white rounded-full font-medium hover:bg-brand-dark/90 transition-all shadow-antigravity-sm flex items-center justify-center gap-2 text-base group"
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      Start building
-                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                    </motion.button>
-                  </Link>
-                ) : (
-                  <motion.button
-                    onClick={() => { setAuthView('signup'); setAuthModalOpen(true); }}
-                    className="px-6 py-3 bg-brand-dark text-white rounded-full font-medium hover:bg-brand-dark/90 transition-all shadow-antigravity-sm flex items-center justify-center gap-2 text-base group"
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    Start now
-                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                  </motion.button>
-                )}
-
+          <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            {user ? (
+              <Link to="/playbooks">
                 <motion.button
-                  onClick={() => window.location.href = 'mailto:petersoncaleb275@gmail.com?subject=Sales%20Inquiry'}
-                  className="px-6 py-3 bg-transparent text-brand-dark rounded-full font-medium hover:bg-brand-dark/5 transition-all flex items-center justify-center gap-2 text-base group"
+                  className="px-6 py-3 bg-brand-dark text-white rounded-full font-medium hover:bg-brand-dark/90 transition-all shadow-antigravity-sm flex items-center justify-center gap-2 text-base group"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
-                  Contact sales
-                  <ArrowRight className="w-4 h-4 opacity-0 -ml-4 group-hover:opacity-100 group-hover:ml-0 transition-all" />
+                  Start building
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </motion.button>
-              </motion.div>
-            </div>
+              </Link>
+            ) : (
+              <motion.button
+                onClick={() => { setAuthView('signup'); setAuthModalOpen(true); }}
+                className="px-6 py-3 bg-brand-dark text-white rounded-full font-medium hover:bg-brand-dark/90 transition-all shadow-antigravity-sm flex items-center justify-center gap-2 text-base group"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                Start now
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </motion.button>
+            )}
+            <motion.button
+              onClick={() => window.open('https://calendly.com/petersoncaleb', '_blank')}
+              className="px-6 py-3 border border-brand-dark/20 text-brand-dark rounded-full font-medium hover:bg-brand-dark/5 transition-all flex items-center justify-center gap-2 text-base group"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              Contact sales
+              <ArrowRight className="w-4 h-4 opacity-0 -ml-4 group-hover:opacity-100 group-hover:ml-0 transition-all" />
+            </motion.button>
           </motion.div>
+        </motion.div>
+
+        {/* ── Scroll-animated product card only ── */}
+        <div className="relative z-10">
+          <ContainerScroll className="!h-[38rem] md:!h-[50rem]" titleComponent={<></>}
+          >
+            {/* ── Product mockup inside the tilted card ── */}
+            <div className="h-full w-full flex flex-col bg-brand-light rounded-xl overflow-hidden">
+              {/* Mock nav bar */}
+              <div className="flex items-center justify-between px-4 py-2.5 bg-white border-b border-brand-dark/10 shrink-0">
+                <img src="/logo.svg" alt="hoursback" className="h-5 w-auto" />
+                <div className="flex gap-5 text-xs text-brand-dark/50">
+                  <span className="text-brand-blue font-semibold">Playbooks</span>
+                  <span>Workspace</span>
+                  <span>Autopilot</span>
+                </div>
+                <div className="w-6 h-6 rounded-full bg-brand-blue flex items-center justify-center text-[10px] text-white font-bold">C</div>
+              </div>
+
+              {/* Section label */}
+              <div className="px-4 pt-3 pb-1 shrink-0">
+                <p className="text-[10px] tracking-widest text-brand-dark/40 font-semibold uppercase">Your AI Playbooks</p>
+              </div>
+
+              {/* Playbook cards grid */}
+              <div className="px-4 pb-4 grid grid-cols-3 gap-2.5 flex-1 overflow-hidden">
+                {[
+                  { title: 'Financial Health Check', desc: 'Paste your numbers and get a plain-English breakdown of your cash flow and profit.', cat: 'Finance', time: '12 min', badge: 'bg-blue-100 text-blue-700' },
+                  { title: 'Cold Outreach Machine', desc: 'Write personalised cold emails in minutes using proven sales prompts.', cat: 'Sales', time: '8 min', badge: 'bg-green-100 text-green-700' },
+                  { title: '60-Min Marketing Plan', desc: 'Answer 5 questions and get a full content strategy ready to execute.', cat: 'Marketing', time: '10 min', badge: 'bg-purple-100 text-purple-700' },
+                  { title: 'Competitor Intelligence', desc: 'Find out exactly what your competitors are doing and where you can beat them.', cat: 'Research', time: '15 min', badge: 'bg-orange-100 text-orange-700' },
+                  { title: 'Risk Scorecard', desc: 'Spot the biggest risks in your business before they become problems.', cat: 'Risk', time: '9 min', badge: 'bg-red-100 text-red-700' },
+                  { title: 'Loan Prep Kit', desc: 'Prepare everything a lender needs in the right format, first time.', cat: 'Finance', time: '11 min', badge: 'bg-yellow-100 text-yellow-700' },
+                ].map((p, i) => (
+                  <div
+                    key={i}
+                    className="bg-white rounded-xl p-3 border border-brand-dark/8 flex flex-col gap-1 hover:border-brand-blue/40 hover:shadow-antigravity-sm transition-all"
+                  >
+                    <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full w-fit ${p.badge}`}>{p.cat}</span>
+                    <p className="text-[11px] font-semibold text-brand-dark leading-tight mt-0.5">{p.title}</p>
+                    <p className="text-[9px] text-brand-dark/55 leading-snug">{p.desc}</p>
+                    <p className="text-[9px] text-brand-dark/35 mt-auto pt-1">⏱ {p.time} · Claude AI</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Bottom strip */}
+              <div className="px-4 py-2 bg-white border-t border-brand-dark/10 flex items-center justify-between shrink-0">
+                <span className="text-[10px] text-brand-dark/40">6 playbooks · AI Copilot on every step</span>
+                <span className="text-[10px] text-brand-blue font-semibold">Explore all →</span>
+              </div>
+            </div>
+          </ContainerScroll>
         </div>
-
-        {/* Floating UI Elements Removed per user request */}
-
       </section>
 
       <HowItWorksSection />
-      <EnterpriseSection />
-      <AutopilotSection />
       <PlaybookPreviewSection />
+      <AutopilotSection />
+      <EnterpriseSection />
       <FeaturesSection />
       <PricingSection onAuthRequired={() => { setAuthView('signup'); setAuthModalOpen(true); }} />
       <FAQSection />
@@ -277,10 +313,6 @@ function EnterpriseSection() {
 
       <div className="container mx-auto px-6 relative z-10">
         <div className="text-center mb-20">
-          <div className="inline-flex items-center gap-2 bg-brand-blue/10 border border-brand-blue/15 rounded-full px-4 py-1.5 text-sm font-medium mb-8 text-brand-blue">
-            <Users className="w-4 h-4" />
-            Hoursback for Teams
-          </div>
           <h2 className="text-4xl md:text-6xl font-semibold mb-6 leading-tight max-w-4xl mx-auto">
             Scale your intelligence layer with{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-blue to-purple-600">
@@ -350,23 +382,23 @@ function AutopilotSection() {
   const features = [
     {
       icon: <CalendarClock className="w-5 h-5" />,
-      title: 'Schedule once, runs forever',
-      desc: 'Set any playbook to run daily, weekly, or monthly. The agent activates on schedule without you lifting a finger.'
+      title: 'Set it up once, it runs itself',
+      desc: 'Tell it how often to run — daily, weekly or monthly. After that, you never have to think about it again.'
     },
     {
       icon: <Bot className="w-5 h-5" />,
-      title: 'AI does the full job',
-      desc: 'The agent reads your configuration, executes every step, and produces a finished result — not a half-done draft.'
+      title: 'AI completes the whole task, not just part of it',
+      desc: 'The AI follows every single step in the playbook and gives you a finished, usable result. Not notes or suggestions. A completed task.'
     },
     {
       icon: <Mail className="w-5 h-5" />,
-      title: 'Results delivered to your inbox',
-      desc: 'Every run lands in your email as a polished report. No dashboard to check, no tool to log into.'
+      title: 'Results land in your inbox every time',
+      desc: 'Every time your agent runs, the finished report lands in your email. Open it, read it, use it. That is all.'
     },
     {
       icon: <PauseCircle className="w-5 h-5" />,
-      title: 'Pause, adjust, resume anytime',
-      desc: 'Change the schedule, update the variables, or pause the agent at any time. Full control, zero friction.'
+      title: 'You are always in control',
+      desc: 'Need to change something? Update the settings, pause the agent, or switch it off whenever you like. It takes 10 seconds.'
     }
   ];
 
@@ -386,18 +418,14 @@ function AutopilotSection() {
 
         {/* Header */}
         <div className="text-center mb-20">
-          <div className="inline-flex items-center gap-2 bg-white/10 border border-white/15 rounded-full px-4 py-1.5 text-sm font-medium mb-8">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            Autopilot Agents
-          </div>
           <h2 className="text-4xl md:text-6xl font-semibold mb-6 leading-tight max-w-3xl mx-auto">
-            Set it once.{' '}
+            Tell the AI what to do once.{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">
-              Your agent handles the rest.
+              It keeps doing it for you.
             </span>
           </h2>
-          <p className="text-lg md:text-xl text-white/60 max-w-2xl mx-auto leading-relaxed">
-            Schedule any playbook and your AI agent wakes up, does the full job, and drops the finished result in your inbox. Every day, while you sleep.
+          <p className="text-lg md:text-xl text-white/60 max-w-2xl mx-auto leading-relaxed font-normal">
+            Once you know a playbook works for you, put it on a schedule. Your AI agent runs it automatically and sends the results straight to your inbox. No logging in, no clicking, no reminders.
           </p>
         </div>
 
@@ -510,18 +538,18 @@ function HowItWorksSection() {
   const steps = [
     {
       icon: <Clock className="w-6 h-6" />,
-      title: "Pick your pain point",
-      description: "Choose from 50+ playbooks covering BD, finance, ops, and more. Each solves one specific business problem."
+      title: "Choose what you want to get done",
+      description: "Browse playbooks for finance, sales, marketing, operations and more. Each one focuses on one specific task so you always know exactly what you're getting."
     },
     {
       icon: <Zap className="w-6 h-6" />,
-      title: "Follow the steps",
-      description: "No guessing. Exact tools, exact prompts, exact clicks. Copy-paste ready instructions with screenshots."
+      title: "Copy the prompt. Paste it. Done.",
+      description: "Every step tells you exactly what to type into AI. Word for word. No guessing, no experience needed. If you can copy and paste, you can do this."
     },
     {
       icon: <BarChart3 className="w-6 h-6" />,
-      title: "Get results in minutes",
-      description: "What used to take hours now takes 5-10 minutes. Track your time saved across your team."
+      title: "Get a finished result in minutes",
+      description: "Tasks that used to take hours now take minutes. The AI does the heavy lifting. You just review what comes back and use it."
     }
   ];
 
@@ -530,8 +558,8 @@ function HowItWorksSection() {
       <div className="container mx-auto px-6">
         <div className="text-center mb-20">
           <h2 className="text-4xl md:text-5xl font-semibold mb-6">How it works</h2>
-          <p className="text-xl text-brand-dark/80 max-w-2xl mx-auto">
-            No courses to finish. No theory to learn. Just follow the playbook, get the outcome.
+          <p className="text-xl text-brand-dark/80 max-w-2xl mx-auto font-normal">
+            You don't need to be a tech expert. Just pick what you want to do, follow the steps, and get it done.
           </p>
         </div>
 
@@ -594,8 +622,8 @@ function PlaybookPreviewSection() {
       <div className="container mx-auto px-6 relative z-10">
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-semibold mb-6">Popular playbooks</h2>
-          <p className="text-xl text-brand-dark/70 max-w-2xl mx-auto">
-            Start with these proven workflows. New playbooks added weekly.
+          <p className="text-xl text-brand-dark/70 max-w-2xl mx-auto font-normal">
+            These are some of the most used playbooks. Each one tells you exactly what to say to AI to get a real business task done.
           </p>
         </div>
 
@@ -677,22 +705,30 @@ function FeaturesSection() {
     {
       icon: <Bot className="w-6 h-6" />,
       title: "Autopilot agents",
-      description: "Schedule any playbook to run automatically. Your AI agent executes every step and delivers a finished report to your inbox — no manual trigger needed."
+      description: "Schedule any playbook to run automatically. Your AI agent executes every step and delivers a finished report to your inbox with no manual trigger needed."
     }
   ];
 
   return (
-    <section id="features" className="py-32 bg-white text-brand-dark">
+    <section id="features" className="py-24 bg-brand-light text-brand-dark">
       <div className="container mx-auto px-6">
-        <div className="grid md:grid-cols-2 gap-12 max-w-5xl mx-auto">
+        <div className="text-center mb-16 max-w-2xl mx-auto">
+          <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-brand-dark mb-4">
+            Everything you need. Nothing you don't.
+          </h2>
+          <p className="text-brand-dark/60 text-lg font-normal">
+            HoursBack is designed for real business owners, not developers. Pick a playbook, follow the steps, get results.
+          </p>
+        </div>
+        <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
           {features.map((feature, i) => (
-            <div key={i} className="flex gap-6">
-              <div className="w-12 h-12 bg-brand-dark text-white/10 rounded-3xl flex items-center justify-center text-brand-blue shrink-0">
+            <div key={i} className="flex gap-5 bg-white rounded-2xl p-6 border border-brand-dark/8 shadow-antigravity-sm">
+              <div className="w-11 h-11 bg-brand-blue/10 rounded-2xl flex items-center justify-center text-brand-blue shrink-0">
                 {feature.icon}
               </div>
               <div>
-                <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
-                <p className="text-brand-dark/80 leading-relaxed">{feature.description}</p>
+                <h3 className="text-lg font-semibold mb-1.5">{feature.title}</h3>
+                <p className="text-brand-dark/65 leading-relaxed text-sm font-normal">{feature.description}</p>
               </div>
             </div>
           ))}
@@ -886,20 +922,20 @@ function PricingSection({ onAuthRequired }: { onAuthRequired?: () => void }) {
 function FAQSection() {
   const faqs = [
     {
-      q: "Do I need to know how to code?",
-      a: "No. Every playbook uses tools you already know: Excel, Google Docs, ChatGPT, and common business software. If you can copy and paste, you can complete any playbook."
+      q: "I have never used AI before. Can I still use this?",
+      a: "Yes, absolutely. HoursBack is made for people who are completely new to AI. Every playbook tells you exactly what to type, word for word. You don't need to understand how AI works. You just follow the steps and get the result."
     },
     {
-      q: "How is this different from taking a course?",
-      a: "Courses teach you about AI. We teach you to use AI for specific business outcomes. No theory, no homework. Follow the steps, get the result in 5-10 minutes."
+      q: "What is a playbook exactly?",
+      a: "A playbook is a step-by-step guide that tells you exactly what to ask AI to get a business task done. Think of it like a recipe. You follow the instructions, the AI does the work, and you get a finished result at the end."
     },
     {
-      q: "What if the AI tool changes its interface?",
-      a: "We monitor tool updates and refresh playbooks within 48 hours. Pro and Team subscribers get notified immediately when a playbook is updated."
+      q: "Do I need to pay for AI tools separately?",
+      a: "Most playbooks work with Claude, which has a free tier you can start with. Some playbooks also work with ChatGPT. You don't need anything else. HoursBack gives you the prompts and the steps, you just need an AI account."
     },
     {
-      q: "Can I request a custom playbook?",
-      a: "Team plans include custom playbook requests. Pro users can upvote playbook ideas in our community. We release 3-5 new playbooks weekly based on demand."
+      q: "What kinds of tasks can I do with HoursBack?",
+      a: "Right now you can use HoursBack for finance reports, sales outreach, marketing plans, competitor research, risk planning, loan preparation and more. New playbooks are added every week based on what users ask for."
     }
   ];
 
@@ -928,10 +964,10 @@ function CTASection() {
 
       <div className="container mx-auto px-6 text-center relative z-10">
         <h2 className="text-4xl md:text-5xl font-semibold mb-6">
-          Ready to reclaim your time?
+          Start getting more done today
         </h2>
-        <p className="text-xl text-brand-dark/70 mb-10 max-w-2xl mx-auto">
-          Join 2,000+ professionals who've saved 10+ hours this month using AI playbooks.
+        <p className="text-xl text-brand-dark/70 mb-10 max-w-2xl mx-auto font-normal">
+          Thousands of business owners are already using HoursBack to get real work done faster with AI. Your first playbook is free.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -941,7 +977,7 @@ function CTASection() {
             </button>
           </Link>
           <button
-            onClick={() => window.location.href = 'mailto:petersoncaleb275@gmail.com?subject=Sales%20Inquiry'}
+            onClick={() => window.open('https://calendly.com/petersoncaleb', '_blank')}
             className="px-8 py-4 bg-white/60 backdrop-blur-xl shadow-antigravity-md border border-brand-dark/10 rounded-full font-medium text-lg hover:bg-slate-50 transition-colors"
           >
             Talk to sales
@@ -962,11 +998,8 @@ function Footer() {
       <div className="container mx-auto px-6">
         <div className="grid md:grid-cols-4 gap-8 mb-12">
           <div>
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 bg-brand-dark text-white text-white rounded-full shadow-antigravity-md hover:shadow-antigravity-lg transition-all flex items-center justify-center">
-                <Zap className="w-5 h-5 text-white" />
-              </div>
-              <span className="text-xl font-semibold">Hoursback</span>
+            <div className="mb-4">
+              <img src="/logo.svg" alt="Hoursback" className="h-[30px] w-auto" />
             </div>
             <p className="text-slate-400 text-sm">
               AI playbooks for business teams. No code, just results.

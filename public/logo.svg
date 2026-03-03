@@ -1,21 +1,25 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 182 42" fill="none">
   <!--
     HoursBack logo
-    Icon: bold counter-clockwise arc (undo/rewind symbol) — "get your hours back"
-    Mark: hoursback wordmark in dark semi-bold
+    Icon: bold counter-clockwise arc with clock hands inside
     Background: fully transparent
   -->
 
-  <!-- 270° counter-clockwise arc  -->
+  <!-- 270° counter-clockwise arc -->
   <!-- centre (21,21) radius 13 — from 12 o'clock (21,8) CCW to 3 o'clock (34,21) -->
   <path d="M 21,8 A 13,13 0 1,0 34,21"
         stroke="#4285F4" stroke-width="3.6" stroke-linecap="round"/>
 
-  <!-- Arrowhead at 3 o'clock — points downward (direction of CCW travel) -->
-  <polygon points="30,21 38,21 34,27.5" fill="#4285F4"/>
+  <!-- Clock hands (10:10 — classic spread) -->
+  <!-- Hour hand → 10 o'clock: length 7.5 -->
+  <line x1="21" y1="21" x2="14.5" y2="17.2"
+        stroke="#202124" stroke-width="2" stroke-linecap="round"/>
+  <!-- Minute hand → 2 o'clock: length 10 -->
+  <line x1="21" y1="21" x2="29.7" y2="16"
+        stroke="#202124" stroke-width="1.6" stroke-linecap="round"/>
 
-  <!-- Small pivot dot — clock centre -->
-  <circle cx="21" cy="21" r="2.2" fill="#4285F4"/>
+  <!-- Centre pivot dot -->
+  <circle cx="21" cy="21" r="2" fill="#4285F4"/>
 
   <!-- Wordmark -->
   <text

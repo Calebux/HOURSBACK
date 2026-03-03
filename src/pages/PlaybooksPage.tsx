@@ -204,11 +204,11 @@ export default function PlaybooksPage() {
           <div className="flex items-center gap-1.5 sm:gap-2 md:gap-4">
             <button
               onClick={() => setShowWhatsNew(true)}
-              className="flex items-center gap-1 sm:gap-1.5 md:gap-2 px-2.5 sm:px-3 md:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-[#DA7756]/10 to-[#DA7756]/5 border border-[#DA7756]/20 text-[#DA7756] rounded-full text-xs sm:text-sm font-medium hover:from-[#DA7756]/15 hover:to-[#DA7756]/10 transition-all whitespace-nowrap"
+              className="flex items-center gap-1 sm:gap-1.5 md:gap-2 px-2.5 sm:px-3 md:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-brand-blue/10 to-brand-blue/5 border border-brand-blue/20 text-brand-blue rounded-full text-xs sm:text-sm font-medium hover:from-brand-blue/15 hover:to-brand-blue/10 transition-all whitespace-nowrap"
             >
               <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
               <span className="hidden sm:inline">What's New</span>
-              <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-[#DA7756] rounded-full animate-pulse shrink-0" />
+              <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-brand-blue rounded-full animate-pulse shrink-0" />
             </button>
             {user ? (
               <>
@@ -518,7 +518,7 @@ export default function PlaybooksPage() {
                 {/* Header */}
                 <div className="flex items-center justify-between mb-8">
                   <div className="flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-[#DA7756]" />
+                    <Sparkles className="w-5 h-5 text-brand-blue" />
                     <h2 className="text-lg font-semibold">What's New</h2>
                   </div>
                   <button

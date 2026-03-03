@@ -1441,11 +1441,11 @@ export const pricingPlans = [
   },
   {
     name: "Custom Build",
+    monthlyPrice: 0,
+    annualPrice: 0,
     price: "Custom",
-    description: "For institutions requiring custom automation process building and training",
+    description: "Done-for-you migration, custom agents, and team training workshops",
     features: [
-      "Custom playbook creation",
-      "Deploy to government compliance",
       "SOP & Policy Analysis integration",
       "Mass Data Sanitization",
       "Employee Training Solutions",
@@ -1468,7 +1468,9 @@ export const getCategoryColor = (category: string): string => {
     'Legal': '#475569',
     'Claude Crash Course': '#DA7756',
     'Fitness & Wellness': '#10B981',
-    'Risk & Strategy': '#DC2626'
+    'Risk & Strategy': '#DC2626',
+    'Industry Deep Dives': '#635BFF',
+    'Lead Magnets': '#DA7756'
   };
   return colors[category] || '#4F46E5';
 };
@@ -4537,7 +4539,278 @@ Please prioritize by impact and put quick wins at the top. Format this as a numb
     ],
     relatedPlaybooks: [
       { id: 'cc-5', title: 'Artifacts & Interactive Outputs', slug: 'claude-105-artifacts-and-interactive-outputs' },
-      { id: 'cc-1', title: 'Your First Conversation with Claude', slug: 'claude-101-your-first-conversation' }
+      { id: 'cc-1', title: 'Your First Conversation with Claude', slug: 'claude-101-your-first-conversation' },
+      { id: 'cc-7', title: 'The 60-Second ChatGPT to Claude Migration', slug: 'chatgpt-to-claude-migration-guide' }
+    ]
+  },
+  {
+    id: 'cc-7',
+    slug: 'chatgpt-to-claude-migration-guide',
+    title: 'The 60-Second ChatGPT to Claude Migration',
+    subtitle: 'Bring your memory, context, and history from ChatGPT into the Claude ecosystem',
+    category: 'Claude Crash Course',
+    difficulty: 'Beginner',
+    timeToComplete: 5,
+    timeSaved: 120,
+    completionCount: 0,
+    rating: 5.0,
+    isPro: false,
+    isNew: true,
+    tools: ['Claude'],
+    beforeYouStart: [
+      'A ChatGPT account with conversation history you want to migrate',
+      'A Claude account (Pro or Team plan recommended for full Project features)',
+      '60 seconds of time'
+    ],
+    expectedOutcome: 'Your ChatGPT context and memory successfully imported into Claude, along with a new Claude Project seeded with your historical data.',
+    troubleshooting: [
+      {
+        problem: 'The import file is too large',
+        solution: 'ChatGPT exports everything. If the file is too big, unzip it and upload only the conversation.json file, or ask Claude to summarize the ZIP first.'
+      }
+    ],
+    steps: [
+      {
+        id: 'cc7-s1',
+        stepNumber: 1,
+        title: 'Export Your Data from ChatGPT',
+        instruction: 'Go to ChatGPT Settings → Data Controls → Export Data. OpenAI will email you a ZIP file containing your entire chat history.',
+        promptTemplate: 'No prompt needed for this step. Check your email for the export link from OpenAI.',
+        expectedOutput: 'A .zip file in your inbox containing your historical data.',
+        tips: 'This usually takes 5-15 minutes to arrive. While you wait, think about which 3-5 conversations were most valuable to your workflow.'
+      },
+      {
+        id: 'cc7-s2',
+        stepNumber: 2,
+        title: 'Import Memory to Claude',
+        instruction: 'Open Claude and click on your Profile → Settings → Memory. Use the "Import from ChatGPT" feature to upload your exported data.',
+        promptTemplate: 'No prompt needed. Use the native import tool in Claude settings.',
+        expectedOutput: 'Claude will analyze your history and populate its memory with your preferences, style, and context.',
+        tips: 'Memory is best for "global" context (your name, tone, role) while Projects are best for "specific" context (a client, a coding project, a book).'
+      },
+      {
+        id: 'cc7-s3',
+        stepNumber: 3,
+        title: 'Set Up Your First Workspace Project',
+        instruction: 'Now that memory is moved, create a Project to hold your specific task-based files. Tell Claude to help you organize the migration.',
+        promptTemplate: `I have just imported my memory from ChatGPT. I want to set up a new Project called "[PROJECT NAME]" to continue my work on [TOPIC/WORKFLOW].
+
+Please review my imported memory and tell me:
+1. What style or tone preferences did you pick up?
+2. What recurring tasks did you notice in my history?
+3. What files should I upload next to make this project truly autonomous?`,
+        expectedOutput: 'A structured workspace plan that leverages your historical data to skip the onboarding phase entirely.',
+        tips: 'This is the "Migration as a Service" secret: you\'re not just moving text, you\'re moving your intelligence layer.'
+      }
+    ],
+    relatedPlaybooks: [
+      { id: 'cc-4', title: 'Projects & Persistent Context', slug: 'claude-104-projects-and-persistent-context' },
+      { id: 'cc-6', title: 'Research Mode & Deep Dives', slug: 'claude-106-research-mode-and-deep-dives' }
+    ]
+  },
+];
+
+export const leadMagnetPlaybooks: Playbook[] = [
+  {
+    id: 'lm-1',
+    slug: 'the-operating-system-prompt',
+    title: 'The "Business Operating System" Master Prompt',
+    subtitle: 'The one prompt to turn a fresh Claude Project into a context-aware business partner',
+    category: 'Lead Magnets',
+    difficulty: 'Beginner',
+    timeToComplete: 2,
+    timeSaved: 60,
+    completionCount: 0,
+    rating: 5.0,
+    isPro: false,
+    isNew: true,
+    tools: ['Claude'],
+    beforeYouStart: ['A fresh Claude Project'],
+    expectedOutcome: 'A Project Instructions file that defines every role, communication channel, and goal of your team.',
+    troubleshooting: [],
+    steps: [
+      {
+        id: 'lm1-s1',
+        stepNumber: 1,
+        title: 'Initialize the Brain',
+        instruction: 'Paste this into your Project Instructions.',
+        promptTemplate: `Act as the Chief Operating Officer for [COMPANY NAME]. Your mission is to maintain a "Business Operating System" within this Project.
+
+Your Knowledge Base consists of:
+1. Our Brand Voice (Document: Brand.md)
+2. Our Active Clients (Document: CRM.csv)
+3. Our Service SOPs (Document: Services.md)
+
+Whenever I ask you to perform a task, you must first reference these three documents to ensure the output is aligned with our company operating system.`,
+        expectedOutput: 'Claude confirms it has internalized the OS structure.',
+        tips: 'This is the foundation of "Migration as a Service".'
+      }
+    ],
+    relatedPlaybooks: []
+  }
+];
+
+export const industryPlaybooks: Playbook[] = [
+  {
+    id: 'ind-1',
+    slug: 'automotive-dealership-bdr-automation',
+    title: 'Automotive Dealership: 24/7 BDR Agent',
+    subtitle: 'Turn Claude into a tireless Sales Development Rep that handles all initial lead intake',
+    category: 'Industry Deep Dives',
+    difficulty: 'Intermediate',
+    timeToComplete: 30,
+    timeSaved: 2400,
+    completionCount: 0,
+    rating: 5.0,
+    isPro: true,
+    isNew: true,
+    tools: ['Claude', 'Projects'],
+    beforeYouStart: [
+      'A transcript of your 10 most successful lead follow-up calls',
+      'Your dealership inventory list or a link to your current stock',
+      'Claude Project account'
+    ],
+    expectedOutcome: 'A Claude Project configured as a "BDR Agent" that knows your inventory, follows your dealership brand voice, and qualifies leads exactly like your top performers.',
+    troubleshooting: [
+      {
+        problem: 'Claude is being too aggressive with the sale',
+        solution: 'Update your "BDR Persona Rules" document to include specific instructions on empathy and trust-building before the "ask".'
+      },
+      {
+        problem: 'Claude suggested a car that was just sold',
+        solution: 'Automotive inventory moves fast. Aim to update your Inventory CSV once per day or at minimum every 48 hours.'
+      }
+    ],
+    steps: [
+      {
+        id: 'ind1-s1',
+        stepNumber: 1,
+        title: 'Map Your Top Performer\'s Brain',
+        instruction: 'Upload your best BDR call transcripts or email threads. This becomes the "Intelligence Layer" for your Claude project.',
+        promptTemplate: `I am uploading [N] transcripts of my top-performing sales development rep.
+
+Analyze these and extract:
+1. The common psychological cues they use to build trust.
+2. The specific qualifying questions they ask (and when).
+3. How they handle the "your price is too high" objection.
+
+Create a Project Instruction document called "BDR Persona Rules" based on these findings.`,
+        expectedOutput: 'A set of high-fidelity persona rules that mirror your best human salesperson.',
+        tips: 'The better the input data (real transcripts), the more human and effective the agent becomes.'
+      },
+      {
+        id: 'ind1-s2',
+        stepNumber: 2,
+        title: 'Inventory & Promotion Sync',
+        instruction: 'Upload your current inventory spreadsheet or PDF. This ensures Claude never suggests a car you don\'t have.',
+        promptTemplate: `Here is our current inventory for [DATE].
+
+Follow these rules:
+1. Only suggest cars currently in this list.
+2. If a lead asks for something we don't have, look for the closest match in [PRICE RANGE] and [BODY STYLE] and suggest it as a better alternative.
+3. If they are looking for a deal, highlight these specific units: [PASTE VINs OR MODELS].`,
+        expectedOutput: 'A Claude agent that maintains perfect inventory awareness.',
+        tips: 'Update this document once a week to keep the "Agent" accurate.'
+      }
+    ],
+    relatedPlaybooks: [
+      { id: 'cc-4', title: 'Projects & Persistent Context', slug: 'claude-104-projects-and-persistent-context' }
+    ]
+  },
+  {
+    id: 'ind-2',
+    slug: 'commercial-real-estate-lease-analyzer',
+    title: 'Real Estate: The Commercial Lease Negotiator',
+    subtitle: 'Extract risks and opportunities from complex 50-page lease agreements in seconds',
+    category: 'Industry Deep Dives',
+    difficulty: 'Advanced',
+    timeToComplete: 15,
+    timeSaved: 300,
+    completionCount: 0,
+    rating: 5.0,
+    isPro: true,
+    isNew: true,
+    tools: ['Claude', 'Artifacts'],
+    beforeYouStart: [
+      'A commercial lease agreement (PDF)',
+      'Your standard "Must-Have" clause checklist'
+    ],
+    expectedOutcome: 'A structured risk assessment report and a redlined counter-offer draft.',
+    troubleshooting: [
+      {
+        problem: 'The PDF is too complex and Claude is hallucinating terms',
+        solution: 'Break the document down. Upload only the "Financial Terms" and "Default" sections as separate files and run the analysis again.'
+      }
+    ],
+    steps: [
+      {
+        id: 'ind2-s1',
+        stepNumber: 1,
+        title: 'Run a Structural Risk Audit',
+        instruction: 'Upload the lease and ask Claude to find the hidden "gotchas" that usually slip past a quick read.',
+        promptTemplate: `Analyze this commercial lease agreement. 
+
+Find and extract:
+1. Rent Escalation: What is the exact formula? Are there caps?
+2. CAM Charges: What is included? Is there an audit right for the tenant?
+3. Assignment/Subletting: How "unreasonably" can the landlord withhold consent?
+4. Termination: What are the specific default triggers?
+
+Present this as a table of "Risk Level (Low/Med/High)" vs "Clause".`,
+        expectedOutput: 'A visual risk dashboard uncovering potential financial liabilities.',
+        tips: 'Compare this against your "Standard Checklist" to see exactly where the landlord is pushing boundaries.'
+      }
+    ],
+    relatedPlaybooks: [
+      { id: 'cc-3', title: 'Working with Files & Data', slug: 'claude-103-working-with-files-and-data' }
+    ]
+  },
+  {
+    id: 'ind-3',
+    slug: 'agency-onboarding-automation',
+    title: 'Agency: The Infinite Account Manager',
+    subtitle: 'Automate client onboarding, from kickoff call to project brief',
+    category: 'Industry Deep Dives',
+    difficulty: 'Intermediate',
+    timeToComplete: 20,
+    timeSaved: 600,
+    completionCount: 0,
+    rating: 5.0,
+    isPro: true,
+    isNew: true,
+    tools: ['Claude', 'Projects'],
+    beforeYouStart: [
+      'Recording/Transcript of a client kickoff call',
+      'Your agency\'s standard Project Brief template'
+    ],
+    expectedOutcome: 'A fully drafted Project Brief, Timeline, and first 5 Task items for your project management tool.',
+    troubleshooting: [
+      {
+        problem: 'The brief is missing specific technical details',
+        solution: 'Ask the client for their "Technical Specs" or "Brand Deck" and upload those to the project alongside the call transcript.'
+      }
+    ],
+    steps: [
+      {
+        id: 'ind3-s1',
+        stepNumber: 1,
+        title: 'Turn Chaos into Clarity',
+        instruction: 'Upload the kickoff call transcript and your agency\'s template.',
+        promptTemplate: `Based on this kickoff call transcript, fill out our Agency Project Brief template.
+
+Extract:
+1. Business Goals: What is the primary KPI for this project?
+2. Technical Constraints: What stacks/tools were mentioned?
+3. Timeline: What are the hard deadlines?
+4. Stakeholders: Who needs to approve what?
+
+Format as a professional PDF-ready brief.`,
+        expectedOutput: 'A polished project brief that looks like it took 3 hours, but took 3 seconds.',
+        tips: 'You can then ask Claude to "Write a Slack message to the team summarizing this client\'s personality and expectations."'
+      }
+    ],
+    relatedPlaybooks: [
+      { id: 'cc-4', title: 'Projects & Persistent Context', slug: 'claude-104-projects-and-persistent-context' }
     ]
   }
 ];
