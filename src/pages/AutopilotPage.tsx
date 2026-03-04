@@ -83,7 +83,7 @@ export default function AutopilotPage() {
 
         const [schedulesRes, runsRes] = await Promise.all([
             supabase.from('scheduled_playbooks').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
-            supabase.from('autonomous_runs').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(20)
+            supabase.from('autonomous_runs').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(20),
         ]);
 
         if (schedulesRes.data) setSchedules(schedulesRes.data);
