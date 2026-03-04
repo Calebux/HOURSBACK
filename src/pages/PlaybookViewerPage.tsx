@@ -171,21 +171,19 @@ export default function PlaybookViewerPage() {
     }
   }, [playbook]);
 
-  // Extract variables for the CURRENTLY active step to keep the sidebar compact
+  // Extract all unique variables across ALL steps so the sidebar always shows everything
+  // (needed for autopilot deployment and better UX when jumping between steps)
   const extractedVariables = useMemo(() => {
     const vars = new Set<string>();
     if (!playbook) return [];
 
-    const step = playbook.steps[currentStep];
-    if (step?.promptTemplate) {
-      const matches = step.promptTemplate.match(/\[(.*?)\]/g);
-      if (matches) {
-        matches.forEach(m => vars.add(m.slice(1, -1)));
-      }
+    for (const step of playbook.steps) {
+      const matches = step.promptTemplate?.match(/\[(.*?)\]/g);
+      if (matches) matches.forEach(m => vars.add(m.slice(1, -1)));
     }
 
     return Array.from(vars);
-  }, [playbook, currentStep]);
+  }, [playbook]);
 
   const getInjectedPrompt = (template: string | undefined): string => {
     if (!template) return '';

@@ -146,8 +146,15 @@ async function executeSchedule(schedule: any, supabaseAdmin: any): Promise<void>
   }
 
   compiledPrompt += `\n### FINAL TASK:\n`;
-  compiledPrompt += `Process all steps and produce the final result. ${playbookData?.expectedOutcome ? `Expected Outcome: ${playbookData.expectedOutcome}` : ""}\n`;
-  compiledPrompt += `No conversational filler — only polished, high-quality output.`;
+  compiledPrompt += `Execute ALL steps above end-to-end and produce the complete final deliverable in a single response.\n`;
+  if (playbookData?.expectedOutcome) {
+    compiledPrompt += `Expected Outcome: ${playbookData.expectedOutcome}\n`;
+  }
+  compiledPrompt += `\nCRITICAL RULES:\n`;
+  compiledPrompt += `- Do NOT truncate. If a task requires 30 items, write all 30.\n`;
+  compiledPrompt += `- Label each item clearly (e.g. "Day 1:", "Email 1:", "Step 1:") so the output is scannable.\n`;
+  compiledPrompt += `- Use markdown headings and structure. Skip all meta-commentary about what you are doing.\n`;
+  compiledPrompt += `- Deliver final polished content only — no draft notes, no "here is your X", just the X.`;
 
   console.log(`[Autopilot] Executing "${playbookData?.title || playbookSlug}" for ${deliveryEmail}`);
 
@@ -156,9 +163,9 @@ async function executeSchedule(schedule: any, supabaseAdmin: any): Promise<void>
   const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
   const msg = await anthropic.messages.create({
     model: "claude-sonnet-4-5",
-    max_tokens: 2048,
+    max_tokens: 8192,
     system:
-      "You are an autonomous expert consultant. Produce polished, insightful work based exactly on the user's scheduled configuration. No conversational filler — only the final report.",
+      "You are an autonomous expert consultant executing a scheduled playbook. Produce COMPLETE, polished output — never truncate, never summarize, never say 'and so on'. If the task is a 30-day calendar, write all 30 days. If it is a sequence, write every item in full. Structure output with clear headings and day/item labels. No conversational filler — only the final deliverable.",
     messages: [{ role: "user", content: compiledPrompt }],
   });
 

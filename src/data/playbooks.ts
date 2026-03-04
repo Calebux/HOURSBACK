@@ -1822,8 +1822,8 @@ export const smbPlaybooks: Playbook[] = [
         stepNumber: 3,
         title: 'Write the Captions & Hashtags',
         instruction: 'Turn the calendar into actual ready-to-post text.',
-        promptTemplate: 'Now, write the exact captions for the first week (Days 1-7) based on the calendar you just generated. Include relevant local and industry hashtags. Keep the tone conversational and include a clear Call-To-Action (like "Visit our store today" or "Link in bio") for the promotional posts.',
-        expectedOutput: '7 fully written, emoji-ready captions you can copy directly into Facebook or Instagram.'
+        promptTemplate: 'Now, write the exact captions for ALL 30 days based on the calendar you just generated. For each day, label it clearly (e.g. "Day 1 — [Theme]:") then write the full caption. Include relevant local and industry hashtags. Keep the tone conversational and include a clear Call-To-Action (like "Visit our store today" or "Link in bio") for promotional posts.',
+        expectedOutput: '30 fully written, emoji-ready captions — one for each day — that you can copy directly into Facebook or Instagram.'
       }
     ]
   },
