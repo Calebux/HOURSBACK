@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Bot, Calendar, Clock, CheckCircle2, Play, Pause, ExternalLink, XCircle, ChevronLeft, Edit2, Trash2, AlertTriangle, RotateCcw, FileDown } from 'lucide-react';
+import { Bot, Calendar, Clock, CheckCircle2, Play, Pause, ExternalLink, XCircle, ChevronLeft, Edit2, Trash2, AlertTriangle, RotateCcw, FileDown, Zap } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -72,6 +72,7 @@ export default function AutopilotPage() {
     const [authModalOpen, setAuthModalOpen] = useState(false);
     const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null);
     const [runningAgainId, setRunningAgainId] = useState<string | null>(null);
+    const [runningNowId, setRunningNowId] = useState<string | null>(null);
 
     // Edit modal state
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -134,6 +135,23 @@ export default function AutopilotPage() {
     const handleEdit = (schedule: ScheduledPlaybook) => {
         setEditingSchedule(schedule);
         setIsModalOpen(true);
+    };
+
+    const handleRunNow = async (scheduleId: string) => {
+        setRunningNowId(scheduleId);
+        try {
+            const { error } = await supabase.functions.invoke('execute-scheduled-playbooks', {
+                body: { schedule_id: scheduleId }
+            });
+            if (error) throw error;
+            toast.success('Agent ran successfully — check your email!');
+            fetchAutopilotData();
+            setActiveTab('history');
+        } catch (err: any) {
+            toast.error(err.message || 'Failed to run agent');
+        } finally {
+            setRunningNowId(null);
+        }
     };
 
     const handleRunAgain = async (run: AutonomousRun) => {
@@ -298,18 +316,32 @@ export default function AutopilotPage() {
                                         {formatCron(schedule.cron_expression)}
                                     </div>
 
-                                    <div className="mt-auto pt-4 border-t border-brand-dark/10 w-full">
-                                        <p className="text-xs font-semibold text-brand-dark/40 uppercase tracking-wider mb-2">Injected Variables</p>
-                                        <div className="flex flex-wrap gap-1.5">
-                                            {Object.entries(schedule.variables).slice(0, 3).map(([key, value]) => (
-                                                <div key={key} className="bg-brand-dark/5 text-brand-dark/70 text-[10px] px-2 py-1 rounded truncate max-w-[120px]" title={`${key}: ${value}`}>
-                                                    <span className="font-semibold">{key}:</span> {value}
-                                                </div>
-                                            ))}
-                                            {Object.keys(schedule.variables).length > 3 && (
-                                                <div className="bg-brand-dark/5 text-brand-dark/60 text-[10px] px-2 py-1 rounded">+{Object.keys(schedule.variables).length - 3} more</div>
-                                            )}
+                                    <div className="mt-auto pt-4 border-t border-brand-dark/10 w-full space-y-3">
+                                        <div>
+                                            <p className="text-xs font-semibold text-brand-dark/40 uppercase tracking-wider mb-2">Injected Variables</p>
+                                            <div className="flex flex-wrap gap-1.5">
+                                                {Object.entries(schedule.variables).slice(0, 3).map(([key, value]) => (
+                                                    <div key={key} className="bg-brand-dark/5 text-brand-dark/70 text-[10px] px-2 py-1 rounded truncate max-w-[120px]" title={`${key}: ${value}`}>
+                                                        <span className="font-semibold">{key}:</span> {value}
+                                                    </div>
+                                                ))}
+                                                {Object.keys(schedule.variables).length > 3 && (
+                                                    <div className="bg-brand-dark/5 text-brand-dark/60 text-[10px] px-2 py-1 rounded">+{Object.keys(schedule.variables).length - 3} more</div>
+                                                )}
+                                            </div>
                                         </div>
+                                        <button
+                                            onClick={() => handleRunNow(schedule.id)}
+                                            disabled={runningNowId === schedule.id || !schedule.is_active}
+                                            className="w-full flex items-center justify-center gap-2 bg-[#DA7756] text-white text-xs font-semibold py-2.5 rounded-xl hover:bg-[#c9684a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                            title={!schedule.is_active ? 'Resume the agent to run it' : 'Run immediately and email you the result'}
+                                        >
+                                            {runningNowId === schedule.id ? (
+                                                <><div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />Running…</>
+                                            ) : (
+                                                <><Zap className="w-3 h-3" />Run Now</>
+                                            )}
+                                        </button>
                                     </div>
                                 </div>
                             ))
