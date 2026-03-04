@@ -194,99 +194,137 @@ function parseInfographData(text: string): { data: InfographData | null; cleanTe
 }
 
 function generateInfographicHtml(d: InfographData): string {
-  // KPI headline cards
-  const kpiCells = d.kpis.map(k => {
-    const tC = k.trend === "up" ? "#22c55e" : k.trend === "down" ? "#ef4444" : "#9ca3af";
-    const tA = k.trend === "up" ? "↑" : k.trend === "down" ? "↓" : "";
-    return "<td style='padding:18px 16px;text-align:center;vertical-align:top;border-right:1px solid #e5e7eb;'>"
-      + "<div style='font-size:22px;font-weight:800;color:#0F1012;letter-spacing:-0.5px;line-height:1;'>" + k.value + "</div>"
-      + "<div style='font-size:9px;color:#9ca3af;margin-top:5px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;'>" + k.label + "</div>"
-      + (tA ? "<div style='font-size:10px;color:" + tC + ";margin-top:4px;font-weight:700;'>" + tA + " " + k.trend + "</div>" : "")
-      + (k.note ? "<div style='font-size:9px;color:#6b7280;margin-top:2px;'>" + k.note + "</div>" : "")
-      + "</td>";
+  // ── Power BI / Tableau dark dashboard ──────────────────────────────────────
+  // Colors
+  const BG       = "#13131f";   // canvas
+  const PANEL    = "#1c1c2e";   // card panels
+  const BORDER   = "#2a2a42";   // subtle dividers
+  const TEXT     = "#e2e8f0";   // primary text
+  const MUTED    = "#7c85a0";   // secondary labels
+  const ACCENT   = ["#118dff","#00b4d8","#e66c37","#8bc34a","#c77dff"];
+
+  // KPI tiles — each gets a distinct top-border color accent
+  const kpiHtml = d.kpis.map((k, i) => {
+    const accent = ACCENT[i % ACCENT.length];
+    const trendColor = k.trend === "up" ? "#4ade80" : k.trend === "down" ? "#f87171" : MUTED;
+    const trendArrow = k.trend === "up" ? "▲" : k.trend === "down" ? "▼" : "";
+    const trendBadge = trendArrow
+      ? "<span style='display:inline-block;background:" + trendColor + "22;color:" + trendColor + ";font-size:10px;font-weight:700;padding:1px 7px;border-radius:999px;margin-top:5px;letter-spacing:0.3px;'>"
+        + trendArrow + " " + k.trend.toUpperCase() + "</span>"
+      : "";
+    return "<td style='padding:0;vertical-align:top;border-right:1px solid " + BORDER + ";width:" + Math.floor(100/d.kpis.length) + "%;'>"
+      + "<div style='border-top:3px solid " + accent + ";padding:16px 14px 14px;'>"
+      + "<div style='font-size:11px;color:" + MUTED + ";font-weight:600;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;'>" + k.label + "</div>"
+      + "<div style='font-size:26px;font-weight:800;color:" + TEXT + ";letter-spacing:-1px;line-height:1;'>" + k.value + "</div>"
+      + trendBadge
+      + (k.note ? "<div style='font-size:10px;color:" + MUTED + ";margin-top:5px;line-height:1.4;'>" + k.note + "</div>" : "")
+      + "</div></td>";
   }).join("");
 
-  // Score bars (health dimensions)
-  const scoresSection = (d.scores && d.scores.length) ? (
-    "<div style='padding:20px 22px 4px;'>"
-    + "<div style='font-size:9px;font-weight:700;color:#9ca3af;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:14px;'>HEALTH SCORES</div>"
-    + d.scores.map(s => {
-      const pct = Math.min(100, Math.round((s.score / s.max) * 100));
-      const grad = pct >= 70 ? "linear-gradient(90deg,#22c55e,#16a34a)"
-        : pct >= 40 ? "linear-gradient(90deg,#f59e0b,#d97706)"
-        : "linear-gradient(90deg,#ef4444,#dc2626)";
-      return "<div style='margin-bottom:12px;'>"
-        + "<table width='100%' cellpadding='0' cellspacing='0'><tr>"
-        + "<td style='font-size:12px;color:#374151;font-weight:500;'>" + s.label + "</td>"
-        + "<td align='right' style='font-size:12px;font-weight:800;color:#0F1012;'>" + s.score + "/" + s.max + "</td>"
-        + "</tr></table>"
-        + "<div style='background:#f3f4f6;border-radius:999px;height:8px;margin-top:6px;overflow:hidden;'>"
-        + "<div style='background:" + grad + ";border-radius:999px;height:8px;width:" + pct + "%;'></div>"
-        + "</div></div>";
-    }).join("")
-    + "</div>"
-  ) : "";
+  // Score bars — health dimensions on dark track
+  const scoresHtml = (d.scores && d.scores.length) ? d.scores.map(s => {
+    const pct = Math.min(100, Math.round((s.score / s.max) * 100));
+    const fill = pct >= 70 ? "#4ade80" : pct >= 40 ? "#facc15" : "#f87171";
+    const glow = pct >= 70 ? "rgba(74,222,128,0.35)" : pct >= 40 ? "rgba(250,204,21,0.35)" : "rgba(248,113,113,0.35)";
+    return "<div style='margin-bottom:13px;'>"
+      + "<table width='100%' cellpadding='0' cellspacing='0'><tr>"
+      + "<td style='font-size:12px;color:" + TEXT + ";font-weight:500;'>" + s.label + "</td>"
+      + "<td align='right' style='font-size:12px;font-weight:800;color:" + fill + ";'>" + s.score + "<span style='color:" + MUTED + ";font-weight:400;'>/" + s.max + "</span></td>"
+      + "</tr></table>"
+      + "<div style='background:rgba(255,255,255,0.07);border-radius:999px;height:7px;margin-top:7px;overflow:hidden;'>"
+      + "<div style='background:" + fill + ";box-shadow:0 0 8px " + glow + ";border-radius:999px;height:7px;width:" + pct + "%;'></div>"
+      + "</div></div>";
+  }).join("") : "";
 
-  // Comparison bars (ranked breakdown)
-  const barsSection = (d.bars && d.bars.length) ? (
-    "<div style='padding:20px 22px 4px;'>"
-    + "<div style='font-size:9px;font-weight:700;color:#9ca3af;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:14px;'>BREAKDOWN</div>"
-    + d.bars.map((b, i) => {
-      const pct = Math.min(100, Math.round((b.value / b.max) * 100));
-      const grads = [
-        "linear-gradient(90deg,#4285F4,#6366f1)",
-        "linear-gradient(90deg,#6366f1,#DA7756)",
-        "linear-gradient(90deg,#DA7756,#f59e0b)",
-        "linear-gradient(90deg,#22c55e,#16a34a)",
-        "linear-gradient(90deg,#f59e0b,#d97706)",
-      ];
-      return "<div style='margin-bottom:12px;'>"
-        + "<table width='100%' cellpadding='0' cellspacing='0'><tr>"
-        + "<td style='font-size:12px;color:#374151;font-weight:500;'>" + b.label + "</td>"
-        + "<td align='right' style='font-size:12px;font-weight:800;color:#0F1012;'>" + b.value + (b.unit || "") + "</td>"
-        + "</tr></table>"
-        + "<div style='background:#f3f4f6;border-radius:999px;height:8px;margin-top:6px;overflow:hidden;'>"
-        + "<div style='background:" + grads[i % grads.length] + ";border-radius:999px;height:8px;width:" + pct + "%;'></div>"
-        + "</div></div>";
-    }).join("")
-    + "</div>"
-  ) : "";
+  // Comparison bars — ranked breakdown with alternating Power BI palette
+  const barsHtml = (d.bars && d.bars.length) ? d.bars.map((b, i) => {
+    const pct = Math.min(100, Math.round((b.value / b.max) * 100));
+    const color = ACCENT[i % ACCENT.length];
+    return "<div style='margin-bottom:13px;'>"
+      + "<table width='100%' cellpadding='0' cellspacing='0'><tr>"
+      + "<td style='font-size:12px;color:" + TEXT + ";font-weight:500;'>" + b.label + "</td>"
+      + "<td align='right' style='font-size:12px;font-weight:800;color:" + color + ";'>" + b.value + (b.unit || "") + "</td>"
+      + "</tr></table>"
+      + "<div style='background:rgba(255,255,255,0.07);border-radius:999px;height:7px;margin-top:7px;overflow:hidden;'>"
+      + "<div style='background:" + color + ";border-radius:999px;height:7px;width:" + pct + "%;'></div>"
+      + "</div></div>";
+  }).join("") : "";
 
-  // Insight pills (strengths / risks / actions)
-  const highlightCfg: Record<string, { bg: string; border: string; color: string; icon: string }> = {
-    strength: { bg: "#f0fdf4", border: "#22c55e", color: "#166534", icon: "💚" },
-    risk:     { bg: "#fff7ed", border: "#f59e0b", color: "#92400e", icon: "⚠️" },
-    action:   { bg: "#eff6ff", border: "#4285F4", color: "#1e40af", icon: "→" },
+  // Two-column chart panel (scores left, bars right) — or full-width when only one
+  const hasScores = !!(d.scores && d.scores.length);
+  const hasBars   = !!(d.bars   && d.bars.length);
+  let chartsSection = "";
+  if (hasScores || hasBars) {
+    if (hasScores && hasBars) {
+      chartsSection =
+        "<table width='100%' cellpadding='0' cellspacing='0' style='border-top:1px solid " + BORDER + ";'>"
+        + "<tr>"
+        // Left panel
+        + "<td width='50%' style='padding:20px 20px 16px;vertical-align:top;border-right:1px solid " + BORDER + ";'>"
+        + "<div style='font-size:9px;font-weight:700;color:" + MUTED + ";letter-spacing:1.5px;text-transform:uppercase;margin-bottom:14px;'>&#9632; HEALTH SCORES</div>"
+        + scoresHtml
+        + "</td>"
+        // Right panel
+        + "<td width='50%' style='padding:20px 20px 16px;vertical-align:top;'>"
+        + "<div style='font-size:9px;font-weight:700;color:" + MUTED + ";letter-spacing:1.5px;text-transform:uppercase;margin-bottom:14px;'>&#9632; BREAKDOWN</div>"
+        + barsHtml
+        + "</td>"
+        + "</tr></table>";
+    } else {
+      const label = hasScores ? "HEALTH SCORES" : "BREAKDOWN";
+      const content = hasScores ? scoresHtml : barsHtml;
+      chartsSection =
+        "<div style='padding:20px 22px 16px;border-top:1px solid " + BORDER + ";'>"
+        + "<div style='font-size:9px;font-weight:700;color:" + MUTED + ";letter-spacing:1.5px;text-transform:uppercase;margin-bottom:14px;'>&#9632; " + label + "</div>"
+        + content
+        + "</div>";
+    }
+  }
+
+  // Insight cards — colored left-border on dark panel
+  const insightCfg: Record<string, { accent: string; icon: string; label: string }> = {
+    strength: { accent: "#4ade80", icon: "✦", label: "STRENGTH" },
+    risk:     { accent: "#facc15", icon: "⚑", label: "RISK"     },
+    action:   { accent: "#118dff", icon: "→", label: "ACTION"   },
   };
-  const highlightsSection = (d.highlights && d.highlights.length) ? (
-    "<div style='padding:18px 22px;'>"
+  const insightsSection = (d.highlights && d.highlights.length) ? (
+    "<div style='padding:18px 22px 14px;border-top:1px solid " + BORDER + ";'>"
+    + "<div style='font-size:9px;font-weight:700;color:" + MUTED + ";letter-spacing:1.5px;text-transform:uppercase;margin-bottom:14px;'>&#9632; INSIGHTS</div>"
     + d.highlights.map(h => {
-      const cfg = highlightCfg[h.type] || highlightCfg.action;
-      return "<div style='padding:10px 14px;background:" + cfg.bg + ";border-radius:10px;margin-bottom:8px;border-left:3px solid " + cfg.border + ";font-size:12px;font-weight:600;color:" + cfg.color + ";line-height:1.5;'>"
-        + cfg.icon + " " + h.text + "</div>";
+      const cfg = insightCfg[h.type] || insightCfg.action;
+      return "<div style='padding:11px 14px;background:" + cfg.accent + "12;border-left:3px solid " + cfg.accent + ";border-radius:0 8px 8px 0;margin-bottom:8px;'>"
+        + "<span style='font-size:9px;font-weight:800;color:" + cfg.accent + ";letter-spacing:1px;text-transform:uppercase;'>" + cfg.icon + " " + cfg.label + "</span>"
+        + "<div style='font-size:12px;color:" + TEXT + ";margin-top:3px;line-height:1.5;font-weight:500;'>" + h.text + "</div>"
+        + "</div>";
     }).join("")
     + "</div>"
   ) : "";
 
-  return "<div style='font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;border-radius:16px;overflow:hidden;border:1px solid #e5e7eb;background:#fff;'>"
-    // Dark header
-    + "<div style='background:#0F1012;padding:18px 22px;'>"
-    + "<div style='font-size:9px;color:#93bbfc;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:3px;'>Analysis Report</div>"
-    + "<div style='font-size:16px;font-weight:800;color:#ffffff;letter-spacing:-0.3px;'>" + d.title + "</div>"
+  return "<div style='font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,sans-serif;background:" + BG + ";border-radius:14px;overflow:hidden;border:1px solid " + BORDER + ";'>"
+    // ── Header bar ──
+    + "<div style='background:" + PANEL + ";padding:16px 22px 14px;border-bottom:1px solid " + BORDER + ";'>"
+    + "<table width='100%' cellpadding='0' cellspacing='0'><tr>"
+    + "<td style='vertical-align:middle;'>"
+    + "<div style='font-size:9px;color:#118dff;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;'>&#9632; BI DASHBOARD &nbsp;·&nbsp; AUTOPILOT ANALYSIS</div>"
+    + "<div style='font-size:17px;font-weight:800;color:" + TEXT + ";letter-spacing:-0.4px;line-height:1.2;'>" + d.title + "</div>"
+    + "</td>"
+    + "<td align='right' style='vertical-align:middle;padding-left:12px;white-space:nowrap;'>"
+    + "<div style='font-size:9px;color:" + MUTED + ";'>" + new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}) + "</div>"
+    + "</td></tr></table>"
     + "</div>"
-    // Gradient accent bar
-    + "<div style='height:3px;background:linear-gradient(90deg,#4285F4,#6366f1,#DA7756);'></div>"
-    // KPI cards row
-    + "<table width='100%' cellpadding='0' cellspacing='0' style='background:#fafafa;border-bottom:1px solid #e5e7eb;'><tr>"
-    + kpiCells
+    // ── Rainbow accent line ──
+    + "<div style='height:2px;background:linear-gradient(90deg,#118dff 0%,#00b4d8 33%,#e66c37 66%,#8bc34a 100%);'></div>"
+    // ── KPI tiles ──
+    + "<table width='100%' cellpadding='0' cellspacing='0' style='background:" + PANEL + ";border-bottom:1px solid " + BORDER + ";'><tr>"
+    + kpiHtml
     + "</tr></table>"
-    // Sections
-    + scoresSection
-    + barsSection
-    + highlightsSection
-    // Footer
-    + "<div style='padding:8px 22px 12px;border-top:1px solid #f3f4f6;'>"
-    + "<p style='margin:0;font-size:9px;color:#d1d5db;text-align:center;letter-spacing:0.5px;'>HOURSBACK AUTOPILOT · AI-POWERED ANALYSIS</p>"
+    // ── Charts ──
+    + chartsSection
+    // ── Insights ──
+    + insightsSection
+    // ── Footer ──
+    + "<div style='padding:8px 22px 10px;border-top:1px solid " + BORDER + ";background:" + PANEL + ";'>"
+    + "<p style='margin:0;font-size:9px;color:" + MUTED + ";text-align:center;letter-spacing:0.8px;text-transform:uppercase;'>HOURSBACK AUTOPILOT &nbsp;·&nbsp; AI-POWERED BUSINESS INTELLIGENCE</p>"
     + "</div>"
     + "</div>";
 }
