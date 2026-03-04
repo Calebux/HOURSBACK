@@ -81,7 +81,7 @@ export default function PlaybookViewerPage() {
       .map(p => ({ id: p.id, title: p.title, slug: p.slug }));
   }, [playbook]);
 
-  const amountRaw = isAnnual ? 4.49 * 12 : 4.99;
+  const amountRaw = isAnnual ? 2.49 * 12 : 2.99;
   const amountNGN = Math.floor(amountRaw * 1500);
 
   const paymentConfig = useMemo(() => ({
@@ -956,7 +956,7 @@ export default function PlaybookViewerPage() {
                         <span>Pro Active</span>
                       </>
                     ) : (
-                      <span>Upgrade to Pro ({isAnnual ? '$53.89/yr' : '$4.99/mo'})</span>
+                      <span>Upgrade to Pro ({isAnnual ? '$29.88/yr' : '$2.99/mo'})</span>
                     )}
                   </button>
                 </div>

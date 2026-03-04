@@ -1410,8 +1410,8 @@ export const pricingPlans = [
   },
   {
     name: "Pro",
-    monthlyPrice: 4.99,
-    annualPrice: 4.49,
+    monthlyPrice: 2.99,
+    annualPrice: 2.49,
     description: "For professionals serious about efficiency",
     features: [
       "All 50+ playbooks",
