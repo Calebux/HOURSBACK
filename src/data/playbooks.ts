@@ -1469,7 +1469,6 @@ export const getCategoryColor = (category: string): string => {
     'Claude Crash Course': '#DA7756',
     'Fitness & Wellness': '#10B981',
     'Risk & Strategy': '#DC2626',
-    'Industry Deep Dives': '#635BFF',
     'Lead Magnets': '#DA7756',
     'E-commerce': '#F59E0B',
     'Launch & Growth': '#10B981',
@@ -1784,219 +1783,6 @@ export const smbPlaybooks: Playbook[] = [
         instruction: 'If they say no, have a backup plan ready.',
         promptTemplate: 'If the supplier replies saying their margins are too tight to offer a direct discount, what are two alternative business concessions I should immediately ask for instead (e.g., free shipping, better payment terms)? Draft a polite reply email pivoting to these alternatives.',
         expectedOutput: 'A backup email pivoting to other valuable terms like Net-60 or volume shipping discounts.'
-      }
-    ]
-  },
-  {
-    id: 'clay-gtm-1',
-    slug: 'job-change-value-prop',
-    title: 'The "Job-Change Value Prop" Agent',
-    subtitle: 'Auto-detect when past champions switch jobs and email them instantly.',
-    category: 'Sales',
-    difficulty: 'Advanced',
-    timeToComplete: 15,
-    timeSaved: 180,
-    completionCount: 420,
-    rating: 4.9,
-    isPro: true,
-    tools: ['Clay', 'LinkedIn', 'ChatGPT'],
-    beforeYouStart: [
-      'A CSV export of your current best customers/champions.',
-      'A free Clay account.',
-      'Basic understanding of what tech stack your product integrates with.'
-    ],
-    expectedOutcome: 'A live table tracking your past champions, which automatically enriches their new contact details and writes a hyper-personalized email the second they change jobs on LinkedIn.',
-    agentAutomation: {
-      description: 'Use Clay to continuously monitor a list of LinkedIn profiles. When their current company changes, trigger an enrichment tool to find their new work email, look up their new company’s tech stack, and auto-generate an outreach draft.',
-      trigger: 'LinkedIn Profile Change Detected via Clay',
-      actions: [
-        'Find verified work email',
-        'Analyze new company tech stack',
-        'Draft personalized congratulatory email comparing old/new tech'
-      ],
-      setupSteps: [
-        { title: 'Create a New Clay Table', description: "Log into Clay and click 'New Table' -> 'Start blank'. Upload your CSV of past champions, ensuring you have a column with their LinkedIn Profile URLs." },
-        { title: 'Add the Job Change Tracker', description: "Click 'Add Column' and select 'Enrich Data'. Search for 'LinkedIn Profile' and select 'Find Person from LinkedIn Profile'. Map the LinkedIn URL column. Set this enrichment to run automatically (or manually bulk-run it)." },
-        { title: 'Extract Current Company', description: "Once the LinkedIn data loads, click into the JSON result, find the 'Current Company' field, and map it to a new column called 'New Company'." },
-        { title: 'Find New Work Email', description: "Click 'Add Column' -> 'Enrich Data'. Search for 'Find Work Email'. Map the person's 'First Name', 'Last Name', and their 'New Company' domain. Clay will waterfall through 10+ providers instantly to find a verified email." },
-        { title: 'Draft the Email with Claygent', description: "Add a 'Use AI (Claygent)' column. Prompt it: 'Act as a sales rep. [First Name] used our product at their old job. They just moved to [New Company]. Write a short, friendly congratulatory note offering to show them how our product can help their new team.' Map the AI output directly to your email tool." }
-      ],
-      tools: ['Clay', 'Clearbit/Apollo via Clay', 'Claygent']
-    },
-    troubleshooting: [
-      {
-        problem: 'Email not found',
-        solution: 'Not all providers have every email. In Clay, ensure you select multiple providers in the waterfall settings to maximize hit rates.'
-      }
-    ],
-    relatedPlaybooks: [],
-    steps: [
-      {
-        id: 'cg1-s1',
-        stepNumber: 1,
-        title: 'Define Your Champions',
-        instruction: 'Before tracking them, clearly define who your top champions are. Run a report in your CRM for closed-won deals and pull the primary contacts.',
-        promptTemplate: 'I am building a list of "Past Champions" to track for job changes. We sell [Your Product] to [Target Persona]. Besides the obvious "Decision Maker", who are 3 other job titles within an organization that typically champion our product internally?',
-        expectedOutput: 'A list of secondary titles to export from your CRM.'
-      }
-    ]
-  },
-  {
-    id: 'clay-gtm-2',
-    slug: 'website-deanonymizer',
-    title: 'The Auto-Scoring Website Deanonymizer',
-    subtitle: 'Turn anonymous traffic into fully enriched, scored leads in Slack.',
-    category: 'Marketing',
-    difficulty: 'Advanced',
-    timeToComplete: 25,
-    timeSaved: 240,
-    completionCount: 890,
-    rating: 4.8,
-    isPro: true,
-    tools: ['Clay', 'RB2B/Clearbit', 'Slack'],
-    beforeYouStart: [
-      'A reverse-IP identifying tool on your site (RB2B, Clearbit Reveal, etc).',
-      'A webhook connection or Zapier set up.',
-      'Your Ideal Customer Profile (ICP) criteria clearly defined.'
-    ],
-    expectedOutcome: 'A slack channel bursting with highly qualified, fully enriched companies that are actively looking at your pricing page right now.',
-    agentAutomation: {
-      description: 'Feed anonymous visitors into Clay via Webhook. Clay instantly enriches the domain, scores it against your ICP, finds the relevant decision-makers, and alerts sales in Slack.',
-      trigger: 'Reverse-IP tool detects a company on your pricing page.',
-      actions: [
-        'Enrich Company Domain (Revenue, Tech Stack, Employee Count)',
-        'Filter based on ICP Rules (e.g. >100 employees)',
-        'Find Top 3 Contacts matching Persona',
-        'Send Slack Alert to Sales'
-      ],
-      setupSteps: [
-        { title: 'Set Up Clay Webhook', description: "In Clay, create a new table from a 'Webhook'. Copy the unique Webhook URL provided. Go into your intent tool (like RB2B) and set it to send a POST request with the 'Company Domain' to this Clay URL whenever someone visits your pricing page." },
-        { title: 'Enrich the Company', description: "In your new Clay table, add a column to 'Enrich Company'. Use the incoming domain. Pull in fields like Employee Count, Industry, and Estimated Revenue." },
-        { title: 'Build Scoring Logic', description: "Add a 'Formula' column in Clay. Write a simple IF statement to flag the company as 'Tier 1' if they meet your criteria (e.g., `IF(Employees > 50, 'Yes', 'No')`). Filter the table view so it only processes companies flagged as 'Yes'." },
-        { title: 'Find the Decision Makers', description: "For the 'Tier 1' companies, add a 'Find Contacts at Company' column. Tell it to search for titles containing 'VP Sales' or 'Director of Operations' (your target persona)." },
-        { title: 'Alert the Team', description: "Add a 'Send Slack Message' integration column in Clay. Format the message: '🔥 High Intent: [Company Name] is on the pricing page. It has [Employee Count] employees. Here are the top contacts: [Contact Names].'" }
-      ],
-      tools: ['Clay', 'LinkedIn Sales Nav', 'Slack']
-    },
-    troubleshooting: [],
-    relatedPlaybooks: [],
-    steps: [
-      {
-        id: 'cg2-s1',
-        stepNumber: 1,
-        title: 'Define ICP Scoring',
-        instruction: 'To avoid spamming your sales team, clearly define what makes a website visitor qualified enough to warrant an alert.',
-        promptTemplate: 'I am building an automated logic flow to score inbound website companies. Our best customers are [Describe your best customers, e.g. SaaS companies with 50-200 employees using Salesforce]. What are 3 data points I must check against an enriched domain to programmatically verify they are a good fit?',
-        expectedOutput: 'The exact data points to map into your Clay scoring formula.'
-      }
-    ]
-  },
-  {
-    id: 'clay-gtm-3',
-    slug: 'deep-dive-rfp-brief',
-    title: 'Deep-Dive Account Research Brief',
-    subtitle: 'Automate enterprise research: summarize 10K, SEC filings, and news in seconds.',
-    category: 'Sales',
-    difficulty: 'Intermediate',
-    timeToComplete: 10,
-    timeSaved: 120,
-    completionCount: 1150,
-    rating: 4.9,
-    isPro: true,
-    tools: ['Claygent', 'Google Docs'],
-    beforeYouStart: [
-      'A list of target Enterprise accounts.',
-      'A Clay account.'
-    ],
-    expectedOutcome: 'A 1-page intelligence brief on any enterprise account summarizing their strategic goals, recent news, and potential pain points based on their public filings.',
-    agentAutomation: {
-      description: 'Use Claygent (Clay’s AI agent) to navigate to the investors page of public companies, read their latest earnings call transcripts or 10-K filings, and extract the top 3 strategic initiatives executives care about right now.',
-      trigger: 'Add a Company Domain to a Clay Table',
-      actions: [
-        'Claygent searches Google for the company\'s investor relations page.',
-        'Claygent reads the latest earnings transcript.',
-        'Claygent summarizes the top 3 priorities and challenges.',
-        'Export to a formatted Google Doc or PDF.'
-      ],
-      setupSteps: [
-        { title: 'Start Your Research Table', description: "In Clay, create a new table and paste in a list of Enterprise company URLs (e.g., target.com, walmart.com)." },
-        { title: 'Deploy Claygent for Search', description: "Click 'Add Column' -> 'Use AI (Claygent)'. In the prompt box, instruct Claygent: 'Search Google to find the most recent Earnings Call Transcript or 10-K filing for [Company Domain]. Return the URL of the document.' Claygent will autonomously search the web and bring back the link." },
-        { title: 'Deploy Claygent for Reading', description: "Add another 'Use AI (Claygent)' column. Prompt it: 'Read the webpage at [URL from Step 2]. Identify the top 3 strategic priorities the CEO mentioned, and the top 2 challenges they are facing regarding [Your Industry/Space]. Summarize this in 5 bullet points.' Claygent will read the massive document and return just the gold." },
-        { title: 'Draft the Executive Email', description: "Add one final 'Use AI' column. Prompt: 'Write a highly personalized cold email to the CIO of [Company]. Reference their strategic priority of [Strategic Priority from Step 3] and explicitly state how [Your Product] helps them achieve it faster.' You now have hyper-relevant outreach for complex accounts." },
-        { title: 'Sync to CRM', description: "Add a CRM integration column (like Salesforce or HubSpot) to push these strategic summaries directly into the 'Account Notes' field so reps have the intel where they work." }
-      ],
-      tools: ['Claygent', 'Salesforce / HubSpot']
-    },
-    webhookConfig: {
-      supportedTools: ['make', 'zapier', 'clay'],
-      inputs: [
-        {
-          id: 'company_domain',
-          label: 'Target Company Domain',
-          placeholder: 'e.g., apple.com',
-          type: 'url'
-        }
-      ]
-    },
-    troubleshooting: [],
-    relatedPlaybooks: [],
-    steps: [
-      {
-        id: 'cg3-s1',
-        stepNumber: 1,
-        title: 'Identify the "Why Now"',
-        instruction: 'Use ChatGPT to help figure out what specific signals you should ask Claygent to look for in the earnings reports.',
-        promptTemplate: 'I sell [Your Product] to Enterprise companies. I am programming an AI agent to read their quarterly earnings reports. What are 3 specific keywords, phrases, or strategic themes I should instruct the AI to look for that indicate they urgently need a solution like mine?',
-        expectedOutput: 'Actionable search terms to feed into your Claygent prompt.'
-      }
-    ]
-  },
-  {
-    id: 'clay-gtm-4',
-    slug: 'gong-to-outreach-recap',
-    title: 'The Personalized Gong-to-Outreach Recap',
-    subtitle: 'Automatically craft hyper-personalized post-demo follow-ups based on call transcripts.',
-    category: 'Sales',
-    difficulty: 'Advanced',
-    timeToComplete: 15,
-    timeSaved: 90,
-    completionCount: 630,
-    rating: 4.8,
-    isPro: true,
-    tools: ['Clay', 'Gong (or Zoom info)', 'Gmail/Outreach'],
-    beforeYouStart: [
-      'Access to your team\'s call recording tool (Gong, Chorus, Zoom AI).',
-      'API access or integration permissions for Gong and Clay.'
-    ],
-    expectedOutcome: 'A drafted email sitting in your outbox minutes after a call ends, perfectly summarizing the exact pain points the prospect complained about and linking to the specific features they asked to see again.',
-    agentAutomation: {
-      description: 'Connect Clay to your call recording software via an API or Webhook. When a call ends, Claygent ingests the raw transcript, extracts key objections and pain points, and drafts a contextual follow-up email ready for the rep to review and send.',
-      trigger: 'Call State changes to "Completed" in Gong/CRM.',
-      actions: [
-        'Fetch Call Transcript via API',
-        'Analyze transcript for pain points, competitors named, and next steps promised',
-        'Draft a highly tailored follow-up email',
-        'Create draft in Gmail/Outreach'
-      ],
-      setupSteps: [
-        { title: 'Set Up The Trigger', description: "In Clay, you can either set up a schedule to pull recent calls from your CRM every hour, or use a Webhook from Gong/Zapier that triggers when a call finishes. Either way, bring the 'Call ID' and 'Prospect Email' into your Clay table." },
-        { title: 'Fetch the Transcript', description: "Add an 'HTTP API' column in Clay. Use the Gong API (or your provider of choice) to GET the raw text transcript of the call associated with that Call ID." },
-        { title: 'Extract the Insights', description: "Add a 'Use AI (Claygent)' column. Prompt: 'Here is a transcript of my sales call: [Transcript Text]. Extract exactly three things: 1) The main problem they are trying to solve. 2) Any competitors they mentioned using. 3) What I promised to send them next.'" },
-        { title: 'Draft the Perfect Follow Up', description: "Add another 'Use AI' column. Prompt: 'Draft a short follow-up email to the prospect. Acknowledge their main problem: [Problem]. Gently position our product against [Competitor] without bashing them. Finally, include the link to [Promised Next Step Document]. Keep the tone helpful and concise.'" },
-        { title: 'Push to Drafts', description: "Use the 'Gmail -> Create Draft' integration (or Outreach/SalesLoft) to push that text into your outbox. The rep just needs to open their drafts, quickly review, and hit send, saving them 20 minutes of recap-writing per call." }
-      ],
-      tools: ['Clay', 'Gong API', 'Gmail / Outreach']
-    },
-    troubleshooting: [],
-    relatedPlaybooks: [],
-    steps: [
-      {
-        id: 'cg4-s1',
-        stepNumber: 1,
-        title: 'Standardize Your Next Steps',
-        instruction: 'To make the automation work, you need standard materials to link to when certain topics come up.',
-        promptTemplate: 'I am automating post-call follow-ups. Give me a checklist of standard sales collateral I should have prepared as "Next Step Links" based on common objections (e.g. security objections = SOC2 doc link, pricing objections = ROI calculator link). List 5 common objections and the ideal collateral to link.',
-        expectedOutput: 'A map of objections to collateral.'
       }
     ]
   },
@@ -2518,7 +2304,7 @@ export const smbPlaybooks: Playbook[] = [
         stepNumber: 2,
         title: 'Run the Missed Deductions Scan',
         instruction: 'Most small business owners miss 3-5 legitimate deductions every year. The AI will compare your expense categories against a comprehensive checklist of commonly-overlooked deductions for your business type and flag anything you may have forgotten to track.',
-        promptTemplate: 'Based on my expense totals for [TAX YEAR], check for commonly missed tax deductions. My business is [TYPE: e.g. freelance designer / retail shop / consulting firm / e-commerce seller].\n\nHere are my current recorded deductions:\n[PASTE YOUR EXPENSE CATEGORY TOTALS]\n\nCheck specifically for these commonly missed categories — tell me if I have recorded something in each, and if my amount seems unusually low for a business like mine:\n\n1. Home Office Deduction — did I record anything? My home office is [X] sq ft of my [X] sq ft home.\n2. Business Vehicle / Mileage — I drove approximately [X] business miles.\n3. Health Insurance Premiums — as a self-employed person, 100% may be deductible.\n4. Retirement Contributions — SEP-IRA, Solo 401(k), or SIMPLE IRA contributions.\n5. Professional Development — courses, books, certifications, conferences.\n6. Business Banking Fees — account fees, wire fees, merchant processing fees.\n7. Professional Subscriptions — industry publications, software tools.\n8. Business Insurance — liability, E&O, business owner\'s policy.\n9. Startup Costs — if this is my first year or I launched a new product line.\n10. Section 179 Deduction — immediate expensing of equipment/technology purchases.\n11. Qualified Business Income (QBI) Deduction — the 20% pass-through deduction for eligible businesses.\n12. Bad Debt — uncollectable invoices written off.\n\nFor each one I may have missed or under-recorded, tell me: (a) what the potential deduction is, (b) what documentation I need, and (c) the estimated tax savings at a 25% effective rate.',
+        promptTemplate: 'Scan my [tax_year] expenses for missed deductions. My business: [business_type e.g. freelance designer / consultant / e-commerce seller]\n\nHere are my recorded expense totals by category:\n[expense_totals]\n\nAdditional context:\n- Home office: [yes — X sq ft of X total / no]\n- Business miles driven: [miles or "none"]\n- Health insurance premiums paid: [$ or "not applicable"]\n\nCheck for anything I likely missed or under-recorded. For each gap, tell me: what the deduction is, what documentation I need, and the estimated tax saving at a 25% rate.',
         expectedOutput: 'A gap analysis listing every potential missed deduction, estimated dollar value, required documentation, and estimated tax savings for each.',
         tips: 'The home office deduction alone is worth an average of $1,500-$3,000 for a typical freelancer or consultant. If you have a dedicated workspace at home, make sure you\'re claiming it.'
       },
@@ -2718,7 +2504,7 @@ export const smbPlaybooks: Playbook[] = [
         stepNumber: 1,
         title: 'Calculate Your True Cost to Deliver',
         instruction: 'Most business owners set prices based on gut feel or competitor copying — without ever calculating what it actually costs to deliver their work. This step builds your real cost baseline. Without it, any price is a guess.',
-        promptTemplate: 'Help me calculate the true cost to deliver my main products/services so I can set prices that actually make me money.\n\nMy business: [DESCRIBE YOUR BUSINESS]\n\nMY MONTHLY FIXED COSTS (expenses that happen whether I have clients or not):\n- Rent/workspace: [Amount]\n- Staff wages (if any): [Amount]\n- Phone & internet: [Amount]\n- Equipment loans/leases: [Amount]\n- Software/tools: [Amount]\n- Transport (regular): [Amount]\n- Other: [Amount]\nTotal Monthly Fixed Costs: [Sum]\n\nMY WORKING HOURS: I work approximately [X hours per week] on billable/production work. That is about [X × 4 = X hours per month].\n\nMY MAIN PRODUCTS/SERVICES AND THEIR DIRECT COSTS:\n1. [Service/Product A] — takes approximately [X hours] to deliver + materials cost approximately [Amount]\n2. [Service/Product B] — takes approximately [X hours] to deliver + materials cost approximately [Amount]\n3. [Service/Product C] — takes approximately [X hours] to deliver + materials cost approximately [Amount]\n\nCalculate:\n1. My true hourly overhead cost (Fixed Costs ÷ Monthly Working Hours)\n2. The full cost to deliver each product/service (Time × Hourly Overhead + Materials)\n3. My current price vs. actual cost for each — am I making or losing money?',
+        promptTemplate: 'Help me calculate the true cost to deliver my work so I can set prices that actually make me money.\n\nMy business: [describe what you do and who you serve]\nMonthly fixed costs (rent, staff, tools, etc.): [total monthly expenses in $]\nHours I work per week on billable/client work: [hours]\n\nMy main services and what each involves:\n1. [service name] — roughly [X hours] to deliver, materials cost about [$ or "none"]\n2. [service name] — roughly [X hours] to deliver, materials cost about [$ or "none"]\n\nCurrent prices:\n1. [service name]: [current price]\n2. [service name]: [current price]\n\nCalculate my true hourly overhead rate, the full cost to deliver each service, and tell me clearly whether I am making or losing money on each one.',
         expectedOutput: 'A breakdown of your true cost to deliver each product/service, your effective hourly overhead rate, and a direct comparison showing whether your current prices are profitable.',
         tips: 'If your effective hourly overhead rate surprises you (it usually does), that is the point of this exercise. Many small business owners discover they have been effectively paying themselves less than minimum wage on their worst-performing services.'
       },
@@ -2906,7 +2692,7 @@ export const smbPlaybooks: Playbook[] = [
         stepNumber: 1,
         title: 'Score Your Business Across 5 Dimensions',
         instruction: 'Before you can improve, you need an honest baseline. The Business Health Score measures five distinct areas of your business — each one can be strong while another is critically weak. Answering these questions as honestly as possible will give you a diagnosis, not just a description.',
-        promptTemplate: 'I want to score my business across 5 health dimensions and identify my top growth constraint. I\'ll answer honestly and I want you to be direct with me — not reassuring.\n\nMY BUSINESS: [DESCRIBE — type, size, how long operating, country]\n\n--- DIMENSION 1: REVENUE ---\n- Monthly revenue range: [AMOUNT]\n- Is revenue growing, flat, or declining over the last 6 months? [GROWING / FLAT / DECLINING]\n- Do I have enough clients, or am I too dependent on 1-2 big ones? [DIVERSIFIED / 1-2 BIG CLIENTS ONLY]\n- Is my revenue predictable (recurring/retainer) or unpredictable (project by project)? [PREDICTABLE / UNPREDICTABLE]\n\n--- DIMENSION 2: MARGIN ---\n- My approximate net profit margin (what I keep after all expenses): [X%]\n- Is my margin stable, improving, or shrinking? [STABLE / IMPROVING / SHRINKING]\n- Do I know which products/services make the most money? [YES / NO / ROUGHLY]\n\n--- DIMENSION 3: CASH ---\n- How many months of operating expenses do I have in cash/savings right now? [X months]\n- Do I struggle to pay bills on time or do I always have enough? [STRUGGLE / FINE]\n- Do clients pay me on time, or do I chase invoices frequently? [ON TIME / FREQUENT CHASING]\n\n--- DIMENSION 4: GROWTH ---\n- How do new clients/customers find me? [REFERRALS / SOCIAL MEDIA / ADS / WALK-IN / NETWORKING / OTHER]\n- Do I have a consistent way of getting new clients, or does it happen randomly? [CONSISTENT SYSTEM / RANDOM]\n- Have I grown revenue in the last 12 months? By approximately how much? [X% / FLAT / DECLINED]\n\n--- DIMENSION 5: RISK ---\n- If my biggest client left tomorrow, what % of revenue would disappear? [X%]\n- Do I have any key staff or suppliers I depend on completely? [YES — [describe] / NO]\n- Do I have any legal, tax, or compliance issues outstanding? [YES — [describe] / NO]\n\nScore each dimension 1-10 (1=critical problem, 10=excellent) and give me an OVERALL HEALTH SCORE (1-10). Then identify my SINGLE TOP CONSTRAINT — the one dimension that, if fixed, would have the biggest positive impact on everything else.',
+        promptTemplate: 'Score my business health across 5 dimensions and tell me my single biggest constraint. Be direct — not reassuring.\n\nMy business: [what you do, how long you\'ve been running it, rough size]\n\nRevenue: [monthly revenue], trending [growing / flat / declining], clients are [diversified / 1-2 big clients]\nMargin: roughly [X%] net profit, [stable / improving / shrinking]\nCash: [X months] of expenses saved, clients pay [on time / I chase invoices]\nGrowth: new clients come from [referrals / ads / social / random], I [have a system / it\'s unpredictable]\nRisk: if my biggest client left, I\'d lose [X%] of revenue\n\nScore each dimension 1-10, give me an overall score, then name the single top constraint — the one thing that if fixed would move everything else.',
         expectedOutput: 'A scored Business Health assessment across all 5 dimensions, an overall score, and an identified top constraint — the single biggest problem holding the business back.',
         tips: 'The dimension that is hardest to answer honestly is almost always the one that needs the most attention. If you catch yourself softening a score, push back and answer with the true number.'
       },
@@ -4651,171 +4437,6 @@ Whenever I ask you to perform a task, you must first reference these three docum
       }
     ],
     relatedPlaybooks: []
-  }
-];
-
-export const industryPlaybooks: Playbook[] = [
-  {
-    id: 'ind-1',
-    slug: 'automotive-dealership-bdr-automation',
-    title: 'Automotive Dealership: 24/7 BDR Agent',
-    subtitle: 'Turn Claude into a tireless Sales Development Rep that handles all initial lead intake',
-    category: 'Industry Deep Dives',
-    difficulty: 'Intermediate',
-    timeToComplete: 30,
-    timeSaved: 2400,
-    completionCount: 0,
-    rating: 5.0,
-    isPro: true,
-    isNew: true,
-    tools: ['Claude', 'Projects'],
-    beforeYouStart: [
-      'A transcript of your 10 most successful lead follow-up calls',
-      'Your dealership inventory list or a link to your current stock',
-      'Claude Project account'
-    ],
-    expectedOutcome: 'A Claude Project configured as a "BDR Agent" that knows your inventory, follows your dealership brand voice, and qualifies leads exactly like your top performers.',
-    troubleshooting: [
-      {
-        problem: 'Claude is being too aggressive with the sale',
-        solution: 'Update your "BDR Persona Rules" document to include specific instructions on empathy and trust-building before the "ask".'
-      },
-      {
-        problem: 'Claude suggested a car that was just sold',
-        solution: 'Automotive inventory moves fast. Aim to update your Inventory CSV once per day or at minimum every 48 hours.'
-      }
-    ],
-    steps: [
-      {
-        id: 'ind1-s1',
-        stepNumber: 1,
-        title: 'Map Your Top Performer\'s Brain',
-        instruction: 'Upload your best BDR call transcripts or email threads. This becomes the "Intelligence Layer" for your Claude project.',
-        promptTemplate: `I am uploading [N] transcripts of my top-performing sales development rep.
-
-Analyze these and extract:
-1. The common psychological cues they use to build trust.
-2. The specific qualifying questions they ask (and when).
-3. How they handle the "your price is too high" objection.
-
-Create a Project Instruction document called "BDR Persona Rules" based on these findings.`,
-        expectedOutput: 'A set of high-fidelity persona rules that mirror your best human salesperson.',
-        tips: 'The better the input data (real transcripts), the more human and effective the agent becomes.'
-      },
-      {
-        id: 'ind1-s2',
-        stepNumber: 2,
-        title: 'Inventory & Promotion Sync',
-        instruction: 'Upload your current inventory spreadsheet or PDF. This ensures Claude never suggests a car you don\'t have.',
-        promptTemplate: `Here is our current inventory for [DATE].
-
-Follow these rules:
-1. Only suggest cars currently in this list.
-2. If a lead asks for something we don't have, look for the closest match in [PRICE RANGE] and [BODY STYLE] and suggest it as a better alternative.
-3. If they are looking for a deal, highlight these specific units: [PASTE VINs OR MODELS].`,
-        expectedOutput: 'A Claude agent that maintains perfect inventory awareness.',
-        tips: 'Update this document once a week to keep the "Agent" accurate.'
-      }
-    ],
-    relatedPlaybooks: [
-      { id: 'cc-4', title: 'Projects & Persistent Context', slug: 'claude-104-projects-and-persistent-context' }
-    ]
-  },
-  {
-    id: 'ind-2',
-    slug: 'commercial-real-estate-lease-analyzer',
-    title: 'Real Estate: The Commercial Lease Negotiator',
-    subtitle: 'Extract risks and opportunities from complex 50-page lease agreements in seconds',
-    category: 'Industry Deep Dives',
-    difficulty: 'Advanced',
-    timeToComplete: 15,
-    timeSaved: 300,
-    completionCount: 0,
-    rating: 5.0,
-    isPro: true,
-    isNew: true,
-    tools: ['Claude', 'Artifacts'],
-    beforeYouStart: [
-      'A commercial lease agreement (PDF)',
-      'Your standard "Must-Have" clause checklist'
-    ],
-    expectedOutcome: 'A structured risk assessment report and a redlined counter-offer draft.',
-    troubleshooting: [
-      {
-        problem: 'The PDF is too complex and Claude is hallucinating terms',
-        solution: 'Break the document down. Upload only the "Financial Terms" and "Default" sections as separate files and run the analysis again.'
-      }
-    ],
-    steps: [
-      {
-        id: 'ind2-s1',
-        stepNumber: 1,
-        title: 'Run a Structural Risk Audit',
-        instruction: 'Upload the lease and ask Claude to find the hidden "gotchas" that usually slip past a quick read.',
-        promptTemplate: `Analyze this commercial lease agreement. 
-
-Find and extract:
-1. Rent Escalation: What is the exact formula? Are there caps?
-2. CAM Charges: What is included? Is there an audit right for the tenant?
-3. Assignment/Subletting: How "unreasonably" can the landlord withhold consent?
-4. Termination: What are the specific default triggers?
-
-Present this as a table of "Risk Level (Low/Med/High)" vs "Clause".`,
-        expectedOutput: 'A visual risk dashboard uncovering potential financial liabilities.',
-        tips: 'Compare this against your "Standard Checklist" to see exactly where the landlord is pushing boundaries.'
-      }
-    ],
-    relatedPlaybooks: [
-      { id: 'cc-3', title: 'Working with Files & Data', slug: 'claude-103-working-with-files-and-data' }
-    ]
-  },
-  {
-    id: 'ind-3',
-    slug: 'agency-onboarding-automation',
-    title: 'Agency: The Infinite Account Manager',
-    subtitle: 'Automate client onboarding, from kickoff call to project brief',
-    category: 'Industry Deep Dives',
-    difficulty: 'Intermediate',
-    timeToComplete: 20,
-    timeSaved: 600,
-    completionCount: 0,
-    rating: 5.0,
-    isPro: true,
-    isNew: true,
-    tools: ['Claude', 'Projects'],
-    beforeYouStart: [
-      'Recording/Transcript of a client kickoff call',
-      'Your agency\'s standard Project Brief template'
-    ],
-    expectedOutcome: 'A fully drafted Project Brief, Timeline, and first 5 Task items for your project management tool.',
-    troubleshooting: [
-      {
-        problem: 'The brief is missing specific technical details',
-        solution: 'Ask the client for their "Technical Specs" or "Brand Deck" and upload those to the project alongside the call transcript.'
-      }
-    ],
-    steps: [
-      {
-        id: 'ind3-s1',
-        stepNumber: 1,
-        title: 'Turn Chaos into Clarity',
-        instruction: 'Upload the kickoff call transcript and your agency\'s template.',
-        promptTemplate: `Based on this kickoff call transcript, fill out our Agency Project Brief template.
-
-Extract:
-1. Business Goals: What is the primary KPI for this project?
-2. Technical Constraints: What stacks/tools were mentioned?
-3. Timeline: What are the hard deadlines?
-4. Stakeholders: Who needs to approve what?
-
-Format as a professional PDF-ready brief.`,
-        expectedOutput: 'A polished project brief that looks like it took 3 hours, but took 3 seconds.',
-        tips: 'You can then ask Claude to "Write a Slack message to the team summarizing this client\'s personality and expectations."'
-      }
-    ],
-    relatedPlaybooks: [
-      { id: 'cc-4', title: 'Projects & Persistent Context', slug: 'claude-104-projects-and-persistent-context' }
-    ]
   }
 ];
 

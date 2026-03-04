@@ -1,11 +1,11 @@
 import { supabase } from './supabase';
 import type { Playbook } from '../data/playbooks';
-import { smbPlaybooks, coworkPlaybooks, claudeCrashCoursePlaybooks, coworkPluginPlaybooks, designerAIPlaybooks, industryPlaybooks, leadMagnetPlaybooks, ecommercePlaybooks, launchPlaybooks, personalBrandPlaybooks, educationPlaybooks } from '../data/playbooks';
+import { smbPlaybooks, coworkPlaybooks, claudeCrashCoursePlaybooks, coworkPluginPlaybooks, designerAIPlaybooks, leadMagnetPlaybooks, ecommercePlaybooks, launchPlaybooks, personalBrandPlaybooks, educationPlaybooks } from '../data/playbooks';
 // --- Local Playbook Helpers ---
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export function isUUID(id: string) { return UUID_REGEX.test(id); }
 
-export const allLocalPlaybooks = [...smbPlaybooks, ...coworkPlaybooks, ...claudeCrashCoursePlaybooks, ...coworkPluginPlaybooks, ...designerAIPlaybooks, ...industryPlaybooks, ...leadMagnetPlaybooks, ...ecommercePlaybooks, ...launchPlaybooks, ...personalBrandPlaybooks, ...educationPlaybooks];
+export const allLocalPlaybooks = [...smbPlaybooks, ...coworkPlaybooks, ...claudeCrashCoursePlaybooks, ...coworkPluginPlaybooks, ...designerAIPlaybooks, ...leadMagnetPlaybooks, ...ecommercePlaybooks, ...launchPlaybooks, ...personalBrandPlaybooks, ...educationPlaybooks];
 export function findLocalPlaybook(id: string): Playbook | undefined {
     return allLocalPlaybooks.find(p => p.id === id);
 }
@@ -66,7 +66,6 @@ export async function fetchPlaybooks(): Promise<Playbook[]> {
     const missingCrashCoursePlaybooks = claudeCrashCoursePlaybooks.filter((pb: Playbook) => !dbSlugs.has(pb.slug));
     const missingPluginPlaybooks = coworkPluginPlaybooks.filter((pb: Playbook) => !dbSlugs.has(pb.slug));
     const missingDesignerPlaybooks = designerAIPlaybooks.filter((pb: Playbook) => !dbSlugs.has(pb.slug));
-    const missingIndustryPlaybooks = industryPlaybooks.filter((pb: Playbook) => !dbSlugs.has(pb.slug));
     const missingLeadMagnetPlaybooks = leadMagnetPlaybooks.filter((pb: Playbook) => !dbSlugs.has(pb.slug));
     const missingEcommercePlaybooks = ecommercePlaybooks.filter((pb: Playbook) => !dbSlugs.has(pb.slug));
     const missingLaunchPlaybooks = launchPlaybooks.filter((pb: Playbook) => !dbSlugs.has(pb.slug));
@@ -74,7 +73,7 @@ export async function fetchPlaybooks(): Promise<Playbook[]> {
     const missingEducationPlaybooks = educationPlaybooks.filter((pb: Playbook) => !dbSlugs.has(pb.slug));
 
     // Business playbooks first, then crash course, then DB playbooks
-    return [...missingLeadMagnetPlaybooks, ...missingIndustryPlaybooks, ...missingDesignerPlaybooks, ...missingPluginPlaybooks, ...missingCoworkPlaybooks, ...missingSmbPlaybooks, ...missingEcommercePlaybooks, ...missingLaunchPlaybooks, ...missingPersonalBrandPlaybooks, ...missingEducationPlaybooks, ...fetchedPlaybooks, ...missingCrashCoursePlaybooks];
+    return [...missingLeadMagnetPlaybooks, ...missingDesignerPlaybooks, ...missingPluginPlaybooks, ...missingCoworkPlaybooks, ...missingSmbPlaybooks, ...missingEcommercePlaybooks, ...missingLaunchPlaybooks, ...missingPersonalBrandPlaybooks, ...missingEducationPlaybooks, ...fetchedPlaybooks, ...missingCrashCoursePlaybooks];
 }
 
 export async function fetchPlaybookBySlug(slug: string): Promise<Playbook | null> {

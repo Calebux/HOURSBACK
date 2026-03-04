@@ -30,6 +30,38 @@ interface AutonomousRun {
 
 const allPlaybooks = [...mockPlaybooks, ...smbPlaybooks, ...coworkPlaybooks, ...designerAIPlaybooks, ...coworkPluginPlaybooks, ...ecommercePlaybooks, ...launchPlaybooks, ...personalBrandPlaybooks, ...educationPlaybooks];
 
+function markdownToHtml(md: string): string {
+    const lines = md.split('\n');
+    const html: string[] = [];
+    let inList = false;
+    let listType = '';
+    const closeList = () => {
+        if (inList) { html.push(listType === 'ul' ? '</ul>' : '</ol>'); inList = false; listType = ''; }
+    };
+    const inline = (text: string) =>
+        text
+            .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.+?)\*/g, '<em>$1</em>')
+            .replace(/`(.+?)`/g, '<code style="background:#e5e7eb;padding:1px 5px;border-radius:4px;font-size:13px;">$1</code>');
+    for (const raw of lines) {
+        const line = raw.trimEnd();
+        if (/^---+$/.test(line)) { closeList(); html.push('<hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0;">'); continue; }
+        if (/^# /.test(line)) { closeList(); html.push(`<h1 style="font-size:22px;font-weight:700;color:#111827;margin:28px 0 8px;">${inline(line.slice(2))}</h1>`); continue; }
+        if (/^## /.test(line)) { closeList(); html.push(`<h2 style="font-size:18px;font-weight:700;color:#111827;margin:22px 0 6px;">${inline(line.slice(3))}</h2>`); continue; }
+        if (/^### /.test(line)) { closeList(); html.push(`<h3 style="font-size:15px;font-weight:600;color:#374151;margin:16px 0 4px;">${inline(line.slice(4))}</h3>`); continue; }
+        const ulMatch = line.match(/^[-*] (.+)/);
+        if (ulMatch) { if (!inList || listType !== 'ul') { closeList(); html.push('<ul style="margin:10px 0;padding-left:22px;">'); inList = true; listType = 'ul'; } html.push(`<li style="margin:5px 0;color:#374151;line-height:1.7;">${inline(ulMatch[1])}</li>`); continue; }
+        const olMatch = line.match(/^\d+\. (.+)/);
+        if (olMatch) { if (!inList || listType !== 'ol') { closeList(); html.push('<ol style="margin:10px 0;padding-left:22px;">'); inList = true; listType = 'ol'; } html.push(`<li style="margin:5px 0;color:#374151;line-height:1.7;">${inline(olMatch[1])}</li>`); continue; }
+        if (line.trim() === '') { closeList(); html.push(''); continue; }
+        closeList();
+        html.push(`<p style="margin:7px 0;color:#374151;line-height:1.8;font-size:15px;">${inline(line)}</p>`);
+    }
+    closeList();
+    return html.join('\n');
+}
+
 export default function AutopilotPage() {
     const { user, isLoading: authLoading } = useAuth();
     const navigate = useNavigate();
@@ -126,13 +158,7 @@ export default function AutopilotPage() {
         const date = new Date(run.created_at).toLocaleString();
         const w = window.open('', '_blank');
         if (!w) return;
-        w.document.write(`<!DOCTYPE html><html><head><title>${title}</title>
-        <style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:800px;margin:40px auto;padding:0 24px;color:#202124;line-height:1.7}
-        h1{font-size:22px;font-weight:700;margin-bottom:4px}
-        .meta{font-size:13px;color:#6b7280;margin-bottom:32px}
-        pre{white-space:pre-wrap;font-size:14px;line-height:1.8}
-        @media print{body{margin:0}}</style></head>
-        <body><h1>${title}</h1><p class="meta">Generated on ${date}</p><pre>${run.generated_content}</pre></body></html>`);
+        w.document.write(`<!DOCTYPE html><html><head><title>${title}</title><meta charset="utf-8"><style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:760px;margin:40px auto;padding:0 24px;color:#111827;line-height:1.7}h1{font-size:22px;font-weight:700;margin:0 0 6px}.meta{font-size:13px;color:#6b7280;margin-bottom:32px;padding-bottom:20px;border-bottom:2px solid #f3f4f6}@media print{body{margin:0}}</style></head><body><h1>${title}</h1><p class="meta">Generated on ${date}</p>${markdownToHtml(run.generated_content)}</body></html>`);
         w.document.close();
         w.focus();
         setTimeout(() => w.print(), 400);
@@ -318,7 +344,11 @@ export default function AutopilotPage() {
                                                         className="text-xs font-semibold bg-white border border-brand-dark/20 shadow-antigravity-sm px-4 py-2 rounded-xl text-brand-dark hover:border-brand-dark/40 transition-colors flex items-center gap-2"
                                                         onClick={() => {
                                                             const w = window.open('', '_blank');
-                                                            if (w) w.document.write(`<pre style="font-family:sans-serif;padding:2rem;max-width:800px;margin:0 auto;white-space:pre-wrap;line-height:1.6">${run.generated_content}</pre>`);
+                                                            if (!w) return;
+                                                            const title = getPlaybookTitle(run.playbook_slug);
+                                                            const date = new Date(run.created_at).toLocaleString();
+                                                            w.document.write(`<!DOCTYPE html><html><head><title>${title}</title><meta charset="utf-8"><style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:760px;margin:48px auto;padding:0 24px;background:#fff;color:#111827}.header{border-bottom:2px solid #f3f4f6;padding-bottom:20px;margin-bottom:32px}h1{font-size:22px;font-weight:700;margin:0 0 6px;color:#111827}.meta{font-size:13px;color:#6b7280;margin:0}.badge{display:inline-block;background:#dcfce7;color:#166534;font-size:11px;font-weight:600;padding:2px 10px;border-radius:999px;margin-bottom:12px}</style></head><body><div class="header"><div class="badge">✓ Autopilot Result</div><h1>${title}</h1><p class="meta">Generated on ${date}</p></div>${markdownToHtml(run.generated_content)}</body></html>`);
+                                                            w.document.close();
                                                         }}
                                                     >
                                                         <ExternalLink className="w-3 h-3" />

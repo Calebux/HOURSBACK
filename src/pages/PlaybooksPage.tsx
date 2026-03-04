@@ -367,7 +367,6 @@ export default function PlaybooksPage() {
                       <option value="Legal">Legal</option>
                       <option value="Fitness & Wellness">Fitness &amp; Wellness</option>
                       <option value="Risk & Strategy">Risk &amp; Strategy</option>
-                      <option value="Industry Deep Dives">Industry Deep Dives</option>
                       <option value="Lead Magnets">Lead Magnets</option>
                       <option value="E-commerce">E-commerce</option>
                       <option value="Launch & Growth">Launch &amp; Growth</option>

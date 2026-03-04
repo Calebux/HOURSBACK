@@ -60,6 +60,24 @@ export const ecommercePlaybooks: Playbook[] = [
         tools: ['Claude'],
       },
     ],
+    agentAutomation: {
+      description: 'Automatically generate product descriptions for every new product you add to a Google Sheet — descriptions land in your inbox, ready to paste into your store.',
+      trigger: 'Every time a new product row is added to your Google Sheet',
+      actions: [
+        'Watch a Google Sheet for new product rows (name, specs, target customer, platform)',
+        'Send each row to Claude to generate a headline, hook, bullet points, and CTA',
+        'Email the complete listing to you with a copy-paste-ready format',
+        'Log the output back to the sheet in a "Description" column'
+      ],
+      setupSteps: [
+        { title: 'Create your Product Sheet', description: 'In Google Sheets, create columns: Product Name, Platform, Specs, Target Customer, Pain Point, Key Differentiator, Tone. Add a blank "Description" column at the end.' },
+        { title: 'Connect Google Sheets in Make.com', description: "Go to Make.com and create a new scenario. Search for 'Google Sheets' and choose the 'Watch New Rows' trigger. Connect your Google account and select your product sheet. Set polling interval to 15 minutes." },
+        { title: 'Add the Claude / OpenAI module', description: "Add an 'OpenAI → Create Chat Completion' module. Paste the Step 1 prompt template from this playbook and map each column from your sheet into the corresponding variable (product name, specs, etc.)." },
+        { title: 'Email the output', description: "Add a 'Gmail → Send Email' (or Resend) module. Set the recipient to your email. In the body, map the AI output. Subject: 'New product description ready: {{Product Name}}'." },
+        { title: 'Activate and test', description: "Add a new product row to your sheet, then click 'Run Once' in Make.com to test the full flow. If the email arrives correctly, toggle the scenario to ON." }
+      ],
+      tools: ['Make.com', 'Google Sheets', 'Claude', 'Gmail']
+    },
   },
   {
     id: 'ec-2',
@@ -117,6 +135,24 @@ export const ecommercePlaybooks: Playbook[] = [
         tools: ['Claude'],
       },
     ],
+    agentAutomation: {
+      description: 'Automatically generate a fresh 3-email recovery sequence every time a new product or campaign is added — so every launch has its own cart recovery copy ready on day one.',
+      trigger: 'Every time a new product or campaign is added to your Google Sheet',
+      actions: [
+        'Watch a Google Sheet for new product/campaign rows',
+        'Send product details to Claude to write all 3 recovery emails (1hr, 24hr, 72hr)',
+        'Email the full sequence to you in a copy-paste format for Klaviyo or Shopify Email',
+        'Flag if the incentive field is empty so you don\'t send a discount-less final email'
+      ],
+      setupSteps: [
+        { title: 'Set up your Campaign Sheet', description: 'Create a Google Sheet with columns: Store Name, Product Name, Product URL, Brand Tone, Incentive (e.g. "10% off with code COMEBACK10"). Add one row per product or campaign.' },
+        { title: 'Create a Make.com scenario', description: "Go to Make.com and add a 'Google Sheets → Watch New Rows' trigger. Connect your sheet. Set it to trigger when a new row appears." },
+        { title: 'Wire up Claude', description: "Add an 'OpenAI → Create Chat Completion' module. Paste the three prompt templates from this playbook (one per step). Map your sheet columns to each variable. Run them in sequence — each email as its own module." },
+        { title: 'Send to your inbox', description: "Add a 'Gmail → Send Email' module. Put all 3 emails in the body, clearly labelled (Email 1: 1-Hour, Email 2: 24-Hour, Email 3: 72-Hour). Subject: 'Cart recovery sequence ready: {{Product Name}}'." },
+        { title: 'Test and activate', description: "Add a test row, click 'Run Once', and confirm the email arrives with all 3 sequences complete. Toggle the scenario ON to automate future products." }
+      ],
+      tools: ['Make.com', 'Google Sheets', 'Claude', 'Klaviyo']
+    },
   },
   {
     id: 'ec-3',
@@ -348,6 +384,24 @@ export const launchPlaybooks: Playbook[] = [
         tools: ['Claude'],
       },
     ],
+    agentAutomation: {
+      description: 'Auto-generate a fresh waitlist nurture email every week and deliver it to your inbox — keep subscribers warm without manually writing a single email.',
+      trigger: 'Every Monday at 8 AM',
+      actions: [
+        'Pull the latest milestone or update from your Google Sheet (signups, feature progress, etc.)',
+        'Send the context to Claude to write this week\'s nurture email (rotating through: problem, behind-the-scenes, social proof, countdown)',
+        'Email the draft to you for approval or direct upload to your ESP',
+        'Track which email type was sent last so it never repeats two weeks in a row'
+      ],
+      setupSteps: [
+        { title: 'Create your Waitlist Context Sheet', description: 'In Google Sheets, add columns: Product Name, Current Signups, Latest Update/Milestone, Brand Tone, Launch Date. Update this sheet weekly with new numbers and progress.' },
+        { title: 'Set up a weekly schedule trigger', description: "In Make.com, add a 'Schedule → Every Week' trigger set to Monday 8 AM. This fires the scenario automatically each week." },
+        { title: 'Pull context from Sheets', description: "Add a 'Google Sheets → Get a Row' module to fetch your latest update row. This gives Claude fresh numbers and milestones each week." },
+        { title: 'Generate the email with Claude', description: "Add an 'OpenAI → Create Chat Completion' module. Use the Step 3 prompt template, mapping your sheet data into the product, signups, and tone variables." },
+        { title: 'Send to your inbox for review', description: "Add a 'Gmail → Send Email' module. Subject: 'Weekly waitlist email ready — week {{week number}}'. Paste the output in the body and send to yourself before uploading to Mailchimp, ConvertKit, or Beehiiv." }
+      ],
+      tools: ['Make.com', 'Google Sheets', 'Claude', 'ConvertKit']
+    },
   },
   {
     id: 'lg-3',
@@ -492,6 +546,24 @@ export const personalBrandPlaybooks: Playbook[] = [
         tools: ['Claude'],
       },
     ],
+    agentAutomation: {
+      description: 'Get a fresh batch of 5 LinkedIn posts delivered to your inbox every Monday — just review, pick, and schedule. Never stare at a blank screen again.',
+      trigger: 'Every Monday morning at 7 AM',
+      actions: [
+        'Read your content pillars and brand tone from a Google Sheet',
+        'Generate 5 LinkedIn posts for the week — varied formats (hook, story, educational, poll, list)',
+        'Email the posts to you with the pillar label and recommended posting day for each',
+        'Rotate post formats automatically so the same type never appears twice in one week'
+      ],
+      setupSteps: [
+        { title: 'Create your Brand Voice Sheet', description: 'In Google Sheets, create a single reference row with: Your Name, Role, Target Audience, Niche Topic, 5 Content Pillars, Tone. This is your permanent context — Claude reads it every week.' },
+        { title: 'Set a weekly schedule trigger', description: "In Make.com, add a 'Schedule → Every Week' trigger set to Monday at 7 AM." },
+        { title: 'Fetch your brand context', description: "Add a 'Google Sheets → Get a Row' module pointing to your brand voice row. This injects your pillars and tone into every prompt automatically." },
+        { title: 'Generate 5 posts with Claude', description: "Add an 'OpenAI → Create Chat Completion' module. Use the Step 2 prompt template but ask for 5 posts only (not 30). Map your Google Sheet columns to the name, role, audience, pillars, and tone variables." },
+        { title: 'Deliver to inbox', description: "Add a 'Gmail → Send Email' module with subject 'Your LinkedIn posts for the week'. Each post should be clearly separated and labelled with its pillar and format. Copy-paste directly into Buffer or LinkedIn Scheduler." }
+      ],
+      tools: ['Make.com', 'Google Sheets', 'Claude', 'Buffer']
+    },
   },
   {
     id: 'pb-2',
@@ -640,6 +712,24 @@ export const personalBrandPlaybooks: Playbook[] = [
         tools: ['Claude'],
       },
     ],
+    agentAutomation: {
+      description: 'Get a full thought leadership article draft delivered to your inbox every week — topic, argument, and 1,200 words written. Just edit and publish.',
+      trigger: 'Every Thursday at 6 AM',
+      actions: [
+        'Read this week\'s topic and thesis from your Google Sheet',
+        'Generate a refined argument, article structure, and 5 headline options',
+        'Write the full 1,200-word article draft based on the structure',
+        'Email the complete article plus the headline shortlist to your inbox'
+      ],
+      setupSteps: [
+        { title: 'Create your Article Pipeline Sheet', description: 'In Google Sheets, add a row per article with: Topic, Contrarian Thesis, Conventional Wisdom (what you\'re challenging), Three Supporting Arguments, Key Example, Target Publication, Tone. Add a Status column (Draft / Published).' },
+        { title: 'Set up a weekly trigger', description: "In Make.com, add a 'Schedule → Every Week' trigger for Thursday at 6 AM." },
+        { title: 'Fetch this week\'s topic', description: "Add a 'Google Sheets → Get Rows' module with a filter: Status = 'Draft'. Grab the first matching row — this becomes this week's article." },
+        { title: 'Run the two-step generation', description: "Add two 'OpenAI' modules in sequence. Module 1: Step 1 prompt (argument + structure + headlines). Module 2: Step 2 prompt (full article), using the output of Module 1 as context." },
+        { title: 'Send the draft to your inbox', description: "Add a 'Gmail → Send Email' module. Subject: 'Article draft ready: {{Topic}}'. Include the 5 headline options first, then the full article. Update the row Status to 'In Review' via a final Google Sheets module." }
+      ],
+      tools: ['Make.com', 'Google Sheets', 'Claude', 'Gmail']
+    },
   },
 ];
 
@@ -758,6 +848,24 @@ export const educationPlaybooks: Playbook[] = [
         tools: ['Claude'],
       },
     ],
+    agentAutomation: {
+      description: 'Automatically write a new 5-day email course every time you add a new course topic to your sheet — from curriculum to all 5 lessons plus the pitch email, all in your inbox.',
+      trigger: 'Every time a new course topic row is added to your Google Sheet',
+      actions: [
+        'Watch a Google Sheet for new course topic rows',
+        'Generate the full curriculum, subject lines, and preview texts (Step 1)',
+        'Write all 5 lesson emails and the Day 6 pitch email (Steps 2 & 3)',
+        'Email the complete course package to you — ready to load into ConvertKit or Beehiiv'
+      ],
+      setupSteps: [
+        { title: 'Create your Course Ideas Sheet', description: 'In Google Sheets, add columns: Course Name, Target Subscriber, Brand Tone, Paid Offer Name, Paid Offer Price, Paid Offer Value, Special Offer. Each row is a new email course to generate.' },
+        { title: 'Add a Watch Rows trigger', description: "In Make.com, add a 'Google Sheets → Watch New Rows' trigger connected to your Course Ideas Sheet." },
+        { title: 'Generate the curriculum first', description: "Add an 'OpenAI → Create Chat Completion' module using the Step 1 prompt. Map course name, subscriber, and tone from your sheet. Store the output — you'll use it in the next step." },
+        { title: 'Write all 5 lesson emails', description: "Add a second OpenAI module using the Step 2 prompt. Pass in the curriculum output from Step 1 along with the course name and tone. This generates all 5 emails in one call." },
+        { title: 'Write the pitch email and send everything', description: "Add a third OpenAI module for the Step 3 pitch email. Then add a 'Gmail → Send Email' module with subject 'New email course ready: {{Course Name}}'. Combine all three outputs into the email body, clearly labelled." }
+      ],
+      tools: ['Make.com', 'Google Sheets', 'Claude', 'ConvertKit']
+    },
   },
   {
     id: 'edu-3',
