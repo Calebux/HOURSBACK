@@ -1470,7 +1470,11 @@ export const getCategoryColor = (category: string): string => {
     'Fitness & Wellness': '#10B981',
     'Risk & Strategy': '#DC2626',
     'Industry Deep Dives': '#635BFF',
-    'Lead Magnets': '#DA7756'
+    'Lead Magnets': '#DA7756',
+    'E-commerce': '#F59E0B',
+    'Launch & Growth': '#10B981',
+    'Personal Brand': '#8B5CF6',
+    'Courses & Education': '#3B82F6'
   };
   return colors[category] || '#4F46E5';
 };
@@ -5344,3 +5348,6 @@ Polish Requirements:
     ]
   }
 ];
+
+// Growth Playbooks – E-commerce, Launch & Growth, Personal Brand, Courses & Education
+export { ecommercePlaybooks, launchPlaybooks, personalBrandPlaybooks, educationPlaybooks } from './growthPlaybooks';

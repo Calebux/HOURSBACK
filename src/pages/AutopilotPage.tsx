@@ -3,7 +3,7 @@ import { Bot, Calendar, Clock, CheckCircle2, Play, Pause, ExternalLink, XCircle,
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { mockPlaybooks, smbPlaybooks, coworkPlaybooks, designerAIPlaybooks, coworkPluginPlaybooks } from '../data/playbooks';
+import { mockPlaybooks, smbPlaybooks, coworkPlaybooks, designerAIPlaybooks, coworkPluginPlaybooks, ecommercePlaybooks, launchPlaybooks, personalBrandPlaybooks, educationPlaybooks } from '../data/playbooks';
 import AutopilotModal from '../components/AutopilotModal';
 import { AuthModal } from '../components/AuthModal';
 import { toast } from 'sonner';
@@ -28,7 +28,7 @@ interface AutonomousRun {
     created_at: string;
 }
 
-const allPlaybooks = [...mockPlaybooks, ...smbPlaybooks, ...coworkPlaybooks, ...designerAIPlaybooks, ...coworkPluginPlaybooks];
+const allPlaybooks = [...mockPlaybooks, ...smbPlaybooks, ...coworkPlaybooks, ...designerAIPlaybooks, ...coworkPluginPlaybooks, ...ecommercePlaybooks, ...launchPlaybooks, ...personalBrandPlaybooks, ...educationPlaybooks];
 
 export default function AutopilotPage() {
     const { user, isLoading: authLoading } = useAuth();

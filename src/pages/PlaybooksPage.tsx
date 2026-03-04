@@ -369,6 +369,10 @@ export default function PlaybooksPage() {
                       <option value="Risk & Strategy">Risk &amp; Strategy</option>
                       <option value="Industry Deep Dives">Industry Deep Dives</option>
                       <option value="Lead Magnets">Lead Magnets</option>
+                      <option value="E-commerce">E-commerce</option>
+                      <option value="Launch & Growth">Launch &amp; Growth</option>
+                      <option value="Personal Brand">Personal Brand</option>
+                      <option value="Courses & Education">Courses &amp; Education</option>
                     </select>
                     <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                   </div>
