@@ -57,7 +57,7 @@ interface Props {
   onChange: (value: string) => void;
 }
 
-export default function CsvDataInput({ variableName, value, onChange }: Props) {
+export default function CsvDataInput({ value, onChange }: Props) {
   const [tab, setTab] = useState<'upload' | 'sheets'>('upload');
   const [sheetUrl, setSheetUrl] = useState('');
   const [preview, setPreview] = useState<string[][] | null>(null);
