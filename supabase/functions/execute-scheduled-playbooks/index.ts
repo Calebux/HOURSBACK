@@ -81,6 +81,24 @@ function markdownToHtml(md: string): string {
 }
 
 // ---------------------------------------------------------------------------
+// Strip HTML tags from a webpage — returns clean readable text
+// ---------------------------------------------------------------------------
+function stripHtml(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<nav[\s\S]*?<\/nav>/gi, '')
+    .replace(/<footer[\s\S]*?<\/footer>/gi, '')
+    .replace(/<header[\s\S]*?<\/header>/gi, '')
+    .replace(/<\/?(p|div|h[1-6]|li|tr|br)[^>]*>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+// ---------------------------------------------------------------------------
 // Cron expression matcher — supports the 3 schedule types we generate:
 //   daily:    "MM HH * * *"
 //   weekdays: "MM HH * * 1-5"
@@ -107,10 +125,216 @@ function cronMatchesNow(cron: string): boolean {
 // ---------------------------------------------------------------------------
 // Execute a single schedule: call Claude, email the result, log the run
 // ---------------------------------------------------------------------------
+// Playbooks that deliver one piece of content per run (daily drip), not everything at once
+const DAILY_DRIP_SLUGS: Record<string, { total: number; label: string }> = {
+  "30-day-social-media-content-engine": { total: 30, label: "Day" },
+};
+
+// Content pillars that rotate across the 30-day cycle
+const CONTENT_PILLARS = [
+  "Behind-the-Scenes",
+  "Educational Tip",
+  "Customer Spotlight",
+  "Promotional Offer",
+  "Engagement Question",
+  "Product / Service Feature",
+  "Local Community",
+  "Social Proof / Testimonial",
+  "Industry News",
+  "Brand Story",
+];
+
+// ---------------------------------------------------------------------------
+// Playbooks that emit a visual infographic alongside their text output
+// ---------------------------------------------------------------------------
+const INFOGRAPHIC_SLUGS = new Set([
+  "business-financial-health-check",
+  "business-health-score-90-day-action-plan",
+  "profit-margin-analyzer-most-profitable-work",
+  "monthly-financial-snapshot-pl-analyzer",
+  "expense-anomaly-detection",
+  "cash-flow-projection",
+  "ai-bookkeeper-weekly-transaction-categorization",
+  "tax-season-prep-assistant",
+  "hire-or-stay-solo-financial-decision",
+  "pricing-strategy-reset",
+  "invoice-cash-flow-guardian",
+]);
+
+type InfographData = {
+  title: string;
+  kpis: Array<{ label: string; value: string; trend?: "up" | "down" | "neutral"; note?: string }>;
+  scores?: Array<{ label: string; score: number; max: number }>;
+  bars?: Array<{ label: string; value: number; max: number; unit?: string }>;
+  highlights?: Array<{ type: "strength" | "risk" | "action"; text: string }>;
+};
+
+function parseInfographData(text: string): { data: InfographData | null; cleanText: string } {
+  const match = text.match(/INFOGRAPH_DATA_START\s*([\s\S]*?)\s*INFOGRAPH_DATA_END/);
+  if (!match) return { data: null, cleanText: text };
+  const cleanText = text.replace(/INFOGRAPH_DATA_START[\s\S]*?INFOGRAPH_DATA_END/, "").trim();
+  try {
+    return { data: JSON.parse(match[1].trim()) as InfographData, cleanText };
+  } catch {
+    return { data: null, cleanText };
+  }
+}
+
+function generateInfographicHtml(d: InfographData): string {
+  // KPI headline cards
+  const kpiCells = d.kpis.map(k => {
+    const tC = k.trend === "up" ? "#22c55e" : k.trend === "down" ? "#ef4444" : "#9ca3af";
+    const tA = k.trend === "up" ? "↑" : k.trend === "down" ? "↓" : "";
+    return "<td style='padding:18px 16px;text-align:center;vertical-align:top;border-right:1px solid #e5e7eb;'>"
+      + "<div style='font-size:22px;font-weight:800;color:#0F1012;letter-spacing:-0.5px;line-height:1;'>" + k.value + "</div>"
+      + "<div style='font-size:9px;color:#9ca3af;margin-top:5px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;'>" + k.label + "</div>"
+      + (tA ? "<div style='font-size:10px;color:" + tC + ";margin-top:4px;font-weight:700;'>" + tA + " " + k.trend + "</div>" : "")
+      + (k.note ? "<div style='font-size:9px;color:#6b7280;margin-top:2px;'>" + k.note + "</div>" : "")
+      + "</td>";
+  }).join("");
+
+  // Score bars (health dimensions)
+  const scoresSection = (d.scores && d.scores.length) ? (
+    "<div style='padding:20px 22px 4px;'>"
+    + "<div style='font-size:9px;font-weight:700;color:#9ca3af;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:14px;'>HEALTH SCORES</div>"
+    + d.scores.map(s => {
+      const pct = Math.min(100, Math.round((s.score / s.max) * 100));
+      const grad = pct >= 70 ? "linear-gradient(90deg,#22c55e,#16a34a)"
+        : pct >= 40 ? "linear-gradient(90deg,#f59e0b,#d97706)"
+        : "linear-gradient(90deg,#ef4444,#dc2626)";
+      return "<div style='margin-bottom:12px;'>"
+        + "<table width='100%' cellpadding='0' cellspacing='0'><tr>"
+        + "<td style='font-size:12px;color:#374151;font-weight:500;'>" + s.label + "</td>"
+        + "<td align='right' style='font-size:12px;font-weight:800;color:#0F1012;'>" + s.score + "/" + s.max + "</td>"
+        + "</tr></table>"
+        + "<div style='background:#f3f4f6;border-radius:999px;height:8px;margin-top:6px;overflow:hidden;'>"
+        + "<div style='background:" + grad + ";border-radius:999px;height:8px;width:" + pct + "%;'></div>"
+        + "</div></div>";
+    }).join("")
+    + "</div>"
+  ) : "";
+
+  // Comparison bars (ranked breakdown)
+  const barsSection = (d.bars && d.bars.length) ? (
+    "<div style='padding:20px 22px 4px;'>"
+    + "<div style='font-size:9px;font-weight:700;color:#9ca3af;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:14px;'>BREAKDOWN</div>"
+    + d.bars.map((b, i) => {
+      const pct = Math.min(100, Math.round((b.value / b.max) * 100));
+      const grads = [
+        "linear-gradient(90deg,#4285F4,#6366f1)",
+        "linear-gradient(90deg,#6366f1,#DA7756)",
+        "linear-gradient(90deg,#DA7756,#f59e0b)",
+        "linear-gradient(90deg,#22c55e,#16a34a)",
+        "linear-gradient(90deg,#f59e0b,#d97706)",
+      ];
+      return "<div style='margin-bottom:12px;'>"
+        + "<table width='100%' cellpadding='0' cellspacing='0'><tr>"
+        + "<td style='font-size:12px;color:#374151;font-weight:500;'>" + b.label + "</td>"
+        + "<td align='right' style='font-size:12px;font-weight:800;color:#0F1012;'>" + b.value + (b.unit || "") + "</td>"
+        + "</tr></table>"
+        + "<div style='background:#f3f4f6;border-radius:999px;height:8px;margin-top:6px;overflow:hidden;'>"
+        + "<div style='background:" + grads[i % grads.length] + ";border-radius:999px;height:8px;width:" + pct + "%;'></div>"
+        + "</div></div>";
+    }).join("")
+    + "</div>"
+  ) : "";
+
+  // Insight pills (strengths / risks / actions)
+  const highlightCfg: Record<string, { bg: string; border: string; color: string; icon: string }> = {
+    strength: { bg: "#f0fdf4", border: "#22c55e", color: "#166534", icon: "💚" },
+    risk:     { bg: "#fff7ed", border: "#f59e0b", color: "#92400e", icon: "⚠️" },
+    action:   { bg: "#eff6ff", border: "#4285F4", color: "#1e40af", icon: "→" },
+  };
+  const highlightsSection = (d.highlights && d.highlights.length) ? (
+    "<div style='padding:18px 22px;'>"
+    + d.highlights.map(h => {
+      const cfg = highlightCfg[h.type] || highlightCfg.action;
+      return "<div style='padding:10px 14px;background:" + cfg.bg + ";border-radius:10px;margin-bottom:8px;border-left:3px solid " + cfg.border + ";font-size:12px;font-weight:600;color:" + cfg.color + ";line-height:1.5;'>"
+        + cfg.icon + " " + h.text + "</div>";
+    }).join("")
+    + "</div>"
+  ) : "";
+
+  return "<div style='font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;border-radius:16px;overflow:hidden;border:1px solid #e5e7eb;background:#fff;'>"
+    // Dark header
+    + "<div style='background:#0F1012;padding:18px 22px;'>"
+    + "<div style='font-size:9px;color:#93bbfc;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:3px;'>Analysis Report</div>"
+    + "<div style='font-size:16px;font-weight:800;color:#ffffff;letter-spacing:-0.3px;'>" + d.title + "</div>"
+    + "</div>"
+    // Gradient accent bar
+    + "<div style='height:3px;background:linear-gradient(90deg,#4285F4,#6366f1,#DA7756);'></div>"
+    // KPI cards row
+    + "<table width='100%' cellpadding='0' cellspacing='0' style='background:#fafafa;border-bottom:1px solid #e5e7eb;'><tr>"
+    + kpiCells
+    + "</tr></table>"
+    // Sections
+    + scoresSection
+    + barsSection
+    + highlightsSection
+    // Footer
+    + "<div style='padding:8px 22px 12px;border-top:1px solid #f3f4f6;'>"
+    + "<p style='margin:0;font-size:9px;color:#d1d5db;text-align:center;letter-spacing:0.5px;'>HOURSBACK AUTOPILOT · AI-POWERED ANALYSIS</p>"
+    + "</div>"
+    + "</div>";
+}
+
+// Fetch fresh CSV data from a Google Sheets URL stored as "SHEETS_URL:..."
+async function resolveVariables(variables: Record<string, string>): Promise<Record<string, string>> {
+  const resolved: Record<string, string> = {};
+  for (const [key, value] of Object.entries(variables)) {
+    if (value.startsWith('SHEETS_URL:')) {
+      const url = value.slice('SHEETS_URL:'.length).trim();
+      try {
+        const idMatch = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+        if (!idMatch) throw new Error('Invalid Google Sheets URL');
+        const csvUrl = `https://docs.google.com/spreadsheets/d/${idMatch[1]}/export?format=csv`;
+        const res = await fetch(csvUrl);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const text = await res.text();
+        const lines = text.split(/\r?\n/).filter(l => l.trim());
+        if (lines.length < 2) throw new Error('Sheet appears empty');
+        const header = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
+        const rows = lines.slice(1).map(line => {
+          const cols = line.split(',').map(c => c.replace(/"/g, '').trim());
+          return header.map((h, i) => `${h}: ${cols[i] ?? ''}`).join(' | ');
+        });
+        resolved[key] = `[Live data: ${rows.length} rows, columns: ${header.join(', ')}]\n${rows.join('\n')}`;
+        console.log(`[Autopilot] Fetched live sheet for "${key}": ${rows.length} rows`);
+      } catch (e: any) {
+        console.error(`[Autopilot] Failed to fetch live sheet for "${key}":`, e.message);
+        resolved[key] = `[Could not fetch live sheet: ${e.message}]`;
+      }
+    } else if (
+      /website|url|site/i.test(key) &&
+      /^https?:\/\//i.test(value.trim())
+    ) {
+      // Fetch website and extract clean text for brand voice context
+      try {
+        const res = await fetch(value.trim(), {
+          headers: { 'User-Agent': 'Mozilla/5.0 (compatible; HoursbackBot/1.0)' },
+          signal: AbortSignal.timeout(10000),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const html = await res.text();
+        const text = stripHtml(html).slice(0, 3000);
+        resolved[key] = `[Website content from ${value.trim()}]\n${text}`;
+        console.log(`[Autopilot] Fetched website for "${key}": ${text.length} chars`);
+      } catch (e: any) {
+        console.error(`[Autopilot] Failed to fetch website for "${key}":`, e.message);
+        resolved[key] = value; // keep raw URL as fallback
+      }
+    } else {
+      resolved[key] = value;
+    }
+  }
+  return resolved;
+}
+
 async function executeSchedule(schedule: any, supabaseAdmin: any): Promise<void> {
   const playbookData = schedule.playbook_data;
   const playbookSlug = schedule.playbook_slug;
-  const variables = schedule.variables || {};
+  // Resolve any live Google Sheets URLs to fresh CSV data before building the prompt
+  const variables = await resolveVariables(schedule.variables || {});
 
   // Get user email via admin auth API
   const { data: userData, error: userError } =
@@ -120,43 +344,96 @@ async function executeSchedule(schedule: any, supabaseAdmin: any): Promise<void>
   }
   const deliveryEmail = schedule.custom_delivery_email || userData.user.email;
 
-  // Build the full prompt from playbook steps
-  let compiledPrompt = `You are an autonomous AI Agent executing the playbook: "${playbookData?.title || playbookSlug}".\n\n`;
-  compiledPrompt += `### USER CONFIGURATION:\n`;
-  Object.entries(variables).forEach(([key, value]) => {
-    compiledPrompt += `- ${key}: ${value}\n`;
-  });
-  compiledPrompt += `\n### EXECUTION STEPS:\n`;
+  // ── Daily-drip mode: count previous runs to determine today's item ──
+  const dripConfig = DAILY_DRIP_SLUGS[playbookSlug];
+  let emailSubjectPrefix = "[Agent Report]";
+  let emailDayBadge = "";
+  let compiledPrompt = "";
 
-  if (playbookData?.steps) {
-    playbookData.steps.forEach((step: any, index: number) => {
-      let stepPrompt = step.promptTemplate || "";
-      Object.keys(variables).forEach((v) => {
-        if (variables[v]) {
-          stepPrompt = stepPrompt.split(`[${v}]`).join(variables[v]);
-        }
-      });
-      compiledPrompt += `STEP ${index + 1}: ${step.title}\n`;
-      compiledPrompt += `Instruction: ${step.instruction}\n`;
-      if (stepPrompt) compiledPrompt += `Prompt: ${stepPrompt}\n`;
-      compiledPrompt += `\n`;
-    });
+  if (dripConfig) {
+    // Count successful prior runs for this schedule to get the day number
+    const { count: priorRuns } = await supabaseAdmin
+      .from("autonomous_runs")
+      .select("*", { count: "exact", head: true })
+      .eq("schedule_id", schedule.id)
+      .eq("run_status", "success");
+
+    const dayNumber = ((priorRuns || 0) % dripConfig.total) + 1;
+    const pillar = CONTENT_PILLARS[(dayNumber - 1) % CONTENT_PILLARS.length];
+
+    emailSubjectPrefix = `[${dripConfig.label} ${dayNumber}/${dripConfig.total}]`;
+    emailDayBadge = `${dripConfig.label} ${dayNumber} of ${dripConfig.total}`;
+
+    console.log(`[Autopilot] Daily drip — ${playbookSlug} day ${dayNumber} for ${deliveryEmail}`);
+
+    compiledPrompt = `You are writing the social media post for Day ${dayNumber} of a 30-day content calendar.\n\n`;
+    compiledPrompt += `### BUSINESS CONTEXT:\n`;
+    compiledPrompt += `Business: ${variables["Business Name & Industry"] || "a local business"}\n`;
+    compiledPrompt += `Target Audience: ${variables["Target Audience"] || "local customers"}\n`;
+    compiledPrompt += `Current Promotions / Offers: ${variables["Current Promotions/Offers"] || "none specified"}\n`;
+    if (variables["Your Website URL"] && !variables["Your Website URL"].startsWith('http')) {
+      // Already resolved to page text
+      compiledPrompt += `\n### BRAND VOICE REFERENCE (from their website):\n${variables["Your Website URL"]}\n`;
+    } else if (variables["Your Website URL"]) {
+      compiledPrompt += `Website: ${variables["Your Website URL"]}\n`;
+    }
+    if (variables["Your Best 2-3 Posts"]) {
+      compiledPrompt += `\n### EXAMPLE POSTS (match this exact tone and style):\n${variables["Your Best 2-3 Posts"]}\n`;
+    }
+    compiledPrompt += `\n`;
+    compiledPrompt += `### TODAY'S BRIEF:\n`;
+    compiledPrompt += `Day ${dayNumber} of 30 — Content Pillar: **${pillar}**\n\n`;
+    compiledPrompt += `### DELIVER EXACTLY THIS (nothing else):\n`;
+    compiledPrompt += `**Day ${dayNumber} — ${pillar}**\n\n`;
+    compiledPrompt += `[Caption: 2–4 sentences, conversational, brand-aligned, with a clear call-to-action]\n\n`;
+    compiledPrompt += `[3–5 relevant hashtags]\n\n`;
+    compiledPrompt += `📸 Suggested visual: [1 sentence describing the ideal photo or graphic]\n\n`;
+    compiledPrompt += `No extra commentary. Just the post.`;
+
   } else {
-    compiledPrompt += `Generate a comprehensive, actionable response based on the configuration. Format as a professional brief.`;
-  }
+    // ── Standard mode: run all steps, deliver full output ──
+    console.log(`[Autopilot] Executing "${playbookData?.title || playbookSlug}" for ${deliveryEmail}`);
 
-  compiledPrompt += `\n### FINAL TASK:\n`;
-  compiledPrompt += `Execute ALL steps above end-to-end and produce the complete final deliverable in a single response.\n`;
-  if (playbookData?.expectedOutcome) {
-    compiledPrompt += `Expected Outcome: ${playbookData.expectedOutcome}\n`;
-  }
-  compiledPrompt += `\nCRITICAL RULES:\n`;
-  compiledPrompt += `- Do NOT truncate. If a task requires 30 items, write all 30.\n`;
-  compiledPrompt += `- Label each item clearly (e.g. "Day 1:", "Email 1:", "Step 1:") so the output is scannable.\n`;
-  compiledPrompt += `- Use markdown headings and structure. Skip all meta-commentary about what you are doing.\n`;
-  compiledPrompt += `- Deliver final polished content only — no draft notes, no "here is your X", just the X.`;
+    compiledPrompt = `You are an autonomous AI Agent executing the playbook: "${playbookData?.title || playbookSlug}".\n\n`;
+    compiledPrompt += `### USER CONFIGURATION:\n`;
+    Object.entries(variables).forEach(([key, value]) => {
+      compiledPrompt += `- ${key}: ${value}\n`;
+    });
+    compiledPrompt += `\n### EXECUTION STEPS:\n`;
 
-  console.log(`[Autopilot] Executing "${playbookData?.title || playbookSlug}" for ${deliveryEmail}`);
+    if (playbookData?.steps) {
+      playbookData.steps.forEach((step: any, index: number) => {
+        let stepPrompt = step.promptTemplate || "";
+        Object.keys(variables).forEach((v) => {
+          if (variables[v]) {
+            stepPrompt = stepPrompt.split(`[${v}]`).join(variables[v]);
+          }
+        });
+        compiledPrompt += `STEP ${index + 1}: ${step.title}\n`;
+        compiledPrompt += `Instruction: ${step.instruction}\n`;
+        if (stepPrompt) compiledPrompt += `Prompt: ${stepPrompt}\n`;
+        compiledPrompt += `\n`;
+      });
+    } else {
+      compiledPrompt += `Generate a comprehensive, actionable response based on the configuration. Format as a professional brief.`;
+    }
+
+    compiledPrompt += `\n### FINAL TASK:\n`;
+    compiledPrompt += `Execute ALL steps above end-to-end and produce the complete final deliverable in a single response.\n`;
+    if (playbookData?.expectedOutcome) {
+      compiledPrompt += `Expected Outcome: ${playbookData.expectedOutcome}\n`;
+    }
+    compiledPrompt += `\nCRITICAL RULES:\n`;
+    compiledPrompt += `- Do NOT truncate. If a task requires 30 items, write all 30.\n`;
+    compiledPrompt += `- Label each item clearly (e.g. "Day 1:", "Email 1:", "Step 1:") so the output is scannable.\n`;
+    compiledPrompt += `- Use markdown headings and structure. Skip all meta-commentary about what you are doing.\n`;
+    compiledPrompt += `- Deliver final polished content only — no draft notes, no "here is your X", just the X.`;
+
+    // Analysis playbooks: ask Claude to append structured metric JSON
+    if (INFOGRAPHIC_SLUGS.has(playbookSlug)) {
+      compiledPrompt += `\n\n---\nAFTER your full analysis, append exactly this block (do not skip it):\n\nINFOGRAPH_DATA_START\n{"title":"${(playbookData?.title || playbookSlug).replace(/"/g, "'")}","kpis":[{"label":"Metric Name","value":"$X.XK","trend":"up"}],"scores":[{"label":"Dimension","score":7,"max":10}],"bars":[],"highlights":[{"type":"strength","text":"Key strength"},{"type":"risk","text":"Key risk"},{"type":"action","text":"Top recommended action"}]}\nINFOGRAPH_DATA_END\n\nFill in with real values extracted from your analysis:\n- kpis: the 3–5 most important headline numbers (revenue, margin, score, growth). Keep values concise: "$12.4K", "23%", "7/10".\n- scores: every dimension you rated 1–10. Include all of them.\n- bars: any ranked percentages or comparisons (empty array [] if none).\n- highlights: 1–2 strength items, 1–2 risk items, 1–2 action items. Max 15 words each.\n- Output ONLY valid JSON between the INFOGRAPH_DATA_START / INFOGRAPH_DATA_END markers. No other text after the END marker.`;
+    }
+  }
 
   // Call Claude
   if (!ANTHROPIC_API_KEY) throw new Error("Missing ANTHROPIC_API_KEY");
@@ -172,75 +449,124 @@ async function executeSchedule(schedule: any, supabaseAdmin: any): Promise<void>
   // @ts-ignore
   const generatedContent = msg.content[0].text;
 
+  // Parse infographic data from analysis playbooks
+  let infographHtml = "";
+  let finalContent = generatedContent;
+  if (INFOGRAPHIC_SLUGS.has(playbookSlug)) {
+    const { data: infData, cleanText } = parseInfographData(generatedContent);
+    if (infData) {
+      infographHtml = generateInfographicHtml(infData);
+      finalContent = cleanText;
+      console.log(`[Autopilot] Infographic generated for "${playbookSlug}" — ${infData.kpis.length} KPIs, ${infData.scores?.length || 0} scores`);
+    }
+  }
+
+  // Content to store in DB (infographic HTML prefixed with a marker so the frontend can extract it)
+  const storedContent = infographHtml
+    ? `__INFOGRAPH_START__\n${infographHtml}\n__INFOGRAPH_END__\n\n${finalContent}`
+    : generatedContent;
+
   // Send email via Resend
   if (!RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
   const now = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+  const contentHtml = markdownToHtml(finalContent);
   const emailHtml = `
 <!DOCTYPE html>
 <html lang="en">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background-color:#F8F9FA;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#F8F9FA;padding:40px 16px;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+</head>
+<body style="margin:0;padding:0;background-color:#F0F2F5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#F0F2F5;padding:32px 16px 48px;">
     <tr><td align="center">
       <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
 
-        <!-- Header -->
+        <!-- ── Header bar ── -->
         <tr>
-          <td style="background-color:#202124;border-radius:16px 16px 0 0;padding:32px 40px;">
+          <td style="background:#0F1012;border-radius:20px 20px 0 0;padding:24px 36px;">
             <table width="100%" cellpadding="0" cellspacing="0">
               <tr>
-                <td>
-                  <!-- Logo mark: clock arc -->
-                  <span style="display:inline-block;width:36px;height:36px;background:#4285F4;border-radius:50%;vertical-align:middle;margin-right:10px;"></span>
-                  <span style="color:#ffffff;font-size:18px;font-weight:600;vertical-align:middle;letter-spacing:-0.3px;">hoursback</span>
+                <td style="vertical-align:middle;">
+                  <table cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td style="vertical-align:middle;padding-right:10px;">
+                        <div style="width:32px;height:32px;background:linear-gradient(135deg,#4285F4,#6366f1);border-radius:8px;"></div>
+                      </td>
+                      <td style="vertical-align:middle;">
+                        <span style="color:#ffffff;font-size:17px;font-weight:700;letter-spacing:-0.4px;">hoursback</span>
+                      </td>
+                    </tr>
+                  </table>
                 </td>
-                <td align="right">
-                  <span style="background:#4285F4;color:#ffffff;font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px;letter-spacing:0.5px;">AUTOPILOT</span>
+                <td align="right" style="vertical-align:middle;">
+                  <span style="background:rgba(66,133,244,0.2);color:#93bbfc;font-size:10px;font-weight:700;padding:5px 12px;border-radius:20px;letter-spacing:1px;text-transform:uppercase;border:1px solid rgba(66,133,244,0.3);">
+                    ${emailDayBadge ? emailDayBadge.toUpperCase() : "AUTOPILOT"}
+                  </span>
                 </td>
               </tr>
             </table>
           </td>
         </tr>
 
-        <!-- Blue accent bar -->
-        <tr><td style="background:#4285F4;height:3px;"></td></tr>
+        <!-- ── Gradient accent ── -->
+        <tr><td style="height:3px;background:linear-gradient(90deg,#4285F4,#6366f1,#DA7756);"></td></tr>
 
-        <!-- Title block -->
+        <!-- ── Title block ── -->
         <tr>
-          <td style="background:#ffffff;padding:36px 40px 24px;">
-            <p style="margin:0 0 6px;font-size:12px;font-weight:600;color:#4285F4;letter-spacing:1px;text-transform:uppercase;">Agent Report</p>
-            <h1 style="margin:0 0 8px;font-size:24px;font-weight:700;color:#202124;line-height:1.2;">${playbookData?.title || playbookSlug}</h1>
-            <p style="margin:0;font-size:13px;color:#6b7280;">Completed on ${now}</p>
+          <td style="background:#ffffff;padding:32px 36px 20px;">
+            <p style="margin:0 0 10px;font-size:11px;font-weight:700;color:#4285F4;letter-spacing:1.5px;text-transform:uppercase;">${emailDayBadge || "Agent Report"}</p>
+            <h1 style="margin:0 0 10px;font-size:22px;font-weight:800;color:#0F1012;line-height:1.25;letter-spacing:-0.4px;">${playbookData?.title || playbookSlug}</h1>
+            <table cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="vertical-align:middle;padding-right:6px;">
+                  <div style="width:6px;height:6px;background:#22c55e;border-radius:50%;"></div>
+                </td>
+                <td style="vertical-align:middle;">
+                  <span style="font-size:12px;color:#6b7280;">Delivered ${now}</span>
+                </td>
+              </tr>
+            </table>
           </td>
         </tr>
 
-        <!-- Divider -->
-        <tr><td style="background:#ffffff;padding:0 40px;"><div style="border-top:1px solid #e5e7eb;"></div></td></tr>
+        <!-- ── Infographic (analysis playbooks only) ── -->
+        ${infographHtml ? `<tr>
+          <td style="background:#ffffff;padding:4px 28px 24px;">
+            ${infographHtml}
+          </td>
+        </tr>` : ""}
 
-        <!-- Report content -->
+        <!-- ── Subtle divider ── -->
+        <tr><td style="background:#ffffff;padding:0 36px;"><div style="height:1px;background:#f3f4f6;"></div></td></tr>
+
+        <!-- ── Content ── -->
         <tr>
-          <td style="background:#ffffff;padding:28px 40px;">
-            <div style="background:#F8F9FA;border-left:3px solid #4285F4;border-radius:0 8px 8px 0;padding:24px;font-size:14px;line-height:1.8;color:#202124;">${markdownToHtml(generatedContent)}</div>
+          <td style="background:#ffffff;padding:28px 36px 32px;">
+            <div style="background:#FAFAFA;border:1px solid #e5e7eb;border-radius:12px;padding:24px 28px;font-size:14px;line-height:1.85;color:#111827;">
+              ${contentHtml}
+            </div>
           </td>
         </tr>
 
-        <!-- CTA -->
+        <!-- ── CTA ── -->
         <tr>
-          <td style="background:#ffffff;padding:8px 40px 36px;text-align:center;">
+          <td style="background:#ffffff;padding:4px 36px 32px;text-align:center;">
             <a href="https://www.hoursback.xyz/autopilot"
-               style="display:inline-block;background:#202124;color:#ffffff;font-size:14px;font-weight:600;padding:12px 28px;border-radius:24px;text-decoration:none;letter-spacing:0.2px;">
-              View Autopilot Dashboard
+               style="display:inline-block;background:#0F1012;color:#ffffff;font-size:13px;font-weight:700;padding:13px 28px;border-radius:999px;text-decoration:none;letter-spacing:0.2px;">
+              View in Dashboard →
             </a>
           </td>
         </tr>
 
-        <!-- Footer -->
+        <!-- ── Footer ── -->
         <tr>
-          <td style="background:#F8F9FA;border-top:1px solid #e5e7eb;border-radius:0 0 16px 16px;padding:24px 40px;text-align:center;">
-            <p style="margin:0 0 4px;font-size:12px;color:#9ca3af;">
-              Sent automatically by <strong style="color:#202124;">Hoursback Autopilot</strong>
+          <td style="background:#F0F2F5;border-top:1px solid #e5e7eb;border-radius:0 0 20px 20px;padding:20px 36px;text-align:center;">
+            <p style="margin:0 0 4px;font-size:11px;color:#9ca3af;">
+              Sent by <strong style="color:#374151;">Hoursback Autopilot</strong> · Your AI runs while you sleep
             </p>
-            <p style="margin:0;font-size:12px;color:#9ca3af;">
+            <p style="margin:0;font-size:11px;">
               <a href="https://www.hoursback.xyz/autopilot" style="color:#4285F4;text-decoration:none;">Manage agents</a>
               &nbsp;·&nbsp;
               <a href="https://www.hoursback.xyz" style="color:#4285F4;text-decoration:none;">hoursback.xyz</a>
@@ -264,7 +590,7 @@ async function executeSchedule(schedule: any, supabaseAdmin: any): Promise<void>
     body: JSON.stringify({
       from: "Hoursback Autopilot <autopilot@hoursback.xyz>",
       to: [deliveryEmail],
-      subject: `[Agent Report] ${playbookData?.title || playbookSlug}`,
+      subject: `${emailSubjectPrefix} ${playbookData?.title || playbookSlug}`,
       html: emailHtml,
     }),
   });
@@ -279,7 +605,7 @@ async function executeSchedule(schedule: any, supabaseAdmin: any): Promise<void>
     schedule_id: schedule.id,
     user_id: schedule.user_id,
     playbook_slug: playbookSlug,
-    generated_content: generatedContent,
+    generated_content: storedContent,
     run_status: "success",
   });
 

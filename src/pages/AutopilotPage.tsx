@@ -173,10 +173,10 @@ export default function AutopilotPage() {
 
     const handleDownloadPdf = (run: AutonomousRun) => {
         const title = getPlaybookTitle(run.playbook_slug);
-        const date = new Date(run.created_at).toLocaleString();
+        const date = new Date(run.created_at).toLocaleString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         const w = window.open('', '_blank');
         if (!w) return;
-        w.document.write(`<!DOCTYPE html><html><head><title>${title}</title><meta charset="utf-8"><style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:760px;margin:40px auto;padding:0 24px;color:#111827;line-height:1.7}h1{font-size:22px;font-weight:700;margin:0 0 6px}.meta{font-size:13px;color:#6b7280;margin-bottom:32px;padding-bottom:20px;border-bottom:2px solid #f3f4f6}@media print{body{margin:0}}</style></head><body><h1>${title}</h1><p class="meta">Generated on ${date}</p>${markdownToHtml(run.generated_content)}</body></html>`);
+        w.document.write(`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>${title} — Hoursback</title><style>*{box-sizing:border-box;margin:0;padding:0}body{background:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#202124;padding:48px 40px;max-width:760px;margin:0 auto}.header{border-bottom:2px solid #f3f4f6;padding-bottom:24px;margin-bottom:32px}.badge{display:inline-block;background:#dcfce7;color:#166534;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:10px}h1{font-size:24px;font-weight:800;color:#202124;margin-bottom:6px;letter-spacing:-0.5px}.meta{font-size:13px;color:#9ca3af}p{margin:8px 0;color:#374151;line-height:1.8;font-size:15px}h2{font-size:17px;font-weight:700;color:#111827;margin:20px 0 6px}h3{font-size:15px;font-weight:600;color:#374151;margin:16px 0 4px}ul,ol{margin:10px 0;padding-left:22px}li{margin:5px 0;color:#374151;line-height:1.7}hr{border:none;border-top:1px solid #e5e7eb;margin:20px 0}strong{color:#111827}</style></head><body><div class="header"><div class="badge">✓ Autopilot Result</div><h1>${title}</h1><p class="meta">${date}</p></div>${markdownToHtml(run.generated_content)}</body></html>`);
         w.document.close();
         w.focus();
         setTimeout(() => w.print(), 400);
@@ -378,8 +378,147 @@ export default function AutopilotPage() {
                                                             const w = window.open('', '_blank');
                                                             if (!w) return;
                                                             const title = getPlaybookTitle(run.playbook_slug);
-                                                            const date = new Date(run.created_at).toLocaleString();
-                                                            w.document.write(`<!DOCTYPE html><html><head><title>${title}</title><meta charset="utf-8"><style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:760px;margin:48px auto;padding:0 24px;background:#fff;color:#111827}.header{border-bottom:2px solid #f3f4f6;padding-bottom:20px;margin-bottom:32px}h1{font-size:22px;font-weight:700;margin:0 0 6px;color:#111827}.meta{font-size:13px;color:#6b7280;margin:0}.badge{display:inline-block;background:#dcfce7;color:#166534;font-size:11px;font-weight:600;padding:2px 10px;border-radius:999px;margin-bottom:12px}</style></head><body><div class="header"><div class="badge">✓ Autopilot Result</div><h1>${title}</h1><p class="meta">Generated on ${date}</p></div>${markdownToHtml(run.generated_content)}</body></html>`);
+                                                            const date = new Date(run.created_at).toLocaleString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                                                            const rawContent = run.generated_content || '';
+                                                            const infoMatch = rawContent.match(/__INFOGRAPH_START__\n([\s\S]*?)\n__INFOGRAPH_END__\n\n([\s\S]*)/);
+                                                            const infographHtml = infoMatch ? infoMatch[1] : '';
+                                                            const content = infographHtml ? infoMatch![2] : rawContent;
+                                                            w.document.write(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>${title} — Hoursback</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:#F8F9FA;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;min-height:100vh;color:#202124}
+    .topbar{background:#202124;padding:16px 32px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+    .topbar-left{display:flex;align-items:center;gap:10px}
+    .logo-dot{width:28px;height:28px;background:linear-gradient(135deg,#4285F4,#6366f1);border-radius:8px}
+    .logo-text{color:#fff;font-size:16px;font-weight:700;letter-spacing:-0.3px}
+    .badge{background:rgba(66,133,244,0.2);color:#93bbfc;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;letter-spacing:0.5px;text-transform:uppercase;border:1px solid rgba(66,133,244,0.3)}
+    .topbar-actions{display:flex;gap:8px}
+    .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all .15s}
+    .btn-copy{background:rgba(255,255,255,0.12);color:#fff}
+    .btn-copy:hover{background:rgba(255,255,255,0.2)}
+    .btn-copy.copied{background:#22c55e;color:#fff}
+    .btn-print{background:#4285F4;color:#fff}
+    .btn-print:hover{background:#3574e2}
+    .accent-bar{height:3px;background:linear-gradient(90deg,#4285F4,#6366f1,#DA7756)}
+    .page{max-width:760px;margin:0 auto;padding:48px 24px 80px}
+    .meta-row{display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+    .status-badge{display:inline-flex;align-items:center;gap:5px;background:#dcfce7;color:#166534;font-size:11px;font-weight:700;padding:4px 12px;border-radius:999px}
+    .status-dot{width:6px;height:6px;background:#22c55e;border-radius:50%;display:inline-block}
+    .date-text{font-size:12px;color:#9ca3af}
+    h1.report-title{font-size:28px;font-weight:800;color:#0F1012;line-height:1.2;margin-bottom:6px;letter-spacing:-0.6px}
+    .divider{border:none;border-top:1px solid #e5e7eb;margin:24px 0}
+    /* Infographic wrapper */
+    .infograph-wrap{position:relative;cursor:pointer;margin-bottom:28px}
+    .infograph-wrap:hover .expand-hint{opacity:1}
+    .expand-hint{position:absolute;bottom:14px;right:16px;background:rgba(15,16,18,0.75);color:#fff;font-size:10px;font-weight:700;padding:5px 12px;border-radius:20px;letter-spacing:0.5px;opacity:0;transition:opacity .2s;pointer-events:none}
+    /* Fullscreen modal */
+    .infograph-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:1000;align-items:flex-start;justify-content:center;padding:32px 20px;overflow-y:auto}
+    .infograph-modal.open{display:flex}
+    .modal-inner{max-width:860px;width:100%;position:relative}
+    .modal-close{position:fixed;top:20px;right:20px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.2);color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:300;transition:background .15s}
+    .modal-close:hover{background:rgba(255,255,255,0.25)}
+    .modal-label{text-align:center;margin-top:16px;font-size:11px;color:rgba(255,255,255,0.4);letter-spacing:0.5px}
+    /* Content card */
+    .content-card{background:#fff;border-radius:16px;padding:32px;box-shadow:0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04)}
+    .content-card h1{font-size:20px;font-weight:700;color:#111827;margin:24px 0 8px}
+    .content-card h2{font-size:17px;font-weight:700;color:#111827;margin:20px 0 6px}
+    .content-card h3{font-size:15px;font-weight:600;color:#374151;margin:16px 0 4px}
+    .content-card p{margin:8px 0;color:#374151;line-height:1.8;font-size:15px}
+    .content-card ul,.content-card ol{margin:10px 0;padding-left:22px}
+    .content-card li{margin:5px 0;color:#374151;line-height:1.7;font-size:15px}
+    .content-card strong{color:#111827}
+    .content-card em{color:#4b5563}
+    .content-card hr{border:none;border-top:1px solid #e5e7eb;margin:20px 0}
+    .content-card code{background:#f3f4f6;padding:2px 6px;border-radius:4px;font-size:13px;font-family:monospace}
+    .section-label{font-size:10px;font-weight:700;color:#9ca3af;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px}
+    .footer{text-align:center;margin-top:48px;font-size:12px;color:#9ca3af}
+    .footer a{color:#4285F4;text-decoration:none}
+    @media print{.topbar,.topbar-actions,.expand-hint,.infograph-modal{display:none!important}.page{padding:0}.content-card{box-shadow:none;border-radius:0}}
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="logo-dot"></div>
+      <span class="logo-text">hoursback</span>
+      <span class="badge">Autopilot</span>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn btn-copy" id="copyBtn" onclick="copyContent()">
+        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Copy
+      </button>
+      <button class="btn btn-print" onclick="window.print()">
+        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        Print / PDF
+      </button>
+    </div>
+  </div>
+  <div class="accent-bar"></div>
+
+  <div class="page">
+    <div class="meta-row">
+      <span class="status-badge"><span class="status-dot"></span> Autopilot Result</span>
+      <span class="date-text">${date}</span>
+    </div>
+    <h1 class="report-title">${title}</h1>
+    <hr class="divider">
+
+    ${infographHtml ? `
+    <div class="section-label">At a Glance</div>
+    <div class="infograph-wrap" onclick="openInfograph()">
+      ${infographHtml}
+      <div class="expand-hint">⤢ Click to expand</div>
+    </div>
+
+    <!-- Fullscreen infograph modal -->
+    <div class="infograph-modal" id="infographModal" onclick="if(event.target===this)closeInfograph()">
+      <div class="modal-inner">
+        <button class="modal-close" onclick="closeInfograph()">×</button>
+        ${infographHtml}
+        <p class="modal-label">Click outside or press Esc to close</p>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+    ` : ''}
+
+    <div class="section-label" style="margin-bottom:14px;">Full Analysis</div>
+    <div class="content-card" id="reportContent">
+      ${markdownToHtml(content)}
+    </div>
+    <div class="footer">
+      <p>Generated by <a href="https://www.hoursback.xyz">Hoursback Autopilot</a> &nbsp;·&nbsp; <a href="https://www.hoursback.xyz/autopilot">Manage agents</a></p>
+    </div>
+  </div>
+
+  <script>
+    const rawText = ${JSON.stringify(content)};
+    function copyContent() {
+      navigator.clipboard.writeText(rawText).then(() => {
+        const btn = document.getElementById('copyBtn');
+        btn.textContent = '✓ Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.innerHTML = '<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy'; btn.classList.remove('copied'); }, 2000);
+      });
+    }
+    function openInfograph() {
+      document.getElementById('infographModal').classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeInfograph() {
+      document.getElementById('infographModal').classList.remove('open');
+      document.body.style.overflow = '';
+    }
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeInfograph(); });
+  </script>
+</body>
+</html>`);
                                                             w.document.close();
                                                         }}
                                                     >

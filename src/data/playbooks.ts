@@ -1805,9 +1805,9 @@ export const smbPlaybooks: Playbook[] = [
         id: 'smb-1-s1',
         stepNumber: 1,
         title: 'Define Your Brand Voice',
-        instruction: 'Open ChatGPT and give it the context of your business so the posts don\'t sound generic.',
-        promptTemplate: 'I own [Business Name & Industry]. My target audience is [Target Audience]. We currently have the following offers: [Current Promotions/Offers]. Adopt a brand voice that is friendly, local, and professional.',
-        expectedOutput: 'An acknowledgment from the AI confirming it understands your brand voice.'
+        instruction: 'Give the AI full context about your business — including your website and real post examples — so every caption sounds authentically like you.',
+        promptTemplate: 'I own [Business Name & Industry]. My target audience is [Target Audience]. We currently have the following offers: [Current Promotions/Offers]. My website is [Your Website URL]. Here are 2–3 of my best recent posts so you can match my tone: [Your Best 2-3 Posts]. Study my website and example posts, then adopt that exact voice and style for all content you generate.',
+        expectedOutput: 'Confirmation that the AI has studied your brand voice, with a short summary of the tone and style it will use.'
       },
       {
         id: 'smb-1-s2',
