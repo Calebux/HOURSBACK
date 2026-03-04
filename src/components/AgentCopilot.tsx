@@ -52,7 +52,6 @@ export default function AgentCopilot({ prompt, tools = [] }: AgentCopilotProps) 
             });
 
             const data = await res.json();
-            console.log('Edge Function response:', JSON.stringify(data));
 
             // Handle all error formats: { error: "..." }, { message: "..." }, or non-2xx
             if (data?.error) {

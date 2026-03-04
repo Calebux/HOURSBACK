@@ -42,7 +42,7 @@ export const mapDbPlaybook = (dbPb: any): Playbook => {
             tips: s.tips,
             tools: s.tools || []
         })),
-        relatedPlaybooks: [] // Simplified for now
+        relatedPlaybooks: localMatch?.relatedPlaybooks || []
     };
 };
 

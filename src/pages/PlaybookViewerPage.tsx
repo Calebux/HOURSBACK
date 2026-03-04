@@ -88,13 +88,13 @@ export default function PlaybookViewerPage() {
   const amountNGN = Math.floor(amountRaw * 1500);
 
   const paymentConfig = useMemo(() => ({
-    public_key: import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY || 'FLWPUBK-d5505534622ae398b9500e9b6f82cb18-X',
+    public_key: import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY,
     tx_ref: `hb_tx_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
     amount: amountNGN,
     currency: 'NGN',
     payment_options: 'card,mobilemoney,ussd',
     customer: {
-      email: user?.email || 'test@example.com',
+      email: user?.email || '',
       phone_number: '',
       name: user?.user_metadata?.name || '',
     },
@@ -114,7 +114,6 @@ export default function PlaybookViewerPage() {
     try {
       handleFlutterPayment({
         callback: async (response) => {
-          console.log("Flutterwave Callback Response (PlaybookViewer):", response);
           if (response.status === 'successful' || response.status === 'completed') {
             closePaymentModal();
             toast.success("Payment successful! Welcome to Pro Playbooks.");
@@ -128,13 +127,11 @@ export default function PlaybookViewerPage() {
               }
             }
           } else {
-            console.warn("Payment Fail/Incomplete (PlaybookViewer):", response.status);
             toast.error("Payment failed or was incomplete. Please try again.");
             closePaymentModal();
           }
         },
         onClose: () => {
-          console.log("Flutterwave modal closed (PlaybookViewer)");
           toast.info("Payment cancelled");
         }
       });

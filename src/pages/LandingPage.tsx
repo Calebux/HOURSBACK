@@ -757,13 +757,13 @@ function PricingPlanCard({ plan, isAnnual, onAuthRequired }: { plan: any, isAnnu
   const amountNGN = Math.floor(amountRaw * 1500); // Flutterwave amount in NGN directly
 
   const config = useMemo(() => ({
-    public_key: import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY || 'FLWPUBK-d5505534622ae398b9500e9b6f82cb18-X',
+    public_key: import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY,
     tx_ref: `hb_tx_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
     amount: amountNGN,
     currency: 'NGN',
     payment_options: 'card,mobilemoney,ussd',
     customer: {
-      email: user?.email || 'test@example.com',
+      email: user?.email || '',
       phone_number: '',
       name: user?.user_metadata?.name || '',
     },
@@ -801,14 +801,11 @@ function PricingPlanCard({ plan, isAnnual, onAuthRequired }: { plan: any, isAnnu
             }
             window.location.href = '/playbooks';
           } else {
-            console.warn("Payment Fail/Incomplete:", response.status);
             toast.error("Payment failed or was incomplete. Please try again.");
             closePaymentModal();
           }
         },
-        onClose: () => {
-          console.log("Flutterwave modal closed");
-        }
+        onClose: () => {}
       });
     } catch (err) {
       console.error("CRITICAL: Error calling handleFlutterPayment:", err);

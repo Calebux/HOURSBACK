@@ -373,6 +373,10 @@ enabled = true
 verify_jwt = false
 import_map = "./functions/run-copilot/deno.json"
 
+[functions.execute-scheduled-playbooks]
+enabled = true
+verify_jwt = false
+
 [functions.flutterwave-webhook]
 enabled = true
 verify_jwt = false

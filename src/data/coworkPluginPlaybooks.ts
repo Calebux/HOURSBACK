@@ -614,7 +614,20 @@ export const coworkPluginPlaybooks: Playbook[] = [
         tools: ['Claude Cowork', 'HubSpot', 'Close']
       }
     ],
-    troubleshooting: [],
+    troubleshooting: [
+      {
+        problem: 'CRM sync creates duplicate contact records instead of updating existing ones',
+        solution: 'Check that your CRM connector is configured to match on email address as the unique identifier. In HubSpot, enable "Deduplication by email" in the connector settings. For Close.io, ensure the Cowork connector has write permissions to update existing contacts, not just create new ones.'
+      },
+      {
+        problem: 'Outreach sequence emails feel generic despite the research step',
+        solution: 'In Step 2, reference specific details from the Step 1 research by name — not just "their expansion" but "their Q1 2025 DACH market entry." The more specific the reference, the more personalized the sequence reads. Instruct Claude: "Every email must reference at least one specific fact from the account profile."'
+      },
+      {
+        problem: 'Gmail integration drafts emails but does not assign them to the correct contact in the sequence',
+        solution: 'The Gmail connector creates drafts, not automated sequences. Use the draft as your source of truth, then manually import into your email sequencing tool (Outreach, Apollo, or Lemlist). Copy the subject lines and body text for each step into the sequence tool one by one.'
+      }
+    ],
     relatedPlaybooks: []
   },
   {

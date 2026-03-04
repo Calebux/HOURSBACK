@@ -183,7 +183,20 @@ Flag anything that looks suspicious with a risk score (Low/Medium/High) and expl
       'Any existing SLA metrics'
     ],
     expectedOutcome: 'A visual scorecard ranking vendors by performance with actionable recommendations.',
-    troubleshooting: [],
+    troubleshooting: [
+      {
+        problem: 'Claude scores all vendors similarly with no clear differentiation',
+        solution: 'Add hard numbers to your prompt — exact on-time delivery %, defect rates, and support ticket resolution times. Subjective descriptions produce flat scores; quantified data produces spread.'
+      },
+      {
+        problem: 'Missing data for several vendors makes the scorecard incomplete',
+        solution: 'For any vendor with gaps, add a "Data Unavailable" flag and exclude them from the ranking until data is collected. Do not let AI guess — instruct it: "If data is missing for a metric, score it N/A, not 0."'
+      },
+      {
+        problem: 'The scorecard output is a wall of text instead of a scannable table',
+        solution: 'Append to your prompt: "Output a markdown table with columns: Vendor, Score (1-5 per category), Total Score, and one-line recommendation. No prose explanations."'
+      }
+    ],
     steps: [
       {
         id: 'step-1',
@@ -220,7 +233,20 @@ Flag anything that looks suspicious with a risk score (Low/Medium/High) and expl
       'Claude Pro or ChatGPT Plus'
     ],
     expectedOutcome: '50 personalized cold emails with unique opening lines for each prospect.',
-    troubleshooting: [],
+    troubleshooting: [
+      {
+        problem: 'Opening lines all sound the same despite different LinkedIn profiles',
+        solution: 'Use a more specific signal: recent posts, job change dates, or company news. Replace "I noticed you work at X" with "Saw your post about Y last week" — specificity is what makes personalization feel real.'
+      },
+      {
+        problem: 'Claude truncates or skips emails partway through the 50-contact batch',
+        solution: 'Process in batches of 10-15 contacts at a time. Paste the first chunk, collect the output, then continue. Large batches hit context limits and produce degraded output.'
+      },
+      {
+        problem: 'Apollo export is missing key fields like LinkedIn URL or company description',
+        solution: 'In Apollo, manually add the "LinkedIn URL" and "Company Description" columns before exporting. Without these, Claude has nothing to personalize against — it will fall back to generic lines.'
+      }
+    ],
     steps: [
       {
         id: 'step-1',
@@ -256,7 +282,20 @@ Flag anything that looks suspicious with a risk score (Low/Medium/High) and expl
       'List of fields to enrich'
     ],
     expectedOutcome: 'Enriched CRM data with company size, industry, tech stack, and decision maker info.',
-    troubleshooting: [],
+    troubleshooting: [
+      {
+        problem: 'Clay waterfall lookup returns blank results for many contacts',
+        solution: 'Check that email format is clean — no extra spaces, malformed domains, or role-based addresses (info@, hello@). Clay enrichment fails silently on malformed emails. Run a quick email validation step first.'
+      },
+      {
+        problem: 'Tech stack data is stale or inaccurate',
+        solution: 'Cross-check high-value accounts using BuiltWith or Wappalyzer directly. Clay\'s tech data is scraped and can lag by weeks — for enterprise deals, verify manually before outreach.'
+      },
+      {
+        problem: 'CRM import creates duplicate contacts instead of enriching existing ones',
+        solution: 'Before re-importing, deduplicate your export using the email field as the unique key. In HubSpot or Salesforce, use the "Upsert" option (match on email) instead of "Create New" to update existing records.'
+      }
+    ],
     steps: [
       {
         id: 'step-1',
@@ -291,7 +330,20 @@ Flag anything that looks suspicious with a risk score (Low/Medium/High) and expl
       'Pricing sheet'
     ],
     expectedOutcome: 'A complete first draft proposal ready for review and customization.',
-    troubleshooting: [],
+    troubleshooting: [
+      {
+        problem: 'The proposal draft feels generic and could apply to any client',
+        solution: 'Paste direct quotes from the discovery call into your prompt. Real language from the prospect — their exact words about their problem — forces Claude to write a proposal that sounds like it was written specifically for them.'
+      },
+      {
+        problem: 'Pricing section comes out vague or inconsistent with your actual rates',
+        solution: 'Never ask Claude to guess at pricing. Provide a locked pricing table in your prompt: "Use exactly these line items and prices: [paste your rate card]." Claude\'s job is structure and language, not price-setting.'
+      },
+      {
+        problem: 'The tone does not match your previous winning proposals',
+        solution: 'Upload a redacted version of a past winning proposal and say: "Match the tone, structure, and sentence length of this document exactly." Claude will adapt its style to yours rather than defaulting to generic consulting speak.'
+      }
+    ],
     steps: [
       {
         id: 'step-1',
@@ -326,7 +378,20 @@ Flag anything that looks suspicious with a risk score (Low/Medium/High) and expl
       'Recent competitor news'
     ],
     expectedOutcome: 'A one-page battle card with competitor weaknesses and your strengths.',
-    troubleshooting: [],
+    troubleshooting: [
+      {
+        problem: 'Perplexity returns very little intelligence on a private or lesser-known competitor',
+        solution: 'Search their G2, Capterra, and Trustpilot review pages directly. Customer reviews reveal real weaknesses that company websites hide. Search "site:g2.com [competitor name] reviews" for unfiltered feedback.'
+      },
+      {
+        problem: 'The battle card lists features instead of objection-handling rebuttals',
+        solution: 'Reframe your prompt: "For each competitor strength, write a one-sentence rebuttal a sales rep can say in a live call. Do not list features — write spoken responses to objections."'
+      },
+      {
+        problem: 'Battle card becomes outdated within weeks',
+        solution: 'Set a Perplexity alert or Google Alert for the competitor\'s name. When pricing or product news hits, update just the affected section — do not rebuild the whole card from scratch.'
+      }
+    ],
     steps: [
       {
         id: 'step-1',
@@ -361,7 +426,20 @@ Flag anything that looks suspicious with a risk score (Low/Medium/High) and expl
       'Sales stage definitions'
     ],
     expectedOutcome: 'Risk-scored pipeline with recommended actions for each at-risk deal.',
-    troubleshooting: [],
+    troubleshooting: [
+      {
+        problem: 'Claude flags nearly every deal as high-risk, making the report useless',
+        solution: 'Add baseline context: "Our average sales cycle is [X] days. A deal is only high-risk if it has had no activity in [2x average] days or has missed a defined stage milestone." Without benchmarks, Claude has no reference for what "risky" means.'
+      },
+      {
+        problem: 'Salesforce export is missing last activity date or contact fields',
+        solution: 'Add "Last Activity Date", "Last Modified Date", and "Primary Contact" columns to your Salesforce report before exporting. These are the key signals Claude uses to assess deal momentum.'
+      },
+      {
+        problem: 'Pipeline report does not reflect deals that were verbally updated but not logged',
+        solution: 'Before running the analysis, spend 5 minutes updating deal stages and last contact dates in your CRM. Garbage in, garbage out — the AI can only act on what is in the data.'
+      }
+    ],
     steps: [
       {
         id: 'step-1',
@@ -396,7 +474,20 @@ Flag anything that looks suspicious with a risk score (Low/Medium/High) and expl
       'Content themes/pillars'
     ],
     expectedOutcome: 'A complete 30-day content calendar with topics, formats, and publishing dates.',
-    troubleshooting: [],
+    troubleshooting: [
+      {
+        problem: 'Calendar is too promotional and lacks variety',
+        solution: 'Use the 80/20 rule in your prompt: "80% of posts should educate, entertain, or inspire. Only 20% should directly promote the product. Mark each post type clearly."'
+      },
+      {
+        problem: 'ChatGPT generates content ideas unrelated to product updates',
+        solution: 'Paste your specific product updates list as numbered items in the prompt and add: "Every content idea must trace back to at least one item from this product update list — do not invent topics."'
+      },
+      {
+        problem: 'Content calendar does not reflect seasonal events or key dates',
+        solution: 'Add a "Key Dates" section to your prompt: list upcoming product launches, industry events, holidays, or campaign milestones. Claude will anchor appropriate content to those anchors automatically.'
+      }
+    ],
     steps: [
       {
         id: 'step-1',
@@ -431,7 +522,20 @@ Flag anything that looks suspicious with a risk score (Low/Medium/High) and expl
       'Search intent understanding'
     ],
     expectedOutcome: 'A comprehensive SEO content brief with outline, keywords, and angle.',
-    troubleshooting: [],
+    troubleshooting: [
+      {
+        problem: 'The content brief outlines a generic article that mirrors existing top results',
+        solution: 'Add a differentiation instruction: "Identify one angle or sub-topic that none of the top 10 ranking pages cover well. Build the brief around that gap — the goal is to add something new, not rewrite what already exists."'
+      },
+      {
+        problem: 'Perplexity returns SERP data but misses long-tail semantic keywords',
+        solution: 'Supplement Perplexity with "People Also Ask" and "Related Searches" from Google itself. Paste those questions into ChatGPT and ask it to group them by sub-topic to build the H2/H3 outline.'
+      },
+      {
+        problem: 'Brief is too long and writers are not sure what to prioritize',
+        solution: 'Add a "Must-Cover" vs "Nice-to-Have" section at the top of the brief. Prompt: "Flag the 3 sections that are non-negotiable for ranking and mark the rest as supplementary."'
+      }
+    ],
     steps: [
       {
         id: 'step-1',
@@ -466,7 +570,20 @@ Flag anything that looks suspicious with a risk score (Low/Medium/High) and expl
       'Revenue forecast assumptions'
     ],
     expectedOutcome: 'A 13-week cash flow projection with scenario planning.',
-    troubleshooting: [],
+    troubleshooting: [
+      {
+        problem: 'Projection shows steady positive cash flow but you know payroll hits create dips',
+        solution: 'Add payroll dates explicitly to your data: "Payroll of $[X] goes out on the 15th and last day of each month. Build these into the weekly outflow rows." ChatGPT will not know your pay schedule unless you state it.'
+      },
+      {
+        problem: 'The 13-week projection ignores large one-time upcoming costs',
+        solution: 'List known future expenses in your prompt as line items with dates: "Upcoming known expenses: $15k tax payment due Week 4, $8k equipment lease renewal Week 9." The model will slot them into the correct weeks.'
+      },
+      {
+        problem: 'Excel formula errors after pasting AI-generated output into the spreadsheet',
+        solution: 'Ask ChatGPT to output only values, not formulas: "Do not use Excel formulas. Give me final calculated numbers for each cell so I can paste as values only." Then add your own SUM formulas on top.'
+      }
+    ],
     steps: [
       {
         id: 'step-1',
@@ -501,7 +618,20 @@ Flag anything that looks suspicious with a risk score (Low/Medium/High) and expl
       'Company benefits list'
     ],
     expectedOutcome: 'A polished, inclusive job description optimized for applicant conversion.',
-    troubleshooting: [],
+    troubleshooting: [
+      {
+        problem: 'The JD lists too many required qualifications and may deter qualified candidates',
+        solution: 'Ask Claude to audit the requirements list: "Review these requirements and identify any that are preferences rather than true blockers. Move them to a \'Nice to Have\' section — studies show long requirement lists disproportionately discourage strong candidates from applying."'
+      },
+      {
+        problem: 'Salary range is not included and candidates keep asking before applying',
+        solution: 'Add the salary range. Even a wide band (e.g. "$80,000–$110,000 depending on experience") increases qualified application volume by 30–40%. Ask Claude: "Add a salary transparency section that presents this range positively."'
+      },
+      {
+        problem: 'JD reads as corporate filler and does not reflect the team culture',
+        solution: 'Paste 2-3 sentences your current team members would use to describe what makes the role great. Ask Claude: "Weave this authentic language into the opening without sounding like a press release."'
+      }
+    ],
     steps: [
       {
         id: 'step-1',
@@ -538,7 +668,20 @@ Flag anything that looks suspicious with a risk score (Low/Medium/High) and expl
       'Deal thesis or acquisition rationale'
     ],
     expectedOutcome: 'A comprehensive 2-page deal brief covering financials, strategic rationale, key risks, and comparables—ready for the first IC meeting.',
-    troubleshooting: [],
+    troubleshooting: [
+      {
+        problem: 'FactSet data does not match the figures in the target\'s SEC filings',
+        solution: 'Always reconcile against the 10-K as the authoritative source. FactSet sometimes uses adjusted vs GAAP figures — clarify in your prompt which basis you are using ("Use GAAP EBITDA as reported, not adjusted") to ensure consistency across all three steps.'
+      },
+      {
+        problem: 'Claude\'s strategic rationale bullets are vague and could describe any acquisition',
+        solution: 'Provide specific financial context: synergy estimates, exact market share numbers, and the acquirer\'s stated strategic gaps from their last earnings call or investor day materials. Specificity is what separates a credible IC memo from a generic one.'
+      },
+      {
+        problem: 'Comps table implied valuation range is too wide to be actionable',
+        solution: 'Remove clear outliers before pasting the comps set. If one comparable traded at a distressed multiple during a crisis quarter, exclude it and note why. A tighter comps set of 3-4 truly comparable companies produces a more defensible range than 8 noisy ones.'
+      }
+    ],
     steps: [
       {
         id: '13-s1',
@@ -591,7 +734,20 @@ Flag anything that looks suspicious with a risk score (Low/Medium/High) and expl
       'Your investment thesis (bull/bear)'
     ],
     expectedOutcome: 'A structured equity research initiation note with investment thesis, key catalysts, risks, and a 12-month price target rationale.',
-    troubleshooting: [],
+    troubleshooting: [
+      {
+        problem: 'Claude writes an investment thesis in casual language instead of institutional research style',
+        solution: 'Add a style constraint: "Write in the style of a Goldman Sachs or Morgan Stanley initiation note. Use precise financial terminology, avoid colloquialisms, and never use the word \'exciting\' or \'promising\'." Then paste a sentence from a real research note as a tone example.'
+      },
+      {
+        problem: 'Earnings call summary misses key guidance changes because the transcript is too long',
+        solution: 'If the transcript exceeds Claude\'s context window, split it into sections: management prepared remarks, Q&A section. Process each part separately and ask Claude to consolidate the key signals at the end. Always include the CFO\'s guidance remarks — they are the highest-signal section.'
+      },
+      {
+        problem: 'Price target methodology feels circular or unsubstantiated',
+        solution: 'Ground the DCF with a WACC calculation you provide: "Our WACC of X% is based on a risk-free rate of Y%, equity risk premium of Z%, and beta of W." Claude cannot derive a defensible discount rate without your inputs — provide them explicitly.'
+      }
+    ],
     steps: [
       {
         id: '14-s1',
@@ -644,7 +800,20 @@ Flag anything that looks suspicious with a risk score (Low/Medium/High) and expl
       'Minimum return thresholds (IRR/MOIC targets)'
     ],
     expectedOutcome: 'A ranked scoring sheet of all inbound deals with a pass/pursue recommendation and a one-line rationale for each.',
-    troubleshooting: [],
+    troubleshooting: [
+      {
+        problem: 'All deals score similarly and there is no clear separation between pursue and pass',
+        solution: 'Introduce a hard filter before scoring: any deal below $X EBITDA or outside your sector focus is automatically a pass with no score. Apply the rubric only to deals that clear the filter — this keeps the scoring focused on genuine candidates.'
+      },
+      {
+        problem: 'CIM summaries are too brief for Claude to give meaningful scores on some criteria',
+        solution: 'For thin one-pagers, ask Claude to flag which criteria cannot be scored due to insufficient data: "If the CIM does not provide enough detail to score a criterion, write N/A and note what information would be needed." This keeps your pipeline tracker honest.'
+      },
+      {
+        problem: 'The rubric does not penalize deals with obvious structural risks like customer concentration',
+        solution: 'Add a red flag override to your rubric prompt: "If any deal has customer concentration above 40% in a single client, cap the total score at 12/25 regardless of other criteria, and flag it as a structural risk."'
+      }
+    ],
     steps: [
       {
         id: '15-s1',
@@ -697,7 +866,20 @@ Flag anything that looks suspicious with a risk score (Low/Medium/High) and expl
       'Last quarter\'s performance vs benchmark'
     ],
     expectedOutcome: 'A 1-page personalized client meeting brief covering portfolio performance, allocation commentary, and 3 concrete recommendations—ready to print or email before the meeting.',
-    troubleshooting: [],
+    troubleshooting: [
+      {
+        problem: 'The performance narrative uses jargon the client will not understand',
+        solution: 'Add a readability rule: "Explain every financial term the first time it appears. Never assume the client knows what \'duration\', \'basis points\', or \'overweight\' means. Write for a smart non-finance professional."'
+      },
+      {
+        problem: 'Recommendations feel generic and not specific to this client\'s situation',
+        solution: 'Reference the client\'s specific goal or life event in every recommendation. A client saving for a home purchase needs different framing than one in drawdown. Paste the client\'s IPS summary or goal notes into the prompt to force specificity.'
+      },
+      {
+        problem: 'MSCI or benchmark comparison data is not available for the period',
+        solution: 'Use a proxy benchmark if the specific index is unavailable. For a 60/40 portfolio, a blended 60% S&P 500 / 40% Bloomberg Aggregate return is widely understood. State the benchmark clearly so the client knows what they are being compared against.'
+      }
+    ],
     steps: [
       {
         id: '16-s1',
@@ -962,7 +1144,20 @@ export const coworkPlaybooks: Playbook[] = [
       'Basic understanding of your product/service value proposition'
     ],
     expectedOutcome: 'A complete, ready-to-schedule 30-day social media calendar with tailored content, hooks, and growth strategies.',
-    troubleshooting: [],
+    troubleshooting: [
+      {
+        problem: 'Claude generates content pillars that are too broad and produce interchangeable post ideas',
+        solution: 'Narrow the niche further in your prompt. Instead of "fitness", use "fat loss for busy moms over 40." The more specific your target audience, the tighter the pillars and the more distinct each post idea becomes.'
+      },
+      {
+        problem: 'The 30-day calendar has too many similar post types and lacks variety',
+        solution: 'After generating the calendar, prompt: "Review the 30-day plan and flag any content type that repeats more than 4 times in a row. Swap duplicates with posts from a different pillar to improve variety." Balance matters more than volume.'
+      },
+      {
+        problem: 'Generated hooks are generic (e.g. "Have you ever wondered...") and will not stop the scroll',
+        solution: 'Ask Claude to rewrite using pattern-interrupt formats: "Rewrite all hooks using one of these formats: a controversial statement, a specific statistic, or a before/after scenario. No questions. No "Have you ever".'
+      }
+    ],
     steps: [
       {
         id: 'cw-smm-s1',
@@ -1036,7 +1231,20 @@ export const coworkPlaybooks: Playbook[] = [
       'Your approximate budget'
     ],
     expectedOutcome: 'A complete end-to-end trip itinerary featuring the cheapest flights, vetted budget lodging, free activities, and local dining spots.',
-    troubleshooting: [],
+    troubleshooting: [
+      {
+        problem: 'AI suggests flight dates that are not actually cheaper when checked on Google Flights',
+        solution: 'AI cannot query live prices — it provides historical patterns and general guidance. Always verify suggested dates on Google Flights or Kayak using the price calendar view before booking. Use the AI output as a starting hypothesis, not a guarantee.'
+      },
+      {
+        problem: 'Recommended budget hotels turn out to be poorly reviewed when checked on Booking.com',
+        solution: 'After getting AI recommendations, filter each property on Booking.com or TripAdvisor to only show options with a minimum 8.0/10 score and at least 50 reviews. Recency of reviews matters — filter for "last 3 months" to catch recent quality drops.'
+      },
+      {
+        problem: 'Local restaurant recommendations are closed or no longer exist',
+        solution: 'AI training data can be months or years old. Always verify restaurant hours and existence on Google Maps by searching the exact name + city. If it does not appear with recent reviews, ask Claude for 2 backup alternatives in the same neighborhood.'
+      }
+    ],
     steps: [
       {
         id: 'cw-btp-s1',
@@ -1118,7 +1326,20 @@ export const coworkPlaybooks: Playbook[] = [
       'Basic access to your website and Google Business Profile'
     ],
     expectedOutcome: 'A complete local SEO content suite including hyper-targeted local service pages, an optimized GBP, and review request templates.',
-    troubleshooting: [],
+    troubleshooting: [
+      {
+        problem: 'Service area pages are flagged as duplicate content by Google',
+        solution: 'Each page must have genuinely unique content beyond just swapping the city name. Add a neighborhood-specific paragraph — local landmarks, typical local problems your service solves, or a local customer quote. Even 100 words of truly unique content per page is enough to avoid duplicate penalties.'
+      },
+      {
+        problem: 'Google Business Profile changes are not reflecting in map search results',
+        solution: 'GBP updates can take 3-10 days to propagate in Google Maps, especially for description and service changes. Do not make additional edits while waiting — multiple queued changes can cause longer delays. Post a Google Update post immediately to signal fresh activity.'
+      },
+      {
+        problem: 'Review request SMS templates feel too pushy and get low response rates',
+        solution: 'Timing beats template quality. Send the review request within 1 hour of job completion while satisfaction is highest. Ask Claude to rewrite the SMS as a natural follow-up message, not a formal request: "Hey [Name], it was great working with you today!" as an opener works better than "We would appreciate a review."'
+      }
+    ],
     steps: [
       {
         id: 'cw-lseo-s1',
@@ -1184,7 +1405,20 @@ export const coworkPlaybooks: Playbook[] = [
       'Deal thesis or acquisition rationale'
     ],
     expectedOutcome: 'A comprehensive 2-page deal brief covering financials, strategic rationale, key risks, and comparables—ready for the first IC meeting.',
-    troubleshooting: [],
+    troubleshooting: [
+      {
+        problem: 'Financial summary table has inconsistent figures compared to the company\'s 10-K',
+        solution: 'Always paste your data with explicit labels: "Year 1 = FY2022 (ended Dec 31 2022)". Claude will otherwise guess fiscal year alignment and may mismatch periods. Labeling every column prevents silent errors in the CAGR and margin calculations.'
+      },
+      {
+        problem: 'Strategic rationale is too generic and does not differentiate this deal from any other acquisition',
+        solution: 'Include one specific numeric anchor per bullet. Instead of "expand market reach", write "the target\'s 18% share in the Southeast region fills our complete gap in that geography." Numbers make IC memos defensible.'
+      },
+      {
+        problem: 'Control premium instruction is not applied consistently to both EV/EBITDA and EV/Revenue outputs',
+        solution: 'After generating the comps table, prompt Claude: "Confirm you applied a 20% control premium to BOTH EV/EBITDA and EV/Revenue implied values and show your math." Always verify the premium was applied — it is easy to miss on one multiple.'
+      }
+    ],
     steps: [
       {
         id: 'cw-1-s1',
@@ -1245,7 +1479,20 @@ export const coworkPlaybooks: Playbook[] = [
       'Your investment thesis in plain English (bull or bear)'
     ],
     expectedOutcome: 'A structured equity research initiation note with investment thesis, key catalysts, risk section, and 12-month price target rationale — ready to send to clients or format into a PDF.',
-    troubleshooting: [],
+    troubleshooting: [
+      {
+        problem: 'The earnings call brief is too long and buries the key guidance changes',
+        solution: 'Add a prioritization rule to Step 1: "After extracting the signals, rank them in order of importance to the investment thesis. Lead with the most surprising or material guidance change — that is what institutional readers look for first."'
+      },
+      {
+        problem: 'Investment thesis output sounds like a blog post rather than institutional research',
+        solution: 'Provide a sentence from a real research note as a style anchor in your Step 2 prompt: "Match this tone exactly: [paste one sentence from a real research note]." Style examples constrain output far more effectively than written instructions alone.'
+      },
+      {
+        problem: 'Risk section is too short and lacks specificity about what would trigger a rating change',
+        solution: 'Each risk item must include a concrete trigger: "We would revisit our BUY rating if gross margins decline more than 200bps quarter-over-quarter for two consecutive quarters." Vague risks like "competition could intensify" are not actionable for clients.'
+      }
+    ],
     steps: [
       {
         id: 'cw-2-s1',
@@ -1306,7 +1553,20 @@ export const coworkPlaybooks: Playbook[] = [
       'Your minimum return thresholds (target IRR range and MOIC)'
     ],
     expectedOutcome: 'A scored and ranked pipeline sheet with a clear pass/pursue recommendation and a one-line rationale for every deal — ready to share with partners or the IC in under 20 minutes.',
-    troubleshooting: [],
+    troubleshooting: [
+      {
+        problem: 'Scoring rubric criteria overlap too much and produce inconsistent results across team members',
+        solution: 'After generating the rubric, run a calibration test: score the same known deal independently with two team members using the rubric. Where scores diverge by 2+ points on a criterion, add more concrete examples to the descriptor for that score level.'
+      },
+      {
+        problem: 'Claude assigns high scores to deals with thin data because it gives benefit of the doubt',
+        solution: 'Add an explicit instruction: "If a criterion cannot be assessed because the CIM does not provide sufficient data, score it 2 out of 5, not 3. Lack of information is a yellow flag in deal screening, not a neutral."'
+      },
+      {
+        problem: 'Executive summary for IC update reads like a list of individual scores rather than an overall view',
+        solution: 'After generating the pipeline report, add: "Write the IC executive summary as a narrative, not as a list. Start with the overall quality signal of this cohort, then highlight the one deal worth fast-tracking and the most common reason for passes."'
+      }
+    ],
     steps: [
       {
         id: 'cw-3-s1',
@@ -1359,7 +1619,20 @@ export const coworkPlaybooks: Playbook[] = [
       'Last quarter\'s performance vs. benchmark (e.g. S&P 500 or 60/40 blend)'
     ],
     expectedOutcome: 'A 1-page personalized client meeting brief covering portfolio performance, market context, and 3 specific, actionable recommendations — ready to print, email, or present on screen.',
-    troubleshooting: [],
+    troubleshooting: [
+      {
+        problem: 'Performance narrative uses passive language that softens underperformance too much',
+        solution: 'Give Claude a directness rule: "If the portfolio underperformed its benchmark, state that directly in the first sentence of the performance paragraph. Clients trust advisors who are honest about underperformance more than those who obscure it."'
+      },
+      {
+        problem: 'Allocation commentary is technically correct but disconnected from the client\'s stated goal',
+        solution: 'Always reference the client\'s specific goal in the allocation commentary prompt — not just their risk profile. "Capital preservation for retirement in 3 years" requires a very different commentary tone than "aggressive growth for a 30-year-old." Paste the goal explicitly.'
+      },
+      {
+        problem: 'Recommendation cards use financial shorthand the client will not recognize ("rotate into", "add duration")',
+        solution: 'Add a translation rule to your Step 3 prompt: "Convert all financial jargon into plain English. \'Reduce equity exposure\' should become \'we want to hold a little less in stocks right now.\'  The client should be able to explain each recommendation to a friend."'
+      }
+    ],
     steps: [
       {
         id: 'cw-4-s1',
@@ -1511,7 +1784,20 @@ export const smbPlaybooks: Playbook[] = [
       ],
       tools: ['Make.com', 'Google Sheets', 'OpenAI', 'Buffer']
     },
-    troubleshooting: [],
+    troubleshooting: [
+      {
+        problem: 'Posts sound identical even after brand voice setup',
+        solution: 'Add more texture to your brand voice prompt. Instead of "friendly and professional", describe it with examples: "We sound like a knowledgeable friend, not a corporation. We use contractions, short sentences, and never use the word \'leverage\' or \'synergy\'."'
+      },
+      {
+        problem: 'Buffer scheduling fails and posts do not go out at the right times',
+        solution: 'Verify that your Buffer account has the correct time zone set and that the social channel is still connected (tokens expire). Reconnect the channel in Buffer before activating the Make.com automation to prevent silent failures.'
+      },
+      {
+        problem: 'Calendar runs out of variety by week 3 and becomes repetitive',
+        solution: 'Add a "content rotation rule" to your Make.com prompt: "For each 7-day block, include no more than 2 posts of the same content theme. Rotate across promotional, educational, behind-the-scenes, and social proof categories."'
+      }
+    ],
     beforeYouStart: [],
     relatedPlaybooks: [],
     steps: [
@@ -1573,7 +1859,20 @@ export const smbPlaybooks: Playbook[] = [
       ],
       tools: ['Zapier', 'QuickBooks / Xero', 'OpenAI', 'Gmail']
     },
-    troubleshooting: [],
+    troubleshooting: [
+      {
+        problem: 'Clients are not responding to any of the three emails',
+        solution: 'Check whether your emails are landing in spam — especially the final notice, which can trigger spam filters due to payment-related language. Ask Claude to remove words like "overdue", "past due", and "final notice" from subject lines and replace with neutral language like "A follow-up on Invoice #[X]".'
+      },
+      {
+        problem: 'The firm follow-up email is too similar in tone to the initial reminder',
+        solution: 'Explicitly instruct Claude to escalate tone between emails: "Email 1 should sound like a friendly check-in. Email 2 should sound like a professional follow-up expecting a response. Email 3 should be formal and create urgency without being aggressive." Label the tone shift clearly in your prompt.'
+      },
+      {
+        problem: 'QuickBooks invoice status does not update to Overdue automatically',
+        solution: 'QuickBooks marks invoices as Overdue only after the payment due date passes. If your due date field is blank or incorrect, no Zapier trigger will fire. Check that every invoice has an explicit due date set in QuickBooks before relying on automation.'
+      }
+    ],
     beforeYouStart: [],
     relatedPlaybooks: [],
     steps: [
@@ -1635,7 +1934,20 @@ export const smbPlaybooks: Playbook[] = [
       ],
       tools: ['Make.com', 'Web Scraper', 'OpenAI', 'Slack']
     },
-    troubleshooting: [],
+    troubleshooting: [
+      {
+        problem: 'Perplexity cannot find much information about a very small local competitor',
+        solution: 'Search directly instead: type the competitor\'s business name and city into Google, then check their Google Business Profile, Facebook page, and Nextdoor for customer mentions. Paste what you find into Claude and ask it to do the gap analysis from that raw data.'
+      },
+      {
+        problem: 'The 5-step action checklist includes technical SEO tasks the owner cannot do without a developer',
+        solution: 'Add a constraint to your Step 3 prompt: "All 5 action steps must be things I can do myself in under 30 minutes each, with no coding or technical skills required. Focus on Google Business Profile updates, website copy edits, and review generation."'
+      },
+      {
+        problem: 'Make.com web scraper returns garbled HTML instead of readable competitor content',
+        solution: 'Add a "Text Parser → HTML to Text" module immediately after the HTTP request module. This strips the raw HTML tags and leaves only the readable text. Without this step the OpenAI module receives HTML noise, not usable content.'
+      }
+    ],
     beforeYouStart: [],
     relatedPlaybooks: [],
     steps: [
@@ -1697,7 +2009,20 @@ export const smbPlaybooks: Playbook[] = [
       ],
       tools: ['Zapier', 'Zendesk / Gmail', 'OpenAI']
     },
-    troubleshooting: [],
+    troubleshooting: [
+      {
+        problem: 'The AI-generated response sounds robotic and the customer will know it was written by AI',
+        solution: 'After generating the draft, add a humanization pass: "Rewrite this email in first person from the business owner. Add one specific personal detail — mention the customer\'s exact complaint by name, not generically. Remove any phrase that sounds like a template."'
+      },
+      {
+        problem: 'Response inadvertently admits fault and creates legal liability',
+        solution: 'Add a legal safety instruction to your prompt: "Do not use language that admits fault or implies the business was negligent. Use phrases like \'I\'m sorry you had this experience\' instead of \'You\'re right, we made a mistake.\' Validate emotion without conceding liability."'
+      },
+      {
+        problem: 'Public Google review response is too long and looks defensive',
+        solution: 'For public review responses, add a length constraint: "Keep the response under 80 words. Short, warm, and specific beats long and defensive every time for public reviews. Invite them to continue the conversation privately."'
+      }
+    ],
     beforeYouStart: [],
     relatedPlaybooks: [],
     steps: [
@@ -1756,7 +2081,20 @@ export const smbPlaybooks: Playbook[] = [
       ],
       tools: ['Make.com', 'QuickBooks / ERP', 'OpenAI', 'Slack']
     },
-    troubleshooting: [],
+    troubleshooting: [
+      {
+        problem: 'The negotiation email is too aggressive and risks damaging the vendor relationship',
+        solution: 'Review the AI draft and soften any language that positions it as a demand. Add: "Rewrite this to sound collaborative, not adversarial. Frame the ask as wanting to grow the relationship, not a threat to leave." The best vendor negotiations feel like partnership conversations.'
+      },
+      {
+        problem: 'Vendor responds that their margins do not allow a discount',
+        solution: 'Use the alternative concessions approach from Step 3. Shift the conversation to non-cash value: extended payment terms (Net-60 instead of Net-30), free delivery, priority stock allocation, or a price lock for 12 months. Ask Claude to generate an email pivoting to two of these alternatives.'
+      },
+      {
+        problem: 'Market rate comparison data used in the negotiation is out of date',
+        solution: 'Get at least one real competing quote before negotiating — even an informal one. A quote email from a competitor is worth more than any AI-generated market rate estimate. Mention the quote in general terms ("we\'ve received a quote for less from another supplier") without necessarily naming them.'
+      }
+    ],
     beforeYouStart: [],
     relatedPlaybooks: [],
     steps: [
@@ -1822,7 +2160,20 @@ export const smbPlaybooks: Playbook[] = [
       ],
       tools: ['Make.com', 'OpenAI', 'Google Drive / Docs']
     },
-    troubleshooting: [],
+    troubleshooting: [
+      {
+        problem: 'PDF.co fails to extract text from scanned or image-based PDFs',
+        solution: 'Scanned PDFs need OCR before extraction. Use Google Cloud Vision OCR or Adobe PDF Extract API as a pre-processing step before passing text to Claude. Alternatively, switch to contracts sent as Word documents (.docx) where text extraction is straightforward.'
+      },
+      {
+        problem: 'AI flags non-standard clauses that your legal team has already approved as acceptable deviations',
+        solution: 'Add an approved exceptions list to your system prompt: "The following deviations from standard terms are pre-approved and should NOT be flagged: [list]. Only flag deviations not on this list." This prevents your team from reviewing the same approved exceptions repeatedly.'
+      },
+      {
+        problem: 'Contract summary document is too long and legal team is not reading the full output',
+        solution: 'Ask Claude to output an "Executive Risk Summary" at the top limited to 5 bullet points — the 5 most material deviations only. Full detail below for anyone who needs it. Teams read summaries; long analysis documents get skimmed or ignored.'
+      }
+    ],
     relatedPlaybooks: [],
     steps: [
       {
@@ -1871,7 +2222,20 @@ export const smbPlaybooks: Playbook[] = [
       ],
       tools: ['Zapier', 'Zendesk', 'OpenAI', 'Notion']
     },
-    troubleshooting: [],
+    troubleshooting: [
+      {
+        problem: 'AI clusters feedback into the same 2-3 themes every week regardless of actual variance',
+        solution: 'Constrain the clustering instruction: "Do not default to the same themes. Compare this week\'s clusters against last week\'s output and flag any new themes that did not appear previously. New themes are more actionable than recurring ones."'
+      },
+      {
+        problem: 'Feature requests from low-MRR customers are overwhelming the roadmap signal',
+        solution: 'Add MRR weighting to the clustering prompt: "When grouping requests, note the total MRR of the customers who requested each feature. Prioritize clusters where the requesting customers represent above-average MRR, not just raw request volume."'
+      },
+      {
+        problem: 'Notion tickets created by automation are missing enough context for the PM to take action',
+        solution: 'Ensure each Notion ticket includes: the cluster theme, a verbatim example request, total request count, estimated MRR represented, and a one-line product recommendation. Without the verbatim example, PMs cannot validate whether the AI cluster is accurate.'
+      }
+    ],
     relatedPlaybooks: [],
     steps: [
       {
@@ -4417,7 +4781,16 @@ export const leadMagnetPlaybooks: Playbook[] = [
     tools: ['Claude'],
     beforeYouStart: ['A fresh Claude Project'],
     expectedOutcome: 'A Project Instructions file that defines every role, communication channel, and goal of your team.',
-    troubleshooting: [],
+    troubleshooting: [
+      {
+        problem: 'Claude ignores the OS structure and answers questions without referencing the uploaded documents',
+        solution: 'Add an explicit instruction at the top of the Project Instructions: "Before responding to ANY request, check which of the three knowledge base documents is most relevant and state which one you are drawing from." This forces Claude to reference the OS actively, not passively.'
+      },
+      {
+        problem: 'The Brand.md, CRM.csv, or Services.md documents are too long and Claude loses track of key details',
+        solution: 'Add a "Summary" section at the top of each document with the 5 most important facts in bullet points. Claude prioritizes context near the beginning of documents — front-loading the key information improves recall significantly.'
+      }
+    ],
     steps: [
       {
         id: 'lm1-s1',
@@ -4533,7 +4906,20 @@ export const designerAIPlaybooks: Playbook[] = [
       'Claude Code installed via Terminal'
     ],
     expectedOutcome: 'A complete, pixel-perfect React application matching your Figma design perfectly.',
-    troubleshooting: [],
+    troubleshooting: [
+      {
+        problem: 'Claude Code cannot access the Figma file and returns a permission error',
+        solution: 'Ensure your Figma Personal Access Token has "Read" scope enabled and was generated from the correct Figma account that owns the file. Check Settings → Security → Personal Access Tokens in Figma. Tokens expire — generate a fresh one if the current one is over 90 days old.'
+      },
+      {
+        problem: 'Generated components do not match the Figma design — wrong spacing, colors, or fonts',
+        solution: 'The MCP reads structural metadata, not pixel-perfect renders. After the initial code generation, open the Figma Inspect panel, grab the exact px values and hex codes for problem areas, and give Claude explicit corrections: "The card padding should be 24px not 16px, and the text color should be #1A1A2E."'
+      },
+      {
+        problem: 'Cursor loses context halfway through a long build session and starts generating inconsistent code',
+        solution: 'Create a CLAUDE.md file in the project root with your design system constants (colors, spacing scale, component names). At the start of each new Cursor session, reference it: "Follow the design system in CLAUDE.md for all styling decisions." This restores context instantly.'
+      }
+    ],
     steps: [
       {
         id: 'dai-2-s1',
@@ -4591,7 +4977,20 @@ export const designerAIPlaybooks: Playbook[] = [
       'Access to Google Anti-Gravity'
     ],
     expectedOutcome: 'A market-ready, high-converting digital product or landing page uniquely positioned based on deep research.',
-    troubleshooting: [],
+    troubleshooting: [
+      {
+        problem: 'NotebookLM gives vague product positioning that could apply to any competitor',
+        solution: 'Go back to your uploaded research and highlight the most specific customer pain points — direct quotes from interviews work best. Re-prompt: "Focus only on the pain points that appear in multiple interviews. Ignore generic feedback. What specific frustration drives the most emotional language?"'
+      },
+      {
+        problem: 'Anti-Gravity builds the landing page with generic placeholder copy instead of the blueprint content',
+        solution: 'In Step 4, be explicit: "Do NOT use placeholder text anywhere. Every headline, subheading, and bullet point must come directly from the product blueprint I pasted. If you need copy, extract it from there."'
+      },
+      {
+        problem: 'The final product does not load correctly or has broken layout on mobile',
+        solution: 'After the initial build, prompt Anti-Gravity: "Test this for mobile responsiveness. Show me the layout at 375px width (iPhone SE) and fix any elements that overflow or stack incorrectly." Always check mobile before shipping — most traffic is mobile-first.'
+      }
+    ],
     steps: [
       {
         id: 'dai-1-s1',
