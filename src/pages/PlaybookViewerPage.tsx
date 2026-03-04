@@ -807,69 +807,95 @@ export default function PlaybookViewerPage() {
                 </motion.div>
               )}
 
-              {/* Agent Automation Alternative */}
+              {/* Agent Automation — CLI Card */}
               {playbook.agentAutomation && !(playbook.isPro && !isProUser) && (
-                <motion.div variants={fadeInUp} className="mt-12 p-6 bg-white shadow-antigravity-md border border-brand-dark/10 rounded-3xl relative overflow-hidden">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 bg-brand-dark text-white rounded-xl shadow-antigravity-md flex items-center justify-center shrink-0">
-                      <Bot className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold text-brand-dark">
-                        Level Up: Automate with Agents
-                      </h3>
-                      <p className="text-brand-dark/70 text-sm mt-1">{playbook.agentAutomation.description}</p>
-                    </div>
+                <motion.div variants={fadeInUp} className="mt-12 rounded-2xl overflow-hidden shadow-antigravity-lg">
+                  {/* Terminal title bar */}
+                  <div className="bg-[#2a2b2e] px-4 py-3 flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-[#ff5f57]" />
+                    <span className="w-3 h-3 rounded-full bg-[#febc2e]" />
+                    <span className="w-3 h-3 rounded-full bg-[#28c840]" />
+                    <span className="ml-3 font-mono text-xs text-gray-400">agent-automation ~ {playbook.slug}</span>
                   </div>
 
-                  <div className="space-y-6">
-                    <div className="bg-slate-50 rounded-2xl p-5 border border-brand-dark/5">
-                      <p className="text-xs uppercase tracking-wider font-semibold text-brand-dark/60 mb-3">Trigger</p>
-                      <p className="text-sm font-medium text-brand-dark/80 flex items-center gap-2">
-                        <Zap className="w-4 h-4 text-brand-blue" />
+                  {/* Terminal body */}
+                  <div className="bg-[#1a1b1e] p-6 font-mono text-sm space-y-6">
+
+                    {/* Description */}
+                    <div>
+                      <span className="text-gray-500"># </span>
+                      <span className="text-gray-300">{playbook.agentAutomation.description}</span>
+                    </div>
+
+                    {/* Trigger */}
+                    <div className="space-y-1.5">
+                      <p className="text-green-400">$ watch --trigger</p>
+                      <p className="text-gray-300 pl-4 flex items-center gap-2">
+                        <span className="text-gray-500">→</span>
                         {playbook.agentAutomation.trigger}
                       </p>
                     </div>
 
-                    <div className="bg-slate-50 rounded-2xl p-5 border border-brand-dark/5">
-                      <p className="text-xs uppercase tracking-wider font-semibold text-brand-dark/60 mb-4">Agent Setup Guide</p>
-                      <div className="space-y-6">
+                    {/* Actions */}
+                    <div className="space-y-1.5">
+                      <p className="text-green-400">$ run --actions</p>
+                      <div className="pl-4 space-y-1">
+                        {playbook.agentAutomation.actions.map((action, i) => (
+                          <p key={i} className="text-gray-300">
+                            <span className="text-gray-500">
+                              {i < playbook.agentAutomation!.actions.length - 1 ? '├── ' : '└── '}
+                            </span>
+                            {action}
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Setup Steps */}
+                    <div className="space-y-1.5">
+                      <p className="text-green-400">$ setup --steps</p>
+                      <div className="pl-4 space-y-3">
                         {playbook.agentAutomation.setupSteps.map((step, i) => (
-                          <div key={i} className="flex gap-4">
-                            <div className="w-6 h-6 rounded-full bg-brand-dark text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
-                              {i + 1}
-                            </div>
-                            <div>
-                              <h4 className="font-semibold text-brand-dark text-sm mb-1">{step.title}</h4>
-                              <p className="text-sm text-brand-dark/70 leading-relaxed">{step.description}</p>
-                            </div>
+                          <div key={i}>
+                            <p className="text-green-300/80">
+                              <span className="text-gray-500">[{i + 1}] </span>
+                              {step.title}
+                            </p>
+                            <p className="text-gray-400 pl-5 text-xs leading-relaxed mt-0.5">{step.description}</p>
                           </div>
                         ))}
                       </div>
                     </div>
 
-                    <div className="pt-2 border-t border-brand-dark/10 flex flex-wrap gap-2 items-center">
-                      <p className="text-xs font-semibold text-brand-dark/60 mr-2">Suggested Stack:</p>
-                      {playbook.agentAutomation.tools.map(tool => (
-                        <span key={tool} className="px-3 py-1.5 bg-brand-dark/5 border border-brand-dark/10 text-brand-dark/80 text-xs font-medium rounded-full hover:bg-brand-dark/10 transition-colors cursor-pointer">
-                          {tool}
-                        </span>
-                      ))}
+                    {/* Tools */}
+                    <div className="space-y-1.5">
+                      <p className="text-green-400">$ stack --tools</p>
+                      <div className="pl-4 flex flex-wrap gap-2">
+                        {playbook.agentAutomation.tools.map(tool => (
+                          <span key={tool} className="px-2.5 py-1 bg-white/5 border border-white/10 text-green-300/80 text-xs rounded font-mono">
+                            {tool}
+                          </span>
+                        ))}
+                      </div>
                     </div>
 
+                    {/* Divider */}
+                    <div className="border-t border-white/10" />
+
+                    {/* Download Blueprint button */}
                     <button
                       onClick={handleDownloadBlueprint}
                       disabled={blueprintLoading}
-                      className="w-full mt-4 py-3 px-5 bg-brand-dark text-white text-sm font-semibold rounded-2xl flex items-center justify-center gap-2 hover:bg-brand-dark/90 transition-colors disabled:opacity-50"
+                      className="w-full py-3 px-5 bg-green-500/10 border border-green-500/30 text-green-400 text-sm font-mono font-semibold rounded-xl flex items-center justify-center gap-2 hover:bg-green-500/20 transition-colors disabled:opacity-50"
                     >
                       {blueprintLoading
-                        ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        ? <div className="w-4 h-4 border-2 border-green-400 border-t-transparent rounded-full animate-spin" />
                         : blueprintDone
                         ? <CheckCircle2 className="w-4 h-4" />
                         : <Download className="w-4 h-4" />}
-                      {blueprintLoading ? 'Generating blueprint…' : blueprintDone ? 'Downloaded!' : 'Download Make.com Blueprint'}
+                      {blueprintLoading ? '$ generating blueprint…' : blueprintDone ? '✓ downloaded!' : '$ download make.com blueprint'}
                     </button>
-                    <p className="text-[11px] text-brand-dark/40 text-center mt-1.5">
+                    <p className="text-[11px] text-gray-600 text-center -mt-4">
                       Import into Make.com → Create Scenario → Import Blueprint
                     </p>
                   </div>
