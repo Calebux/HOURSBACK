@@ -78,6 +78,7 @@ export const ecommercePlaybooks: Playbook[] = [
       ],
       tools: ['Make.com', 'Google Sheets', 'Claude', 'Gmail']
     },
+    relatedPlaybooks: [],
   },
   {
     id: 'ec-2',
@@ -153,6 +154,7 @@ export const ecommercePlaybooks: Playbook[] = [
       ],
       tools: ['Make.com', 'Google Sheets', 'Claude', 'Klaviyo']
     },
+    relatedPlaybooks: [],
   },
   {
     id: 'ec-3',
@@ -405,6 +407,7 @@ export const launchPlaybooks: Playbook[] = [
       ],
       tools: ['Make.com', 'Google Sheets', 'Claude', 'ConvertKit']
     },
+    relatedPlaybooks: [],
   },
   {
     id: 'lg-3',
@@ -569,6 +572,7 @@ export const personalBrandPlaybooks: Playbook[] = [
       ],
       tools: ['Make.com', 'Google Sheets', 'Claude', 'Buffer']
     },
+    relatedPlaybooks: [],
   },
   {
     id: 'pb-2',
@@ -737,6 +741,7 @@ export const personalBrandPlaybooks: Playbook[] = [
       ],
       tools: ['Make.com', 'Google Sheets', 'Claude', 'Gmail']
     },
+    relatedPlaybooks: [],
   },
 ];
 
@@ -874,6 +879,7 @@ export const educationPlaybooks: Playbook[] = [
       ],
       tools: ['Make.com', 'Google Sheets', 'Claude', 'ConvertKit']
     },
+    relatedPlaybooks: [],
   },
   {
     id: 'edu-3',
