@@ -170,12 +170,25 @@ type InfographData = {
 };
 
 function parseInfographData(text: string): { data: InfographData | null; cleanText: string } {
-  const match = text.match(/INFOGRAPH_DATA_START\s*([\s\S]*?)\s*INFOGRAPH_DATA_END/);
-  if (!match) return { data: null, cleanText: text };
-  const cleanText = text.replace(/INFOGRAPH_DATA_START[\s\S]*?INFOGRAPH_DATA_END/, "").trim();
+  // Always strip the block — handles code fences, bold markers, and missing block gracefully
+  const cleanText = text
+    .replace(/\*{0,2}INFOGRAPH_DATA_START\*{0,2}[\s\S]*?\*{0,2}INFOGRAPH_DATA_END\*{0,2}/g, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
+  // Match the block, tolerating code fences Claude sometimes wraps around the JSON
+  const match = text.match(/INFOGRAPH_DATA_START\s*(?:```(?:json)?\s*)?([\s\S]*?)(?:\s*```)?\s*INFOGRAPH_DATA_END/);
+  if (!match) return { data: null, cleanText };
+
+  const jsonStr = match[1]
+    .trim()
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/, "");
+
   try {
-    return { data: JSON.parse(match[1].trim()) as InfographData, cleanText };
+    return { data: JSON.parse(jsonStr) as InfographData, cleanText };
   } catch {
+    console.error("[Autopilot] Failed to parse infograph JSON:", jsonStr.slice(0, 200));
     return { data: null, cleanText };
   }
 }
@@ -430,7 +443,7 @@ async function executeSchedule(schedule: any, supabaseAdmin: any): Promise<void>
 
     // Analysis playbooks: ask Claude to append structured metric JSON
     if (INFOGRAPHIC_SLUGS.has(playbookSlug)) {
-      compiledPrompt += `\n\n---\nAFTER your full analysis, append exactly this block (do not skip it):\n\nINFOGRAPH_DATA_START\n{"title":"${(playbookData?.title || playbookSlug).replace(/"/g, "'")}","kpis":[{"label":"Metric Name","value":"$X.XK","trend":"up"}],"scores":[{"label":"Dimension","score":7,"max":10}],"bars":[],"highlights":[{"type":"strength","text":"Key strength"},{"type":"risk","text":"Key risk"},{"type":"action","text":"Top recommended action"}]}\nINFOGRAPH_DATA_END\n\nFill in with real values extracted from your analysis:\n- kpis: the 3–5 most important headline numbers (revenue, margin, score, growth). Keep values concise: "$12.4K", "23%", "7/10".\n- scores: every dimension you rated 1–10. Include all of them.\n- bars: any ranked percentages or comparisons (empty array [] if none).\n- highlights: 1–2 strength items, 1–2 risk items, 1–2 action items. Max 15 words each.\n- Output ONLY valid JSON between the INFOGRAPH_DATA_START / INFOGRAPH_DATA_END markers. No other text after the END marker.`;
+      compiledPrompt += `\n\n---\nFINAL STEP — append this block at the very end of your response. No code fences. No explanation. Just the markers and raw JSON:\n\nINFOGRAPH_DATA_START\n{"title":"${(playbookData?.title || playbookSlug).replace(/"/g, "'")}","kpis":[{"label":"Metric Name","value":"$X.XK","trend":"up"}],"scores":[{"label":"Dimension","score":7,"max":10}],"bars":[],"highlights":[{"type":"strength","text":"Key strength"},{"type":"risk","text":"Key risk"},{"type":"action","text":"Top recommended action"}]}\nINFOGRAPH_DATA_END\n\nRules for the JSON values:\n- kpis: 3–5 headline numbers from your analysis (revenue, margin, score, growth). Short format: "$12.4K", "23%", "7/10".\n- scores: every dimension you rated 1–10.\n- bars: ranked percentages or comparisons ([] if none).\n- highlights: 1–2 strength, 1–2 risk, 1–2 action items — max 15 words each.\n- CRITICAL: output raw JSON only between the markers — no markdown, no code fences, no text after INFOGRAPH_DATA_END.`;
     }
   }
 
@@ -453,10 +466,12 @@ async function executeSchedule(schedule: any, supabaseAdmin: any): Promise<void>
   let finalContent = generatedContent;
   if (INFOGRAPHIC_SLUGS.has(playbookSlug)) {
     const { data: infData, cleanText } = parseInfographData(generatedContent);
+    finalContent = cleanText; // always use stripped text — block removed even if JSON failed to parse
     if (infData) {
       infographHtml = generateInfographicHtml(infData);
-      finalContent = cleanText;
       console.log(`[Autopilot] Infographic generated for "${playbookSlug}" — ${infData.kpis.length} KPIs, ${infData.scores?.length || 0} scores`);
+    } else {
+      console.log(`[Autopilot] No infograph data parsed for "${playbookSlug}" — block stripped from content`);
     }
   }
 
