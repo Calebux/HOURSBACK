@@ -208,8 +208,8 @@ export const ecommercePlaybooks: Playbook[] = [
         tips: 'Do not launch on a Friday. Launch Tuesday to Thursday — you want your team available to handle any first-day issues and customer questions.',
         tools: ['Claude'],
       },
-    relatedPlaybooks: [],
     ],
+    relatedPlaybooks: [],
   },
   {
     id: 'ec-4',
@@ -265,8 +265,8 @@ export const ecommercePlaybooks: Playbook[] = [
         tips: 'Film the hook 5 different ways before you do the full script. Show all 5 to 3 people and ask which one made them want to keep watching. Use that one.',
         tools: ['Claude'],
       },
-    relatedPlaybooks: [],
     ],
+    relatedPlaybooks: [],
   },
 ];
 
@@ -329,8 +329,8 @@ export const launchPlaybooks: Playbook[] = [
         tips: 'Schedule all your social posts in advance using Buffer or Later. On launch day you want to be responding to comments, not drafting tweets.',
         tools: ['Claude'],
       },
-    relatedPlaybooks: [],
     ],
+    relatedPlaybooks: [],
   },
   {
     id: 'lg-2',
@@ -450,8 +450,8 @@ export const launchPlaybooks: Playbook[] = [
         tips: 'Test your programme name on existing customers before launching. Run two options in your referral invite email subject line ("You\'ve earned a reward" vs the programme name) and see which gets more opens.',
         tools: ['Claude'],
       },
-    relatedPlaybooks: [],
     ],
+    relatedPlaybooks: [],
   },
   {
     id: 'lg-4',
@@ -497,8 +497,8 @@ export const launchPlaybooks: Playbook[] = [
         tips: 'Send Week 1 check-ins exactly 7 days after onboarding, not before. Users need time to form real opinions. Earlier surveys mostly capture first impressions, not usage insights.',
         tools: ['Claude'],
       },
-    relatedPlaybooks: [],
     ],
+    relatedPlaybooks: [],
   },
 ];
 
@@ -613,8 +613,8 @@ export const personalBrandPlaybooks: Playbook[] = [
         tips: 'Lead every bio with your most impressive result or most specific claim — not your title. "I helped 50 B2B companies double their pipeline" is 10x stronger than "I am a B2B growth consultant."',
         tools: ['Claude'],
       },
-    relatedPlaybooks: [],
     ],
+    relatedPlaybooks: [],
   },
   {
     id: 'pb-3',
@@ -671,8 +671,8 @@ export const personalBrandPlaybooks: Playbook[] = [
         tips: 'If your platform is small, lead with community quality over quantity. "I run a private community of 800 VPs of Sales who are my exact reader" is stronger than "I have 5,000 Twitter followers."',
         tools: ['Claude'],
       },
-    relatedPlaybooks: [],
     ],
+    relatedPlaybooks: [],
   },
   {
     id: 'pb-4',
@@ -798,8 +798,8 @@ export const educationPlaybooks: Playbook[] = [
         tips: 'The most converting sales pages lead with the student\'s problem, not the course curriculum. Save the module list for the middle of the page after you have established that the reader has the problem.',
         tools: ['Claude'],
       },
-    relatedPlaybooks: [],
     ],
+    relatedPlaybooks: [],
   },
   {
     id: 'edu-2',
@@ -919,8 +919,8 @@ export const educationPlaybooks: Playbook[] = [
         tips: 'Print your facilitation notes and annotate them before the workshop. Highlight your timing cues in yellow and your recovery moves in red. When things go sideways, you want to find the recovery move in 2 seconds.',
         tools: ['Claude'],
       },
-    relatedPlaybooks: [],
     ],
+    relatedPlaybooks: [],
   },
   {
     id: 'edu-4',
@@ -966,7 +966,7 @@ export const educationPlaybooks: Playbook[] = [
         tips: 'Charge more than you think you should for your first cohort. You can always reduce the price later; raising it is harder. A higher price also attracts more committed participants who complete the work.',
         tools: ['Claude'],
       },
-    relatedPlaybooks: [],
     ],
+    relatedPlaybooks: [],
   },
 ];
