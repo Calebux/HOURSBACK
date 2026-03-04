@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Calendar, Clock, Sparkles } from 'lucide-react';
+import { isCsvVariable } from './CsvDataInput';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 
@@ -60,11 +61,22 @@ export default function AutopilotModal({ isOpen, onClose, playbook, variables, u
             return;
         }
 
-        // Verify they actually filled out the playbook variables first
-        const missingVars = Object.values(variables).some(v => !v || v.trim() === '');
-        if (missingVars || Object.keys(variables).length === 0) {
-            toast.error('Please fill out all Prompt Variables in the sidebar first before scheduling the agent.');
-            return;
+        // Smart validation: if the playbook uses data files, only require the data variable to be filled
+        const hasCsvVars = Object.keys(variables).some(k => isCsvVariable(k));
+        if (hasCsvVars) {
+            const csvFilled = Object.entries(variables)
+                .filter(([k]) => isCsvVariable(k))
+                .every(([, v]) => v && v.trim() !== '');
+            if (!csvFilled) {
+                toast.error('Please upload your data file or connect a Google Sheet before scheduling.');
+                return;
+            }
+        } else {
+            const missingVars = Object.values(variables).some(v => !v || v.trim() === '');
+            if (missingVars || Object.keys(variables).length === 0) {
+                toast.error('Please fill out all Prompt Variables in the sidebar first before scheduling the agent.');
+                return;
+            }
         }
 
         // Validate custom email if provided

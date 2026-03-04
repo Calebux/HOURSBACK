@@ -185,13 +185,18 @@ export default function PlaybookViewerPage() {
     return Array.from(vars);
   }, [playbook]);
 
+  // True when at least one CSV/data variable has been loaded with content
+  const hasCsvDataLoaded = extractedVariables.some(v => isCsvVariable(v) && variables[v]?.trim());
+
   const getInjectedPrompt = (template: string | undefined): string => {
     if (!template) return '';
     let injected = template;
-    // Iterate over all globally filled variables to support stateful prompts across steps!
     Object.keys(variables).forEach(v => {
       if (variables[v] && variables[v].trim() !== '') {
         injected = injected.split(`[${v}]`).join(variables[v]);
+      } else if (hasCsvDataLoaded && !isCsvVariable(v)) {
+        // CSV is loaded — silently drop unfilled text placeholders so Claude infers from the data
+        injected = injected.split(`[${v}]`).join('');
       }
     });
     return injected;
@@ -483,9 +488,14 @@ export default function PlaybookViewerPage() {
                     Configure Prompt Variables
                   </h3>
                   <div className="space-y-4 relative z-10">
-                    {extractedVariables.map(v => (
-                      <div key={v}>
-                        <label className="block text-xs font-medium text-brand-dark/70 mb-1.5">{v}</label>
+                    {extractedVariables.map(v => {
+                      const isOptional = hasCsvDataLoaded && !isCsvVariable(v);
+                      return (
+                      <div key={v} className={isOptional ? 'opacity-50' : ''}>
+                        <label className="block text-xs font-medium text-brand-dark/70 mb-1.5 flex items-center gap-1.5">
+                          {v}
+                          {isOptional && <span className="text-[10px] font-normal text-brand-dark/40 bg-brand-dark/5 px-1.5 py-0.5 rounded-full">optional</span>}
+                        </label>
                         {isCsvVariable(v) ? (
                           <CsvDataInput
                             variableName={v}
@@ -495,14 +505,15 @@ export default function PlaybookViewerPage() {
                         ) : (
                           <input
                             type="text"
-                            placeholder={`Enter ${v.toLowerCase()}...`}
+                            placeholder={isOptional ? `Leave blank — inferred from your data` : `Enter ${v.toLowerCase()}...`}
                             value={variables[v] || ''}
                             onChange={(e) => setVariables(prev => ({ ...prev, [v]: e.target.value }))}
                             className="w-full px-4 py-2.5 bg-brand-light border border-brand-dark/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue transition-all"
                           />
                         )}
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -659,9 +670,14 @@ export default function PlaybookViewerPage() {
                         Configure Prompt Variables
                       </h3>
                       <div className="space-y-4 relative z-10">
-                        {extractedVariables.map(v => (
-                          <div key={v}>
-                            <label className="block text-xs font-medium text-brand-dark/70 mb-1.5">{v}</label>
+                        {extractedVariables.map(v => {
+                          const isOptional = hasCsvDataLoaded && !isCsvVariable(v);
+                          return (
+                          <div key={v} className={isOptional ? 'opacity-50' : ''}>
+                            <label className="block text-xs font-medium text-brand-dark/70 mb-1.5 flex items-center gap-1.5">
+                              {v}
+                              {isOptional && <span className="text-[10px] font-normal text-brand-dark/40 bg-brand-dark/5 px-1.5 py-0.5 rounded-full">optional</span>}
+                            </label>
                             {isCsvVariable(v) ? (
                               <CsvDataInput
                                 variableName={v}
@@ -671,14 +687,15 @@ export default function PlaybookViewerPage() {
                             ) : (
                               <input
                                 type="text"
-                                placeholder={`Enter ${v.toLowerCase()}...`}
+                                placeholder={isOptional ? `Leave blank — inferred from your data` : `Enter ${v.toLowerCase()}...`}
                                 value={variables[v] || ''}
                                 onChange={(e) => setVariables(prev => ({ ...prev, [v]: e.target.value }))}
                                 className="w-full px-4 py-2.5 bg-brand-light border border-brand-dark/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue transition-all"
                               />
                             )}
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </motion.div>
                   )}

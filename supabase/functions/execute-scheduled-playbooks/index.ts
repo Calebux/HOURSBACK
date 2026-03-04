@@ -397,7 +397,7 @@ async function executeSchedule(schedule: any, supabaseAdmin: any): Promise<void>
     compiledPrompt = `You are an autonomous AI Agent executing the playbook: "${playbookData?.title || playbookSlug}".\n\n`;
     compiledPrompt += `### USER CONFIGURATION:\n`;
     Object.entries(variables).forEach(([key, value]) => {
-      compiledPrompt += `- ${key}: ${value}\n`;
+      if (value && value.trim()) compiledPrompt += `- ${key}: ${value}\n`;
     });
     compiledPrompt += `\n### EXECUTION STEPS:\n`;
 
@@ -405,9 +405,8 @@ async function executeSchedule(schedule: any, supabaseAdmin: any): Promise<void>
       playbookData.steps.forEach((step: any, index: number) => {
         let stepPrompt = step.promptTemplate || "";
         Object.keys(variables).forEach((v) => {
-          if (variables[v]) {
-            stepPrompt = stepPrompt.split(`[${v}]`).join(variables[v]);
-          }
+          // Replace filled variables; silently drop empty ones so Claude infers from data
+          stepPrompt = stepPrompt.split(`[${v}]`).join(variables[v]?.trim() || '');
         });
         compiledPrompt += `STEP ${index + 1}: ${step.title}\n`;
         compiledPrompt += `Instruction: ${step.instruction}\n`;
