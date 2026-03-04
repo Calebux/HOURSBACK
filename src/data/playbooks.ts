@@ -2435,47 +2435,47 @@ export const smbPlaybooks: Playbook[] = [
       {
         id: 'smb-bk-2-s1',
         stepNumber: 1,
-        title: 'Compile Monthly Totals by Category',
-        instruction: 'Before talking to the AI, do a quick grouping of your transactions. In Excel or Google Sheets, use a SUMIF formula or a Pivot Table to add up all amounts by category for the month. This gives the AI structured numbers instead of hundreds of raw rows — faster, cheaper, and more accurate.',
-        promptTemplate: 'I need help building a Profit & Loss statement for [BUSINESS NAME] for the month of [MONTH, YEAR]. \n\nWe are a [DESCRIBE YOUR BUSINESS TYPE e.g. freelance design studio / retail shop / SaaS startup]. We use [cash-basis / accrual-basis] accounting.\n\nHere are our totals by category for [MONTH]:\n\nINCOME:\n- [Category]: $[Amount]\n- [Category]: $[Amount]\n\nEXPENSES:\n- [Category]: $[Amount]\n- [Category]: $[Amount]\n- [Category]: $[Amount]\n[...add all expense lines]\n\nFor reference, last month\'s net profit/loss was $[AMOUNT].\n\nAre you ready to analyze this? Confirm the accounting basis and ask me if you need any clarification before proceeding.',
-        expectedOutput: 'The AI confirms the structure, asks any clarifying questions (cash vs accrual, owner\'s draw treatment, etc.), and signals it\'s ready to build the P&L.',
-        tips: 'In Google Sheets: =SUMIF(C:C,"Software & Subscriptions",D:D) where C is your Category column and D is the Amount column. In Excel: use Data > PivotTable with Category as Row and Amount as Value.'
+        title: 'Upload Your Financial Data',
+        instruction: 'Upload your transactions or summary spreadsheet. The AI will group everything by category, calculate totals, and build the full P&L automatically — no manual aggregation needed.',
+        promptTemplate: 'I need a complete Profit & Loss statement and financial analysis for [Business Name] — [Month & Year].\n\nBusiness type: [Business Type]\n\nHere is the complete financial data for the month:\n[Monthly Financial Data]\n\nFrom this data please:\n1. Group and total all transactions by category (Income vs Expenses)\n2. Build a formatted P&L — Revenue → Gross Profit → Operating Expenses → Net Profit/Loss\n3. Add a "% of Revenue" column to every line\n4. Write a 2-sentence executive summary of overall profitability\n5. List 2–3 things that went well and 2–3 areas of concern\n6. Calculate key metrics: Gross Margin %, Net Margin %, largest expense category\n\nPresent everything in one clean, structured response.',
+        expectedOutput: 'A complete P&L table with category totals, margin percentages, and a plain-English financial narrative — all from your uploaded data.',
+        tips: 'Upload your bank export, accounting software CSV, or a simple two-column spreadsheet (Description, Amount). The AI handles the categorization.'
       },
       {
         id: 'smb-bk-2-s2',
         stepNumber: 2,
         title: 'Generate the Formatted P&L Statement',
-        instruction: 'Ask the AI to produce a formal Profit & Loss statement in a clean, readable format. Request the standard accounting structure — Gross Profit, Operating Expenses, Net Profit — not just a flat list.',
-        promptTemplate: 'Using the numbers I just provided, create a formatted Profit & Loss (Income Statement) for [MONTH YEAR]. Use standard accounting structure:\n\n1. REVENUE — list all income categories with subtotal\n2. COST OF GOODS SOLD (COGS) — if applicable for my business, separate direct costs from overhead\n3. GROSS PROFIT — Revenue minus COGS\n4. OPERATING EXPENSES — list all expense categories with subtotal\n5. OPERATING INCOME — Gross Profit minus Operating Expenses\n6. OTHER INCOME/EXPENSES — interest, one-time items\n7. NET PROFIT (LOSS) — the bottom line\n\nAlso include a column showing the percentage of revenue each line item represents. Format as a clean table I can paste into Excel.',
-        expectedOutput: 'A structured P&L table with all your numbers organized by section, subtotals, and a "% of Revenue" column for each line item.',
-        tips: 'If your business is a service business (no COGS), tell the AI to skip COGS and go straight from Revenue to Operating Expenses.'
+        instruction: 'Ask the AI to produce a formal Profit & Loss statement in a clean, readable format.',
+        promptTemplate: 'Now format the P&L for [Business Name] — [Month & Year] as a clean table using standard accounting structure:\n\n1. REVENUE — all income categories with subtotal\n2. COST OF GOODS SOLD (skip if service business)\n3. GROSS PROFIT\n4. OPERATING EXPENSES — all expense categories with subtotal\n5. NET PROFIT (LOSS)\n\nInclude a "% of Revenue" column. Format so I can paste directly into Excel or Google Sheets.',
+        expectedOutput: 'A structured P&L table with all numbers organized by section, subtotals, and a "% of Revenue" column.',
+        tips: 'If your business is a service business (no COGS), tell the AI to go straight from Revenue to Operating Expenses.'
       },
       {
         id: 'smb-bk-2-s3',
         stepNumber: 3,
         title: 'Get the AI Financial Narrative',
-        instruction: 'A table of numbers tells you what happened. A narrative tells you what it means. Ask the AI to explain the P&L in plain English — identifying wins, concerns, and anomalies a human might miss buried in the rows.',
-        promptTemplate: 'Now analyze this P&L and write a financial narrative for [MONTH YEAR]. Structure it as:\n\n**Executive Summary** (2 sentences: overall profitability and the most important thing to know)\n\n**What Went Well** (2-3 bullet points: revenue drivers, costs that stayed controlled, improvements vs prior month)\n\n**Areas of Concern** (2-3 bullet points: expense categories growing faster than revenue, margin compression, any category that looks unusual)\n\n**Key Metrics**\n- Gross Margin: X%\n- Net Margin: X%\n- Largest Expense Category: [name] at X% of revenue\n- Month-over-Month Net Profit Change: +/-$X (+/-X%)\n\n**One Question to Investigate** (the single thing in these numbers that you, as a financial advisor, would want to dig into further)\n\nWrite this as if you are a CFO presenting to a small business owner who is smart but not a trained accountant.',
-        expectedOutput: 'A clear, human-readable analysis of the month — not just a repeat of the numbers, but actual interpretation and insight.',
-        tips: 'Share this narrative with your business partner, spouse-CFO, or accountant instead of just sending raw numbers. It makes review meetings dramatically shorter.'
+        instruction: 'A table of numbers tells you what happened. A narrative tells you what it means.',
+        promptTemplate: 'Write a financial narrative for [Business Name] — [Month & Year]:\n\n**Executive Summary** (2 sentences: overall profitability and the single most important thing to know)\n\n**What Went Well** (2–3 bullets: revenue drivers, controlled costs, improvements)\n\n**Areas of Concern** (2–3 bullets: expenses growing faster than revenue, margin compression, anything unusual)\n\n**Key Metrics**\n- Gross Margin: X%\n- Net Margin: X%\n- Largest Expense: [category] at X% of revenue\n- Month-over-Month change: +/-$X\n\n**One Question to Investigate** — the single number you would want to dig into further\n\nWrite as a CFO briefing a smart, non-accountant business owner.',
+        expectedOutput: 'A clear, human-readable analysis — interpretation and insight, not a repeat of the numbers.',
+        tips: 'Share this narrative with your accountant instead of raw numbers — it makes review meetings dramatically shorter.'
       },
       {
         id: 'smb-bk-2-s4',
         stepNumber: 4,
         title: 'Build a 3-Month Trend View',
-        instruction: 'Single-month data is a snapshot; three months is a trend. If you have prior months\' data, use this step to identify whether your margins are expanding or contracting — the most critical signal for a small business.',
-        promptTemplate: 'Here are the Net Profit and top expense category totals for the past 3 months:\n\n[MONTH 1]: Revenue $[X], Expenses $[X], Net Profit $[X], Top Expense: [Category] $[X]\n[MONTH 2]: Revenue $[X], Expenses $[X], Net Profit $[X], Top Expense: [Category] $[X]\n[MONTH 3]: Revenue $[X], Expenses $[X], Net Profit $[X], Top Expense: [Category] $[X]\n\nBased on this 3-month trend:\n1. Is revenue growing, flat, or declining? At what rate?\n2. Are expenses growing slower, equal to, or faster than revenue?\n3. Is net margin improving or compressing? By how much?\n4. Which single expense category is growing the fastest? Is it proportional to revenue growth?\n5. If this trend continues for 3 more months, what will the business\'s financial position look like?\n\nBe direct and specific — use percentages and dollar amounts, not vague language.',
-        expectedOutput: 'A data-backed trend analysis with specific growth rates, margin trajectory, and a forward-looking projection based on current direction.',
-        tips: 'No prior month data? Run this playbook for just the current month and use it as Month 1. Build your historical record month by month — by Month 4 you\'ll have real trend data.'
+        instruction: 'A single month is a snapshot; three months is a trend. Use this step to see whether your margins are expanding or contracting.',
+        promptTemplate: 'Based on the data provided, identify revenue and expense trends. Then create a forward projection:\n\n1. Is revenue growing, flat, or declining? At what rate?\n2. Are expenses growing slower or faster than revenue?\n3. Is net margin improving or compressing?\n4. Which expense category is growing fastest relative to revenue?\n5. If this trend continues 3 more months, what does the financial position look like?\n\nBe specific — use percentages and dollar amounts.',
+        expectedOutput: 'A data-backed trend analysis with growth rates, margin trajectory, and a 3-month forward projection.',
+        tips: 'No prior months? Run this step anyway — Claude will project forward from the current month as a baseline.'
       },
       {
         id: 'smb-bk-2-s5',
         stepNumber: 5,
         title: 'Create the Shareable Financial Snapshot',
-        instruction: 'Package everything into a single one-page summary you can share with a business partner, send to your accountant, or keep in your records. This is your Monthly Business Review document.',
-        promptTemplate: 'Create a one-page Monthly Financial Snapshot for [BUSINESS NAME] — [MONTH YEAR]. Combine the P&L table, the narrative, and the trend data into a document with this structure:\n\n**[BUSINESS NAME] — Monthly Financial Snapshot — [MONTH YEAR]**\n\n📊 AT A GLANCE\n- Total Revenue: $X\n- Total Expenses: $X\n- Net Profit/Loss: $X (X% margin)\n- vs. Last Month: +/-$X (+/-X%)\n\n💰 P&L SUMMARY TABLE\n[formatted P&L]\n\n📈 WHAT HAPPENED THIS MONTH\n[2-3 sentence narrative]\n\n⚠️ WATCH LIST\n[any flagged items]\n\n✅ NEXT STEPS\n- [1 financial action to take this month based on the analysis]\n- [1 cost to investigate or reduce]\n- [1 revenue opportunity highlighted by the data]\n\nFormat this cleanly so I can paste it into a Google Doc or email it to my accountant.',
-        expectedOutput: 'A complete, professional Monthly Financial Snapshot document — ready to share, store, or present.',
-        tips: 'Save this as a Google Doc with the naming convention: "[Business Name] — Financial Snapshot — [Month Year]". Create a folder called "Monthly Financials" and build the archive. Your future accountant and future self will thank you.'
+        instruction: 'Package everything into a one-page summary to share with a partner, accountant, or keep in your records.',
+        promptTemplate: 'Create a complete Monthly Financial Snapshot for [Business Name] — [Month & Year]:\n\n**[Business Name] — Monthly Financial Snapshot — [Month & Year]**\n\n📊 AT A GLANCE\n- Total Revenue: $X\n- Total Expenses: $X\n- Net Profit/Loss: $X (X% margin)\n- vs. Prior Period: +/-$X\n\n💰 P&L SUMMARY TABLE\n[formatted P&L]\n\n📈 WHAT HAPPENED THIS MONTH\n[2–3 sentence narrative]\n\n⚠️ WATCH LIST\n[flagged items]\n\n✅ NEXT STEPS\n- 1 financial action to take this month\n- 1 cost to investigate\n- 1 revenue opportunity from the data\n\nFormat for Google Doc or email to accountant.',
+        expectedOutput: 'A complete, professional Monthly Financial Snapshot — ready to share, store, or present.',
+        tips: 'Save as "[Business Name] — Financial Snapshot — [Month Year]" in a Monthly Financials folder. Build the archive month by month.'
       }
     ]
   },
@@ -3715,36 +3715,26 @@ End with:
       {
         id: 'fin-analysis-1-s1',
         stepNumber: 1,
-        title: 'Input your revenue and costs',
-        instruction: 'Give Claude your financial snapshot for the last 3 months so it can calculate your key ratios and identify patterns.',
+        title: 'Upload your financial data',
+        instruction: 'Upload your bank export, accounting CSV, or spreadsheet. Claude will extract the numbers, calculate your key ratios, and identify patterns — no manual entry needed.',
         tools: ['Claude'],
-        promptTemplate: `Please analyse the financial health of my business based on the following data:
+        promptTemplate: `Please analyse the financial health of my business based on the following data.
 
-**Business type:** [e.g. service business, product-based, SaaS, retail]
-**Currency:** [e.g. NGN, USD, GBP]
+Business type: [Business Type]
 
-**Last 3 months revenue:**
-- Month 1: [amount]
-- Month 2: [amount]
-- Month 3: [amount]
-
-**Monthly fixed costs (same every month):**
-[List each: e.g. Rent: X, Staff/salaries: X, Software subscriptions: X, Loan repayments: X]
-
-**Monthly variable costs (change with sales):**
-[List each: e.g. Raw materials: X, Freelancer fees: X, Ad spend: X, Delivery costs: X]
-
-**Average payment terms:** [e.g. clients pay immediately / net 30 days / net 60 days]
-**Outstanding unpaid invoices right now:** [amount or "none"]
+Here is my complete financial data (last 3 months of transactions, P&L, or expense records):
+[Your Financial Data]
 
 From this data, please calculate and explain:
 1. Average monthly revenue and revenue trend (growing / flat / declining)
 2. Gross profit margin
 3. Net profit margin
 4. Fixed cost ratio (fixed costs as % of revenue)
-5. Cash conversion cycle — how long does it take from selling to receiving cash?`,
+5. Cash conversion cycle — how long does it take from selling to receiving cash?
+
+Present all ratios with plain-English explanations of what each means for the business.`,
         expectedOutput: 'Calculated financial ratios with plain-English explanations of what each means for your business.',
-        tips: 'Don\'t guess at your margins — if you\'ve never calculated them before, this step alone is worth the 5 minutes it takes. Most business owners are surprised by their actual net margin when they see it written down.',
+        tips: 'Upload a bank statement CSV, QuickBooks export, or a simple spreadsheet with Date, Description, and Amount columns. Claude handles the rest.',
       },
       {
         id: 'fin-analysis-1-s2',
@@ -3766,7 +3756,7 @@ From this data, please calculate and explain:
 
 4. **Red flags** — are there any numbers that would concern a banker or investor? What are they and why?
 
-5. **How do my margins compare** to typical benchmarks for a [business type] business?
+5. **How do my margins compare** to typical benchmarks for a [Business Type] business?
 
 Be direct and honest — I need accurate feedback, not reassurance.`,
         expectedOutput: 'A financial health scorecard with strengths, risks, red flags, and benchmark comparisons.',
