@@ -21,7 +21,8 @@ import {
   Lock,
   LayoutDashboard,
   RotateCcw,
-  X
+  X,
+  Download
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getCategoryColor, type Playbook, mockPlaybooks, smbPlaybooks, coworkPlaybooks, coworkPluginPlaybooks, designerAIPlaybooks } from '../data/playbooks';
@@ -66,6 +67,8 @@ export default function PlaybookViewerPage() {
   const [hasRated, setHasRated] = useState(false);
   const [isAutopilotModalOpen, setIsAutopilotModalOpen] = useState(false);
   const [isAgentGuideOpen, setIsAgentGuideOpen] = useState(false);
+  const [blueprintLoading, setBlueprintLoading] = useState(false);
+  const [blueprintDone, setBlueprintDone] = useState(false);
 
   // Auto-populate Next Up from same-category playbooks when relatedPlaybooks is empty
   const nextUpPlaybooks = useMemo(() => {
@@ -312,6 +315,37 @@ export default function PlaybookViewerPage() {
       }
     }
   };
+  const handleDownloadBlueprint = async () => {
+    if (!playbook?.agentAutomation) return;
+    setBlueprintLoading(true);
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      const res = await fetch(`${supabaseUrl}/functions/v1/generate-workflow`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': anonKey },
+        body: JSON.stringify({
+          agentAutomation: playbook.agentAutomation,
+          playbookTitle: playbook.title,
+        }),
+      });
+      const { blueprint } = await res.json();
+      const blob = new Blob([blueprint], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${playbook.slug}-make-blueprint.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setBlueprintDone(true);
+      setTimeout(() => setBlueprintDone(false), 3000);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setBlueprintLoading(false);
+    }
+  };
+
   // --- Render Loading / Not Found ---
   if (isLoading) {
     return (
@@ -822,6 +856,22 @@ export default function PlaybookViewerPage() {
                         </span>
                       ))}
                     </div>
+
+                    <button
+                      onClick={handleDownloadBlueprint}
+                      disabled={blueprintLoading}
+                      className="w-full mt-4 py-3 px-5 bg-brand-dark text-white text-sm font-semibold rounded-2xl flex items-center justify-center gap-2 hover:bg-brand-dark/90 transition-colors disabled:opacity-50"
+                    >
+                      {blueprintLoading
+                        ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        : blueprintDone
+                        ? <CheckCircle2 className="w-4 h-4" />
+                        : <Download className="w-4 h-4" />}
+                      {blueprintLoading ? 'Generating blueprint…' : blueprintDone ? 'Downloaded!' : 'Download Make.com Blueprint'}
+                    </button>
+                    <p className="text-[11px] text-brand-dark/40 text-center mt-1.5">
+                      Import into Make.com → Create Scenario → Import Blueprint
+                    </p>
                   </div>
                 </motion.div>
               )}

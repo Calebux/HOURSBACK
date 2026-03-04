@@ -378,3 +378,8 @@ enabled = true
 verify_jwt = false
 import_map = "./functions/flutterwave-webhook/deno.json"
 # entrypoint = "./functions/flutterwave-webhook/index.ts"
+
+[functions.generate-workflow]
+enabled = true
+verify_jwt = false
+import_map = "./functions/generate-workflow/deno.json"
