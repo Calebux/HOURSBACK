@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Bot, Calendar, Clock, CheckCircle2, Play, Pause, ExternalLink, XCircle, ChevronLeft, Edit2, Trash2, AlertTriangle } from 'lucide-react';
+import { Bot, Calendar, Clock, CheckCircle2, Play, Pause, ExternalLink, XCircle, ChevronLeft, Edit2, Trash2, AlertTriangle, RotateCcw, FileDown } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -39,6 +39,7 @@ export default function AutopilotPage() {
     const [activeTab, setActiveTab] = useState<'agents' | 'history'>('agents');
     const [authModalOpen, setAuthModalOpen] = useState(false);
     const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null);
+    const [runningAgainId, setRunningAgainId] = useState<string | null>(null);
 
     // Edit modal state
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -101,6 +102,40 @@ export default function AutopilotPage() {
     const handleEdit = (schedule: ScheduledPlaybook) => {
         setEditingSchedule(schedule);
         setIsModalOpen(true);
+    };
+
+    const handleRunAgain = async (run: AutonomousRun) => {
+        if (!run.schedule_id) { toast.error('No schedule linked to this run'); return; }
+        setRunningAgainId(run.id);
+        try {
+            const { error } = await supabase.functions.invoke('execute-scheduled-playbooks', {
+                body: { schedule_id: run.schedule_id }
+            });
+            if (error) throw error;
+            toast.success('Agent re-run complete — check your email!');
+            fetchAutopilotData();
+        } catch (err: any) {
+            toast.error(err.message || 'Failed to re-run agent');
+        } finally {
+            setRunningAgainId(null);
+        }
+    };
+
+    const handleDownloadPdf = (run: AutonomousRun) => {
+        const title = getPlaybookTitle(run.playbook_slug);
+        const date = new Date(run.created_at).toLocaleString();
+        const w = window.open('', '_blank');
+        if (!w) return;
+        w.document.write(`<!DOCTYPE html><html><head><title>${title}</title>
+        <style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:800px;margin:40px auto;padding:0 24px;color:#202124;line-height:1.7}
+        h1{font-size:22px;font-weight:700;margin-bottom:4px}
+        .meta{font-size:13px;color:#6b7280;margin-bottom:32px}
+        pre{white-space:pre-wrap;font-size:14px;line-height:1.8}
+        @media print{body{margin:0}}</style></head>
+        <body><h1>${title}</h1><p class="meta">Generated on ${date}</p><pre>${run.generated_content}</pre></body></html>`);
+        w.document.close();
+        w.focus();
+        setTimeout(() => w.print(), 400);
     };
 
     const getPlaybookTitle = (slug: string) => {
@@ -276,18 +311,40 @@ export default function AutopilotPage() {
                                                 </p>
                                             </div>
                                         </div>
-                                        {run.run_status === 'success' && (
+                                        <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
+                                            {run.run_status === 'success' && (
+                                                <>
+                                                    <button
+                                                        className="text-xs font-semibold bg-white border border-brand-dark/20 shadow-antigravity-sm px-4 py-2 rounded-xl text-brand-dark hover:border-brand-dark/40 transition-colors flex items-center gap-2"
+                                                        onClick={() => {
+                                                            const w = window.open('', '_blank');
+                                                            if (w) w.document.write(`<pre style="font-family:sans-serif;padding:2rem;max-width:800px;margin:0 auto;white-space:pre-wrap;line-height:1.6">${run.generated_content}</pre>`);
+                                                        }}
+                                                    >
+                                                        <ExternalLink className="w-3 h-3" />
+                                                        Read
+                                                    </button>
+                                                    <button
+                                                        className="text-xs font-semibold bg-white border border-brand-dark/20 shadow-antigravity-sm px-4 py-2 rounded-xl text-brand-dark hover:border-brand-dark/40 transition-colors flex items-center gap-2"
+                                                        onClick={() => handleDownloadPdf(run)}
+                                                    >
+                                                        <FileDown className="w-3 h-3" />
+                                                        PDF
+                                                    </button>
+                                                </>
+                                            )}
                                             <button
-                                                className="text-xs font-semibold bg-white border border-brand-dark/20 shadow-antigravity-sm px-4 py-2 rounded-xl text-brand-dark hover:border-brand-dark/40 transition-colors flex items-center justify-center gap-2 self-start sm:self-auto"
-                                                onClick={() => {
-                                                    const w = window.open('', '_blank');
-                                                    if (w) w.document.write(`<pre style="font-family:sans-serif;padding:2rem;max-width:800px;margin:0 auto;white-space:pre-wrap;line-height:1.6">${run.generated_content}</pre>`);
-                                                }}
+                                                onClick={() => handleRunAgain(run)}
+                                                disabled={runningAgainId === run.id}
+                                                className="text-xs font-semibold bg-[#DA7756]/10 border border-[#DA7756]/20 px-4 py-2 rounded-xl text-[#DA7756] hover:bg-[#DA7756]/20 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                             >
-                                                <ExternalLink className="w-3 h-3" />
-                                                Read Report
+                                                {runningAgainId === run.id ? (
+                                                    <><div className="w-3 h-3 border-2 border-[#DA7756] border-t-transparent rounded-full animate-spin" />Running…</>
+                                                ) : (
+                                                    <><RotateCcw className="w-3 h-3" />Run again</>
+                                                )}
                                             </button>
-                                        )}
+                                        </div>
                                     </div>
                                 ))}
                             </div>

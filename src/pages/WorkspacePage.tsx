@@ -17,13 +17,30 @@ import {
   ArrowRight,
   ChevronRight,
   Target,
-  Bot
+  Bot,
+  FileText,
+  ExternalLink,
+  FileDown,
+  Copy,
+  XCircle
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
-import { getCategoryColor, type Playbook } from '../data/playbooks';
+import { getCategoryColor, type Playbook, mockPlaybooks, smbPlaybooks, coworkPlaybooks, designerAIPlaybooks, coworkPluginPlaybooks } from '../data/playbooks';
 import { getSavedPlaybooks, getPlaybookProgress, toggleSavedPlaybook, getProfile } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
+
+const allPlaybooks = [...mockPlaybooks, ...smbPlaybooks, ...coworkPlaybooks, ...designerAIPlaybooks, ...coworkPluginPlaybooks];
+
+interface AutonomousRun {
+  id: string;
+  schedule_id: string;
+  playbook_slug: string;
+  run_status: 'success' | 'failed';
+  generated_content: string;
+  created_at: string;
+}
 
 // --- XP & Skill Level System ---
 const SKILL_LEVELS = [
@@ -87,9 +104,10 @@ interface InProgressPlaybook extends Playbook {
 }
 
 export default function WorkspacePage() {
-  const [activeTab, setActiveTab] = useState<'in-progress' | 'completed' | 'saved'>('in-progress');
+  const [activeTab, setActiveTab] = useState<'in-progress' | 'completed' | 'saved' | 'results'>('in-progress');
   const [savedPlaybooks, setSavedPlaybooks] = useState<SavedPlaybook[]>([]);
   const [inProgress, setInProgress] = useState<InProgressPlaybook[]>([]);
+  const [results, setResults] = useState<AutonomousRun[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuth();
 
@@ -108,6 +126,15 @@ export default function WorkspacePage() {
       try {
         const profile = await getProfile(user.id, user.email || '');
         setIsAdmin(!!profile?.is_admin);
+
+        // Fetch autopilot run history
+        const { data: runsData } = await supabase
+          .from('autonomous_runs')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(50);
+        if (runsData) setResults(runsData);
 
         const saved = await getSavedPlaybooks(user.id);
         const mappedSaved: SavedPlaybook[] = saved.map(p => ({
@@ -153,8 +180,11 @@ export default function WorkspacePage() {
           if (p.lastAccessed) accessDates.push(p.lastAccessed);
         });
 
+        // Add time saved from autopilot runs (each successful run = 30 min saved)
+        const autopilotTimeSaved = (runsData || []).filter((r: AutonomousRun) => r.run_status === 'success').length * 30;
+
         setTotalXP(xp);
-        setTotalTimeSaved(timeSaved);
+        setTotalTimeSaved(timeSaved + autopilotTimeSaved);
         setTotalCompleted(completed);
         setCurrentStreak(calculateStreak(accessDates));
 
@@ -320,8 +350,8 @@ export default function WorkspacePage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6 border-b border-brand-dark/10 pb-4">
-          {(['in-progress', 'completed', 'saved'] as const).map((tab) => (
+        <div className="flex flex-wrap gap-2 mb-6 border-b border-brand-dark/10 pb-4">
+          {(['in-progress', 'completed', 'saved', 'results'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -333,9 +363,11 @@ export default function WorkspacePage() {
               {tab === 'in-progress' && <Play className="w-3.5 h-3.5" />}
               {tab === 'completed' && <CheckCircle2 className="w-3.5 h-3.5" />}
               {tab === 'saved' && <Bookmark className="w-3.5 h-3.5" />}
+              {tab === 'results' && <FileText className="w-3.5 h-3.5" />}
               {tab === 'in-progress' ? `In Progress (${activePlaybooks.length})` :
                 tab === 'completed' ? `Completed (${completedPlaybooks.length})` :
-                  `Saved (${savedPlaybooks.length})`}
+                tab === 'saved' ? `Saved (${savedPlaybooks.length})` :
+                  `My Results (${results.length})`}
             </button>
           ))}
         </div>
@@ -394,6 +426,80 @@ export default function WorkspacePage() {
                   {savedPlaybooks.map((playbook) => (
                     <SavedCard key={playbook.id} playbook={playbook} onRemove={() => removeSaved(playbook.id)} />
                   ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'results' && (
+            <div>
+              {results.length === 0 ? (
+                <EmptyState
+                  icon={<FileText className="w-12 h-12" />}
+                  title="No agent reports yet"
+                  description="Once your Autopilot agents run, their reports will appear here."
+                  action={{ label: 'Set up Autopilot', href: '/autopilot' }}
+                />
+              ) : (
+                <div className="bg-white shadow-antigravity-md border border-brand-dark/10 rounded-3xl overflow-hidden">
+                  {results.map((run, i) => {
+                    const playbookTitle = allPlaybooks.find(p => p.slug === run.playbook_slug)?.title || run.playbook_slug;
+                    const isSuccess = run.run_status === 'success';
+                    return (
+                      <div key={run.id} className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-5 py-4 ${i < results.length - 1 ? 'border-b border-brand-dark/8' : ''} hover:bg-slate-50/60 transition-colors`}>
+                        <div className="flex items-start gap-3">
+                          <div className={`mt-0.5 w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${isSuccess ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                            {isSuccess ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+                          </div>
+                          <div>
+                            <p className="font-semibold text-sm text-brand-dark">{playbookTitle}</p>
+                            <p className="text-xs text-brand-dark/50 mt-0.5">{new Date(run.created_at).toLocaleString()}</p>
+                          </div>
+                        </div>
+                        {isSuccess && (
+                          <div className="flex items-center gap-2 self-start sm:self-auto">
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(run.generated_content);
+                                toast.success('Copied to clipboard');
+                              }}
+                              className="text-xs font-semibold bg-white border border-brand-dark/20 shadow-antigravity-sm px-3 py-2 rounded-xl text-brand-dark hover:border-brand-dark/40 transition-colors flex items-center gap-1.5"
+                            >
+                              <Copy className="w-3 h-3" />
+                              Copy
+                            </button>
+                            <button
+                              onClick={() => {
+                                const w = window.open('', '_blank');
+                                if (w) w.document.write(`<pre style="font-family:sans-serif;padding:2rem;max-width:800px;margin:0 auto;white-space:pre-wrap;line-height:1.6">${run.generated_content}</pre>`);
+                              }}
+                              className="text-xs font-semibold bg-white border border-brand-dark/20 shadow-antigravity-sm px-3 py-2 rounded-xl text-brand-dark hover:border-brand-dark/40 transition-colors flex items-center gap-1.5"
+                            >
+                              <ExternalLink className="w-3 h-3" />
+                              Read
+                            </button>
+                            <button
+                              onClick={() => {
+                                const w = window.open('', '_blank');
+                                if (!w) return;
+                                w.document.write(`<!DOCTYPE html><html><head><title>${playbookTitle}</title>
+                                <style>body{font-family:-apple-system,sans-serif;max-width:800px;margin:40px auto;padding:0 24px;color:#202124;line-height:1.7}
+                                h1{font-size:22px;font-weight:700;margin-bottom:4px}.meta{font-size:13px;color:#6b7280;margin-bottom:32px}
+                                pre{white-space:pre-wrap;font-size:14px;line-height:1.8}@media print{body{margin:0}}</style></head>
+                                <body><h1>${playbookTitle}</h1><p class="meta">${new Date(run.created_at).toLocaleString()}</p><pre>${run.generated_content}</pre></body></html>`);
+                                w.document.close();
+                                setTimeout(() => w.print(), 400);
+                              }}
+                              className="text-xs font-semibold bg-white border border-brand-dark/20 shadow-antigravity-sm px-3 py-2 rounded-xl text-brand-dark hover:border-brand-dark/40 transition-colors flex items-center gap-1.5"
+                            >
+                              <FileDown className="w-3 h-3" />
+                              PDF
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>

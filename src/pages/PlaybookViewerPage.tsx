@@ -32,6 +32,7 @@ import { AuthModal } from '../components/AuthModal';
 import WebhookExecutor from '../components/WebhookExecutor';
 import AgentCopilot from '../components/AgentCopilot';
 import AutopilotModal from '../components/AutopilotModal';
+import CsvDataInput, { isCsvVariable } from '../components/CsvDataInput';
 import { toast } from 'sonner';
 
 const fadeInUp = {
@@ -456,13 +457,21 @@ export default function PlaybookViewerPage() {
                     {extractedVariables.map(v => (
                       <div key={v}>
                         <label className="block text-xs font-medium text-brand-dark/70 mb-1.5">{v}</label>
-                        <input
-                          type="text"
-                          placeholder={`Enter ${v.toLowerCase()}...`}
-                          value={variables[v] || ''}
-                          onChange={(e) => setVariables(prev => ({ ...prev, [v]: e.target.value }))}
-                          className="w-full px-4 py-2.5 bg-brand-light border border-brand-dark/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue transition-all"
-                        />
+                        {isCsvVariable(v) ? (
+                          <CsvDataInput
+                            variableName={v}
+                            value={variables[v] || ''}
+                            onChange={(val) => setVariables(prev => ({ ...prev, [v]: val }))}
+                          />
+                        ) : (
+                          <input
+                            type="text"
+                            placeholder={`Enter ${v.toLowerCase()}...`}
+                            value={variables[v] || ''}
+                            onChange={(e) => setVariables(prev => ({ ...prev, [v]: e.target.value }))}
+                            className="w-full px-4 py-2.5 bg-brand-light border border-brand-dark/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue transition-all"
+                          />
+                        )}
                       </div>
                     ))}
                   </div>
@@ -624,13 +633,21 @@ export default function PlaybookViewerPage() {
                         {extractedVariables.map(v => (
                           <div key={v}>
                             <label className="block text-xs font-medium text-brand-dark/70 mb-1.5">{v}</label>
-                            <input
-                              type="text"
-                              placeholder={`Enter ${v.toLowerCase()}...`}
-                              value={variables[v] || ''}
-                              onChange={(e) => setVariables(prev => ({ ...prev, [v]: e.target.value }))}
-                              className="w-full px-4 py-2.5 bg-brand-light border border-brand-dark/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue transition-all"
-                            />
+                            {isCsvVariable(v) ? (
+                              <CsvDataInput
+                                variableName={v}
+                                value={variables[v] || ''}
+                                onChange={(val) => setVariables(prev => ({ ...prev, [v]: val }))}
+                              />
+                            ) : (
+                              <input
+                                type="text"
+                                placeholder={`Enter ${v.toLowerCase()}...`}
+                                value={variables[v] || ''}
+                                onChange={(e) => setVariables(prev => ({ ...prev, [v]: e.target.value }))}
+                                className="w-full px-4 py-2.5 bg-brand-light border border-brand-dark/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue transition-all"
+                              />
+                            )}
                           </div>
                         ))}
                       </div>
