@@ -496,24 +496,50 @@ async function executeSchedule(schedule: any, supabaseAdmin: any): Promise<void>
 
     // Analysis playbooks: ask Claude to append structured metric JSON
     if (INFOGRAPHIC_SLUGS.has(playbookSlug)) {
-      compiledPrompt += `\n\nDOCUMENT STRUCTURE — your response MUST begin with this full dashboard section. Fill in every placeholder with real numbers from the data provided. Do not skip any sub-section.\n\n## 📊 DASHBOARD: AT A GLANCE\n**Period:** [reporting period] | **Currency:** [currency] | **Prepared by:** Hoursback Autopilot\n\n### KPI Scorecard\n| Metric | Current | vs Prior | Status |\n|---|---|---|---|\n| Total Revenue | [value] | [+/-X%] | [🟢 Good / 🟡 Watch / 🔴 Alert] |\n| Gross Profit | [value] | [+/-X%] | [status] |\n| Net Profit | [value] | [+/-X%] | [status] |\n| Gross Margin | [X%] | [+/-Xpp] | [status] |\n| Net Margin | [X%] | [+/-Xpp] | [status] |\n| EBITDA | [value] | [+/-X%] | [status] |\n\n### 6-Month Revenue & Profit Trend\n| Month | Revenue | Gross Profit | Net Profit | Net Margin |\n|---|---|---|---|---|\n| [Month -5] | [value] | [value] | [value] | [X%] |\n| [Month -4] | [value] | [value] | [value] | [X%] |\n| [Month -3] | [value] | [value] | [value] | [X%] |\n| [Month -2] | [value] | [value] | [value] | [X%] |\n| [Month -1] | [value] | [value] | [value] | [X%] |\n| [Current] | [value] | [value] | [value] | [X%] |\n(If prior months are not in the data, use "N/A" — do not omit the table.)\n\n### Top 5 Revenue Sources\nUse ASCII horizontal bars scaled to the largest source (20 blocks = 100%). Format exactly like this:\nProduct Sales    ████████████████████  ₦33,980,000 (69.7%)\nService Revenue  ████████████          ₦9,630,000  (19.8%)\nOther Income     ██████                ₦5,140,000  (10.5%)\n\n### Top 5 Expenses by Category\nSame ASCII bar format scaled to the largest expense:\nRaw Materials    ████████████████████  ₦13,890,000 (28.5%)\nSalaries         ████████████          ₦8,730,000  (17.9%)\n\n### ⚠️ Watch List\n- [Specific concern with a number]\n- [Specific concern with a number]\n- [Specific concern with a number]\n\n### ✅ Next Steps\n- [Concrete action with timeline]\n- [Concrete action with timeline]\n- [Concrete action with timeline]\n\n---\n\nThen continue with the full detailed analysis below.`;
+      compiledPrompt += `\n\nSTRICT DOCUMENT STRUCTURE — follow this EXACT outline. No extra sections. No repeated data.\n\nSECTION 1 — DASHBOARD (write this first, fill every placeholder with real numbers):\n\n## 📊 DASHBOARD: AT A GLANCE\n**Period:** [period] | **Currency:** [currency] | **Prepared by:** Hoursback Autopilot\n\n### KPI Scorecard\n| Metric | Current | vs Prior | Status |\n|---|---|---|---|\n| Total Revenue | [value] | [+/-X%] | 🟢/🟡/🔴 |\n| Gross Profit | [value] | [+/-X%] | 🟢/🟡/🔴 |\n| Net Profit | [value] | [+/-X%] | 🟢/🟡/🔴 |\n| Gross Margin | [X%] | [+/-Xpp] | 🟢/🟡/🔴 |\n| Net Margin | [X%] | [+/-Xpp] | 🟢/🟡/🔴 |\n| EBITDA | [value] | [+/-X%] | 🟢/🟡/🔴 |\n\n### 6-Month Revenue & Profit Trend\n| Month | Revenue | Gross Profit | Net Profit | Net Margin |\n|---|---|---|---|---|\n| [oldest month] | [v] | [v] | [v] | [%] |\n| ... | | | | |\n| [current month] | [v] | [v] | [v] | [%] |\n\n### Top 5 Revenue Sources\nDo NOT wrap in backticks or code fences. Write plain text exactly like this example:\nProduct Sales    ████████████████████  ₦33,980,000 (69.7%)\nService Revenue  ████████████          ₦9,630,000  (19.8%)\nOther Income     ██████                ₦5,140,000  (10.5%)\n\n### Top 5 Expenses by Category\nSame plain-text ASCII bar format (no backticks):\nRaw Materials    ████████████████████  ₦13,890,000 (28.5%)\nSalaries         ████████████          ₦8,730,000  (17.9%)\n\n### ⚠️ Watch List\n- [specific concern + number]\n- [specific concern + number]\n- [specific concern + number]\n\n### ✅ Next Steps\n- [concrete action + deadline]\n- [concrete action + deadline]\n- [concrete action + deadline]\n\n---\n\nSECTION 2 — EXECUTIVE SUMMARY (3–5 sentences, no tables, no bullet lists — prose only)\n\nSECTION 3 — WHAT WENT WELL (3–5 bullets, brief, no sub-bullets)\n\nSECTION 4 — AREAS OF CONCERN (3–5 bullets, brief, no sub-bullets)\n\nSECTION 5 — TREND ANALYSIS (prose + one table maximum if trend data is available)\n\nSECTION 6 — ONE KEY QUESTION TO INVESTIGATE (single focused question with context)\n\nSECTION 7 — ACCOUNTANT BRIEFING NOTES (5–7 bullet points)\n\nSTOP after Section 7. Do NOT add:\n- A "Key Metrics" section (already in KPI Scorecard)\n- A "One-Page Financial Snapshot" section (already covered by Section 1)\n- A second Watch List or Next Steps anywhere\n- A second P&L table in the body (already in the visual dashboard)\n- Any section that repeats numbers already shown in the KPI Scorecard or ASCII charts`;
       compiledPrompt += `\n\n---\nFINAL STEP — after finishing your full analysis, append EXACTLY this block at the very end. Raw JSON only. No markdown, no code fences, no extra text after INFOGRAPH_DATA_END.\n\nINFOGRAPH_DATA_START\n{"title":"${(playbookData?.title || playbookSlug).replace(/"/g, "'")}","kpis":[{"label":"Total Revenue","value":"₦48.75M","trend":"down","note":"-0.73% vs prior"},{"label":"Net Profit","value":"₦6.01M","trend":"down","note":"-18.7% vs prior"},{"label":"Gross Margin","value":"51.8%","trend":"down"},{"label":"Net Margin","value":"12.3%","trend":"down"},{"label":"EBITDA","value":"₦9.28M","trend":"down"}],"tables":[{"title":"P&L Summary","headers":["Line Item","Amount","vs Prior"],"rows":[["TOTAL REVENUE","₦48.75M","-0.73%"],["Cost of Goods","₦23.48M","+3.9%"],["GROSS PROFIT","₦25.27M","-4.7%"],["Total Opex","₦15.99M","+4.8%"],["EBITDA","₦9.28M","-2.1%"],["NET PROFIT","₦6.01M","-18.7%"]]}],"bars":[{"label":"Raw Materials","value":13.89,"max":16,"unit":"M"},{"label":"Salaries","value":8.73,"max":16,"unit":"M"},{"label":"Rent & Utils","value":2.65,"max":16,"unit":"M"},{"label":"Marketing","value":1.78,"max":16,"unit":"M"},{"label":"Logistics","value":1.38,"max":16,"unit":"M"}],"highlights":[{"type":"strength","text":"Gross margin at 51.8% — strong pricing power maintained"},{"type":"risk","text":"Net profit fell 18.7% as OPEX grew faster than revenue"},{"type":"action","text":"Reduce Raw Materials cost — it is 28.5% of revenue and rising"}]}\nINFOGRAPH_DATA_END\n\nIMPORTANT — replace every example value with REAL numbers from your analysis above:\n- kpis: exactly 4–5 headline figures. trend = "up", "down", or "neutral". note = short comparison like "-18% vs prior".\n- tables: ONE P&L summary, max 3 columns, max 8 rows. Rows starting with TOTAL/GROSS/NET/EBITDA/REVENUE will be bold.\n- bars: top 4–5 largest costs/expenses as plain numbers. max = largest value rounded up to nearest 5 or 10.\n- highlights: exactly 3 items — one strength, one risk, one action. Max 15 words each. Be specific with numbers.\n- Output the JSON as a single line with no line breaks inside it.`;
     }
   }
 
-  // Call Claude
-  if (!ANTHROPIC_API_KEY) throw new Error("Missing ANTHROPIC_API_KEY");
-  const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
-  const msg = await anthropic.messages.create({
-    model: "claude-sonnet-4-5",
-    max_tokens: 8192,
-    system:
-      "You are an autonomous expert consultant executing a scheduled playbook. Produce COMPLETE, polished output — never truncate, never summarize, never say 'and so on'. If the task is a 30-day calendar, write all 30 days. If it is a sequence, write every item in full. Structure output with clear headings and day/item labels. No conversational filler — only the final deliverable.",
-    messages: [{ role: "user", content: compiledPrompt }],
-  });
+  // Call OpenAI for infographic/analysis playbooks, Claude for everything else
+  const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+  let generatedContent: string;
 
-  // @ts-ignore
-  const generatedContent = msg.content[0].text;
+  if (INFOGRAPHIC_SLUGS.has(playbookSlug) && OPENAI_API_KEY) {
+    const oaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${OPENAI_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "gpt-4o",
+        max_tokens: 8192,
+        messages: [
+          {
+            role: "system",
+            content: "You are an autonomous expert financial consultant executing a scheduled playbook. Produce COMPLETE, polished output — never truncate, never summarize, never say 'and so on'. Structure output with clear headings. No conversational filler — only the final deliverable.",
+          },
+          { role: "user", content: compiledPrompt },
+        ],
+      }),
+    });
+    const oaiData = await oaiRes.json();
+    if (!oaiRes.ok) throw new Error(`OpenAI error: ${JSON.stringify(oaiData)}`);
+    generatedContent = oaiData.choices[0].message.content;
+  } else {
+    if (!ANTHROPIC_API_KEY) throw new Error("Missing ANTHROPIC_API_KEY");
+    const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
+    const msg = await anthropic.messages.create({
+      model: "claude-sonnet-4-5",
+      max_tokens: 8192,
+      system:
+        "You are an autonomous expert consultant executing a scheduled playbook. Produce COMPLETE, polished output — never truncate, never summarize, never say 'and so on'. If the task is a 30-day calendar, write all 30 days. If it is a sequence, write every item in full. Structure output with clear headings and day/item labels. No conversational filler — only the final deliverable.",
+      messages: [{ role: "user", content: compiledPrompt }],
+    });
+    // @ts-ignore
+    generatedContent = msg.content[0].text;
+  }
 
   // Parse infographic data from analysis playbooks
   let infographHtml = "";
