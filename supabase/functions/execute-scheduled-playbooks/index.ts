@@ -17,17 +17,17 @@ const corsHeaders = {
 // Markdown → HTML converter (handles Claude's typical output)
 // ---------------------------------------------------------------------------
 function markdownToHtml(md: string): string {
+  if (!md) return "";
   const lines = md.split("\n");
   const html: string[] = [];
   let inList = false;
   let listType = "";
+  let inTable = false;
+  let tableHeaders: string[] | null = null;
+  let tableRows: string[][] = [];
 
   const closeList = () => {
-    if (inList) {
-      html.push(listType === "ul" ? "</ul>" : "</ol>");
-      inList = false;
-      listType = "";
-    }
+    if (inList) { html.push(listType === "ul" ? "</ul>" : "</ol>"); inList = false; listType = ""; }
   };
 
   const inline = (text: string) =>
@@ -35,47 +35,63 @@ function markdownToHtml(md: string): string {
       .replace(/\*\*\*(.+?)\*\*\*/g, "<strong><em>$1</em></strong>")
       .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
       .replace(/\*(.+?)\*/g, "<em>$1</em>")
-      .replace(/`(.+?)`/g, '<code style="background:#e5e7eb;padding:1px 5px;border-radius:4px;font-size:13px;">$1</code>');
+      .replace(/`([^`]+)`/g, '<code style="background:#e5e7eb;padding:1px 5px;border-radius:4px;font-size:13px;">$1</code>')
+      .replace(/\*\*/g, ""); // strip any unmatched ** markers
+
+  const flushTable = () => {
+    if (!inTable || !tableHeaders) return;
+    const thCells = tableHeaders.map((h, hi) =>
+      `<th style="padding:9px 12px;font-size:11px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:0.5px;text-align:${hi === 0 ? "left" : "right"};border:1px solid #bfdbfe;">${inline(h)}</th>`
+    ).join("");
+    const tdRows = tableRows.map((row, ri) =>
+      `<tr style="background:${ri % 2 === 0 ? "#ffffff" : "#f8fafc"};">${
+        row.map((cell, ci) =>
+          `<td style="padding:9px 12px;font-size:13px;color:${ci === 0 ? "#111827" : "#374151"};font-weight:${ci === 0 ? "600" : "400"};text-align:${ci === 0 ? "left" : "right"};border:1px solid #e2e8f0;">${inline(cell)}</td>`
+        ).join("")
+      }</tr>`
+    ).join("");
+    html.push(
+      `<div style="margin:16px 0;border-radius:8px;border:1px solid #e2e8f0;overflow-x:auto;">`
+      + `<table style="width:100%;border-collapse:collapse;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">`
+      + `<thead><tr style="background:#eff6ff;">${thCells}</tr></thead>`
+      + `<tbody>${tdRows}</tbody></table></div>`
+    );
+    inTable = false; tableHeaders = null; tableRows = [];
+  };
 
   for (const raw of lines) {
     const line = raw.trimEnd();
 
-    // Horizontal rule
+    if (line.startsWith("```")) { continue; }
+
+    if (/^\|.+\|/.test(line)) {
+      const cells = line.split("|").slice(1, -1).map(c => c.trim());
+      if (cells.every(c => /^[-:| ]+$/.test(c))) continue;
+      if (!inTable) { inTable = true; tableHeaders = cells; tableRows = []; }
+      else { tableRows.push(cells); }
+      continue;
+    }
+
+    if (inTable) flushTable();
+
     if (/^---+$/.test(line)) { closeList(); html.push('<hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0;">'); continue; }
+    if (/^# /.test(line))    { closeList(); html.push(`<h1 style="font-size:22px;font-weight:700;color:#111827;margin:28px 0 8px;">${inline(line.slice(2))}</h1>`); continue; }
+    if (/^## /.test(line))   { closeList(); html.push(`<h2 style="font-size:18px;font-weight:700;color:#111827;margin:22px 0 6px;">${inline(line.slice(3))}</h2>`); continue; }
+    if (/^### /.test(line))  { closeList(); html.push(`<h3 style="font-size:15px;font-weight:600;color:#374151;margin:16px 0 4px;">${inline(line.slice(4))}</h3>`); continue; }
+    if (/^#### /.test(line)) { closeList(); html.push(`<h4 style="font-size:13px;font-weight:600;color:#374151;margin:12px 0 3px;">${inline(line.slice(5))}</h4>`); continue; }
 
-    // H1
-    if (/^# /.test(line)) { closeList(); html.push(`<h1 style="font-size:20px;font-weight:700;color:#202124;margin:24px 0 8px;">${inline(line.slice(2))}</h1>`); continue; }
+    const ulMatch = line.match(/^[-*] (.+)/);
+    if (ulMatch) { if (!inList || listType !== "ul") { closeList(); html.push('<ul style="margin:8px 0;padding-left:20px;">'); inList = true; listType = "ul"; } html.push(`<li style="margin:4px 0;color:#374151;line-height:1.7;">${inline(ulMatch[1])}</li>`); continue; }
 
-    // H2
-    if (/^## /.test(line)) { closeList(); html.push(`<h2 style="font-size:17px;font-weight:700;color:#202124;margin:20px 0 6px;">${inline(line.slice(3))}</h2>`); continue; }
-
-    // H3
-    if (/^### /.test(line)) { closeList(); html.push(`<h3 style="font-size:15px;font-weight:600;color:#202124;margin:16px 0 4px;">${inline(line.slice(4))}</h3>`); continue; }
-
-    // Unordered list item
-    const ulMatch = line.match(/^[\-\*] (.+)/);
-    if (ulMatch) {
-      if (!inList || listType !== "ul") { closeList(); html.push('<ul style="margin:8px 0;padding-left:20px;">'); inList = true; listType = "ul"; }
-      html.push(`<li style="margin:4px 0;color:#374151;line-height:1.7;">${inline(ulMatch[1])}</li>`);
-      continue;
-    }
-
-    // Ordered list item
     const olMatch = line.match(/^\d+\. (.+)/);
-    if (olMatch) {
-      if (!inList || listType !== "ol") { closeList(); html.push('<ol style="margin:8px 0;padding-left:20px;">'); inList = true; listType = "ol"; }
-      html.push(`<li style="margin:4px 0;color:#374151;line-height:1.7;">${inline(olMatch[1])}</li>`);
-      continue;
-    }
+    if (olMatch) { if (!inList || listType !== "ol") { closeList(); html.push('<ol style="margin:8px 0;padding-left:20px;">'); inList = true; listType = "ol"; } html.push(`<li style="margin:4px 0;color:#374151;line-height:1.7;">${inline(olMatch[1])}</li>`); continue; }
 
-    // Blank line
     if (line.trim() === "") { closeList(); html.push(""); continue; }
-
-    // Regular paragraph
     closeList();
-    html.push(`<p style="margin:6px 0;color:#374151;line-height:1.8;font-size:14px;">${inline(line)}</p>`);
+    html.push(`<p style="margin:7px 0;color:#374151;line-height:1.8;font-size:15px;">${inline(line)}</p>`);
   }
 
+  if (inTable) flushTable();
   closeList();
   return html.join("\n");
 }
@@ -159,6 +175,9 @@ const INFOGRAPHIC_SLUGS = new Set([
   "hire-or-stay-solo-financial-decision",
   "pricing-strategy-reset",
   "invoice-cash-flow-guardian",
+  "weekly-ceo-briefing",
+  "sales-pipeline-health",
+  "accounts-receivable-aging",
 ]);
 
 type InfographData = {
@@ -216,17 +235,25 @@ function generateInfographicHtml(d: InfographData): string {
   const build = (data: InfographData, C: C): string => {
     const ACCENT = ["#118dff","#00b4d8","#e66c37","#8bc34a","#c77dff"];
 
+    // Lucide-style SVG icons — 2px stroke, rounded linecap/linejoin
+    const icoUp    = `<svg width='9' height='9' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round' style='display:inline-block;vertical-align:middle'><polyline points='18 15 12 9 6 15'/></svg>`;
+    const icoDown  = `<svg width='9' height='9' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round' style='display:inline-block;vertical-align:middle'><polyline points='6 9 12 15 18 9'/></svg>`;
+    const icoCheck = `<svg width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' style='display:inline-block;vertical-align:middle'><circle cx='12' cy='12' r='10'/><polyline points='9 12 11 14 15 10'/></svg>`;
+    const icoAlert = `<svg width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' style='display:inline-block;vertical-align:middle'><path d='M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z'/><line x1='12' y1='9' x2='12' y2='13'/><line x1='12' y1='17' x2='12.01' y2='17'/></svg>`;
+    const icoArrow = `<svg width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' style='display:inline-block;vertical-align:middle'><line x1='5' y1='12' x2='19' y2='12'/><polyline points='12 5 19 12 12 19'/></svg>`;
+    const icoSquare = `<svg width='8' height='8' viewBox='0 0 8 8' xmlns='http://www.w3.org/2000/svg' style='display:inline-block;vertical-align:middle;margin-right:5px;margin-bottom:1px'><rect width='8' height='8' rx='2' fill='currentColor'/></svg>`;
+
     const kpiHtml = data.kpis.map((k, i) => {
       const accent = ACCENT[i % ACCENT.length];
       const tc = k.trend === "up" ? "#4ade80" : k.trend === "down" ? "#f87171" : C.muted;
-      const arrow = k.trend === "up" ? "&#9650;" : k.trend === "down" ? "&#9660;" : "";
-      const badge = arrow ? `<div style='margin-top:5px'><span style='background:${tc}20;color:${tc};font-size:9px;font-weight:700;padding:2px 7px;border-radius:999px;letter-spacing:.3px'>${arrow} ${(k.trend||"").toUpperCase()}</span></div>` : "";
+      const trendIco = k.trend === "up" ? icoUp : k.trend === "down" ? icoDown : "";
+      const badge = trendIco ? `<div style='margin-top:7px'><span style='display:inline-flex;align-items:center;gap:3px;background:${tc}20;color:${tc};font-size:9px;font-weight:700;padding:2px 8px 2px 6px;border-radius:999px;letter-spacing:.3px'>${trendIco} ${(k.trend||"").toUpperCase()}</span></div>` : "";
       return `<td style='padding:0;vertical-align:top;border-right:1px solid ${C.bdr};width:${Math.floor(100/data.kpis.length)}%'>`
-        + `<div style='border-top:3px solid ${accent};padding:15px 13px'>`
-        + `<div style='font-size:9px;color:${C.muted};font-weight:600;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px'>${k.label}</div>`
+        + `<div style='border-top:3px solid ${accent};padding:18px 15px 16px'>`
+        + `<div style='font-size:9px;color:${C.muted};font-weight:600;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px'>${k.label}</div>`
         + `<div style='font-size:22px;font-weight:800;color:${C.text};letter-spacing:-.5px;line-height:1'>${k.value}</div>`
         + badge
-        + (k.note ? `<div style='font-size:9px;color:${C.muted};margin-top:4px;line-height:1.3'>${k.note}</div>` : "")
+        + (k.note ? `<div style='font-size:9px;color:${C.muted};margin-top:5px;line-height:1.4'>${k.note}</div>` : "")
         + `</div></td>`;
     }).join("");
 
@@ -242,23 +269,24 @@ function generateInfographicHtml(d: InfographData): string {
           + `<text x='${LW+BW+7}' y='${y+11}' fill='${color}' font-size='10' font-weight='bold' dominant-baseline='middle'>${val}</text>`;
       }).join("");
       return `<svg width='${W}' height='${H}' viewBox='0 0 ${W} ${H}' xmlns='http://www.w3.org/2000/svg' style='display:block;width:100%;max-width:${W}px'>`
-        + `<text x='0' y='13' fill='${C.stitle}' font-size='9' font-weight='bold' letter-spacing='1.5'>&#9632; TOP EXPENSES</text>`
+        + `<rect x='0' y='3' width='8' height='8' rx='2' fill='${C.stitle}'/>`
+        + `<text x='13' y='12' fill='${C.stitle}' font-size='9' font-weight='bold' letter-spacing='1.5'>TOP EXPENSES</text>`
         + rows + `</svg>`;
     };
 
     const renderTable = (t: { title?: string; headers: string[]; rows: string[][] }) => {
       const th = t.headers.map((h, hi) =>
-        `<td style='padding:7px 10px;font-size:9px;font-weight:700;color:#118dff;text-transform:uppercase;letter-spacing:.5px;${hi > 0 ? "text-align:right;" : ""}${hi < t.headers.length-1 ? "border-right:1px solid "+C.bdr+";" : ""}'>${h}</td>`
+        `<td style='padding:9px 12px;font-size:9px;font-weight:700;color:#118dff;text-transform:uppercase;letter-spacing:.5px;${hi > 0 ? "text-align:right;" : ""}${hi < t.headers.length-1 ? "border-right:1px solid "+C.bdr+";" : ""}'>${h}</td>`
       ).join("");
       const trs = t.rows.map((row, ri) => {
         const isBold = /^(total|gross|net|ebitda|profit|loss|revenue)/i.test(row[0]);
         const bg = isBold ? C.boldRow : ri%2===0 ? C.panel : C.panel2;
         const cells = row.map((c, ci) =>
-          `<td style='padding:7px 10px;font-size:11px;color:${isBold ? C.text : (ci===0 ? C.text : C.cell)};font-weight:${isBold?"700":"400"};${ci > 0 ? "text-align:right;" : ""}${ci < row.length-1 ? "border-right:1px solid "+C.bdr+";" : ""}border-bottom:1px solid ${C.bdr}'>${c}</td>`
+          `<td style='padding:9px 12px;font-size:11px;color:${isBold ? C.text : (ci===0 ? C.text : C.cell)};font-weight:${isBold?"700":"400"};${ci > 0 ? "text-align:right;" : ""}${ci < row.length-1 ? "border-right:1px solid "+C.bdr+";" : ""}border-bottom:1px solid ${C.bdr}'>${c}</td>`
         ).join("");
         return `<tr style='background:${bg}'>${cells}</tr>`;
       }).join("");
-      const title = t.title ? `<div style='font-size:9px;font-weight:700;color:#118dff;letter-spacing:1px;text-transform:uppercase;margin-bottom:7px'>&#9632; ${t.title}</div>` : "";
+      const title = t.title ? `<div style='font-size:9px;font-weight:700;color:#118dff;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:5px'>${icoSquare}${t.title}</div>` : "";
       return title
         + `<div style='border-radius:6px;overflow:hidden;border:1px solid ${C.bdr}'>`
         + `<table width='100%' cellpadding='0' cellspacing='0' style='border-collapse:collapse'>`
@@ -272,50 +300,50 @@ function generateInfographicHtml(d: InfographData): string {
     if (hasTables && hasBars) {
       bodySection =
         `<table width='100%' cellpadding='0' cellspacing='0' style='border-top:1px solid ${C.bdr}'><tr>`
-        + `<td width='58%' style='padding:18px 14px 16px 20px;vertical-align:top;border-right:1px solid ${C.bdr}'>`
+        + `<td width='58%' style='padding:22px 16px 20px 24px;vertical-align:top;border-right:1px solid ${C.bdr}'>`
         + data.tables!.map(renderTable).join("")
-        + `</td><td width='42%' style='padding:18px 20px 16px 16px;vertical-align:top'>`
+        + `</td><td width='42%' style='padding:22px 24px 20px 18px;vertical-align:top'>`
         + svgBars(data.bars!)
         + `</td></tr></table>`;
     } else if (hasTables) {
-      bodySection = `<div style='padding:18px 20px 16px;border-top:1px solid ${C.bdr}'>${data.tables!.map(renderTable).join("")}</div>`;
+      bodySection = `<div style='padding:22px 24px 20px;border-top:1px solid ${C.bdr}'>${data.tables!.map(renderTable).join("")}</div>`;
     } else if (hasBars) {
-      bodySection = `<div style='padding:18px 20px 16px;border-top:1px solid ${C.bdr}'>${svgBars(data.bars!)}</div>`;
+      bodySection = `<div style='padding:22px 24px 20px;border-top:1px solid ${C.bdr}'>${svgBars(data.bars!)}</div>`;
     }
 
     const iCfg: Record<string, { accent: string; icon: string; label: string }> = {
-      strength: { accent: "#4ade80", icon: "&#10022;", label: "STRENGTH" },
-      risk:     { accent: "#facc15", icon: "&#9873;",  label: "RISK"     },
-      action:   { accent: "#118dff", icon: "&rarr;",   label: "ACTION"   },
+      strength: { accent: "#4ade80", icon: icoCheck, label: "STRENGTH" },
+      risk:     { accent: "#facc15", icon: icoAlert, label: "RISK"     },
+      action:   { accent: "#118dff", icon: icoArrow, label: "ACTION"   },
     };
     const insightsSection = (data.highlights && data.highlights.length) ? (
-      `<div style='padding:16px 20px;border-top:1px solid ${C.bdr}'>`
-      + `<div style='font-size:9px;font-weight:700;color:${C.muted};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px'>&#9632; KEY INSIGHTS &amp; ACTIONS</div>`
+      `<div style='padding:20px 24px;border-top:1px solid ${C.bdr}'>`
+      + `<div style='font-size:9px;font-weight:700;color:${C.muted};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:5px'>${icoSquare}KEY INSIGHTS &amp; ACTIONS</div>`
       + `<table width='100%' cellpadding='0' cellspacing='0'><tr>`
       + data.highlights.map((h, hi) => {
         const cfg = iCfg[h.type] || iCfg.action;
-        return `<td style='vertical-align:top;padding:${hi < data.highlights!.length-1 ? "0 8px 0 0" : "0"};width:${Math.floor(100/data.highlights!.length)}%'>`
-          + `<div style='padding:10px 12px;background:${cfg.accent}18;border-top:2px solid ${cfg.accent};border-radius:0 0 6px 6px'>`
-          + `<div style='font-size:9px;font-weight:800;color:${cfg.accent};letter-spacing:.8px;text-transform:uppercase;margin-bottom:5px'>${cfg.icon} ${cfg.label}</div>`
-          + `<div style='font-size:11px;color:${C.text};line-height:1.5;font-weight:500'>${h.text}</div>`
+        return `<td style='vertical-align:top;padding:${hi < data.highlights!.length-1 ? "0 10px 0 0" : "0"};width:${Math.floor(100/data.highlights!.length)}%'>`
+          + `<div style='padding:12px 14px;background:${cfg.accent}18;border-top:2px solid ${cfg.accent};border-radius:0 0 6px 6px'>`
+          + `<div style='display:flex;align-items:center;gap:4px;color:${cfg.accent};font-size:9px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;margin-bottom:6px'>${cfg.icon} ${cfg.label}</div>`
+          + `<div style='font-size:11px;color:${C.text};line-height:1.6;font-weight:500'>${h.text}</div>`
           + `</div></td>`;
       }).join("")
       + `</tr></table></div>`
     ) : "";
 
     return `<div style='font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:${C.bg};border-radius:14px;overflow:hidden;border:1px solid ${C.bdr}'>`
-      + `<div style='background:${C.panel};padding:14px 20px 12px;border-bottom:1px solid ${C.bdr}'>`
+      + `<div style='background:${C.panel};padding:20px 24px 18px;border-bottom:1px solid ${C.bdr}'>`
       + `<table width='100%' cellpadding='0' cellspacing='0'><tr>`
-      + `<td><div style='font-size:9px;color:#118dff;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:3px'>&#9632; EXECUTIVE SUMMARY &nbsp;&middot;&nbsp; AT A GLANCE</div>`
-      + `<div style='font-size:16px;font-weight:800;color:${C.text};letter-spacing:-.3px;line-height:1.2'>${data.title}</div></td>`
+      + `<td><div style='display:flex;align-items:center;gap:5px;font-size:9px;color:#118dff;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:5px'>${icoSquare}EXECUTIVE SUMMARY &nbsp;&middot;&nbsp; AT A GLANCE</div>`
+      + `<div style='font-size:17px;font-weight:800;color:${C.text};letter-spacing:-.3px;line-height:1.2'>${data.title}</div></td>`
       + `<td align='right' style='vertical-align:middle;padding-left:40px;white-space:nowrap'>`
       + `<div style='font-size:9px;color:${C.muted}'>${new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>`
       + `</td></tr></table></div>`
-      + `<div style='height:2px;background:linear-gradient(90deg,#118dff 0%,#00b4d8 33%,#e66c37 66%,#8bc34a 100%)'></div>`
+      + `<div style='height:3px;background:linear-gradient(90deg,#118dff 0%,#00b4d8 33%,#e66c37 66%,#8bc34a 100%)'></div>`
       + `<table width='100%' cellpadding='0' cellspacing='0' style='background:${C.panel};border-bottom:1px solid ${C.bdr}'><tr>${kpiHtml}</tr></table>`
       + bodySection
       + insightsSection
-      + `<div style='padding:7px 20px 9px;border-top:1px solid ${C.bdr};background:${C.panel}'>`
+      + `<div style='padding:10px 24px 12px;border-top:1px solid ${C.bdr};background:${C.panel}'>`
       + `<p style='margin:0;font-size:9px;color:${C.muted};text-align:center;letter-spacing:.8px;text-transform:uppercase'>HOURSBACK AUTOPILOT &nbsp;&middot;&nbsp; AI-POWERED BUSINESS INTELLIGENCE</p>`
       + `</div></div>`;
   };
@@ -493,16 +521,16 @@ async function executeSchedule(schedule: any, supabaseAdmin: any): Promise<void>
     compiledPrompt += `- NEVER wrap any content, tables, or text in markdown code blocks (\`\`\`). This is extremely important. Output raw markdown text only so tables render as actual UI grids that can be copied directly into Google Docs or Excel.\n`;
     compiledPrompt += `- Format all tables using standard Markdown tables with | pipes |. Keep columns compact (max 3–4 columns).\n`;
     compiledPrompt += `- Deliver final polished content only — no draft notes, no "here is your X", just the X.\n`;
-    compiledPrompt += `- Do NOT repeat financial figures, P&L tables, or KPI numbers in the document body that you have already included in the INFOGRAPH_DATA block. Those are rendered as a visual At a Glance dashboard — writing the same data again in prose is redundant and clutters the report.`;
+    compiledPrompt += `- Do NOT repeat financial figures, P&L tables, or KPI numbers in the document body that you have already included in the INFOGRAPH_DATA block. Those are rendered as a visual At a Glance dashboard — writing the same data again in prose is redundant and clutters the report.\n`;
+    compiledPrompt += `- Do NOT use any emoji characters anywhere in your output. This is a formal business document — plain text only.\n`;
+    compiledPrompt += `- Use only ## and ### for section headings. Never use #### or deeper heading levels.`;
 
     // Analysis playbooks: ask Claude to append structured metric JSON
     if (INFOGRAPHIC_SLUGS.has(playbookSlug)) {
-      compiledPrompt += `\n\nSTRICT DOCUMENT STRUCTURE — follow this EXACT outline. No extra sections. No repeated data.\n\nSECTION 1 — DASHBOARD (write this first, fill every placeholder with real numbers):\n\n## 📊 DASHBOARD: AT A GLANCE\n**Period:** [period] | **Currency:** [currency] | **Prepared by:** Hoursback Autopilot\n\n### KPI Scorecard\n| Metric | Current | vs Prior | Status |\n|---|---|---|---|\n| Total Revenue | [value] | [+/-X%] | 🟢/🟡/🔴 |\n| Gross Profit | [value] | [+/-X%] | 🟢/🟡/🔴 |\n| Net Profit | [value] | [+/-X%] | 🟢/🟡/🔴 |\n| Gross Margin | [X%] | [+/-Xpp] | 🟢/🟡/🔴 |\n| Net Margin | [X%] | [+/-Xpp] | 🟢/🟡/🔴 |\n| EBITDA | [value] | [+/-X%] | 🟢/🟡/🔴 |\n\n### 6-Month Revenue & Profit Trend\n| Month | Revenue | Gross Profit | Net Profit | Net Margin |\n|---|---|---|---|---|\n| [oldest month] | [v] | [v] | [v] | [%] |\n| ... | | | | |\n| [current month] | [v] | [v] | [v] | [%] |\n\n### Top 5 Revenue Sources\nDo NOT wrap in backticks or code fences. Write plain text exactly like this example:\nProduct Sales    ████████████████████  ₦33,980,000 (69.7%)\nService Revenue  ████████████          ₦9,630,000  (19.8%)\nOther Income     ██████                ₦5,140,000  (10.5%)\n\n### Top 5 Expenses by Category\nSame plain-text ASCII bar format (no backticks):\nRaw Materials    ████████████████████  ₦13,890,000 (28.5%)\nSalaries         ████████████          ₦8,730,000  (17.9%)\n\n### ⚠️ Watch List\n- [specific concern + number]\n- [specific concern + number]\n- [specific concern + number]\n\n### ✅ Next Steps\n- [concrete action + deadline]\n- [concrete action + deadline]\n- [concrete action + deadline]\n\n---\n\nSECTION 2 — EXECUTIVE SUMMARY (3–5 sentences, no tables, no bullet lists — prose only)\n\nSECTION 3 — WHAT WENT WELL (3–5 bullets, brief, no sub-bullets)\n\nSECTION 4 — AREAS OF CONCERN (3–5 bullets, brief, no sub-bullets)\n\nSECTION 5 — TREND ANALYSIS (prose + one table maximum if trend data is available)\n\nSECTION 6 — ONE KEY QUESTION TO INVESTIGATE (single focused question with context)\n\nSECTION 7 — ACCOUNTANT BRIEFING NOTES (5–7 bullet points)\n\nSTOP after Section 7. Do NOT add:\n- A "Key Metrics" section (already in KPI Scorecard)\n- A "One-Page Financial Snapshot" section (already covered by Section 1)\n- A second Watch List or Next Steps anywhere\n- A second P&L table in the body (already in the visual dashboard)\n- Any section that repeats numbers already shown in the KPI Scorecard or ASCII charts`;
       compiledPrompt += `\n\n---\nFINAL STEP — after finishing your full analysis, append EXACTLY this block at the very end. Raw JSON only. No markdown, no code fences, no extra text after INFOGRAPH_DATA_END.\n\nINFOGRAPH_DATA_START\n{"title":"${(playbookData?.title || playbookSlug).replace(/"/g, "'")}","kpis":[{"label":"Total Revenue","value":"₦48.75M","trend":"down","note":"-0.73% vs prior"},{"label":"Net Profit","value":"₦6.01M","trend":"down","note":"-18.7% vs prior"},{"label":"Gross Margin","value":"51.8%","trend":"down"},{"label":"Net Margin","value":"12.3%","trend":"down"},{"label":"EBITDA","value":"₦9.28M","trend":"down"}],"tables":[{"title":"P&L Summary","headers":["Line Item","Amount","vs Prior"],"rows":[["TOTAL REVENUE","₦48.75M","-0.73%"],["Cost of Goods","₦23.48M","+3.9%"],["GROSS PROFIT","₦25.27M","-4.7%"],["Total Opex","₦15.99M","+4.8%"],["EBITDA","₦9.28M","-2.1%"],["NET PROFIT","₦6.01M","-18.7%"]]}],"bars":[{"label":"Raw Materials","value":13.89,"max":16,"unit":"M"},{"label":"Salaries","value":8.73,"max":16,"unit":"M"},{"label":"Rent & Utils","value":2.65,"max":16,"unit":"M"},{"label":"Marketing","value":1.78,"max":16,"unit":"M"},{"label":"Logistics","value":1.38,"max":16,"unit":"M"}],"highlights":[{"type":"strength","text":"Gross margin at 51.8% — strong pricing power maintained"},{"type":"risk","text":"Net profit fell 18.7% as OPEX grew faster than revenue"},{"type":"action","text":"Reduce Raw Materials cost — it is 28.5% of revenue and rising"}]}\nINFOGRAPH_DATA_END\n\nIMPORTANT — replace every example value with REAL numbers from your analysis above:\n- kpis: exactly 4–5 headline figures. trend = "up", "down", or "neutral". note = short comparison like "-18% vs prior".\n- tables: ONE P&L summary, max 3 columns, max 8 rows. Rows starting with TOTAL/GROSS/NET/EBITDA/REVENUE will be bold.\n- bars: top 4–5 largest costs/expenses as plain numbers. max = largest value rounded up to nearest 5 or 10.\n- highlights: exactly 3 items — one strength, one risk, one action. Max 15 words each. Be specific with numbers.\n- Output the JSON as a single line with no line breaks inside it.`;
     }
   }
 
-  // Call OpenAI for infographic/analysis playbooks, Claude for everything else
   const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
   let generatedContent: string;
 
@@ -519,7 +547,7 @@ async function executeSchedule(schedule: any, supabaseAdmin: any): Promise<void>
         messages: [
           {
             role: "system",
-            content: "You are an autonomous expert financial consultant executing a scheduled playbook. Produce COMPLETE, polished output — never truncate, never summarize, never say 'and so on'. Structure output with clear headings. No conversational filler — only the final deliverable.",
+            content: "You are an autonomous expert financial consultant executing a scheduled playbook. Produce COMPLETE, polished output — never truncate, never summarize, never say 'and so on'. Structure output with clear headings. No conversational filler — only the final deliverable. CRITICAL: ALL tables MUST use Markdown pipe format with | characters (e.g. | Col1 | Col2 |). NEVER use spaces or tabs to align columns. NEVER use emoji characters anywhere in your output.",
           },
           { role: "user", content: compiledPrompt },
         ],
@@ -560,6 +588,19 @@ async function executeSchedule(schedule: any, supabaseAdmin: any): Promise<void>
   const storedContent = infographHtml
     ? `__INFOGRAPH_START__\n${infographHtml}\n__INFOGRAPH_END__\n\n${finalContent}`
     : finalContent; // always use stripped text — never expose raw INFOGRAPH block
+
+  // Save run first so we have the ID for the email link
+  const { data: runData } = await supabaseAdmin.from("autonomous_runs").insert({
+    schedule_id: schedule.id,
+    user_id: schedule.user_id,
+    playbook_slug: playbookSlug,
+    generated_content: storedContent,
+    run_status: "success",
+  }).select("id").single();
+  const runId = runData?.id;
+  const dashboardUrl = runId
+    ? `https://www.hoursback.xyz/autopilot?run=${runId}`
+    : `https://www.hoursback.xyz/autopilot`;
 
   // Send email via Resend
   if (!RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
@@ -648,7 +689,7 @@ async function executeSchedule(schedule: any, supabaseAdmin: any): Promise<void>
         <!-- ── CTA ── -->
         <tr>
           <td style="background:#ffffff;padding:4px 36px 32px;text-align:center;">
-            <a href="https://www.hoursback.xyz/autopilot"
+            <a href="${dashboardUrl}"
                style="display:inline-block;background:#0F1012;color:#ffffff;font-size:13px;font-weight:700;padding:13px 28px;border-radius:999px;text-decoration:none;letter-spacing:0.2px;">
               View in Dashboard →
             </a>
@@ -695,16 +736,7 @@ async function executeSchedule(schedule: any, supabaseAdmin: any): Promise<void>
     throw new Error(`Email delivery failed: ${errText}`);
   }
 
-  // Log the successful run
-  await supabaseAdmin.from("autonomous_runs").insert({
-    schedule_id: schedule.id,
-    user_id: schedule.user_id,
-    playbook_slug: playbookSlug,
-    generated_content: storedContent,
-    run_status: "success",
-  });
-
-  console.log(`[Autopilot] Done — report delivered to ${deliveryEmail}`);
+  console.log(`[Autopilot] Done — report delivered to ${deliveryEmail} (run ${runId})`);
 }
 
 // ---------------------------------------------------------------------------

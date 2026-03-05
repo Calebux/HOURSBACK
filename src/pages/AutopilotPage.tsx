@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Bot, Calendar, Clock, CheckCircle2, Play, Pause, ExternalLink, XCircle, ChevronLeft, Edit2, Trash2, AlertTriangle, RotateCcw, FileDown, Zap } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Bot, Calendar, Clock, CheckCircle2, Play, Pause, ExternalLink, XCircle, ChevronLeft, Edit2, Trash2, AlertTriangle, RotateCcw, FileDown, Zap, X } from 'lucide-react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { mockPlaybooks, smbPlaybooks, coworkPlaybooks, designerAIPlaybooks, coworkPluginPlaybooks, ecommercePlaybooks, launchPlaybooks, personalBrandPlaybooks, educationPlaybooks } from '../data/playbooks';
 import AutopilotModal from '../components/AutopilotModal';
 import { AuthModal } from '../components/AuthModal';
 import { toast } from 'sonner';
+import { markdownToHtml } from '../lib/markdown';
 
 interface ScheduledPlaybook {
     id: string;
@@ -30,88 +31,10 @@ interface AutonomousRun {
 
 const allPlaybooks = [...mockPlaybooks, ...smbPlaybooks, ...coworkPlaybooks, ...designerAIPlaybooks, ...coworkPluginPlaybooks, ...ecommercePlaybooks, ...launchPlaybooks, ...personalBrandPlaybooks, ...educationPlaybooks];
 
-function markdownToHtml(md: string): string {
-    const lines = md.split('\n');
-    const html: string[] = [];
-    let inList = false;
-    let listType = '';
-    let inTable = false;
-    let tableHeaders: string[] | null = null;
-    let tableRows: string[][] = [];
-
-    const closeList = () => {
-        if (inList) { html.push(listType === 'ul' ? '</ul>' : '</ol>'); inList = false; listType = ''; }
-    };
-    const flushTable = () => {
-        if (!inTable || !tableHeaders) return;
-        // Borders on every cell edge so the table renders correctly in PDF and Google Docs
-        const thCells = tableHeaders.map((h, i) =>
-            `<th style="padding:10px 14px;text-align:${i === 0 ? 'left' : 'right'};font-size:11px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:0.5px;border:1px solid #bfdbfe;">${h}</th>`
-        ).join('');
-        const tdRows = tableRows.map((row, ri) =>
-            `<tr style="background:${ri % 2 === 0 ? '#ffffff' : '#f8fafc'};">${
-                row.map((cell, ci) =>
-                    `<td style="padding:9px 14px;font-size:13px;color:${ci === 0 ? '#111827' : '#374151'};font-weight:${ci === 0 ? '600' : '400'};text-align:${ci === 0 ? 'left' : 'right'};border:1px solid #e2e8f0;">${cell}</td>`
-                ).join('')
-            }</tr>`
-        ).join('');
-        html.push(
-            `<div style="margin:16px 0;border-radius:8px;border:1px solid #e2e8f0;">`
-            + `<table style="width:100%;border-collapse:collapse;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">`
-            + `<thead><tr style="background:#eff6ff;">${thCells}</tr></thead>`
-            + `<tbody>${tdRows}</tbody>`
-            + `</table></div>`
-        );
-        inTable = false; tableHeaders = null; tableRows = [];
-    };
-    const inline = (text: string) =>
-        text
-            .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
-            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-            .replace(/\*(.+?)\*/g, '<em>$1</em>')
-            .replace(/`(.+?)`/g, '<code style="background:#e5e7eb;padding:1px 5px;border-radius:4px;font-size:13px;">$1</code>');
-
-    for (const raw of lines) {
-        const line = raw.trimEnd();
-
-        // Markdown table rows start and end with |
-        if (/^\|.+\|/.test(line)) {
-            const cells = line.split('|').slice(1, -1).map(c => c.trim());
-            // Separator row (|---|---|) — skip it
-            if (cells.every(c => /^[-:| ]+$/.test(c))) continue;
-            if (!inTable) {
-                inTable = true;
-                tableHeaders = cells;
-                tableRows = [];
-            } else {
-                tableRows.push(cells);
-            }
-            continue;
-        }
-
-        // Non-table line — flush any open table first
-        if (inTable) flushTable();
-
-        if (/^---+$/.test(line)) { closeList(); html.push('<hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0;">'); continue; }
-        if (/^# /.test(line)) { closeList(); html.push(`<h1 style="font-size:22px;font-weight:700;color:#111827;margin:28px 0 8px;">${inline(line.slice(2))}</h1>`); continue; }
-        if (/^## /.test(line)) { closeList(); html.push(`<h2 style="font-size:18px;font-weight:700;color:#111827;margin:22px 0 6px;">${inline(line.slice(3))}</h2>`); continue; }
-        if (/^### /.test(line)) { closeList(); html.push(`<h3 style="font-size:15px;font-weight:600;color:#374151;margin:16px 0 4px;">${inline(line.slice(4))}</h3>`); continue; }
-        const ulMatch = line.match(/^[-*] (.+)/);
-        if (ulMatch) { if (!inList || listType !== 'ul') { closeList(); html.push('<ul style="margin:10px 0;padding-left:22px;">'); inList = true; listType = 'ul'; } html.push(`<li style="margin:5px 0;color:#374151;line-height:1.7;">${inline(ulMatch[1])}</li>`); continue; }
-        const olMatch = line.match(/^\d+\. (.+)/);
-        if (olMatch) { if (!inList || listType !== 'ol') { closeList(); html.push('<ol style="margin:10px 0;padding-left:22px;">'); inList = true; listType = 'ol'; } html.push(`<li style="margin:5px 0;color:#374151;line-height:1.7;">${inline(olMatch[1])}</li>`); continue; }
-        if (line.trim() === '') { closeList(); html.push(''); continue; }
-        closeList();
-        html.push(`<p style="margin:7px 0;color:#374151;line-height:1.8;font-size:15px;">${inline(line)}</p>`);
-    }
-    if (inTable) flushTable();
-    closeList();
-    return html.join('\n');
-}
-
 export default function AutopilotPage() {
     const { user, isLoading: authLoading } = useAuth();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const [schedules, setSchedules] = useState<ScheduledPlaybook[]>([]);
     const [runs, setRuns] = useState<AutonomousRun[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -120,6 +43,7 @@ export default function AutopilotPage() {
     const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null);
     const [runningAgainId, setRunningAgainId] = useState<string | null>(null);
     const [runningNowId, setRunningNowId] = useState<string | null>(null);
+    const [directViewRun, setDirectViewRun] = useState<AutonomousRun | null>(null);
 
     // Edit modal state
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -143,6 +67,18 @@ export default function AutopilotPage() {
     useEffect(() => {
         fetchAutopilotData();
     }, [user]);
+
+    // Auto-open run from email link (?run=<id>)
+    useEffect(() => {
+        const runId = searchParams.get('run');
+        if (runId && runs.length > 0) {
+            const run = runs.find(r => r.id === runId);
+            if (run) {
+                setActiveTab('history');
+                setDirectViewRun(run);
+            }
+        }
+    }, [runs, searchParams]);
 
     useEffect(() => {
         if (!authLoading && !user) {
@@ -223,7 +159,10 @@ export default function AutopilotPage() {
         const date = new Date(run.created_at).toLocaleString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         const w = window.open('', '_blank');
         if (!w) return;
-        w.document.write(`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>${title} — Hoursback</title><style>*{box-sizing:border-box;margin:0;padding:0}body{background:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#202124;padding:48px 40px;max-width:760px;margin:0 auto}.header{border-bottom:2px solid #f3f4f6;padding-bottom:24px;margin-bottom:32px}.badge{display:inline-block;background:#dcfce7;color:#166534;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:10px}h1{font-size:24px;font-weight:800;color:#202124;margin-bottom:6px;letter-spacing:-0.5px}.meta{font-size:13px;color:#9ca3af}p{margin:8px 0;color:#374151;line-height:1.8;font-size:15px}h2{font-size:17px;font-weight:700;color:#111827;margin:20px 0 6px}h3{font-size:15px;font-weight:600;color:#374151;margin:16px 0 4px}ul,ol{margin:10px 0;padding-left:22px}li{margin:5px 0;color:#374151;line-height:1.7}hr{border:none;border-top:1px solid #e5e7eb;margin:20px 0}strong{color:#111827}</style></head><body><div class="header"><div class="badge">✓ Autopilot Result</div><h1>${title}</h1><p class="meta">${date}</p></div>${markdownToHtml(run.generated_content)}</body></html>`);
+        const pdfRaw = run.generated_content || '';
+        const pdfMatch = pdfRaw.match(/__INFOGRAPH_START__[\s\S]*?__INFOGRAPH_END__\n\n([\s\S]*)/);
+        const pdfContent = pdfMatch ? pdfMatch[1] : pdfRaw.replace(/__INFOGRAPH_START__[\s\S]*?__INFOGRAPH_END__\n*/g, '');
+        w.document.write(`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>${title} — Hoursback</title><style>*{box-sizing:border-box;margin:0;padding:0}body{background:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#202124;padding:48px 40px;max-width:760px;margin:0 auto}.header{border-bottom:2px solid #f3f4f6;padding-bottom:24px;margin-bottom:32px}.badge{display:inline-block;background:#dcfce7;color:#166534;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:10px}h1{font-size:24px;font-weight:800;color:#202124;margin-bottom:6px;letter-spacing:-0.5px}.meta{font-size:13px;color:#9ca3af}p{margin:8px 0;color:#374151;line-height:1.8;font-size:15px}h2{font-size:17px;font-weight:700;color:#111827;margin:20px 0 6px}h3{font-size:15px;font-weight:600;color:#374151;margin:16px 0 4px}ul,ol{margin:10px 0;padding-left:22px}li{margin:5px 0;color:#374151;line-height:1.7}hr{border:none;border-top:1px solid #e5e7eb;margin:20px 0}strong{color:#111827}</style></head><body><div class="header"><div class="badge">✓ Autopilot Result</div><h1>${title}</h1><p class="meta">${date}</p></div>${markdownToHtml(pdfContent)}</body></html>`);
         w.document.close();
         w.focus();
         setTimeout(() => w.print(), 400);
@@ -626,6 +565,38 @@ export default function AutopilotPage() {
                 onClose={() => { setAuthModalOpen(false); navigate('/playbooks'); }}
                 defaultView="signup"
             />
+
+            {/* Direct view overlay — opened from email link */}
+            {directViewRun && (() => {
+                const rawContent = directViewRun.generated_content || '';
+                const infoMatch = rawContent.match(/__INFOGRAPH_START__\n([\s\S]*?)\n__INFOGRAPH_END__\n\n([\s\S]*)/);
+                const infographHtml = infoMatch ? infoMatch[1] : '';
+                const content = infographHtml ? infoMatch![2] : rawContent;
+                const title = getPlaybookTitle(directViewRun.playbook_slug);
+                const date = new Date(directViewRun.created_at).toLocaleString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                const srcdoc = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><style>*{box-sizing:border-box;margin:0;padding:0}body{background:#F8F9FA;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#202124}.topbar{background:#202124;padding:16px 32px;display:flex;align-items:center;gap:10px}.logo-dot{width:28px;height:28px;background:linear-gradient(135deg,#4285F4,#6366f1);border-radius:8px}.logo-text{color:#fff;font-size:16px;font-weight:700}.badge{background:rgba(66,133,244,0.2);color:#93bbfc;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;letter-spacing:0.5px;text-transform:uppercase;border:1px solid rgba(66,133,244,0.3);margin-left:auto}.accent-bar{height:3px;background:linear-gradient(90deg,#4285F4,#6366f1,#DA7756)}.page{max-width:760px;margin:0 auto;padding:40px 24px 80px}.meta-row{display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap}.status-badge{display:inline-flex;align-items:center;gap:5px;background:#dcfce7;color:#166534;font-size:11px;font-weight:700;padding:4px 12px;border-radius:999px}.content-card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:32px 36px;box-shadow:0 1px 4px rgba(0,0,0,.06)}.report-title{font-size:28px;font-weight:800;color:#0F1012;line-height:1.2;margin-bottom:6px;letter-spacing:-0.6px}.divider{border:none;border-top:1px solid #e5e7eb;margin:24px 0}.section-label{font-size:10px;font-weight:700;color:#9ca3af;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px}.infograph-wrap{position:relative;cursor:pointer;margin-bottom:28px}.infograph-wrap:hover .expand-hint{opacity:1}.expand-hint{position:absolute;bottom:14px;right:16px;background:rgba(15,16,18,0.75);color:#fff;font-size:10px;font-weight:700;padding:5px 12px;border-radius:20px;letter-spacing:0.5px;opacity:0;transition:opacity .2s;pointer-events:none}.infograph-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:1000;align-items:flex-start;justify-content:center;padding:32px 20px;overflow-y:auto}.infograph-modal.open{display:flex}.modal-inner{max-width:860px;width:100%;position:relative}.modal-close{position:fixed;top:20px;right:20px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.2);color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center}.modal-label{text-align:center;color:#9ca3af;font-size:12px;margin-top:12px}p{margin:7px 0;color:#374151;line-height:1.8;font-size:15px}h1{font-size:22px;font-weight:700;color:#111827;margin:28px 0 8px}h2{font-size:18px;font-weight:700;color:#111827;margin:22px 0 6px}h3{font-size:15px;font-weight:600;color:#374151;margin:16px 0 4px}h4{font-size:13px;font-weight:600;color:#374151;margin:12px 0 3px}ul,ol{margin:10px 0;padding-left:22px}li{margin:5px 0;color:#374151;line-height:1.7}hr{border:none;border-top:1px solid #e5e7eb;margin:20px 0}table{width:100%;border-collapse:collapse}@media print{.topbar,.expand-hint,.infograph-modal{display:none!important}.inf-dk{display:none!important}.inf-lt{display:block!important}}</style></head><body><div class="topbar"><div class="logo-dot"></div><span class="logo-text">hoursback</span><span class="badge">Autopilot</span></div><div class="accent-bar"></div><div class="page"><div class="content-card"><div class="meta-row"><span class="status-badge"><span style="width:6px;height:6px;background:#22c55e;border-radius:50%;display:inline-block"></span>Completed</span><span style="font-size:12px;color:#9ca3af">${date}</span></div><h1 class="report-title">${title}</h1><hr class="divider">${infographHtml ? `<div class="section-label">At a Glance</div><div class="infograph-wrap" onclick="openInfograph()">${infographHtml}<div class="expand-hint">Click to expand</div></div><div class="infograph-modal" id="infographModal" onclick="if(event.target===this)closeInfograph()"><div class="modal-inner"><button class="modal-close" onclick="closeInfograph()">×</button>${infographHtml}<p class="modal-label">Click outside or press Esc to close</p></div></div>` : ''}${markdownToHtml(content)}</div></div><script>function openInfograph(){document.getElementById('infographModal').classList.add('open');document.body.style.overflow='hidden'}function closeInfograph(){document.getElementById('infographModal').classList.remove('open');document.body.style.overflow=''}document.addEventListener('keydown',e=>{if(e.key==='Escape')closeInfograph()})<\/script></body></html>`;
+                return (
+                    <div className="fixed inset-0 bg-black/80 z-50 flex flex-col">
+                        <div className="flex items-center justify-between px-6 py-4 bg-brand-dark shrink-0">
+                            <div className="flex items-center gap-3">
+                                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-400 to-indigo-500" />
+                                <span className="text-white font-semibold text-sm">{title}</span>
+                            </div>
+                            <button
+                                onClick={() => setDirectViewRun(null)}
+                                className="text-white/70 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/10"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <iframe
+                            srcDoc={srcdoc}
+                            className="flex-1 w-full border-0"
+                            title={title}
+                        />
+                    </div>
+                );
+            })()}
         </div>
     );
 }

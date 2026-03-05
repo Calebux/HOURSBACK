@@ -2432,7 +2432,7 @@ export const smbPlaybooks: Playbook[] = [
         stepNumber: 1,
         title: 'Upload Your Financial Data',
         instruction: 'Upload your transactions or summary spreadsheet. The AI will group everything by category, calculate totals, and build the full P&L automatically — no manual aggregation needed.',
-        promptTemplate: 'I need a complete Profit & Loss statement and financial analysis for [Business Name] — [Month & Year].\n\nBusiness type: [Business Type]\n\nHere is the complete financial data for the month:\n[Monthly Financial Data]\n\nFrom this data please:\n1. Group and total all transactions by category (Income vs Expenses)\n2. Build a formatted P&L — Revenue → Gross Profit → Operating Expenses → Net Profit/Loss\n3. Add a "% of Revenue" column to every line\n4. Write a 2-sentence executive summary of overall profitability\n5. List 2–3 things that went well and 2–3 areas of concern\n6. Calculate key metrics: Gross Margin %, Net Margin %, largest expense category\n\nPresent everything in one clean, structured response.',
+        promptTemplate: 'I need a complete Profit & Loss statement and financial analysis for [Business Name] — [Month & Year].\n\nCRITICAL FORMATTING INSTRUCTIONS:\n- Format all tables as clean Markdown tables.\n- NEVER wrap your response or any tables in markdown code blocks (```). Just output the raw markdown text so it renders properly.\n- Format all large numbers with commas (e.g. $1,250,500) for readability.\n- Keep columns concise so tables display well when exported to PDF or Google Docs.\n\nBusiness type: [Business Type]\n\nHere is the complete financial data for the month:\n[Monthly Financial Data]\n\nFrom this data please:\n1. Group and total all transactions by category (Income vs Expenses)\n2. Build a formatted P&L — Revenue → Gross Profit → Operating Expenses → Net Profit/Loss\n3. Add a "% of Revenue" column to every line\n4. Write a 2-sentence executive summary of overall profitability\n5. List 2–3 things that went well and 2–3 areas of concern\n6. Calculate key metrics: Gross Margin %, Net Margin %, largest expense category\n\nPresent everything in one clean, structured response.',
         expectedOutput: 'A complete P&L table with category totals, margin percentages, and a plain-English financial narrative — all from your uploaded data.',
         tips: 'Upload your bank export, accounting software CSV, or a simple two-column spreadsheet (Description, Amount). The AI handles the categorization.'
       },
@@ -2441,7 +2441,7 @@ export const smbPlaybooks: Playbook[] = [
         stepNumber: 2,
         title: 'Generate the Formatted P&L Statement',
         instruction: 'Ask the AI to produce a formal Profit & Loss statement in a clean, readable format.',
-        promptTemplate: 'Now format the P&L for [Business Name] — [Month & Year] as a clean table using standard accounting structure:\n\n1. REVENUE — all income categories with subtotal\n2. COST OF GOODS SOLD (skip if service business)\n3. GROSS PROFIT\n4. OPERATING EXPENSES — all expense categories with subtotal\n5. NET PROFIT (LOSS)\n\nInclude a "% of Revenue" column. Format so I can paste directly into Excel or Google Sheets.',
+        promptTemplate: 'Now format the P&L for [Business Name] — [Month & Year] as a clean table using standard accounting structure:\n\nCRITICAL FORMATTING INSTRUCTIONS:\n- Use a standard Markdown table.\n- NEVER wrap your response or any tables in markdown code blocks (```). Just output the raw markdown text so it renders and copies properly.\n- Format all large numbers with commas (e.g. $1,250,500) for readability.\n- Keep column widths compact so the table displays well when exported to PDF or Google Docs.\n\n1. REVENUE — all income categories with subtotal\n2. COST OF GOODS SOLD (skip if service business)\n3. GROSS PROFIT\n4. OPERATING EXPENSES — all expense categories with subtotal\n5. NET PROFIT (LOSS)\n\nInclude a "% of Revenue" column.',
         expectedOutput: 'A structured P&L table with all numbers organized by section, subtotals, and a "% of Revenue" column.',
         tips: 'If your business is a service business (no COGS), tell the AI to go straight from Revenue to Operating Expenses.'
       },
@@ -2468,7 +2468,7 @@ export const smbPlaybooks: Playbook[] = [
         stepNumber: 5,
         title: 'Create the Shareable Financial Snapshot',
         instruction: 'Package everything into a one-page summary to share with a partner, accountant, or keep in your records.',
-        promptTemplate: 'Create a complete Monthly Financial Snapshot for [Business Name] — [Month & Year]:\n\n**[Business Name] — Monthly Financial Snapshot — [Month & Year]**\n\n📊 AT A GLANCE\n- Total Revenue: $X\n- Total Expenses: $X\n- Net Profit/Loss: $X (X% margin)\n- vs. Prior Period: +/-$X\n\n💰 P&L SUMMARY TABLE\n[formatted P&L]\n\n📈 WHAT HAPPENED THIS MONTH\n[2–3 sentence narrative]\n\n⚠️ WATCH LIST\n[flagged items]\n\n✅ NEXT STEPS\n- 1 financial action to take this month\n- 1 cost to investigate\n- 1 revenue opportunity from the data\n\nFormat for Google Doc or email to accountant.',
+        promptTemplate: 'Create a highly detailed, visual PowerBI-style Monthly Financial Dashboard for [Business Name] — [Month & Year]:\n\nCRITICAL FORMATTING INSTRUCTIONS:\n- Act as a BI Dashboard generator. You must create a visual, text-based dashboard that mimics a FreshBooks or PowerBI dashboard layout.\n- NEVER wrap your response or any tables in markdown code blocks (```). This is extremely important. Just output the raw markdown text so it renders as actual UI tables.\n- Use standard Markdown tables for KPI grids and trends.\n- Format all large numbers with commas and currency symbols (e.g. $327,535).\n- Use ASCII horizontal bar charts (using the ▇ character) to visualize categorical data.\n- Ensure it fits elegantly on a PDF or Google Doc export.\n\n**[Business Name] — Profit and Loss Dashboard — [Month & Year]**\n\n📊 1. KPI SCORECARD (Format as a clean Markdown table grid)\n- Row 1: Gross Profit | Net Profit | Gross Profit Margin | Net Profit Margin\n- Row 2: Revenue This Month | Revenue Last Month | Revenue % Change\n- Row 3: Expenses This Month | Expenses Last Month | Expenses % Change\n- Row 4: Outstanding Revenue | Cost of Goods Sold\n\n📉 2. 6-MONTH REVENUE & PROFIT TREND\n[Create a clean Markdown table showing Month | Revenue | Expenses | Net Profit for the last 6 months]\n\n🌎 3. TOP 5 REVENUE SOURCES\n[Use ASCII horizontal bar charts to visualize. Example:\nSource A    | ▇▇▇▇▇▇▇▇▇▇ $15.0K\nSource B    | ▇▇▇▇▇▇ $8.0K]\n\n💳 4. TOP 5 EXPENSES BY CATEGORY\n[Use ASCII horizontal bar charts for the top 5 expenses. Example:\nRent/Lease  | ▇▇▇▇▇▇▇▇▇▇ $8.9K\nAdvertising | ▇▇▇▇▇▇▇ $7.7K]\n\n⚠️ WATCH LIST\n[1-2 sentence narrative on anomalies or flagged items]\n\n✅ NEXT STEPS\n- 1 financial action to take this month\n- 1 cost to investigate\n- 1 revenue opportunity',
         expectedOutput: 'A complete, professional Monthly Financial Snapshot — ready to share, store, or present.',
         tips: 'Save as "[Business Name] — Financial Snapshot — [Month Year]" in a Monthly Financials folder. Build the archive month by month.'
       }
@@ -3903,7 +3903,477 @@ Please provide:
       { id: 'fin-analysis-1', title: 'Business Financial Health Check', slug: 'business-financial-health-check' },
       { id: 'smb-bd-4', title: 'Business Health Score & 90-Day Action Plan', slug: 'business-health-score-90-day-action-plan' },
     ],
-  }
+  },
+
+  // ── Weekly CEO Briefing ──────────────────────────────────────────────────
+  {
+    id: 'smb-bk-5',
+    slug: 'weekly-ceo-briefing',
+    title: 'Weekly CEO Briefing',
+    subtitle: 'Every Monday your agent pulls your business metrics, scores your health, and drops a 1-page CEO brief — wins, risks, one key decision, and a team message — in your inbox before 7am.',
+    category: 'Finance',
+    difficulty: 'Intermediate',
+    timeToComplete: 15,
+    timeSaved: 120,
+    completionCount: 0,
+    rating: 4.9,
+    isPro: true,
+    isNew: true,
+    tools: ['Claude', 'Google Sheets', 'ChatGPT'],
+    beforeYouStart: [
+      'A Google Sheet with your key business metrics — revenue, expenses, headcount, pipeline, NPS, or whatever you track weekly. Even a simple 5-column sheet works.',
+      'The sheet must be publicly accessible ("Anyone with the link can view") so the agent can pull live data.',
+      'Decide on your 3–5 most important KPIs before your first run — the brief will score and comment on whatever columns you provide.',
+    ],
+    expectedOutcome: 'A concise 1-page CEO brief emailed every Monday morning covering: a business health score with rationale, top 3 wins, top 2 risks, one key decision you should make, and a draft team message ready to send as-is.',
+    agentAutomation: {
+      description: 'Every Monday at 7 AM, the agent fetches your live metrics sheet, computes a business health score, and emails you a structured 1-page CEO brief — ready before your first meeting of the week.',
+      trigger: 'Every Monday at 7 AM.',
+      actions: [
+        'Fetch the latest rows from your Google Sheets business metrics tracker',
+        'Score business health across revenue, growth, margin, cash, and risk dimensions',
+        'Write a 1-page CEO brief: health score, wins, risks, one key decision, team message',
+        'Email the formatted brief with an infographic dashboard to your inbox',
+      ],
+      setupSteps: [
+        {
+          title: 'Prepare Your Metrics Sheet',
+          description: 'Create a Google Sheet with one row per week. Recommended columns: Week Ending Date, Revenue, Expenses, Net Profit, Open Pipeline Value, Deals Closed, New Customers, Churn, Team Headcount, Cash Balance. The agent adapts to whatever columns you include — no fixed schema required.',
+        },
+        {
+          title: 'Make the Sheet Publicly Readable',
+          description: "In Google Sheets, click Share > Change to 'Anyone with the link' > set to Viewer. Copy the URL and paste it into the Business Metrics Sheet variable in the Prompt Variables panel.",
+        },
+        {
+          title: 'Set Your Business Context',
+          description: "Fill in the Business Name & Type variable (e.g. 'Acme Logistics — freight forwarding, 12 staff, Nigeria'). This helps the agent benchmark scores correctly and write a team message in the right voice.",
+        },
+        {
+          title: 'Schedule the Agent',
+          description: 'Click the Autopilot button, choose Weekly (Mondays), set the time to 07:00. Deploy. Your first brief arrives next Monday morning.',
+        },
+      ],
+      tools: ['Google Sheets', 'Claude', 'ChatGPT', 'Gmail'],
+    },
+    troubleshooting: [
+      {
+        problem: 'The health score penalises normal seasonal dips',
+        solution: 'Add a Context Notes column to your sheet with a short annotation for unusual weeks (e.g. "Ramadan slowdown"). The agent reads these and adjusts its interpretation.',
+      },
+      {
+        problem: 'The team message sounds too generic',
+        solution: 'Add a row to your sheet called Tone Example and paste a real internal message you have sent before. The agent will mirror your voice.',
+      },
+      {
+        problem: 'The agent pulls stale data',
+        solution: 'Make sure you update your sheet before Monday 7 AM. Set a Sunday evening reminder.',
+      },
+    ],
+    steps: [
+      {
+        id: 'smb-bk-5-s1',
+        stepNumber: 1,
+        title: 'Load and Validate Your Metrics',
+        instruction: 'Paste your business metrics or connect your Google Sheet. The agent confirms the data structure and flags missing columns before scoring.',
+        promptTemplate: `I am preparing a weekly CEO briefing for [Business Name & Type].
+
+Here is my business metrics data for the current week:
+[Business Metrics Sheet]
+
+Today's date: [TODAY'S DATE]
+
+First, confirm:
+1. What columns you have received and what time period the data covers
+2. Any columns that are missing that would affect the health score
+3. Whether the most recent row appears to be this week's data
+
+Then proceed to Step 2 only after confirming the data is valid.`,
+        expectedOutput: 'A data receipt confirming columns detected, date range, row count, and any gaps flagged before the analysis runs.',
+        tips: 'If you only have 1–2 weeks of data, the agent will note it cannot compute trends yet but will still produce the brief from available data.',
+        tools: ['Claude', 'ChatGPT'],
+      },
+      {
+        id: 'smb-bk-5-s2',
+        stepNumber: 2,
+        title: 'Score Business Health',
+        instruction: 'The agent scores your business across five dimensions and produces an overall health grade. Every other section flows from this score.',
+        promptTemplate: `Using the metrics data provided, score [Business Name & Type] on these 5 dimensions. Score each 1–10 with one sentence of reasoning.
+
+SCORING DIMENSIONS:
+1. Revenue Momentum — growing, flat, or declining week-over-week vs 4-week average?
+2. Profitability — making or losing money this week? Is margin improving or compressing?
+3. Pipeline Health — how full is the pipeline relative to typical close rates?
+4. Cash Position — based on balance and burn, how many weeks of runway?
+5. Operational Risk — any signs of churn, team issues, concentration risk, or missed targets?
+
+FORMAT as a table:
+| Dimension | Score | One-Line Rationale |
+|---|---|---|
+
+OVERALL HEALTH GRADE: A / B / C / D / F
+SCORE RATIONALE: 2 sentences — what is driving the grade and what would move it up one letter.`,
+        expectedOutput: 'A 5-row scoring table with an overall grade and 2-sentence rationale in plain business language.',
+        tips: 'A C is not bad — it means the business is operating but has clear improvement levers. Share the rationale with your leadership team.',
+        tools: ['Claude', 'ChatGPT'],
+      },
+      {
+        id: 'smb-bk-5-s3',
+        stepNumber: 3,
+        title: 'Write the 1-Page CEO Brief',
+        instruction: 'The final deliverable. Scannable, specific, and actionable — readable in under 2 minutes.',
+        promptTemplate: `Write a 1-page CEO brief for [Business Name & Type] — week of [TODAY'S DATE].
+
+Use this exact structure:
+
+## BUSINESS HEALTH: [Grade] — [Score rationale in one sentence]
+
+## TOP 3 WINS THIS WEEK
+- Win 1: specific, quantified if possible
+- Win 2: specific
+- Win 3: specific
+
+## TOP 2 RISKS TO WATCH
+- Risk 1: name the risk, one data point, what to watch
+- Risk 2: name the risk, one data point, watch signal
+
+## ONE KEY DECISION THIS WEEK
+State the decision clearly. Include: what you are deciding, the two main options, what the data suggests, and a recommended action.
+
+## TEAM MESSAGE (ready to send)
+Write a short internal message (3–5 sentences) the CEO can send to the team this Monday. Reference 1 specific win and 1 priority for the week. Conversational and energising — not corporate-speak.
+
+---
+CRITICAL: Every bullet must reference a specific number from the data. No generic observations. Do NOT repeat the KPI table — the infographic dashboard handles that.`,
+        expectedOutput: 'A complete 1-page CEO brief with all five sections fully written — ready to forward to your leadership team or board.',
+        tips: 'Copy the Team Message section directly into WhatsApp, Slack, or email as your Monday kick-off. The brief typically takes under 90 seconds to read.',
+        tools: ['Claude', 'ChatGPT'],
+      },
+    ],
+    relatedPlaybooks: [
+      { id: 'smb-bk-2', title: 'Monthly Financial Snapshot & P&L Analyzer', slug: 'monthly-financial-snapshot-pl-analyzer' },
+      { id: 'smb-bd-4', title: 'Business Health Score & 90-Day Action Plan', slug: 'business-health-score-90-day-action-plan' },
+      { id: 'smb-bk-6', title: 'Sales Pipeline Health', slug: 'sales-pipeline-health' },
+    ],
+  },
+
+  // ── Sales Pipeline Health ────────────────────────────────────────────────
+  {
+    id: 'smb-bk-6',
+    slug: 'sales-pipeline-health',
+    title: 'Sales Pipeline Health',
+    subtitle: 'Every Friday the agent audits your deals, flags stalled opportunities (14+ days no contact), calculates weighted pipeline value by stage, and drafts personalised follow-up messages — ready before the weekend.',
+    category: 'Finance',
+    difficulty: 'Intermediate',
+    timeToComplete: 15,
+    timeSaved: 90,
+    completionCount: 0,
+    rating: 4.8,
+    isPro: true,
+    isNew: true,
+    tools: ['Claude', 'Google Sheets', 'ChatGPT'],
+    beforeYouStart: [
+      'A Google Sheet with your current deals. Required columns: Company, Stage, Value, Last Contact Date, Expected Close Date. Optional: Owner, Next Step, Notes.',
+      'The sheet must be shared publicly ("Anyone with the link can view") so the agent pulls fresh data each Friday.',
+      'Make sure Last Contact Date is filled for every deal — this is the primary stall-detection signal.',
+    ],
+    expectedOutcome: 'A weekly pipeline health report emailed every Friday with: total pipeline value by stage, a stalled deals list, win probability assessment, and ready-to-send follow-up drafts for every deal over 14 days without contact.',
+    agentAutomation: {
+      description: 'Every Friday at 5 PM, the agent reads your live pipeline sheet, flags stalled deals, calculates weighted pipeline value, and emails you a health report with personalised follow-up drafts for every deal over 14 days without contact.',
+      trigger: 'Every Friday at 5 PM.',
+      actions: [
+        'Fetch current pipeline rows from your Google Sheets deal tracker',
+        'Flag all deals where Last Contact Date is 14+ days ago',
+        'Calculate total pipeline value and weighted value by stage',
+        'Assess each stalled deal and draft a personalised follow-up email',
+        'Email the pipeline health report with infographic dashboard',
+      ],
+      setupSteps: [
+        {
+          title: 'Set Up Your Deal Tracker Sheet',
+          description: 'Create a Google Sheet with these columns: Company | Stage (e.g. Prospect, Qualified, Proposal Sent, Negotiation, Closed Won) | Value | Last Contact Date | Expected Close Date. One row per deal.',
+        },
+        {
+          title: 'Share and Connect the Sheet',
+          description: "Share as 'Anyone with the link — Viewer'. Copy the URL and paste it into the Sales Pipeline Sheet variable in the Prompt Variables panel.",
+        },
+        {
+          title: 'Define Your Stage Weights',
+          description: "Fill in the Stage Win Probabilities variable — e.g. 'Prospect 10%, Qualified 25%, Proposal Sent 40%, Negotiation 70%'. If unsure, leave blank and the agent uses industry-standard defaults.",
+        },
+        {
+          title: 'Schedule for Friday Afternoons',
+          description: 'Click Autopilot, select Weekly, set time to 17:00. The report lands before end-of-business Friday — you triage Friday, act Monday morning.',
+        },
+      ],
+      tools: ['Google Sheets', 'Claude', 'ChatGPT', 'Gmail'],
+    },
+    troubleshooting: [
+      {
+        problem: 'The agent flags deals I deliberately parked until next quarter',
+        solution: 'Add a Status column. For parked deals write "PARKED — Q3" in the Notes column. The agent skips deals explicitly marked as parked.',
+      },
+      {
+        problem: 'Follow-up drafts sound too generic',
+        solution: 'Add a Last Discussion Summary column with 1–2 sentences about the last conversation. The agent writes context-specific follow-ups instead of generic check-ins.',
+      },
+      {
+        problem: 'Pipeline value does not match my CRM',
+        solution: 'Make sure Value cells are numbers only — no currency symbols or commas. If your CRM shows different numbers, your sheet may have outdated deal values.',
+      },
+    ],
+    steps: [
+      {
+        id: 'smb-bk-6-s1',
+        stepNumber: 1,
+        title: 'Load Pipeline and Flag Stalled Deals',
+        instruction: 'The agent reads your pipeline sheet, calculates days since last contact for every deal, and flags anything 14+ days without contact as stalled.',
+        promptTemplate: `I need a pipeline health audit for my sales team.
+
+Today's date: [TODAY'S DATE]
+Stage win probabilities: [Stage Win Probabilities — e.g. "Prospect 10%, Qualified 25%, Proposal Sent 40%, Negotiation 70%"]
+
+Here is my current pipeline data:
+[Sales Pipeline Sheet]
+
+Step 1 — Compute days since last contact for EVERY deal.
+Step 2 — Flag as STALLED any deal where days since last contact >= 14.
+Step 3 — Produce this table:
+
+| Company | Stage | Value | Days Since Contact | Status |
+|---|---|---|---|---|
+
+Step 4 — Summary:
+- Total active deals: X
+- Stalled deals (14+ days): X
+- Total pipeline value: X
+- Weighted pipeline value: X
+- Value at risk in stalled deals: X`,
+        expectedOutput: 'A full pipeline table with days-since-contact and stall flags, plus a 5-line summary showing total and weighted pipeline value with dollar amount at risk in stalled deals.',
+        tips: 'Sort your sheet by Expected Close Date before connecting it — the agent will prioritise near-term deals in its follow-up drafts.',
+        tools: ['Claude', 'ChatGPT'],
+      },
+      {
+        id: 'smb-bk-6-s2',
+        stepNumber: 2,
+        title: 'Assess Pipeline Quality and Shape',
+        instruction: 'A healthy pipeline is balanced — not all deals bunched in early stages with nothing near close. This step assesses shape, velocity, and concentration risk.',
+        promptTemplate: `Using the pipeline data already loaded, assess pipeline quality:
+
+STAGE DISTRIBUTION:
+- Count and total value of deals at each stage
+- Flag if more than 60% of value is concentrated in one stage
+- Flag if there are zero deals in Negotiation or Proposal Sent
+
+VELOCITY ANALYSIS:
+- Which deals have been in the same stage for more than 30 days?
+- Which deals have an Expected Close Date already past today?
+
+CONCENTRATION RISK:
+- Is any single deal worth more than 40% of total pipeline value? Name it.
+- Is any single company appearing in more than 2 deals?
+
+Use ## headings for each section. One action recommendation per finding.`,
+        expectedOutput: 'A pipeline quality report with stage distribution, velocity flags, and concentration risks — each with a one-line action recommendation.',
+        tips: 'The concentration risk check is often the most valuable output. A pipeline where one deal is 60% of the value is not a pipeline — it is a single bet.',
+        tools: ['Claude', 'ChatGPT'],
+      },
+      {
+        id: 'smb-bk-6-s3',
+        stepNumber: 3,
+        title: 'Draft Follow-Up Emails for Stalled Deals',
+        instruction: 'For every stalled deal, the agent writes a personalised follow-up calibrated to the deal stage and days without contact. Ready to send.',
+        promptTemplate: `Write personalised follow-up emails for every STALLED deal from Step 1.
+
+For each deal, write a separate email:
+- Subject line that references the company name and specific context — not "Checking in"
+- Opening that naturally acknowledges the gap since last contact
+- Body: 2–3 sentences calibrated by stage:
+  - Prospect/Qualified: Re-open the conversation, reference a relevant trigger
+  - Proposal Sent: Confirm receipt, offer to answer questions or adjust
+  - Negotiation: Acknowledge the silence, give a soft deadline, offer a clarification
+- One specific call-to-action: a question, meeting request, or decision deadline
+- Under 80 words total per email
+
+Header format: ## [Company Name] — [Stage] — [X days stalled]`,
+        expectedOutput: 'One ready-to-send follow-up email per stalled deal, each under 80 words, with a specific subject line and hard call-to-action.',
+        tips: 'Send these on Monday morning, not Friday. Emails sent Friday afternoon have the lowest open rates of the week.',
+        tools: ['Claude', 'ChatGPT'],
+      },
+    ],
+    relatedPlaybooks: [
+      { id: 'smb-bk-7', title: 'Accounts Receivable Aging', slug: 'accounts-receivable-aging' },
+      { id: 'smb-bk-5', title: 'Weekly CEO Briefing', slug: 'weekly-ceo-briefing' },
+      { id: 'smb-bk-3', title: 'Invoice & Cash Flow Guardian', slug: 'invoice-cash-flow-guardian' },
+    ],
+  },
+
+  // ── Accounts Receivable Aging ────────────────────────────────────────────
+  {
+    id: 'smb-bk-7',
+    slug: 'accounts-receivable-aging',
+    title: 'Accounts Receivable Aging',
+    subtitle: 'Twice a week the agent reads your invoice sheet, buckets outstanding balances by aging, calculates your Days Sales Outstanding, and drafts escalating chase emails — so nothing slips past due unnoticed.',
+    category: 'Finance',
+    difficulty: 'Intermediate',
+    timeToComplete: 20,
+    timeSaved: 150,
+    completionCount: 0,
+    rating: 4.9,
+    isPro: true,
+    isNew: true,
+    tools: ['Claude', 'Google Sheets', 'ChatGPT'],
+    beforeYouStart: [
+      'A Google Sheet with your invoices. Required columns: Client, Invoice Number, Amount, Invoice Date, Due Date, Paid? (Yes/No or leave blank for unpaid).',
+      'The sheet must be shared publicly ("Anyone with the link can view").',
+      'Mark invoices as paid by entering "Yes" or the payment date — the agent skips paid invoices automatically.',
+      'Keep the sheet updated within 24 hours of receiving payment.',
+    ],
+    expectedOutcome: 'A twice-weekly AR aging report showing: total outstanding by aging bucket (Current, 1–30, 31–60, 61–90, 90+ days), your DSO figure vs target, a priority chase list, and ready-to-send escalating email drafts for every overdue client.',
+    agentAutomation: {
+      description: 'Every Monday and Thursday morning, the agent fetches your live invoice sheet, computes aging buckets and DSO, and emails you a prioritised AR report with personalised chase emails for every overdue invoice.',
+      trigger: 'Every Monday and Thursday at 8 AM.',
+      actions: [
+        'Fetch all open (unpaid) invoices from your Google Sheets invoice tracker',
+        'Compute days overdue for each invoice based on today\'s date',
+        'Bucket outstanding balances: Current, 1–30, 31–60, 61–90, 90+ days',
+        'Calculate Days Sales Outstanding (DSO) and compare to target',
+        'Draft escalating chase emails calibrated to overdue severity',
+        'Email the AR aging report with infographic dashboard',
+      ],
+      setupSteps: [
+        {
+          title: 'Create Your Invoice Tracker Sheet',
+          description: 'Set up a Google Sheet with these columns: Client | Invoice Number | Amount | Invoice Date | Due Date | Paid? (leave blank for unpaid, enter Yes or the payment date when paid). One row per invoice. Keep all invoices — paid and unpaid — in the sheet so DSO is calculated correctly.',
+        },
+        {
+          title: 'Share and Connect',
+          description: "Share as 'Anyone with the link — Viewer'. Paste the URL into the Invoices Sheet variable in the Prompt Variables panel. The agent automatically filters to unpaid invoices for the aging analysis.",
+        },
+        {
+          title: 'Set Your Payment Terms',
+          description: "Fill in Standard Payment Terms — e.g. 'Net 30' or 'Net 14 for new clients, Net 45 for enterprise'. If you have mixed terms, add a Terms column to your sheet and the agent will respect per-client terms.",
+        },
+        {
+          title: 'Schedule Twice Weekly',
+          description: 'Create two separate scheduled agents for this playbook — one Weekly (Monday) and one Weekly (Thursday). Both pull from the same sheet. The Monday run catches weekend payments; Thursday catches mid-week.',
+        },
+      ],
+      tools: ['Google Sheets', 'Claude', 'ChatGPT', 'Gmail'],
+    },
+    troubleshooting: [
+      {
+        problem: 'DSO seems unusually high',
+        solution: "Check that Invoice Date is the issue date not the delivery date. Also confirm all recently paid invoices are marked Yes in the Paid column — unpaid rows from completed jobs skew DSO up.",
+      },
+      {
+        problem: 'Chase emails are generated for clients on a payment plan',
+        solution: 'Add a Notes column. For clients on a plan write "Payment plan agreed — $X on [Date]". The agent acknowledges the plan in the email instead of treating it as standard overdue.',
+      },
+      {
+        problem: 'A 90+ day client is in a dispute — a chase email would make things worse',
+        solution: 'Add "DISPUTE" to the Notes column for that invoice row. The agent skips chase drafts for disputed invoices and flags them separately for manual handling.',
+      },
+    ],
+    steps: [
+      {
+        id: 'smb-bk-7-s1',
+        stepNumber: 1,
+        title: 'Build the AR Aging Buckets',
+        instruction: 'The agent loads your invoice sheet, filters to unpaid invoices only, computes days overdue, and groups amounts into the 5 standard aging buckets.',
+        promptTemplate: `I need an accounts receivable aging report for [Business Name & Type].
+
+Standard payment terms: [Standard Payment Terms — e.g. "Net 30"]
+Today's date: [TODAY'S DATE]
+
+Invoice data:
+[Invoices Sheet]
+
+Instructions:
+1. Filter to UNPAID invoices only (Paid column is blank or "No")
+2. For each unpaid invoice: Days Overdue = Today minus Due Date (negative = not yet due = Current)
+3. Bucket each invoice:
+   - Current: not yet due
+   - 1–30 days overdue
+   - 31–60 days overdue
+   - 61–90 days overdue
+   - 90+ days overdue (CRITICAL)
+4. Aging table sorted by days overdue descending:
+
+| Client | Invoice # | Amount | Due Date | Days Overdue | Bucket |
+|---|---|---|---|---|---|
+
+5. Summary:
+| Bucket | Count | Total Amount | % of AR |
+|---|---|---|---|
+[5 bucket rows + Totals row]`,
+        expectedOutput: 'A complete AR aging table sorted by urgency, plus a 5-bucket summary showing dollar amounts and percentage of total AR in each bucket.',
+        tips: 'If the 90+ days bucket exceeds 15% of total AR, you have a collection problem that needs immediate escalation — not just emails.',
+        tools: ['Claude', 'ChatGPT'],
+      },
+      {
+        id: 'smb-bk-7-s2',
+        stepNumber: 2,
+        title: 'Calculate Days Sales Outstanding (DSO)',
+        instruction: 'DSO tells you how many days on average it takes to collect payment. A rising DSO is an early warning sign of cash flow problems. Target DSO should be no more than 1.5x your payment terms.',
+        promptTemplate: `Using the invoice data already loaded, calculate Days Sales Outstanding (DSO).
+
+Formula: DSO = (Total AR Outstanding / Total Credit Sales in last 90 days) x 90
+
+Show:
+1. DSO: X days
+2. Target DSO for [Standard Payment Terms]: X days (1.5x the terms)
+3. DSO Status: On Track / Warning / Critical
+4. Which clients consistently appear in the 31+ day buckets? Name them.
+5. One DSO improvement action: the single highest-impact change to bring DSO down.`,
+        expectedOutput: 'A DSO calculation with target comparison, status flag, names of chronically slow-paying clients, and one specific improvement recommendation.',
+        tips: 'If your DSO is higher than 1.5x your terms, the problem is usually invoicing timing — invoices issued more than 3 days after delivery are significantly more likely to pay late.',
+        tools: ['Claude', 'ChatGPT'],
+      },
+      {
+        id: 'smb-bk-7-s3',
+        stepNumber: 3,
+        title: 'Draft Escalating Chase Emails',
+        instruction: 'For every overdue invoice, the agent drafts a chase email calibrated to the aging bucket. Tone escalates from friendly (1–30 days) to firm (31–60) to urgent (61–90) to formal final notice (90+).',
+        promptTemplate: `Write chase emails for every overdue invoice from Step 1.
+
+Calibrate tone by bucket:
+
+1–30 DAYS — Friendly reminder:
+- Assume oversight, not avoidance
+- Reference invoice number and amount in subject
+- Offer payment details, ask if anything is blocking payment
+- Under 60 words
+
+31–60 DAYS — Firm follow-up:
+- Acknowledge prior contact
+- State the specific overdue amount and days past due
+- Give a payment deadline 7 days from today
+- Under 80 words
+
+61–90 DAYS — Urgent notice:
+- State clearly this requires immediate attention
+- Offer a payment plan as alternative to full payment
+- State next step if no response
+- Under 100 words
+
+90+ DAYS — Final notice:
+- Formal language, no pleasantries
+- Final deadline: 5 business days
+- Reference next step: collections or legal action
+- Under 80 words
+
+Header format: ## [Client Name] — Invoice [#] — [Amount] — [X days overdue]`,
+        expectedOutput: 'One escalating chase email per overdue invoice, correctly toned by aging bucket, with a specific subject line and hard call-to-action.',
+        tips: 'The 90+ emails should always be reviewed before sending — they imply legal action. Make sure you are prepared to follow through before hitting send.',
+        tools: ['Claude', 'ChatGPT'],
+      },
+    ],
+    relatedPlaybooks: [
+      { id: 'smb-bk-3', title: 'Invoice & Cash Flow Guardian', slug: 'invoice-cash-flow-guardian' },
+      { id: 'smb-bk-6', title: 'Sales Pipeline Health', slug: 'sales-pipeline-health' },
+      { id: 'smb-bk-2', title: 'Monthly Financial Snapshot & P&L Analyzer', slug: 'monthly-financial-snapshot-pl-analyzer' },
+    ],
+  },
 ];
 
 export const claudeCrashCoursePlaybooks: Playbook[] = [

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Sparkles, Loader2, AlertCircle, Copy, Check } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { markdownToHtml } from '../lib/markdown';
 
 interface AgentCopilotProps {
     prompt: string;
@@ -166,10 +167,10 @@ export default function AgentCopilot({ prompt, tools = [] }: AgentCopilotProps) 
 
                     <div className="p-6 relative z-10">
                         <div className="prose prose-sm prose-slate max-w-none prose-p:leading-relaxed prose-pre:bg-slate-50 prose-pre:text-slate-800">
-                            {/* Minimal markdown rendering via whitespace */}
-                            <div className="whitespace-pre-wrap text-brand-dark/90 text-[15px] leading-relaxed break-words font-sans">
-                                {response}
-                            </div>
+                            <div
+                                className="text-brand-dark/90 text-[15px] leading-relaxed break-words font-sans [&_table]:w-full [&_table]:my-4 [&_th]:text-left [&_th]:p-2 [&_th]:bg-slate-50 [&_th]:border [&_th]:border-slate-200 [&_td]:p-2 [&_td]:border [&_td]:border-slate-200 [&_th]:text-xs [&_th]:uppercase [&_th]:tracking-wider [&_th]:text-slate-500"
+                                dangerouslySetInnerHTML={{ __html: markdownToHtml(response) }}
+                            />
                         </div>
                     </div>
                 </div>
