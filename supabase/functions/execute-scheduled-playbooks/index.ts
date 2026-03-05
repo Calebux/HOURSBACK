@@ -490,7 +490,8 @@ async function executeSchedule(schedule: any, supabaseAdmin: any): Promise<void>
     compiledPrompt += `- Label each item clearly (e.g. "Day 1:", "Email 1:", "Step 1:") so the output is scannable.\n`;
     compiledPrompt += `- Use markdown headings and structure. Skip all meta-commentary about what you are doing.\n`;
     compiledPrompt += `- Format all large numbers with commas and appropriate currency symbols (e.g. $1,250,500 or ₦48,750,000) for readability.\n`;
-    compiledPrompt += `- Format all tables using standard Markdown tables. Keep columns compact (max 3–4 columns) so the table displays well when exported to PDF or Google Docs.\n`;
+    compiledPrompt += `- NEVER wrap any content, tables, or text in markdown code blocks (\`\`\`). This is extremely important. Output raw markdown text only so tables render as actual UI grids that can be copied directly into Google Docs or Excel.\n`;
+    compiledPrompt += `- Format all tables using standard Markdown tables with | pipes |. Keep columns compact (max 3–4 columns).\n`;
     compiledPrompt += `- Deliver final polished content only — no draft notes, no "here is your X", just the X.\n`;
     compiledPrompt += `- Do NOT repeat financial figures, P&L tables, or KPI numbers in the document body that you have already included in the INFOGRAPH_DATA block. Those are rendered as a visual At a Glance dashboard — writing the same data again in prose is redundant and clutters the report.`;
 
