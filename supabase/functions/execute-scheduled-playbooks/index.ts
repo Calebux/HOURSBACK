@@ -164,8 +164,7 @@ const INFOGRAPHIC_SLUGS = new Set([
 type InfographData = {
   title: string;
   kpis: Array<{ label: string; value: string; trend?: "up" | "down" | "neutral"; note?: string }>;
-  scores?: Array<{ label: string; score: number; max: number }>;
-  bars?: Array<{ label: string; value: number; max: number; unit?: string }>;
+  tables?: Array<{ title?: string; headers: string[]; rows: string[][] }>;
   highlights?: Array<{ type: "strength" | "risk" | "action"; text: string }>;
 };
 
@@ -195,113 +194,91 @@ function parseInfographData(text: string): { data: InfographData | null; cleanTe
 
 function generateInfographicHtml(d: InfographData): string {
   // ── Power BI / Tableau dark dashboard ──────────────────────────────────────
-  // Colors
-  const BG       = "#13131f";   // canvas
-  const PANEL    = "#1c1c2e";   // card panels
-  const BORDER   = "#2a2a42";   // subtle dividers
-  const TEXT     = "#e2e8f0";   // primary text
-  const MUTED    = "#7c85a0";   // secondary labels
-  const ACCENT   = ["#118dff","#00b4d8","#e66c37","#8bc34a","#c77dff"];
+  const BG    = "#13131f";
+  const PANEL = "#1c1c2e";
+  const PANEL2= "#21213a";   // alternating table rows
+  const BORDER= "#2a2a42";
+  const TEXT  = "#e2e8f0";
+  const MUTED = "#7c85a0";
+  const ACCENT= ["#118dff","#00b4d8","#e66c37","#8bc34a","#c77dff"];
 
-  // KPI tiles — each gets a distinct top-border color accent
+  // ── KPI tiles ──────────────────────────────────────────────────────────────
   const kpiHtml = d.kpis.map((k, i) => {
-    const accent = ACCENT[i % ACCENT.length];
+    const accent     = ACCENT[i % ACCENT.length];
     const trendColor = k.trend === "up" ? "#4ade80" : k.trend === "down" ? "#f87171" : MUTED;
     const trendArrow = k.trend === "up" ? "▲" : k.trend === "down" ? "▼" : "";
     const trendBadge = trendArrow
-      ? "<span style='display:inline-block;background:" + trendColor + "22;color:" + trendColor + ";font-size:10px;font-weight:700;padding:1px 7px;border-radius:999px;margin-top:5px;letter-spacing:0.3px;'>"
-        + trendArrow + " " + k.trend.toUpperCase() + "</span>"
+      ? "<div style='margin-top:6px;'><span style='background:" + trendColor + "22;color:" + trendColor + ";font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;letter-spacing:0.3px;'>"
+        + trendArrow + " " + k.trend.toUpperCase() + "</span></div>"
       : "";
     return "<td style='padding:0;vertical-align:top;border-right:1px solid " + BORDER + ";width:" + Math.floor(100/d.kpis.length) + "%;'>"
-      + "<div style='border-top:3px solid " + accent + ";padding:16px 14px 14px;'>"
-      + "<div style='font-size:11px;color:" + MUTED + ";font-weight:600;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;'>" + k.label + "</div>"
+      + "<div style='border-top:3px solid " + accent + ";padding:16px 14px 15px;'>"
+      + "<div style='font-size:10px;color:" + MUTED + ";font-weight:600;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:7px;'>" + k.label + "</div>"
       + "<div style='font-size:26px;font-weight:800;color:" + TEXT + ";letter-spacing:-1px;line-height:1;'>" + k.value + "</div>"
       + trendBadge
       + (k.note ? "<div style='font-size:10px;color:" + MUTED + ";margin-top:5px;line-height:1.4;'>" + k.note + "</div>" : "")
       + "</div></td>";
   }).join("");
 
-  // Score bars — health dimensions on dark track
-  const scoresHtml = (d.scores && d.scores.length) ? d.scores.map(s => {
-    const pct = Math.min(100, Math.round((s.score / s.max) * 100));
-    const fill = pct >= 70 ? "#4ade80" : pct >= 40 ? "#facc15" : "#f87171";
-    const glow = pct >= 70 ? "rgba(74,222,128,0.35)" : pct >= 40 ? "rgba(250,204,21,0.35)" : "rgba(248,113,113,0.35)";
-    return "<div style='margin-bottom:13px;'>"
-      + "<table width='100%' cellpadding='0' cellspacing='0'><tr>"
-      + "<td style='font-size:12px;color:" + TEXT + ";font-weight:500;'>" + s.label + "</td>"
-      + "<td align='right' style='font-size:12px;font-weight:800;color:" + fill + ";'>" + s.score + "<span style='color:" + MUTED + ";font-weight:400;'>/" + s.max + "</span></td>"
-      + "</tr></table>"
-      + "<div style='background:rgba(255,255,255,0.07);border-radius:999px;height:7px;margin-top:7px;overflow:hidden;'>"
-      + "<div style='background:" + fill + ";box-shadow:0 0 8px " + glow + ";border-radius:999px;height:7px;width:" + pct + "%;'></div>"
-      + "</div></div>";
-  }).join("") : "";
+  // ── Data tables ────────────────────────────────────────────────────────────
+  const tablesSection = (d.tables && d.tables.length) ? (
+    "<div style='padding:20px 22px 16px;border-top:1px solid " + BORDER + ";'>"
+    + "<div style='font-size:9px;font-weight:700;color:" + MUTED + ";letter-spacing:1.5px;text-transform:uppercase;margin-bottom:16px;'>&#9632; DATA BREAKDOWN</div>"
+    + d.tables.map(t => {
+      // Table title
+      const titleRow = t.title
+        ? "<div style='font-size:11px;font-weight:700;color:#118dff;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;'>" + t.title + "</div>"
+        : "";
+      // Header row
+      const headerCells = t.headers.map((h, hi) =>
+        "<td style='padding:9px 12px;font-size:10px;font-weight:700;color:#118dff;text-transform:uppercase;letter-spacing:0.6px;"
+        + (hi < t.headers.length - 1 ? "border-right:1px solid " + BORDER + ";" : "")
+        + (hi > 0 ? "text-align:right;" : "")
+        + "'>" + h + "</td>"
+      ).join("");
+      // Data rows
+      const dataRows = t.rows.map((row, ri) => {
+        const rowBg = ri % 2 === 0 ? PANEL : PANEL2;
+        const cells = row.map((cell, ci) =>
+          "<td style='padding:9px 12px;font-size:12px;color:" + (ci === 0 ? TEXT : "#a8b3cf") + ";font-weight:" + (ci === 0 ? "600" : "400") + ";"
+          + (ci < row.length - 1 ? "border-right:1px solid " + BORDER + ";" : "")
+          + (ci > 0 ? "text-align:right;" : "")
+          + "border-bottom:1px solid " + BORDER + ";'>" + cell + "</td>"
+        ).join("");
+        return "<tr style='background:" + rowBg + ";'>" + cells + "</tr>";
+      }).join("");
 
-  // Comparison bars — ranked breakdown with alternating Power BI palette
-  const barsHtml = (d.bars && d.bars.length) ? d.bars.map((b, i) => {
-    const pct = Math.min(100, Math.round((b.value / b.max) * 100));
-    const color = ACCENT[i % ACCENT.length];
-    return "<div style='margin-bottom:13px;'>"
-      + "<table width='100%' cellpadding='0' cellspacing='0'><tr>"
-      + "<td style='font-size:12px;color:" + TEXT + ";font-weight:500;'>" + b.label + "</td>"
-      + "<td align='right' style='font-size:12px;font-weight:800;color:" + color + ";'>" + b.value + (b.unit || "") + "</td>"
-      + "</tr></table>"
-      + "<div style='background:rgba(255,255,255,0.07);border-radius:999px;height:7px;margin-top:7px;overflow:hidden;'>"
-      + "<div style='background:" + color + ";border-radius:999px;height:7px;width:" + pct + "%;'></div>"
-      + "</div></div>";
-  }).join("") : "";
+      return titleRow
+        + "<div style='border-radius:8px;overflow:hidden;border:1px solid " + BORDER + ";margin-bottom:16px;'>"
+        + "<table width='100%' cellpadding='0' cellspacing='0' style='border-collapse:collapse;'>"
+        + "<thead><tr style='background:#118dff18;border-bottom:2px solid #118dff33;'>" + headerCells + "</tr></thead>"
+        + "<tbody>" + dataRows + "</tbody>"
+        + "</table></div>";
+    }).join("")
+    + "</div>"
+  ) : "";
 
-  // Two-column chart panel (scores left, bars right) — or full-width when only one
-  const hasScores = !!(d.scores && d.scores.length);
-  const hasBars   = !!(d.bars   && d.bars.length);
-  let chartsSection = "";
-  if (hasScores || hasBars) {
-    if (hasScores && hasBars) {
-      chartsSection =
-        "<table width='100%' cellpadding='0' cellspacing='0' style='border-top:1px solid " + BORDER + ";'>"
-        + "<tr>"
-        // Left panel
-        + "<td width='50%' style='padding:20px 20px 16px;vertical-align:top;border-right:1px solid " + BORDER + ";'>"
-        + "<div style='font-size:9px;font-weight:700;color:" + MUTED + ";letter-spacing:1.5px;text-transform:uppercase;margin-bottom:14px;'>&#9632; HEALTH SCORES</div>"
-        + scoresHtml
-        + "</td>"
-        // Right panel
-        + "<td width='50%' style='padding:20px 20px 16px;vertical-align:top;'>"
-        + "<div style='font-size:9px;font-weight:700;color:" + MUTED + ";letter-spacing:1.5px;text-transform:uppercase;margin-bottom:14px;'>&#9632; BREAKDOWN</div>"
-        + barsHtml
-        + "</td>"
-        + "</tr></table>";
-    } else {
-      const label = hasScores ? "HEALTH SCORES" : "BREAKDOWN";
-      const content = hasScores ? scoresHtml : barsHtml;
-      chartsSection =
-        "<div style='padding:20px 22px 16px;border-top:1px solid " + BORDER + ";'>"
-        + "<div style='font-size:9px;font-weight:700;color:" + MUTED + ";letter-spacing:1.5px;text-transform:uppercase;margin-bottom:14px;'>&#9632; " + label + "</div>"
-        + content
-        + "</div>";
-    }
-  }
-
-  // Insight cards — colored left-border on dark panel
+  // ── Insight cards ──────────────────────────────────────────────────────────
   const insightCfg: Record<string, { accent: string; icon: string; label: string }> = {
     strength: { accent: "#4ade80", icon: "✦", label: "STRENGTH" },
     risk:     { accent: "#facc15", icon: "⚑", label: "RISK"     },
     action:   { accent: "#118dff", icon: "→", label: "ACTION"   },
   };
   const insightsSection = (d.highlights && d.highlights.length) ? (
-    "<div style='padding:18px 22px 14px;border-top:1px solid " + BORDER + ";'>"
-    + "<div style='font-size:9px;font-weight:700;color:" + MUTED + ";letter-spacing:1.5px;text-transform:uppercase;margin-bottom:14px;'>&#9632; INSIGHTS</div>"
+    "<div style='padding:18px 22px 16px;border-top:1px solid " + BORDER + ";'>"
+    + "<div style='font-size:9px;font-weight:700;color:" + MUTED + ";letter-spacing:1.5px;text-transform:uppercase;margin-bottom:14px;'>&#9632; INSIGHTS &amp; ACTIONS</div>"
     + d.highlights.map(h => {
       const cfg = insightCfg[h.type] || insightCfg.action;
-      return "<div style='padding:11px 14px;background:" + cfg.accent + "12;border-left:3px solid " + cfg.accent + ";border-radius:0 8px 8px 0;margin-bottom:8px;'>"
+      return "<div style='padding:11px 14px;background:" + cfg.accent + "10;border-left:3px solid " + cfg.accent + ";border-radius:0 8px 8px 0;margin-bottom:8px;'>"
         + "<span style='font-size:9px;font-weight:800;color:" + cfg.accent + ";letter-spacing:1px;text-transform:uppercase;'>" + cfg.icon + " " + cfg.label + "</span>"
-        + "<div style='font-size:12px;color:" + TEXT + ";margin-top:3px;line-height:1.5;font-weight:500;'>" + h.text + "</div>"
+        + "<div style='font-size:12px;color:" + TEXT + ";margin-top:4px;line-height:1.55;font-weight:500;'>" + h.text + "</div>"
         + "</div>";
     }).join("")
     + "</div>"
   ) : "";
 
   return "<div style='font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,sans-serif;background:" + BG + ";border-radius:14px;overflow:hidden;border:1px solid " + BORDER + ";'>"
-    // ── Header bar ──
+    // ── Header ──
     + "<div style='background:" + PANEL + ";padding:16px 22px 14px;border-bottom:1px solid " + BORDER + ";'>"
     + "<table width='100%' cellpadding='0' cellspacing='0'><tr>"
     + "<td style='vertical-align:middle;'>"
@@ -312,14 +289,14 @@ function generateInfographicHtml(d: InfographData): string {
     + "<div style='font-size:9px;color:" + MUTED + ";'>" + new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}) + "</div>"
     + "</td></tr></table>"
     + "</div>"
-    // ── Rainbow accent line ──
+    // ── Accent line ──
     + "<div style='height:2px;background:linear-gradient(90deg,#118dff 0%,#00b4d8 33%,#e66c37 66%,#8bc34a 100%);'></div>"
     // ── KPI tiles ──
     + "<table width='100%' cellpadding='0' cellspacing='0' style='background:" + PANEL + ";border-bottom:1px solid " + BORDER + ";'><tr>"
     + kpiHtml
     + "</tr></table>"
-    // ── Charts ──
-    + chartsSection
+    // ── Tables ──
+    + tablesSection
     // ── Insights ──
     + insightsSection
     // ── Footer ──
@@ -477,11 +454,12 @@ async function executeSchedule(schedule: any, supabaseAdmin: any): Promise<void>
     compiledPrompt += `- Do NOT truncate. If a task requires 30 items, write all 30.\n`;
     compiledPrompt += `- Label each item clearly (e.g. "Day 1:", "Email 1:", "Step 1:") so the output is scannable.\n`;
     compiledPrompt += `- Use markdown headings and structure. Skip all meta-commentary about what you are doing.\n`;
+    compiledPrompt += `- For any section with heavy numerical data (financial breakdown, category totals, comparisons, projections), format it as a markdown table with aligned columns.\n`;
     compiledPrompt += `- Deliver final polished content only — no draft notes, no "here is your X", just the X.`;
 
     // Analysis playbooks: ask Claude to append structured metric JSON
     if (INFOGRAPHIC_SLUGS.has(playbookSlug)) {
-      compiledPrompt += `\n\n---\nFINAL STEP — append this block at the very end of your response. No code fences. No explanation. Just the markers and raw JSON:\n\nINFOGRAPH_DATA_START\n{"title":"${(playbookData?.title || playbookSlug).replace(/"/g, "'")}","kpis":[{"label":"Metric Name","value":"$X.XK","trend":"up"}],"scores":[{"label":"Dimension","score":7,"max":10}],"bars":[],"highlights":[{"type":"strength","text":"Key strength"},{"type":"risk","text":"Key risk"},{"type":"action","text":"Top recommended action"}]}\nINFOGRAPH_DATA_END\n\nRules for the JSON values:\n- kpis: 3–5 headline numbers from your analysis (revenue, margin, score, growth). Short format: "$12.4K", "23%", "7/10".\n- scores: every dimension you rated 1–10.\n- bars: ranked percentages or comparisons ([] if none).\n- highlights: 1–2 strength, 1–2 risk, 1–2 action items — max 15 words each.\n- CRITICAL: output raw JSON only between the markers — no markdown, no code fences, no text after INFOGRAPH_DATA_END.`;
+      compiledPrompt += `\n\n---\nFINAL STEP — append this block at the very end of your response. No code fences. No explanation. Just the markers and raw JSON:\n\nINFOGRAPH_DATA_START\n{"title":"${(playbookData?.title || playbookSlug).replace(/"/g, "'")}","kpis":[{"label":"Net Revenue","value":"$12.4K","trend":"up","note":"vs last month"},{"label":"Gross Margin","value":"47%","trend":"up"},{"label":"Burn Rate","value":"$3.1K","trend":"down"}],"tables":[{"title":"Financial Breakdown","headers":["Category","Amount","% of Total","vs Prior"],"rows":[["Revenue","$12,400","100%","+8%"],["Cost of Goods","$6,580","53%","-2%"],["Gross Profit","$5,820","47%","+18%"],["Operating Expenses","$2,700","22%","+5%"],["Net Profit","$3,120","25%","+34%"]]},{"title":"Top Expense Categories","headers":["Expense","Amount","% of Opex"],"rows":[["Payroll","$1,400","52%"],["Software","$540","20%"],["Marketing","$460","17%"],["Other","$300","11%"]]}],"highlights":[{"type":"strength","text":"Gross margin improved 18% — pricing strategy is working"},{"type":"risk","text":"Operating expenses growing faster than revenue"},{"type":"action","text":"Renegotiate software subscriptions to cut Opex by 10%"}]}\nINFOGRAPH_DATA_END\n\nRules for the JSON values — use REAL numbers from your analysis, not the examples above:\n- kpis: 3–5 headline numbers (revenue, margin, score, growth). Short format: "$12.4K", "23%", "7/10".\n- tables: 1–3 tables capturing ALL heavy numerical data. Each row is an array of strings. Include every significant figure — totals, percentages, comparisons. Min 3 rows per table.\n- highlights: 1–2 strength, 1–2 risk, 1–2 action — max 15 words each, specific and actionable.\n- CRITICAL: output raw JSON only between the markers — no markdown, no code fences, no text after INFOGRAPH_DATA_END.`;
     }
   }
 

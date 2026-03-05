@@ -42,7 +42,7 @@ export const mapDbPlaybook = (dbPb: any): Playbook => {
             tips: s.tips,
             tools: s.tools || []
         })),
-        relatedPlaybooks: localMatch?.relatedPlaybooks || []
+        relatedPlaybooks: [] // Simplified for now
     };
 };
 
@@ -73,7 +73,7 @@ export async function fetchPlaybooks(): Promise<Playbook[]> {
     const missingEducationPlaybooks = educationPlaybooks.filter((pb: Playbook) => !dbSlugs.has(pb.slug));
 
     // Business playbooks first, then crash course, then DB playbooks
-    return [...missingLeadMagnetPlaybooks, ...missingDesignerPlaybooks, ...missingPluginPlaybooks, ...missingCoworkPlaybooks, ...missingSmbPlaybooks, ...missingEcommercePlaybooks, ...missingLaunchPlaybooks, ...missingPersonalBrandPlaybooks, ...missingEducationPlaybooks, ...fetchedPlaybooks, ...missingCrashCoursePlaybooks];
+    return [...missingLeadMagnetPlaybooks, ...missingEcommercePlaybooks, ...missingLaunchPlaybooks, ...missingPersonalBrandPlaybooks, ...missingEducationPlaybooks, ...missingDesignerPlaybooks, ...missingPluginPlaybooks, ...missingCoworkPlaybooks, ...missingSmbPlaybooks, ...fetchedPlaybooks, ...missingCrashCoursePlaybooks];
 }
 
 export async function fetchPlaybookBySlug(slug: string): Promise<Playbook | null> {

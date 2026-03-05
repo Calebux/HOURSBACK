@@ -1741,12 +1741,7 @@ export const getCategoryColor = (category: string): string => {
     'Legal': '#475569',
     'Claude Crash Course': '#DA7756',
     'Fitness & Wellness': '#10B981',
-    'Risk & Strategy': '#DC2626',
-    'Lead Magnets': '#DA7756',
-    'E-commerce': '#F59E0B',
-    'Launch & Growth': '#10B981',
-    'Personal Brand': '#8B5CF6',
-    'Courses & Education': '#3B82F6'
+    'Risk & Strategy': '#DC2626'
   };
   return colors[category] || '#4F46E5';
 };

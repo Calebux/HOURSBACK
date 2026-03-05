@@ -198,17 +198,17 @@ export default function PlaybooksPage() {
       <nav className="border-b border-brand-dark/10 bg-brand-light/80 backdrop-blur-md sticky top-0 z-50">
         <div className="container mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center">
-            <img src="/logo.svg" alt="Hoursback" className="h-[36px] w-auto" />
+            <img src="/logo.png" alt="Hoursback" className="h-[58px] w-auto mix-blend-multiply" />
           </Link>
 
           <div className="flex items-center gap-1.5 sm:gap-2 md:gap-4">
             <button
               onClick={() => setShowWhatsNew(true)}
-              className="flex items-center gap-1 sm:gap-1.5 md:gap-2 px-2.5 sm:px-3 md:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-brand-blue/10 to-brand-blue/5 border border-brand-blue/20 text-brand-blue rounded-full text-xs sm:text-sm font-medium hover:from-brand-blue/15 hover:to-brand-blue/10 transition-all whitespace-nowrap"
+              className="flex items-center gap-1 sm:gap-1.5 md:gap-2 px-2.5 sm:px-3 md:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-[#DA7756]/10 to-[#DA7756]/5 border border-[#DA7756]/20 text-[#DA7756] rounded-full text-xs sm:text-sm font-medium hover:from-[#DA7756]/15 hover:to-[#DA7756]/10 transition-all whitespace-nowrap"
             >
               <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
               <span className="hidden sm:inline">What's New</span>
-              <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-brand-blue rounded-full animate-pulse shrink-0" />
+              <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-[#DA7756] rounded-full animate-pulse shrink-0" />
             </button>
             {user ? (
               <>
@@ -367,11 +367,6 @@ export default function PlaybooksPage() {
                       <option value="Legal">Legal</option>
                       <option value="Fitness & Wellness">Fitness &amp; Wellness</option>
                       <option value="Risk & Strategy">Risk &amp; Strategy</option>
-                      <option value="Lead Magnets">Lead Magnets</option>
-                      <option value="E-commerce">E-commerce</option>
-                      <option value="Launch & Growth">Launch &amp; Growth</option>
-                      <option value="Personal Brand">Personal Brand</option>
-                      <option value="Courses & Education">Courses &amp; Education</option>
                     </select>
                     <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                   </div>
@@ -521,7 +516,7 @@ export default function PlaybooksPage() {
                 {/* Header */}
                 <div className="flex items-center justify-between mb-8">
                   <div className="flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-brand-blue" />
+                    <Sparkles className="w-5 h-5 text-[#DA7756]" />
                     <h2 className="text-lg font-semibold">What's New</h2>
                   </div>
                   <button
