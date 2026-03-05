@@ -196,13 +196,8 @@ function parseInfographData(text: string): { data: InfographData | null; cleanTe
 }
 
 function generateInfographicHtml(d: InfographData): string {
-  const BG    = "#13131f";
-  const PANEL = "#1c1c2e";
-  const PANEL2= "#21213a";
-  const BORDER= "#2a2a42";
-  const TEXT  = "#e2e8f0";
-  const MUTED = "#7c85a0";
-  const ACCENT= ["#118dff","#00b4d8","#e66c37","#8bc34a","#c77dff"];
+  // Unique class ID — scopes CSS vars so multiple cards on one page don't clash
+  const uid = "inf" + Math.random().toString(36).slice(2, 8);
 
   // ── Normalise: convert old scores schema → table ───────────────────────────
   if ((!d.tables || !d.tables.length) && (d as any).scores?.length) {
@@ -210,65 +205,75 @@ function generateInfographicHtml(d: InfographData): string {
     d = { ...d, tables: [{ title: "Health Scores", headers: ["Dimension","Score","/ Max","Status"],
       rows: scores.map(s => {
         const pct = Math.round((s.score / s.max) * 100);
-        return [s.label, String(s.score), String(s.max), pct >= 70 ? "✓ Good" : pct >= 40 ? "~ Fair" : "✗ Weak"];
+        return [s.label, String(s.score), String(s.max), pct >= 70 ? "Good" : pct >= 40 ? "Fair" : "Weak"];
       }) }] };
   }
+
+  // ── CSS custom properties: dark (default) + light override ─────────────────
+  // Short names keep the HTML compact. All colors live here — toggle swaps them.
+  const css = `<style>`
+    + `.${uid}{--b:#13131f;--p:#1c1c2e;--p2:#21213a;--br:#2a2a42;--t:#e2e8f0;--mu:#7c85a0;`
+    + `--th:#0c1933;--br2:#118dff16;--ct:#a8b3cf;--sl:#b0bcd4;--st:rgba(255,255,255,.07);`
+    + `--si:#118dff;--bb:rgba(255,255,255,.08);--bt:#94a3b8;--bbo:rgba(255,255,255,.14)}`
+    + `.${uid}[data-theme=light]{--b:#f5f7fb;--p:#ffffff;--p2:#f0f4f9;--br:#dde3ed;--t:#1a202c;`
+    + `--mu:#64748b;--th:#eff6ff;--br2:#dbeafe;--ct:#4b5563;--sl:#4b5563;--st:rgba(0,0,0,.06);`
+    + `--si:#1d4ed8;--bb:rgba(0,0,0,.06);--bt:#374151;--bbo:rgba(0,0,0,.12)}`
+    + `</style>`;
+
+  const ACCENT = ["#118dff","#00b4d8","#e66c37","#8bc34a","#c77dff"];
 
   // ── KPI tiles ──────────────────────────────────────────────────────────────
   const kpiHtml = d.kpis.map((k, i) => {
     const accent = ACCENT[i % ACCENT.length];
-    const trendColor = k.trend === "up" ? "#4ade80" : k.trend === "down" ? "#f87171" : MUTED;
-    const trendArrow = k.trend === "up" ? "▲" : k.trend === "down" ? "▼" : "";
-    const trendBadge = trendArrow
-      ? "<div style='margin-top:5px;'><span style='background:" + trendColor + "20;color:" + trendColor + ";font-size:9px;font-weight:700;padding:2px 7px;border-radius:999px;letter-spacing:0.3px;'>"
-        + trendArrow + " " + k.trend.toUpperCase() + "</span></div>" : "";
-    return "<td style='padding:0;vertical-align:top;border-right:1px solid " + BORDER + ";width:" + Math.floor(100/d.kpis.length) + "%;'>"
-      + "<div style='border-top:3px solid " + accent + ";padding:15px 13px;'>"
-      + "<div style='font-size:9px;color:" + MUTED + ";font-weight:600;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;'>" + k.label + "</div>"
-      + "<div style='font-size:22px;font-weight:800;color:" + TEXT + ";letter-spacing:-0.5px;line-height:1;'>" + k.value + "</div>"
-      + trendBadge
-      + (k.note ? "<div style='font-size:9px;color:" + MUTED + ";margin-top:4px;line-height:1.3;'>" + k.note + "</div>" : "")
-      + "</div></td>";
+    const trendColor = k.trend === "up" ? "#4ade80" : k.trend === "down" ? "#f87171" : "var(--mu)";
+    const trendArrow = k.trend === "up" ? "&#9650;" : k.trend === "down" ? "&#9660;" : "";
+    const badge = trendArrow
+      ? `<div style='margin-top:5px'><span style='background:${trendColor}20;color:${trendColor};font-size:9px;font-weight:700;padding:2px 7px;border-radius:999px;letter-spacing:.3px'>${trendArrow} ${k.trend.toUpperCase()}</span></div>` : "";
+    return `<td style='padding:0;vertical-align:top;border-right:1px solid var(--br);width:${Math.floor(100/d.kpis.length)}%'>`
+      + `<div style='border-top:3px solid ${accent};padding:15px 13px'>`
+      + `<div style='font-size:9px;color:var(--mu);font-weight:600;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px'>${k.label}</div>`
+      + `<div style='font-size:22px;font-weight:800;color:var(--t);letter-spacing:-.5px;line-height:1'>${k.value}</div>`
+      + badge
+      + (k.note ? `<div style='font-size:9px;color:var(--mu);margin-top:4px;line-height:1.3'>${k.note}</div>` : "")
+      + `</div></td>`;
   }).join("");
 
-  // ── SVG bar chart (inline SVG — works perfectly in any browser) ────────────
+  // ── SVG bar chart — uses style= for fill so CSS vars work ──────────────────
   const svgBars = (bars: NonNullable<InfographData["bars"]>) => {
-    const barColors = ["#e66c37","#118dff","#00b4d8","#8bc34a","#c77dff","#facc15"];
+    const C = ["#e66c37","#118dff","#00b4d8","#8bc34a","#c77dff","#facc15"];
     const LW = 105, BW = 160, VW = 52, ROW = 28, TOP = 22, W = LW + BW + VW + 8;
     const H = bars.length * ROW + TOP + 6;
     const rows = bars.map((b, i) => {
       const fill = Math.min(BW, Math.round((b.value / b.max) * BW));
-      const y = TOP + i * ROW;
-      const color = barColors[i % barColors.length];
-      const val = b.value + (b.unit || "");
-      return `<text x="${LW - 5}" y="${y + 11}" fill="#b0bcd4" font-size="11" text-anchor="end" dominant-baseline="middle">${b.label}</text>`
-        + `<rect x="${LW}" y="${y}" width="${BW}" height="16" fill="rgba(255,255,255,0.07)" rx="3"/>`
-        + `<rect x="${LW}" y="${y}" width="${fill}" height="16" fill="${color}" rx="3"/>`
-        + `<text x="${LW + BW + 7}" y="${y + 11}" fill="${color}" font-size="10" font-weight="bold" dominant-baseline="middle">${val}</text>`;
+      const y = TOP + i * ROW, color = C[i % C.length], val = b.value + (b.unit || "");
+      return `<text x='${LW-5}' y='${y+11}' style='fill:var(--sl)' font-size='11' text-anchor='end' dominant-baseline='middle'>${b.label}</text>`
+        + `<rect x='${LW}' y='${y}' width='${BW}' height='16' style='fill:var(--st)' rx='3'/>`
+        + `<rect x='${LW}' y='${y}' width='${fill}' height='16' fill='${color}' rx='3'/>`
+        + `<text x='${LW+BW+7}' y='${y+11}' fill='${color}' font-size='10' font-weight='bold' dominant-baseline='middle'>${val}</text>`;
     }).join("");
-    return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%;max-width:${W}px;">`
-      + `<text x="0" y="13" fill="#118dff" font-size="9" font-weight="bold" letter-spacing="1.5">&#9632; TOP EXPENSES</text>`
+    return `<svg width='${W}' height='${H}' viewBox='0 0 ${W} ${H}' xmlns='http://www.w3.org/2000/svg' style='display:block;width:100%;max-width:${W}px'>`
+      + `<text x='0' y='13' style='fill:var(--si)' font-size='9' font-weight='bold' letter-spacing='1.5'>&#9632; TOP EXPENSES</text>`
       + rows + `</svg>`;
   };
 
-  // ── P&L summary table ──────────────────────────────────────────────────────
+  // ── P&L / summary table ────────────────────────────────────────────────────
   const renderTable = (t: { title?: string; headers: string[]; rows: string[][] }) => {
     const th = t.headers.map((h, hi) =>
-      `<td style='padding:7px 10px;font-size:9px;font-weight:700;color:#118dff;text-transform:uppercase;letter-spacing:0.5px;${hi > 0 ? "text-align:right;" : ""}${hi < t.headers.length-1 ? "border-right:1px solid " + BORDER + ";" : ""}'>${h}</td>`
+      `<td style='padding:7px 10px;font-size:9px;font-weight:700;color:#118dff;text-transform:uppercase;letter-spacing:.5px;${hi > 0 ? "text-align:right;" : ""}${hi < t.headers.length-1 ? "border-right:1px solid var(--br);" : ""}'>${h}</td>`
     ).join("");
     const trs = t.rows.map((row, ri) => {
       const isBold = /^(total|gross|net|ebitda|profit|loss|revenue)/i.test(row[0]);
-      const bg = isBold ? "#118dff16" : ri % 2 === 0 ? PANEL : PANEL2;
+      const bg = isBold ? "var(--br2)" : ri % 2 === 0 ? "var(--p)" : "var(--p2)";
       const cells = row.map((c, ci) =>
-        `<td style='padding:7px 10px;font-size:11px;color:${isBold ? TEXT : (ci === 0 ? TEXT : "#a8b3cf")};font-weight:${isBold ? "700" : "400"};${ci > 0 ? "text-align:right;" : ""}${ci < row.length-1 ? "border-right:1px solid " + BORDER + ";" : ""}border-bottom:1px solid ${BORDER};'>${c}</td>`
+        `<td style='padding:7px 10px;font-size:11px;color:${isBold ? "var(--t)" : ci === 0 ? "var(--t)" : "var(--ct)"};font-weight:${isBold ? "700" : "400"};${ci > 0 ? "text-align:right;" : ""}${ci < row.length-1 ? "border-right:1px solid var(--br);" : ""}border-bottom:1px solid var(--br)'>${c}</td>`
       ).join("");
-      return `<tr style='background:${bg};'>${cells}</tr>`;
+      return `<tr style='background:${bg}'>${cells}</tr>`;
     }).join("");
-    const title = t.title ? `<div style='font-size:9px;font-weight:700;color:#118dff;letter-spacing:1px;text-transform:uppercase;margin-bottom:7px;'>&#9632; ${t.title}</div>` : "";
+    const title = t.title ? `<div style='font-size:9px;font-weight:700;color:#118dff;letter-spacing:1px;text-transform:uppercase;margin-bottom:7px'>&#9632; ${t.title}</div>` : "";
     return title
-      + `<div style='border-radius:6px;overflow:hidden;border:1px solid ${BORDER};'>`
-      + `<table width='100%' cellpadding='0' cellspacing='0' style='border-collapse:collapse;'>`
-      + `<thead><tr style='background:#0c1933;border-bottom:2px solid #118dff33;'>${th}</tr></thead>`
+      + `<div style='border-radius:6px;overflow:hidden;border:1px solid var(--br)'>`
+      + `<table width='100%' cellpadding='0' cellspacing='0' style='border-collapse:collapse'>`
+      + `<thead><tr style='background:var(--th);border-bottom:2px solid #118dff33'>${th}</tr></thead>`
       + `<tbody>${trs}</tbody></table></div>`;
   };
 
@@ -278,53 +283,61 @@ function generateInfographicHtml(d: InfographData): string {
   let bodySection = "";
   if (hasTables && hasBars) {
     bodySection =
-      `<table width='100%' cellpadding='0' cellspacing='0' style='border-top:1px solid ${BORDER};'><tr>`
-      + `<td width='58%' style='padding:18px 14px 16px 20px;vertical-align:top;border-right:1px solid ${BORDER};'>`
+      `<table width='100%' cellpadding='0' cellspacing='0' style='border-top:1px solid var(--br)'><tr>`
+      + `<td width='58%' style='padding:18px 14px 16px 20px;vertical-align:top;border-right:1px solid var(--br)'>`
       + d.tables.map(renderTable).join("")
-      + `</td><td width='42%' style='padding:18px 20px 16px 16px;vertical-align:top;'>`
+      + `</td><td width='42%' style='padding:18px 20px 16px 16px;vertical-align:top'>`
       + svgBars(d.bars!)
       + `</td></tr></table>`;
   } else if (hasTables) {
-    bodySection = `<div style='padding:18px 20px 16px;border-top:1px solid ${BORDER};'>${d.tables.map(renderTable).join("")}</div>`;
+    bodySection = `<div style='padding:18px 20px 16px;border-top:1px solid var(--br)'>${d.tables.map(renderTable).join("")}</div>`;
   } else if (hasBars) {
-    bodySection = `<div style='padding:18px 20px 16px;border-top:1px solid ${BORDER};'>${svgBars(d.bars!)}</div>`;
+    bodySection = `<div style='padding:18px 20px 16px;border-top:1px solid var(--br)'>${svgBars(d.bars!)}</div>`;
   }
 
   // ── Insights: 3 cards side by side ────────────────────────────────────────
   const iCfg: Record<string, { accent: string; icon: string; label: string }> = {
-    strength: { accent: "#4ade80", icon: "✦", label: "STRENGTH" },
-    risk:     { accent: "#facc15", icon: "⚑", label: "RISK"     },
-    action:   { accent: "#118dff", icon: "→", label: "ACTION"   },
+    strength: { accent: "#4ade80", icon: "&#10022;", label: "STRENGTH" },
+    risk:     { accent: "#facc15", icon: "&#9873;",  label: "RISK"     },
+    action:   { accent: "#118dff", icon: "&rarr;",   label: "ACTION"   },
   };
   const insightsSection = (d.highlights && d.highlights.length) ? (
-    `<div style='padding:16px 20px;border-top:1px solid ${BORDER};'>`
-    + `<div style='font-size:9px;font-weight:700;color:${MUTED};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px;'>&#9632; KEY INSIGHTS &amp; ACTIONS</div>`
+    `<div style='padding:16px 20px;border-top:1px solid var(--br)'>`
+    + `<div style='font-size:9px;font-weight:700;color:var(--mu);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px'>&#9632; KEY INSIGHTS &amp; ACTIONS</div>`
     + `<table width='100%' cellpadding='0' cellspacing='0'><tr>`
     + d.highlights.map((h, hi) => {
       const cfg = iCfg[h.type] || iCfg.action;
-      return `<td style='vertical-align:top;padding:${hi < d.highlights!.length-1 ? "0 8px 0 0" : "0"};width:${Math.floor(100/d.highlights!.length)}%;'>`
-        + `<div style='padding:10px 12px;background:${cfg.accent}10;border-top:2px solid ${cfg.accent};border-radius:0 0 6px 6px;height:100%;'>`
-        + `<div style='font-size:9px;font-weight:800;color:${cfg.accent};letter-spacing:0.8px;text-transform:uppercase;margin-bottom:5px;'>${cfg.icon} ${cfg.label}</div>`
-        + `<div style='font-size:11px;color:${TEXT};line-height:1.5;font-weight:500;'>${h.text}</div>`
+      return `<td style='vertical-align:top;padding:${hi < d.highlights!.length-1 ? "0 8px 0 0" : "0"};width:${Math.floor(100/d.highlights!.length)}%'>`
+        + `<div style='padding:10px 12px;background:${cfg.accent}18;border-top:2px solid ${cfg.accent};border-radius:0 0 6px 6px'>`
+        + `<div style='font-size:9px;font-weight:800;color:${cfg.accent};letter-spacing:.8px;text-transform:uppercase;margin-bottom:5px'>${cfg.icon} ${cfg.label}</div>`
+        + `<div style='font-size:11px;color:var(--t);line-height:1.5;font-weight:500'>${h.text}</div>`
         + `</div></td>`;
     }).join("")
     + `</tr></table></div>`
   ) : "";
 
-  return `<div style='font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:${BG};border-radius:14px;overflow:hidden;border:1px solid ${BORDER};'>`
-    + `<div style='background:${PANEL};padding:14px 20px 12px;border-bottom:1px solid ${BORDER};'>`
+  // ── Toggle button: inline onclick IIFE — no global function needed ──────────
+  // Single quotes only in JS so double-quoted HTML attribute is never broken.
+  const toggleOnclick = `var w=this.closest('.${uid}'),isL=w.getAttribute('data-theme')==='light';`
+    + `w.setAttribute('data-theme',isL?'dark':'light');`
+    + `this.textContent=isL?'&#9675; Light':'&#9679; Dark';`;
+
+  return css
+    + `<div class='${uid}' data-theme='dark' style='font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--b);border-radius:14px;overflow:hidden;border:1px solid var(--br)'>`
+    + `<div style='background:var(--p);padding:14px 20px 12px;border-bottom:1px solid var(--br)'>`
     + `<table width='100%' cellpadding='0' cellspacing='0'><tr>`
-    + `<td><div style='font-size:9px;color:#118dff;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:3px;'>&#9632; EXECUTIVE SUMMARY &nbsp;·&nbsp; AT A GLANCE</div>`
-    + `<div style='font-size:16px;font-weight:800;color:${TEXT};letter-spacing:-0.3px;line-height:1.2;'>${d.title}</div></td>`
-    + `<td align='right' style='vertical-align:middle;padding-left:12px;white-space:nowrap;'>`
-    + `<div style='font-size:9px;color:${MUTED};'>${new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div></td>`
-    + `</tr></table></div>`
-    + `<div style='height:2px;background:linear-gradient(90deg,#118dff 0%,#00b4d8 33%,#e66c37 66%,#8bc34a 100%);'></div>`
-    + `<table width='100%' cellpadding='0' cellspacing='0' style='background:${PANEL};border-bottom:1px solid ${BORDER};'><tr>${kpiHtml}</tr></table>`
+    + `<td><div style='font-size:9px;color:#118dff;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:3px'>&#9632; EXECUTIVE SUMMARY &nbsp;&middot;&nbsp; AT A GLANCE</div>`
+    + `<div style='font-size:16px;font-weight:800;color:var(--t);letter-spacing:-.3px;line-height:1.2'>${d.title}</div></td>`
+    + `<td align='right' style='vertical-align:top;padding-left:12px;white-space:nowrap'>`
+    + `<div style='font-size:9px;color:var(--mu);margin-bottom:6px'>${new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>`
+    + `<button onclick="${toggleOnclick}" style='background:var(--bb);color:var(--bt);border:1px solid var(--bbo);font-size:10px;font-weight:600;padding:4px 12px;border-radius:999px;cursor:pointer;font-family:inherit;line-height:1.4;white-space:nowrap'>&#9675; Light</button>`
+    + `</td></tr></table></div>`
+    + `<div style='height:2px;background:linear-gradient(90deg,#118dff 0%,#00b4d8 33%,#e66c37 66%,#8bc34a 100%)'></div>`
+    + `<table width='100%' cellpadding='0' cellspacing='0' style='background:var(--p);border-bottom:1px solid var(--br)'><tr>${kpiHtml}</tr></table>`
     + bodySection
     + insightsSection
-    + `<div style='padding:7px 20px 9px;border-top:1px solid ${BORDER};background:${PANEL};'>`
-    + `<p style='margin:0;font-size:9px;color:${MUTED};text-align:center;letter-spacing:0.8px;text-transform:uppercase;'>HOURSBACK AUTOPILOT &nbsp;·&nbsp; AI-POWERED BUSINESS INTELLIGENCE</p>`
+    + `<div style='padding:7px 20px 9px;border-top:1px solid var(--br);background:var(--p)'>`
+    + `<p style='margin:0;font-size:9px;color:var(--mu);text-align:center;letter-spacing:.8px;text-transform:uppercase'>HOURSBACK AUTOPILOT &nbsp;&middot;&nbsp; AI-POWERED BUSINESS INTELLIGENCE</p>`
     + `</div></div>`;
 }
 
@@ -477,7 +490,8 @@ async function executeSchedule(schedule: any, supabaseAdmin: any): Promise<void>
     compiledPrompt += `- Label each item clearly (e.g. "Day 1:", "Email 1:", "Step 1:") so the output is scannable.\n`;
     compiledPrompt += `- Use markdown headings and structure. Skip all meta-commentary about what you are doing.\n`;
     compiledPrompt += `- For any section with heavy numerical data (financial breakdown, category totals, comparisons, projections), format it as a markdown table with aligned columns.\n`;
-    compiledPrompt += `- Deliver final polished content only — no draft notes, no "here is your X", just the X.`;
+    compiledPrompt += `- Deliver final polished content only — no draft notes, no "here is your X", just the X.\n`;
+    compiledPrompt += `- Do NOT repeat financial figures, P&L tables, or KPI numbers in the document body that you have already included in the INFOGRAPH_DATA block. Those are rendered as a visual At a Glance dashboard — writing the same data again in prose is redundant and clutters the report.`;
 
     // Analysis playbooks: ask Claude to append structured metric JSON
     if (INFOGRAPHIC_SLUGS.has(playbookSlug)) {
