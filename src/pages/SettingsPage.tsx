@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Save, Zap, Settings, Shield, Link as LinkIcon, ExternalLink, Sparkles } from 'lucide-react';
+import { ChevronLeft, Save, Settings, Shield, Link as LinkIcon, ExternalLink, Sparkles } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { getProfile, updateProfile } from '../lib/api';
 import { supabase } from '../lib/supabase';
@@ -96,11 +96,8 @@ export default function SettingsPage() {
             {/* Navigation */}
             <nav className="border-b border-brand-dark/10 bg-brand-light/80 backdrop-blur-md sticky top-0 z-50">
                 <div className="container mx-auto px-6 py-4 flex items-center justify-between">
-                    <Link to="/" className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-brand-dark text-white rounded-full shadow-antigravity-md flex items-center justify-center">
-                            <Zap className="w-5 h-5" />
-                        </div>
-                        <span className="text-xl font-semibold">Hoursback</span>
+                    <Link to="/">
+                        <img src="/logo.svg" alt="Hoursback" className="h-[36px] w-auto" />
                     </Link>
                     <div className="flex items-center gap-4">
                         <button
