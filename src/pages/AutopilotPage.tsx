@@ -44,20 +44,21 @@ function markdownToHtml(md: string): string {
     };
     const flushTable = () => {
         if (!inTable || !tableHeaders) return;
+        // Borders on every cell edge so the table renders correctly in PDF and Google Docs
         const thCells = tableHeaders.map((h, i) =>
-            `<th style="padding:11px 14px;text-align:${i === 0 ? 'left' : 'right'};font-size:11px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;${i < tableHeaders!.length - 1 ? 'border-right:1px solid #dbeafe;' : ''}">${h}</th>`
+            `<th style="padding:10px 14px;text-align:${i === 0 ? 'left' : 'right'};font-size:11px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:0.5px;border:1px solid #bfdbfe;">${h}</th>`
         ).join('');
         const tdRows = tableRows.map((row, ri) =>
             `<tr style="background:${ri % 2 === 0 ? '#ffffff' : '#f8fafc'};">${
                 row.map((cell, ci) =>
-                    `<td style="padding:9px 14px;font-size:13px;color:${ci === 0 ? '#111827' : '#374151'};font-weight:${ci === 0 ? '600' : '400'};text-align:${ci === 0 ? 'left' : 'right'};${ci < row.length - 1 ? 'border-right:1px solid #f1f5f9;' : ''}border-bottom:1px solid #f1f5f9;white-space:nowrap;">${cell}</td>`
+                    `<td style="padding:9px 14px;font-size:13px;color:${ci === 0 ? '#111827' : '#374151'};font-weight:${ci === 0 ? '600' : '400'};text-align:${ci === 0 ? 'left' : 'right'};border:1px solid #e2e8f0;">${cell}</td>`
                 ).join('')
             }</tr>`
         ).join('');
         html.push(
-            `<div style="overflow-x:auto;margin:16px 0;border-radius:10px;border:1px solid #e2e8f0;overflow:hidden;">`
+            `<div style="margin:16px 0;border-radius:8px;border:1px solid #e2e8f0;">`
             + `<table style="width:100%;border-collapse:collapse;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">`
-            + `<thead><tr style="background:#eff6ff;border-bottom:2px solid #bfdbfe;">${thCells}</tr></thead>`
+            + `<thead><tr style="background:#eff6ff;">${thCells}</tr></thead>`
             + `<tbody>${tdRows}</tbody>`
             + `</table></div>`
         );
@@ -484,7 +485,7 @@ export default function AutopilotPage() {
     .section-label{font-size:10px;font-weight:700;color:#9ca3af;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px}
     .footer{text-align:center;margin-top:48px;font-size:12px;color:#9ca3af}
     .footer a{color:#4285F4;text-decoration:none}
-    @media print{.topbar,.topbar-actions,.expand-hint,.infograph-modal{display:none!important}.page{padding:0}.content-card{box-shadow:none;border-radius:0}}
+    @media print{.topbar,.topbar-actions,.expand-hint,.infograph-modal{display:none!important}.page{padding:0}.content-card{box-shadow:none;border-radius:0}.inf-dk{display:none!important}.inf-lt{display:block!important}}
   </style>
 </head>
 <body>
