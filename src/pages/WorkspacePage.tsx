@@ -45,12 +45,12 @@ interface AutonomousRun {
 
 // --- XP & Skill Level System ---
 const SKILL_LEVELS = [
-  { level: 1, title: 'AI Curious', xpRequired: 0, color: '#94A3B8', emoji: '🌱' },
-  { level: 2, title: 'Prompt Apprentice', xpRequired: 50, color: '#3B82F6', emoji: '' },
-  { level: 3, title: 'AI Practitioner', xpRequired: 150, color: '#8B5CF6', emoji: '⚡' },
-  { level: 4, title: 'Workflow Architect', xpRequired: 350, color: '#F59E0B', emoji: '🏗️' },
-  { level: 5, title: 'AI Power User', xpRequired: 600, color: '#EF4444', emoji: '🔥' },
-  { level: 6, title: 'Automation Master', xpRequired: 1000, color: '#10B981', emoji: '👑' },
+  { level: 1, title: 'AI Curious', xpRequired: 0, color: '#94A3B8', icon: Star },
+  { level: 2, title: 'Prompt Apprentice', xpRequired: 50, color: '#3B82F6', icon: BookOpen },
+  { level: 3, title: 'AI Practitioner', xpRequired: 150, color: '#8B5CF6', icon: Zap },
+  { level: 4, title: 'Workflow Architect', xpRequired: 350, color: '#F59E0B', icon: Target },
+  { level: 5, title: 'AI Power User', xpRequired: 600, color: '#EF4444', icon: Flame },
+  { level: 6, title: 'Automation Master', xpRequired: 1000, color: '#10B981', icon: Trophy },
 ];
 
 function getSkillLevel(xp: number) {
@@ -280,7 +280,9 @@ export default function WorkspacePage() {
         <div className="bg-white shadow-antigravity-md border border-brand-dark/10 rounded-3xl p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className="text-3xl">{skillLevel.emoji}</div>
+              <div className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ backgroundColor: skillLevel.color + '20' }}>
+                <skillLevel.icon className="w-5 h-5" style={{ color: skillLevel.color }} />
+              </div>
               <div>
                 <h2 className="text-xl font-bold" style={{ color: skillLevel.color }}>{skillLevel.title}</h2>
                 <p className="text-sm text-brand-dark/60">Level {skillLevel.level} • {totalXP} XP total</p>
@@ -289,7 +291,10 @@ export default function WorkspacePage() {
             {skillLevel.nextLevel && (
               <div className="text-right hidden sm:block">
                 <p className="text-xs text-brand-dark/50">Next level</p>
-                <p className="text-sm font-semibold">{skillLevel.nextLevel.emoji} {skillLevel.nextLevel.title}</p>
+                <p className="text-sm font-semibold flex items-center justify-end gap-1">
+                  <skillLevel.nextLevel.icon className="w-3.5 h-3.5" style={{ color: skillLevel.nextLevel.color }} />
+                  {skillLevel.nextLevel.title}
+                </p>
                 <p className="text-xs text-brand-dark/40">{skillLevel.xpToNext} XP to go</p>
               </div>
             )}
@@ -314,7 +319,7 @@ export default function WorkspacePage() {
                   className="flex flex-col items-center"
                   style={{ opacity: totalXP >= level.xpRequired ? 1 : 0.3 }}
                 >
-                  <span className="text-xs">{level.emoji}</span>
+                  <level.icon className="w-3.5 h-3.5" style={{ color: totalXP >= level.xpRequired ? level.color : '#94A3B8' }} />
                   <span className="text-[10px] text-brand-dark/40 hidden md:block">{level.xpRequired}</span>
                 </div>
               ))}

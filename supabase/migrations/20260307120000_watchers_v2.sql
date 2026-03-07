@@ -30,7 +30,7 @@ $$;
 
 SELECT cron.schedule(
   'hoursback-watcher-runner',
-  '*/30 * * * *',
+  '0 8 * * *',
   $$
   SELECT net.http_post(
     url     := 'https://tsooqmbrxquybqcuqcby.supabase.co/functions/v1/execute-watchers',

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Save, Settings, Shield, Link as LinkIcon, ExternalLink, Sparkles } from 'lucide-react';
+import { ChevronLeft, Save, Settings, Shield, Link as LinkIcon, ExternalLink } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { getProfile, updateProfile } from '../lib/api';
 import { supabase } from '../lib/supabase';
@@ -18,7 +18,6 @@ export default function SettingsPage() {
     const [fullName, setFullName] = useState('');
     const [makeWebhook, setMakeWebhook] = useState('');
     const [zapierWebhook, setZapierWebhook] = useState('');
-    const [openaiApiKey, setOpenaiApiKey] = useState('');
     const [password, setPassword] = useState('');
 
     useEffect(() => {
@@ -34,7 +33,6 @@ export default function SettingsPage() {
                     setFullName(profile.full_name || '');
                     setMakeWebhook(profile.make_webhook_url || '');
                     setZapierWebhook(profile.zapier_webhook_url || '');
-                    setOpenaiApiKey(profile.openai_api_key || '');
                 }
             } catch (err) {
                 console.error('Error loading profile:', err);
@@ -58,7 +56,6 @@ export default function SettingsPage() {
                 full_name: fullName,
                 make_webhook_url: makeWebhook,
                 zapier_webhook_url: zapierWebhook,
-                openai_api_key: openaiApiKey
             });
 
             if (!success) throw new Error('Failed to update profile');
@@ -164,42 +161,6 @@ export default function SettingsPage() {
                                         onChange={(e) => setPassword(e.target.value)}
                                         className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-brand-blue"
                                         placeholder="••••••••"
-                                    />
-                                </div>
-                            </div>
-                        </section>
-
-                        <hr className="border-slate-100" />
-
-                        {/* AI Copilot Integration */}
-                        <section className="space-y-4">
-                            <div className="flex items-start justify-between">
-                                <div>
-                                    <h2 className="text-xl font-semibold flex items-center gap-2">
-                                        <Sparkles className="w-5 h-5 text-indigo-500" />
-                                        AI Copilot Integration (BYOK)
-                                    </h2>
-                                    <p className="text-sm text-brand-dark/70 mt-1">
-                                        Bring Your Own Key. Enter your OpenAI API key to enable direct playbook execution inside Hoursback.
-                                        Your key is stored securely in your private profile and is only used when you click "Run with AI".
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="space-y-4 pt-2">
-                                <div>
-                                    <label className="block text-sm font-medium text-brand-dark/70 mb-1 flex items-center justify-between">
-                                        OpenAI API Key
-                                        <a href="https://platform.openai.com/api-keys" target="_blank" rel="noreferrer" className="text-xs text-brand-blue flex items-center gap-1 hover:underline">
-                                            Get API Key <ExternalLink className="w-3 h-3" />
-                                        </a>
-                                    </label>
-                                    <input
-                                        type="password"
-                                        value={openaiApiKey}
-                                        onChange={(e) => setOpenaiApiKey(e.target.value)}
-                                        className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-brand-blue"
-                                        placeholder="sk-..."
                                     />
                                 </div>
                             </div>

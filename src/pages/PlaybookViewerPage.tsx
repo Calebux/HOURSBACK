@@ -1044,7 +1044,7 @@ export default function PlaybookViewerPage() {
                         <span>Pro Active</span>
                       </>
                     ) : (
-                      <span>Upgrade to Pro ({isAnnual ? '$29.88/yr' : '$2.99/mo'})</span>
+                      <span>Upgrade to Pro ({isAnnual ? '$47.88/yr' : '$4.99/mo'})</span>
                     )}
                   </button>
                 </div>
