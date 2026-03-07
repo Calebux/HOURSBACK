@@ -12,7 +12,6 @@ import {
   ArrowRight,
   Bookmark,
   BarChart3,
-  ChevronLeft,
   Sparkles,
   LayoutDashboard,
   Bot,
@@ -268,12 +267,6 @@ export default function PlaybooksPage() {
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.6 }}
           >
-            <div className="flex items-center gap-2 mb-4">
-              <Link to="/" className="text-brand-dark/70 hover:text-brand-dark flex items-center gap-1 text-sm">
-                <ChevronLeft className="w-4 h-4" />
-                Back
-              </Link>
-            </div>
             <h1 className="text-4xl md:text-5xl font-semibold mb-4">Playbooks</h1>
             <p className="text-xl text-brand-dark/70 max-w-2xl">
               Step-by-step guides to automate your work with AI.

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Eye, Clock, Zap, Database, AlertCircle, CheckCircle2, ChevronDown, ChevronUp, Pause, Play } from 'lucide-react';
+import { ArrowLeft, Eye, Clock, Zap, Database, AlertCircle, CheckCircle2, ChevronDown, ChevronUp, Pause, Play, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
@@ -93,6 +93,20 @@ export default function WatcherDetailPage() {
     }
     load();
   }, [user, id]);
+
+  const deleteLog = async (logId: string) => {
+    const { error } = await supabase.from('watcher_logs').delete().eq('id', logId);
+    if (error) { toast.error('Failed to delete log'); return; }
+    setLogs(logs.filter(l => l.id !== logId));
+  };
+
+  const clearAllLogs = async () => {
+    if (!confirm('Delete all run history for this watcher?')) return;
+    const { error } = await supabase.from('watcher_logs').delete().eq('watcher_id', watcher!.id);
+    if (error) { toast.error('Failed to clear history'); return; }
+    setLogs([]);
+    toast.success('History cleared');
+  };
 
   const toggleStatus = async () => {
     if (!watcher) return;
@@ -233,7 +247,17 @@ export default function WatcherDetailPage() {
 
         {/* Alert history */}
         <div>
-          <h2 className="text-lg font-bold mb-4">Alert History</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold">Alert History</h2>
+            {logs.length > 0 && (
+              <button
+                onClick={clearAllLogs}
+                className="text-xs text-red-400 hover:text-red-600 font-medium flex items-center gap-1 transition-colors"
+              >
+                <Trash2 className="w-3.5 h-3.5" /> Clear all
+              </button>
+            )}
+          </div>
 
           {logs.length === 0 ? (
             <div className="bg-white border border-brand-dark/10 rounded-2xl p-10 text-center shadow-antigravity-md">
@@ -270,7 +294,16 @@ export default function WatcherDetailPage() {
                         {log.error_message ? 'Error' : log.triggered ? 'Triggered' : 'No trigger'}
                       </span>
                     </div>
-                    <span className="text-xs text-brand-dark/40 shrink-0">{fmt(log.created_at)}</span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-xs text-brand-dark/40">{fmt(log.created_at)}</span>
+                      <button
+                        onClick={() => deleteLog(log.id)}
+                        className="p-1 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Delete log"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
 
                   {log.error_message && (
