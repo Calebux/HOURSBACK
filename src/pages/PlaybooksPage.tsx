@@ -15,7 +15,8 @@ import {
   ChevronLeft,
   Sparkles,
   LayoutDashboard,
-  Bot
+  Bot,
+  Eye
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { AuthModal } from '../components/AuthModal';
@@ -80,6 +81,7 @@ export default function PlaybooksPage() {
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedDifficulty, setSelectedDifficulty] = useState('All');
+  const [agentOnly, setAgentOnly] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [showWhatsNew, setShowWhatsNew] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -158,7 +160,8 @@ export default function PlaybooksPage() {
       const matchesCategory = selectedCategory === 'All' || playbook.category === selectedCategory;
       const matchesDifficulty = selectedDifficulty === 'All' || playbook.difficulty === selectedDifficulty;
 
-      return matchesSearch && matchesCategory && matchesDifficulty;
+      const matchesAgent = !agentOnly || !!playbook.agentAutomation;
+      return matchesSearch && matchesCategory && matchesDifficulty && matchesAgent;
     });
 
     // When no filters active and onboarding is set, sort by preference score
@@ -170,7 +173,7 @@ export default function PlaybooksPage() {
     }
 
     return base;
-  }, [playbooks, debouncedSearchQuery, selectedCategory, selectedDifficulty, onboarding]);
+  }, [playbooks, debouncedSearchQuery, selectedCategory, selectedDifficulty, agentOnly, onboarding]);
 
   const toggleSave = (id: string, _title: string) => {
     setSavedPlaybooks(prev => {
@@ -186,11 +189,13 @@ export default function PlaybooksPage() {
     setSelectedCategory('All');
     setSelectedDifficulty('All');
     setSearchQuery('');
+    setAgentOnly(false);
   };
 
   const activeFiltersCount =
     (selectedCategory !== 'All' ? 1 : 0) +
-    (selectedDifficulty !== 'All' ? 1 : 0);
+    (selectedDifficulty !== 'All' ? 1 : 0) +
+    (agentOnly ? 1 : 0);
 
   return (
     <div className="min-h-screen bg-brand-light text-brand-dark overflow-x-hidden">
@@ -218,6 +223,13 @@ export default function PlaybooksPage() {
                 >
                   <LayoutDashboard className="w-4 h-4 shrink-0" />
                   <span className="hidden sm:inline">My Progress</span>
+                </Link>
+                <Link
+                  to="/watchers"
+                  className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 text-sm text-brand-dark/80 hover:text-brand-dark hover:bg-slate-100 rounded-full transition-all whitespace-nowrap"
+                >
+                  <Eye className="w-4 h-4 shrink-0" />
+                  <span className="hidden sm:inline">Watchers</span>
                 </Link>
                 <button
                   onClick={() => signOut()}
@@ -312,6 +324,19 @@ export default function PlaybooksPage() {
                   {activeFiltersCount}
                 </span>
               )}
+            </button>
+
+            {/* Agent Filter */}
+            <button
+              type="button"
+              onClick={() => setAgentOnly(!agentOnly)}
+              className={`flex items-center justify-center gap-2 px-3 md:px-4 h-[46px] shrink-0 rounded-full border transition-colors ${agentOnly
+                ? "bg-brand-dark text-white border-[#635BFF]"
+                : "bg-white shadow-antigravity-md border-brand-dark/10 text-brand-dark/80 hover:bg-slate-50"
+                }`}
+            >
+              <Bot className="w-4 h-4 shrink-0" />
+              <span className="hidden sm:inline">Deployable</span>
             </button>
 
             {/* View Toggle */}

@@ -4,6 +4,7 @@ import Anthropic from "npm:@anthropic-ai/sdk";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
@@ -370,6 +371,7 @@ function generateInfographicHtml(d: InfographData): string {
 }
 
 // Fetch fresh CSV data from a Google Sheets URL stored as "SHEETS_URL:..."
+// Scrape competitor/target URLs via Firecrawl if available
 async function resolveVariables(variables: Record<string, string>): Promise<Record<string, string>> {
   const resolved: Record<string, string> = {};
   for (const [key, value] of Object.entries(variables)) {
@@ -395,6 +397,55 @@ async function resolveVariables(variables: Record<string, string>): Promise<Reco
         console.error(`[Autopilot] Failed to fetch live sheet for "${key}":`, e.message);
         resolved[key] = `[Could not fetch live sheet: ${e.message}]`;
       }
+    } else if (
+      value.startsWith('FIRECRAWL:') ||
+      (/competitor|scrape|crawl/i.test(key) && /https?:\/\//i.test(value))
+    ) {
+      // Deep-scrape one or more URLs via Firecrawl (or fallback to basic fetch)
+      const rawUrls = value.startsWith('FIRECRAWL:')
+        ? value.slice('FIRECRAWL:'.length).trim()
+        : value.trim();
+      const urls = rawUrls.split(',').map(u => u.trim()).filter(u => /^https?:\/\//i.test(u));
+      let allScraped = '';
+
+      for (const url of urls) {
+        try {
+          let pageContent = '';
+
+          if (FIRECRAWL_API_KEY) {
+            // Use Firecrawl API for deep, JS-rendered scraping
+            const fcRes = await fetch('https://api.firecrawl.dev/v1/scrape', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${FIRECRAWL_API_KEY}`,
+              },
+              body: JSON.stringify({ url, formats: ['markdown'] }),
+              signal: AbortSignal.timeout(30000),
+            });
+            if (!fcRes.ok) throw new Error(`Firecrawl HTTP ${fcRes.status}`);
+            const fcData = await fcRes.json();
+            pageContent = (fcData.data?.markdown || fcData.data?.content || '').slice(0, 4000);
+            console.log(`[Autopilot] Firecrawl scraped "${url}": ${pageContent.length} chars`);
+          } else {
+            // Fallback: basic HTML fetch + strip
+            const res = await fetch(url, {
+              headers: { 'User-Agent': 'Mozilla/5.0 (compatible; HoursbackBot/1.0)' },
+              signal: AbortSignal.timeout(10000),
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            pageContent = stripHtml(await res.text()).slice(0, 3000);
+            console.log(`[Autopilot] Basic-scraped "${url}": ${pageContent.length} chars`);
+          }
+
+          allScraped += `\n\n--- SCRAPED: ${url} ---\n${pageContent}`;
+        } catch (e: any) {
+          console.error(`[Autopilot] Failed to scrape "${url}":`, e.message);
+          allScraped += `\n\n--- SCRAPED: ${url} ---\n[Could not scrape: ${e.message}]`;
+        }
+      }
+
+      resolved[key] = allScraped.trim();
     } else if (
       /website|url|site/i.test(key) &&
       /^https?:\/\//i.test(value.trim())

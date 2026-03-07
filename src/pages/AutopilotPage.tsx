@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Bot, Calendar, Clock, CheckCircle2, Play, Pause, ExternalLink, XCircle, ChevronLeft, Edit2, Trash2, AlertTriangle, RotateCcw, FileDown, Zap, X } from 'lucide-react';
+import { Bot, Calendar, Clock, CheckCircle2, Play, Pause, ExternalLink, XCircle, ChevronLeft, Edit2, Trash2, AlertTriangle, RotateCcw, FileDown, Zap, X, Eye } from 'lucide-react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -303,6 +303,21 @@ export default function AutopilotPage() {
                                     </div>
 
                                     <div className="mt-auto pt-4 border-t border-brand-dark/10 w-full space-y-3">
+                                        <>
+                                            <Link
+                                                to="/workspace"
+                                                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 text-sm text-brand-dark/80 hover:text-brand-dark hover:bg-slate-100 rounded-full transition-all whitespace-nowrap"
+                                            >
+                                                <span className="hidden sm:inline">My Progress</span>
+                                            </Link>
+                                            <Link
+                                                to="/watchers"
+                                                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 text-sm text-[#635BFF] hover:text-brand-dark bg-[#635BFF]/10 rounded-full transition-all whitespace-nowrap"
+                                            >
+                                                <Eye className="w-4 h-4 shrink-0" />
+                                                <span className="hidden sm:inline">Watchers</span>
+                                            </Link>
+                                        </>
                                         <div>
                                             <p className="text-xs font-semibold text-brand-dark/40 uppercase tracking-wider mb-2">Injected Variables</p>
                                             <div className="flex flex-wrap gap-1.5">

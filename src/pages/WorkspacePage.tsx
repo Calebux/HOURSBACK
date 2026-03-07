@@ -22,7 +22,8 @@ import {
   ExternalLink,
   FileDown,
   Copy,
-  XCircle
+  XCircle,
+  Eye
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -251,6 +252,10 @@ export default function WorkspacePage() {
               <Bot className="w-4 h-4" />
               Autopilot
             </Link>
+            <Link to="/watchers" className="hidden sm:flex items-center gap-1.5 text-sm font-medium text-[#635BFF] hover:text-brand-dark transition-colors bg-[#635BFF]/10 px-3 py-1.5 rounded-full">
+              <Eye className="w-4 h-4" />
+              Watchers
+            </Link>
             <Link to="/playbooks" className="text-sm text-brand-dark/80 hover:text-brand-dark transition-colors">
               Browse Playbooks
             </Link>
@@ -366,8 +371,8 @@ export default function WorkspacePage() {
               {tab === 'results' && <FileText className="w-3.5 h-3.5" />}
               {tab === 'in-progress' ? `In Progress (${activePlaybooks.length})` :
                 tab === 'completed' ? `Completed (${completedPlaybooks.length})` :
-                tab === 'saved' ? `Saved (${savedPlaybooks.length})` :
-                  `My Results (${results.length})`}
+                  tab === 'saved' ? `Saved (${savedPlaybooks.length})` :
+                    `My Results (${results.length})`}
             </button>
           ))}
         </div>

@@ -15,7 +15,7 @@ export const mockPlaybooks: Playbook[] = [
     completionCount: 1247,
     rating: 4.8,
     isPro: false,
-    tools: ['Perplexity', 'ChatGPT'],
+    tools: ['Perplexity', 'ChatGPT', 'Firecrawl'],
     beforeYouStart: [
       'LinkedIn Sales Navigator (free trial works)',
       'Company website URL',
@@ -38,8 +38,18 @@ export const mockPlaybooks: Playbook[] = [
     ],
     steps: [
       {
-        id: 'step-1',
+        id: 'step-0',
         stepNumber: 1,
+        title: 'Scrape the Company Website',
+        instruction: 'Enter the target company\'s website URL below. The system will automatically scrape their homepage, about page, and key content using Firecrawl — giving the AI real, up-to-date context about the company instead of relying on stale training data.',
+        promptTemplate: 'Scrape and analyse this company website to extract key business intelligence:\n\n[Scrape Company URL]\n\nFrom the scraped content, extract:\n- What the company does (primary product/service)\n- Their target market and positioning\n- Any recent announcements, partnerships, or product launches visible on the site\n- Their messaging tone and key value propositions\n- Any hiring signals (careers page links, team growth mentions)\n\nOrganise this as a structured intelligence brief.',
+        expectedOutput: 'A structured summary of the company based on live website data — what they do, how they position themselves, recent activity, and hiring signals.',
+        tips: 'Enter the full URL including https://. For deeper intel, you can also enter specific pages like /pricing, /about, or /careers as separate comma-separated URLs.',
+        tools: ['Firecrawl']
+      },
+      {
+        id: 'step-1',
+        stepNumber: 2,
         title: 'Gather Raw Intelligence',
         instruction: 'Go to perplexity.ai and search for comprehensive company intelligence. This will give you recent news, funding information, and competitive positioning in one query.',
         promptTemplate: `[Company Name] recent news funding leadership changes competitive positioning "hiring" OR "layoffs" 2024`,
@@ -49,7 +59,7 @@ export const mockPlaybooks: Playbook[] = [
       },
       {
         id: 'step-2',
-        stepNumber: 2,
+        stepNumber: 3,
         title: 'Deep Dive on Leadership',
         instruction: 'Use LinkedIn Sales Navigator to identify recent leadership changes and decision makers. Filter by "Changed jobs in last 90 days" to find new hires who are likely evaluating vendors.',
         expectedOutput: 'List of new hires with titles, start dates, previous companies, and any posts about priorities.',
@@ -58,7 +68,7 @@ export const mockPlaybooks: Playbook[] = [
       },
       {
         id: 'step-3',
-        stepNumber: 3,
+        stepNumber: 4,
         title: 'Synthesize with AI',
         instruction: 'Use ChatGPT to synthesize all intelligence into a scannable brief. Copy your collected data into the prompt.',
         promptTemplate: `You're a senior business development strategist preparing for a call with [Company Name].
@@ -91,7 +101,7 @@ Format: Bullet points, scannable in 2 minutes.`,
       },
       {
         id: 'step-4',
-        stepNumber: 4,
+        stepNumber: 5,
         title: 'Save and Act',
         instruction: 'Create a standardized document for this account and schedule your outreach.',
         expectedOutput: 'Google Doc saved, calendar reminder set for follow-up, outreach scheduled within 48 hours.',
@@ -4374,6 +4384,1663 @@ Header format: ## [Client Name] — Invoice [#] — [Amount] — [X days overdue
       { id: 'smb-bk-2', title: 'Monthly Financial Snapshot & P&L Analyzer', slug: 'monthly-financial-snapshot-pl-analyzer' },
     ],
   },
+  {
+    id: 'smb-excel-1',
+    slug: 'claude-in-excel-master-class',
+    title: 'Claude in Excel Master Class',
+    subtitle: 'Most of what takes you two hours in Excel should take twenty minutes. This playbook closes that gap using the official Claude for Excel add-in.',
+    category: 'Operations',
+    difficulty: 'Beginner',
+    timeToComplete: 25,
+    timeSaved: 180,
+    completionCount: 412,
+    rating: 4.9,
+    isPro: false,
+    isNew: true,
+    tools: ['Claude', 'Microsoft Excel'],
+    beforeYouStart: [
+      'Microsoft Excel desktop version (Windows or Mac) — the web version does not support add-ins.',
+      'A Claude Pro, Max, Team, or Enterprise plan ($20/month and above). Free plan users do not have access to the Excel add-in.',
+      'Install the add-in: Home > Add-ins > search "Claude by Anthropic for Excel" > Install > Sign in. Shortcut: Ctrl+Alt+C (Windows) or Ctrl+Option+C (Mac).',
+      'An existing spreadsheet you want to work with — your own messy data, someone else\'s workbook, or a monthly report you dread updating.'
+    ],
+    expectedOutcome: 'You will be able to instantly understand any formula, clean messy data in seconds, build charts from plain English, generate executive summaries from raw numbers, and automate the repetitive Excel tasks that eat your week.',
+    agentAutomation: {
+      description: 'Deploy a weekly agent that opens your recurring report template, refreshes all summary figures with the latest data tab, checks for formula errors, and emails you the updated executive summary every Monday morning.',
+      trigger: 'Every Monday at 7 AM.',
+      actions: [
+        'Open the recurring Excel report template from Google Drive or SharePoint.',
+        'Detect the newest data tab and map it to the summary formulas.',
+        'Run a full error check across the workbook for #REF, #VALUE, and circular references.',
+        'Regenerate the executive summary section at the top of the Summary tab.',
+        'Export the updated workbook as a PDF and email it to the stakeholder list.'
+      ],
+      setupSteps: [
+        { title: 'Upload your template', description: 'Store your recurring report template in Google Drive or SharePoint. In Make.com, add a "Watch Files" trigger for that folder.' },
+        { title: 'Add fresh data', description: 'Create a scenario step that downloads the latest data export (from your CRM, accounting tool, or a shared CSV) and inserts it as a new tab in the template.' },
+        { title: 'Process with Claude', description: 'Use the Claude API module to send the workbook context. Prompt: "The newest data tab has been added. Update all summary formulas in the Summary tab. Check for errors. Regenerate the executive summary paragraph."' },
+        { title: 'Export and deliver', description: 'Add an "Export to PDF" step and a "Gmail — Send Email" step to deliver the updated report to your team automatically.' }
+      ],
+      tools: ['Make.com', 'Claude', 'Google Drive', 'Gmail']
+    },
+    troubleshooting: [
+      {
+        problem: 'Claude gives generic advice instead of reading my actual sheet',
+        solution: 'Make sure you are using the official Claude for Excel add-in sidebar, not a browser tab. The add-in reads your live workbook. If you are pasting data into claude.ai, it cannot see your formulas or cell references.'
+      },
+      {
+        problem: 'Claude suggests a formula but it breaks my other cells',
+        solution: 'Before accepting any change, review the highlighted cells. Claude highlights every cell it touches. If a formula feeds into other calculations, ask Claude: "Will changing this formula break any dependent cells? Show me the dependency chain first."'
+      },
+      {
+        problem: 'My workbook is very large and Claude is slow or times out',
+        solution: 'For workbooks with thousands of rows across many tabs, narrow the scope. Instead of "Summarise this workbook," say "Summarise only the data in tab Sales_Q4, columns A through G, rows 1 to 500." Smaller context = faster, more accurate results.'
+      },
+      {
+        problem: 'I opened a spreadsheet from the internet and Claude is behaving strangely',
+        solution: 'This could be a prompt injection attack. Hidden instructions can be embedded in cells or named ranges that manipulate Claude. Only use the add-in with files you trust. If in doubt, copy just the data (Paste Values) into a new blank workbook first.'
+      }
+    ],
+    relatedPlaybooks: [
+      { id: 'smb-bk-2', title: 'Monthly Financial Snapshot & P&L Analyzer', slug: 'monthly-financial-snapshot-pl-analyzer' },
+      { id: 'smb-bk-3', title: 'Invoice & Cash Flow Guardian', slug: 'invoice-cash-flow-guardian' }
+    ],
+    steps: [
+      {
+        id: 'smb-excel-1-s1',
+        stepNumber: 1,
+        title: 'Formulas & Calculations — Understand, Write, and Scenario-Test',
+        instruction: 'This is where Claude saves the most time. Whether you inherited a workbook full of mystery formulas, need to write a new calculation, or want to run "what if" scenarios — Claude handles all three from the sidebar.',
+        promptTemplate: 'I have an Excel workbook open. Help me with the following:\\n\\n**Task (choose one):**\\n\\n1. UNDERSTAND A FORMULA:\\n   "Explain what the formula in cell [Cell Reference, e.g. C14] does in plain English. Trace it back to its source inputs and tell me what assumptions it relies on."\\n\\n2. WRITE A NEW FORMULA:\\n   "Write a formula that [describe what you need, e.g. finds the average sales for customers in the East region only]. Place it in [target cell] and explain what it does."\\n\\n3. SCENARIO ANALYSIS:\\n   "What happens to the totals in [column/cell] if I change [input cell, e.g. the growth rate in B2] from [current value] to [new value]? Show me what shifts and why. Keep all formula dependencies intact."',
+        expectedOutput: 'A clear plain-English explanation of any formula with cell references, a ready-to-use formula placed in the correct cell, or a fully traced scenario analysis showing exactly what changed and why — with all highlighted cells preserved.',
+        tips: 'Always reference specific cells ("cell D8") instead of vague descriptions ("that formula"). Tell Claude what you expect the result to be so it can spot the mismatch. One task at a time gives you more control over the output.'
+      },
+      {
+        id: 'smb-excel-1-s2',
+        stepNumber: 2,
+        title: 'Data Cleaning & Organising — Fix Messy Exports in Seconds',
+        instruction: 'Every messy data export — inconsistent dates, duplicate rows, names split wrong, numbers stored as text — can be cleaned with a single prompt. You can also upload a PDF or CSV directly into the Claude sidebar and pull data into your sheet.',
+        promptTemplate: 'I have messy data in this workbook. Please help me clean it up:\\n\\n**Pick the tasks that apply (or ask for all):**\\n\\n1. "Clean up the date column [Column Letter]. There are at least three different formats. Standardise them all to [DD/MM/YYYY or MM/DD/YYYY or YYYY-MM-DD]."\\n\\n2. "Merge the [First Name Column] and [Last Name Column] into one column called Full Name."\\n\\n3. "Find and flag all duplicate entries based on the [Column Name, e.g. Email] column."\\n\\n4. "Standardise the country names in column [Letter] so they are all consistent (e.g. UK, U.K., and United Kingdom should all be United Kingdom)."\\n\\n5. "Remove all blank rows from this sheet."\\n\\n6. "Convert all the figures in column [Letter] from numbers-stored-as-text to actual numbers."\\n\\n**PDF/CSV Import:**\\n"I have uploaded a [PDF/CSV] with our [describe the data, e.g. Q4 sales figures]. Pull the data into column [Letter] starting from row [Number] and match the existing format."',
+        expectedOutput: 'A fully cleaned dataset with every changed cell highlighted for your review. Dates standardised, duplicates flagged, blanks removed, and imported data neatly placed in the correct columns.',
+        tips: 'Claude highlights every cell it changes, so you always stay in control. For PDF imports, upload the file directly into the chat sidebar using the attachment button — do not paste screenshots.'
+      },
+      {
+        id: 'smb-excel-1-s3',
+        stepNumber: 3,
+        title: 'Charts & Visualisations — Build from Plain English',
+        instruction: 'Skip the manual chart-building workflow entirely. Describe what you want to visualise and Claude creates the chart, selects the right type, and references the correct cells. If you are unsure, ask Claude to recommend the best chart type for your data.',
+        promptTemplate: 'Create a chart from the data in this workbook:\\n\\n**Option A — You know what you want:**\\n"Create a [bar chart / line chart / pie chart] showing [what you want to show, e.g. monthly revenue] from [describe the data range or table, e.g. the table in Sheet1 columns A through C]."\\n\\n**Option B — You want a recommendation:**\\n"I have [describe your data briefly, e.g. 12 months of sales data for two teams]. I want to show [trends over time / a comparison / proportions]. What is the best chart type and can you build it for me?"\\n\\n**Option C — Comparative:**\\n"Make a line chart comparing [Metric 1, e.g. 2024 Sales] vs [Metric 2, e.g. 2025 Sales] using columns [B] and [C]. Add clear labels."',
+        expectedOutput: 'A properly formatted chart embedded in your workbook with the correct data range, chart type, and labels — ready to copy into a presentation or report.',
+        tips: 'Ask Claude to recommend the chart type if you are unsure — it will explain why a bar chart works better than a pie chart for your specific data. You can then adjust colours and styling manually as you normally would.'
+      },
+      {
+        id: 'smb-excel-1-s4',
+        stepNumber: 4,
+        title: 'Reports & Summaries — From Raw Data to Executive Brief',
+        instruction: 'If you produce regular reports from Excel data, this step saves you the most time week-to-week. Claude can summarise an entire workbook, build summary tables from raw data, and update recurring report templates automatically.',
+        promptTemplate: 'Help me with reporting from this workbook:\\n\\n**Option A — Summarise:**\\n"Summarise what this workbook is showing me. What are the key numbers I should pay attention to? Reference specific cells."\\n\\n**Option B — Build a report:**\\n"Create a summary table showing [metric, e.g. total sales] by [category, e.g. region] and by [time period, e.g. quarter] using the data in [tab/range]."\\n\\n**Option C — Executive summary:**\\n"I need an executive summary section at the top of this sheet. Pull the key figures from the data below and write 2-3 sentences interpreting the results. Format it cleanly."\\n\\n**Option D — Update a recurring report:**\\n"I have added this month\'s data in the new tab called [Tab Name]. Update all the figures in the Summary tab to reflect the latest numbers. Highlight what changed."',
+        expectedOutput: 'A clean, presentation-ready summary table or executive brief with specific cell references, properly formatted numbers, and clear interpretation of the key takeaways.',
+        tips: 'For recurring reports, keep a consistent template structure. The more predictable your layout is, the more accurately Claude can update it each period without breaking anything.'
+      },
+      {
+        id: 'smb-excel-1-s5',
+        stepNumber: 5,
+        title: 'Automate Repetitive Tasks — Error Checking, Formatting, Templates',
+        instruction: 'Anything you do the same way every week is worth asking Claude to speed up. This step covers three big time-sinks: hunting for errors, applying consistent formatting, and building reusable templates from scratch.',
+        promptTemplate: 'Help me automate repetitive Excel work:\\n\\n**Error Checking:**\\n"Find all #REF, #VALUE, and #NAME errors in this workbook. For each one, tell me what is causing it and suggest the corrected formula."\\n\\n**Formatting:**\\n"Apply consistent formatting to all data tables in this workbook: freeze the top row, bold all headers, add alternating row colours, and right-align all number columns."\\n\\n**Template Building:**\\n"Build me a [type of template, e.g. monthly budget tracker] with the following sections: [e.g. Income, Fixed Costs, Variable Costs, Running Total]. Include formulas that automatically calculate the totals and a summary row at the bottom. Make it ready to use — I want to just start entering numbers."',
+        expectedOutput: 'All errors identified with root causes and fixes, consistent professional formatting applied across the workbook, or a fully functional template with working formulas ready for immediate use.',
+        tips: 'For error checking, ask Claude to also check for logical errors — not just formula errors. Say: "Are there any formulas that might be returning technically valid but incorrect results? Check the logic." This catches things like a SUM that accidentally includes a header row.'
+      },
+      {
+        id: 'smb-excel-1-s6',
+        stepNumber: 6,
+        title: 'Prompt Cheat Sheet — Copy, Paste, Use Immediately',
+        instruction: 'Keep this step bookmarked. These are battle-tested prompts you can copy and paste directly into the Claude for Excel sidebar the next time you need them. Replace the bracketed text with your own details.',
+        promptTemplate: 'Here is your quick-reference prompt library for Claude in Excel. Copy any of these directly into the sidebar:\\n\\n📊 UNDERSTANDING YOUR DATA:\\n"Summarise what this workbook is doing and what the key outputs are."\\n\\n🔢 FORMULAS:\\n"Explain what the formula in [cell] does in plain English."\\n"Write a formula that [describe what you need]."\\n\\n🧹 CLEANING:\\n"Clean up the [column name] column. There are inconsistencies in formatting."\\n"Find and remove all duplicates based on the [column name] column."\\n\\n🐛 ERRORS:\\n"Find all errors in this workbook and explain what is causing them."\\n\\n📈 CHARTS:\\n"Create a [chart type] showing [what you want to show] from this data."\\n\\n📋 REPORTS:\\n"Build a summary table showing [metric] by [category] using this data."\\n\\n🔄 UPDATES:\\n"I have added new data to [tab name]. Update the summary in [tab name] to reflect it."\\n\\n⚠️ IMPORTANT LIMITATIONS TO REMEMBER:\\n- Claude CANNOT write or run VBA macros inside the add-in.\\n- Claude CANNOT interact with Power Query or Power Pivot.\\n- Always verify outputs for financial models or anything going to a client.\\n- Stick to files you trust — hidden prompt injections can exist in downloaded spreadsheets.',
+        expectedOutput: 'A permanent reference card of prompts you can return to any time you open Excel and need Claude to help with a specific task.',
+        tips: 'The single biggest improvement to your prompts: always reference specific cells, say what you expect the result to be, and mention what is currently going wrong. "Fix my formula" is vague. "The formula in D8 should sum only Confirmed orders but it is including other values too" gives Claude everything it needs.'
+      }
+    ]
+  },
+  {
+    id: 'smb-gws-1',
+    slug: 'google-workspace-cli-agent-setup',
+    title: 'Connect Your AI Agent to Google Workspace in 20 Minutes',
+    subtitle: 'Install the open-source gws CLI, authenticate once, and give Claude or Codex full read/write access to Gmail, Calendar, Drive, Sheets, Docs, and Slides.',
+    category: 'Operations',
+    difficulty: 'Intermediate',
+    timeToComplete: 20,
+    timeSaved: 300,
+    completionCount: 189,
+    rating: 4.8,
+    isPro: false,
+    isNew: true,
+    tools: ['Claude', 'Google Workspace', 'Terminal'],
+    beforeYouStart: [
+      'Node.js installed on your computer (download from nodejs.org if you don\'t have it — takes 3 minutes and gives you npm automatically).',
+      'A Google account with access to the Workspace apps you want to connect (Gmail, Calendar, Drive, Sheets, Docs, Slides).',
+      'Access to Google Cloud Console (console.cloud.google.com) — it\'s free, you just need to create a project.',
+      'An AI agent that supports MCP: Claude Code, Claude Desktop, Codex, or Cursor.'
+    ],
+    expectedOutcome: 'Your AI agent will have authenticated, read/write access to every Google Workspace app. You\'ll be able to ask it to triage your inbox, prep for meetings, summarise your week, and run multi-step workflows across Gmail, Calendar, Drive, Sheets, Docs, and Slides — all from a single chat interface.',
+    agentAutomation: {
+      description: 'Once wired in, your agent can run pre-built "skills" like /gws-gmail-triage and /gws-workflow-weekly-digest on a schedule — triaging your inbox every morning and sending you a weekly summary across all Google services.',
+      trigger: 'Daily at 8 AM (inbox triage) / Weekly on Friday at 5 PM (weekly digest).',
+      actions: [
+        'Run /gws-gmail-triage to read unread emails and produce a prioritised summary.',
+        'Run /gws-calendar-agenda to pull upcoming events with context from related emails and docs.',
+        'Run /gws-workflow-meeting-prep before each meeting to gather agenda, relevant documents, and attendee info.',
+        'Run /gws-workflow-weekly-digest every Friday to summarise what happened, what needs attention, and what\'s coming next.',
+        'Deliver the output to Slack or email.'
+      ],
+      setupSteps: [
+        { title: 'Complete Steps 1-5 of this playbook', description: 'Install gws, create OAuth credentials, authenticate, smoke test, and wire the MCP server into your agent.' },
+        { title: 'Install the 107 pre-built skills (Step 6)', description: 'Run: npx skills add -y -g https://github.com/googleworkspace/cli' },
+        { title: 'Schedule with Make.com or cron', description: 'Use a Make.com scenario or a local cron job to trigger your agent to run specific gws skills at set times and deliver the output via email or Slack webhook.' }
+      ],
+      tools: ['gws CLI', 'Claude', 'Make.com', 'Slack']
+    },
+    troubleshooting: [
+      {
+        problem: 'gws authenticates fine but every API call fails silently',
+        solution: 'This is the #1 setup mistake. You need to enable each API individually in Google Cloud Console before using it. Go to console.cloud.google.com/apis/library and search for: Gmail API, Google Calendar API, Google Drive API, Google Sheets API, Google Docs API, Google Slides API, Tasks API. Click "Enable" on each one.'
+      },
+      {
+        problem: 'I get an "unverified app" warning when logging in',
+        solution: 'This is completely normal for personal OAuth apps. Click "Advanced," then "Go to [your app name] (unsafe)." Your tokens are encrypted at rest with AES-256-GCM and never leave your machine.'
+      },
+      {
+        problem: 'gws is not showing up in Claude Code after I saved the config',
+        solution: 'Claude Code, Claude Desktop, and Cowork all require a full restart to pick up new MCP server configs. Save the file, close the app completely, and reopen it. Then run /mcp in the chat to verify. If it\'s still missing, double-check your JSON syntax — a missing comma or bracket is usually the culprit.'
+      },
+      {
+        problem: 'Claude keeps asking me to approve tool access on every message',
+        solution: 'The first time your agent uses a gws tool category, Claude Code prompts you for a one-time approval. After approving, it should not ask again for that category. If it keeps asking, check that you\'re using the global config (~/.claude/settings.json) not a project-level one that gets reset.'
+      }
+    ],
+    relatedPlaybooks: [
+      { id: 'smb-excel-1', title: 'Claude in Excel Master Class', slug: 'claude-in-excel-master-class' }
+    ],
+    steps: [
+      {
+        id: 'smb-gws-1-s1',
+        stepNumber: 1,
+        title: 'Install the gws CLI',
+        instruction: 'Install the Google Workspace CLI tool on your computer with a single terminal command. This gives you the gws command, which is the bridge between your AI agent and every Google Workspace app.',
+        promptTemplate: 'Open your terminal and run:\\n\\nnpm install -g @googleworkspace/cli\\n\\nOnce installed, verify it worked by running:\\n\\ngws --help\\n\\nYou should see a list of available commands covering Gmail, Calendar, Drive, Sheets, Docs, Slides, and Tasks.\\n\\nIf you get a "command not found" error, you need to install Node.js first from nodejs.org. It takes 3 minutes and gives you npm automatically.',
+        expectedOutput: 'The gws CLI is installed globally and the gws --help command prints a list of all available services and commands.',
+        tips: 'If you already have Node.js but an older version, run "node --version" to check. gws works best with Node 18+.'
+      },
+      {
+        id: 'smb-gws-1-s2',
+        stepNumber: 2,
+        title: 'Create Your OAuth Credentials in Google Cloud Console',
+        instruction: 'This step creates a secure key that lets gws access your Google account with your explicit permission. You will enable the APIs, create an OAuth client, and download the credentials file.',
+        promptTemplate: '**Step-by-step:**\\n\\n1. Go to console.cloud.google.com/apis/credentials\\n   - If you have never used Google Cloud Console, click "New Project" and name it anything (e.g. "My AI Agent"). It is free.\\n\\n2. CRITICAL — Enable the APIs FIRST:\\n   Go to console.cloud.google.com/apis/library and search for and enable each of these:\\n   - Gmail API\\n   - Google Calendar API\\n   - Google Drive API\\n   - Google Sheets API\\n   - Google Docs API\\n   - Google Slides API\\n   - Tasks API\\n   ⚠️ Skip this and gws will authenticate fine but every API call will fail silently. This is the #1 setup mistake.\\n\\n3. Create an OAuth 2.0 Client ID:\\n   - Go back to Credentials > Create Credentials > OAuth 2.0 Client ID\\n   - Application type: "Desktop app"\\n   - Download the JSON file it generates\\n\\n4. Move the file to where gws expects it:\\n\\n   Mac:\\n   cp ~/Downloads/client_secret_*.json ~/Library/Application\\\\ Support/gws/client_secret.json\\n\\n   Linux:\\n   cp ~/Downloads/client_secret_*.json ~/.config/gws/client_secret.json\\n\\n   Windows (PowerShell):\\n   Copy-Item ~\\\\Downloads\\\\client_secret_*.json ~\\\\AppData\\\\Roaming\\\\gws\\\\client_secret.json',
+        expectedOutput: 'All 7 Google APIs are enabled in your Cloud Console project, and the client_secret.json file is saved in the correct location for your operating system.',
+        tips: 'You may need to create the gws directory first if it does not exist. On Mac: mkdir -p ~/Library/Application\\ Support/gws'
+      },
+      {
+        id: 'smb-gws-1-s3',
+        stepNumber: 3,
+        title: 'Authenticate and Authorize All Services',
+        instruction: 'Log in through the browser and grant gws access to all your Google Workspace apps in one go. Your tokens are encrypted at rest with AES-256-GCM and never leave your machine.',
+        promptTemplate: 'Run this in your terminal:\\n\\ngws auth login\\n\\nA browser window will open. You will see an "unverified app" warning — this is completely normal for personal OAuth apps.\\n\\n1. Click "Advanced"\\n2. Click "Go to [your app name] (unsafe)"\\n3. CHECK EVERY SCOPE BOX: Drive, Gmail, Calendar, Sheets, Docs, Slides, Tasks — all of them\\n\\n⚠️ If you miss one, you will have to re-authenticate later to add it. Check them all now to save yourself the hassle.',
+        expectedOutput: 'The terminal confirms successful authentication. Your encrypted tokens are stored locally and gws now has authorized access to all selected Google Workspace services.',
+        tips: 'The "unsafe" warning sounds scary but it is standard for any personal OAuth app that has not been through Google\'s formal verification process. Your credentials never leave your machine.'
+      },
+      {
+        id: 'smb-gws-1-s4',
+        stepNumber: 4,
+        title: 'Smoke Test — Confirm Everything Works',
+        instruction: 'Before connecting to your AI agent, verify the connection works by pulling your next 3 calendar events. If this works, everything downstream will too.',
+        promptTemplate: 'Run this command in your terminal:\\n\\ngws calendar events list --params \'{"calendarId":"primary","maxResults":3,"timeMin":"2026-03-04T00:00:00Z","orderBy":"startTime","singleEvents":true}\'\\n\\nReplace the date in timeMin with today\'s date in ISO format (e.g. 2026-03-06T00:00:00Z).\\n\\nYou should see your next 3 calendar events printed as structured JSON data.',
+        expectedOutput: 'Your next 3 calendar events are printed in the terminal as clean, structured data — confirming that authentication, API access, and the CLI are all working correctly.',
+        tips: 'Don\'t worry about memorizing the command syntax. Your AI agent handles that part once it\'s connected. This step is just to prove the pipes are working.'
+      },
+      {
+        id: 'smb-gws-1-s5',
+        stepNumber: 5,
+        title: 'Wire gws Into Your AI Agent via MCP',
+        instruction: 'Add gws as an MCP server to your AI agent. This gives your agent full read/write access to all 25 Google Workspace services. One config block, one restart, done.',
+        promptTemplate: '**Choose your agent and add the config:**\\n\\n🔵 Claude Code — add to ~/.claude/settings.json:\\n"mcpServers": {\\n  "gws": {\\n    "command": "gws",\\n    "args": ["mcp", "-s", "all", "-w", "-e"]\\n  }\\n}\\n\\n🔵 Claude Desktop / Cowork — add to ~/Library/Application Support/Claude/claude_desktop_config.json (same block as above)\\n\\n🟢 Codex — add to ~/.codex/config.toml:\\n[mcp_servers.gws]\\ncommand = "gws"\\nargs = ["mcp", "-s", "all", "-w", "-e"]\\n\\n**Flag breakdown:**\\n-s all = expose every Google Workspace service\\n-w = enable write operations (without it, your agent can only read)\\n-e = enable extended helper tools\\n\\n**Want a lighter setup?** Replace "all" with just the services you need: -s calendar,gmail,drive\\n\\n⚠️ CRITICAL: Restart your agent after saving. Save the file, close the app completely, reopen it. Then verify: in Claude Code, run /mcp in the chat. You should see gws listed with all its available tools.',
+        expectedOutput: 'After restarting your agent, running /mcp (in Claude Code) shows gws listed as a connected MCP server with all its tools available. Your AI agent can now read and write to Gmail, Calendar, Drive, Sheets, Docs, and Slides.',
+        tips: 'Global vs project config: ~/.claude/settings.json makes gws available in every project. To scope it to one project, add it to that project\'s .claude/settings.json instead.'
+      },
+      {
+        id: 'smb-gws-1-s6',
+        stepNumber: 6,
+        title: 'Install 107 Pre-Built Skills',
+        instruction: 'Instead of making your AI agent figure out complex multi-step workflows from scratch, install 107 ready-made playbooks with a single command. These are recipes your agent already knows how to run.',
+        promptTemplate: 'Run this one command:\\n\\nnpx skills add -y -g https://github.com/googleworkspace/cli\\n\\nThis installs 107 skills across four categories:\\n\\n📦 25 Service Skills — direct API access to each Google Workspace app\\n🛠️ 20 Helper Skills — inbox triage, calendar summaries, drive organisation\\n👤 10 Persona Skills — executive assistant, IT admin, project manager\\n🧪 47 Recipe Skills — multi-step workflows across multiple Google apps\\n\\nThese install across Claude Code, Codex, Cursor, Gemini CLI, and any other agent that reads skills.',
+        expectedOutput: 'All 107 skills are installed and available to your AI agent. You can now invoke them as slash commands or natural language requests.',
+        tips: 'You can browse the full list of installed skills in the skills directory. Each skill is a markdown file your agent reads as instructions — you can customize them if you want to change the workflow.'
+      },
+      {
+        id: 'smb-gws-1-s7',
+        stepNumber: 7,
+        title: 'Run the Workflows That Actually Save Time',
+        instruction: 'These are the workflows that replace 30+ minutes of manual clicking every day. Start with inbox triage and meeting prep — once your AI is handling these, you will not go back to doing them manually.',
+        promptTemplate: 'Try these workflows in your AI agent right now:\\n\\n📧 INBOX TRIAGE:\\n/gws-gmail-triage\\nYour agent reads your unread inbox and gives you a prioritised summary. No more scanning 47 emails to find the 3 that matter.\\n\\n📅 CALENDAR AGENDA:\\n/gws-calendar-agenda\\nUpcoming events at a glance, with context pulled from related emails and docs.\\n\\n🤝 MEETING PREP:\\n/gws-workflow-meeting-prep\\nBefore any meeting, your agent pulls the agenda, relevant documents, and attendee info. Walk in prepared without doing the prep yourself.\\n\\n📊 WEEKLY DIGEST:\\n/gws-workflow-weekly-digest\\nA summary across all your Google services. What happened this week, what needs attention, what is coming next.\\n\\n🗓️ SCHEDULE OPTIMISER:\\n/recipe-plan-weekly-schedule\\nYour agent reviews your calendar and suggests optimisations. Block focus time, flag conflicts, batch similar meetings.',
+        expectedOutput: 'Your AI agent is actively triaging your inbox, preparing you for meetings, and summarising your week across Gmail, Calendar, Drive, and Docs — all from a single chat interface.',
+        tips: 'Start with /gws-gmail-triage. It is the fastest way to see the power of having your agent connected to Google Workspace. Once you see your inbox summarised in 10 seconds instead of 10 minutes, you will immediately want to explore the other workflows.'
+      }
+    ]
+  },
+  {
+    id: 'smb-ci-1',
+    slug: 'competitor-intelligence-tracker',
+    title: 'Competitor Intelligence Tracker',
+    subtitle: 'Your competitors are making moves right now. Get a weekly intelligence briefing delivered to your inbox — powered by live web scraping and AI analysis.',
+    category: 'Strategy',
+    difficulty: 'Beginner',
+    timeToComplete: 10,
+    timeSaved: 120,
+    completionCount: 327,
+    rating: 4.9,
+    isPro: false,
+    isNew: true,
+    tools: ['Claude', 'Firecrawl'],
+    beforeYouStart: [
+      'A list of 2-5 competitor website URLs (e.g. https://competitor1.com, https://competitor2.com).',
+      'A brief description of your own business and what makes you different.',
+      'Know what you care about tracking: pricing changes, new features, hiring signals, content strategy, partnerships.'
+    ],
+    expectedOutcome: 'A structured competitive intelligence report with per-competitor change detection, threat level ratings, and specific recommended actions — formatted as an executive dashboard you can share with your team.',
+    agentAutomation: {
+      description: 'Deploy a weekly agent that scrapes your competitor websites via Firecrawl, compares this week\'s data to last week\'s, and emails you a prioritised intelligence briefing every Monday morning.',
+      trigger: 'Every Monday at 8 AM.',
+      actions: [
+        'Scrape each competitor URL via Firecrawl to extract current homepage, pricing, blog, and careers content.',
+        'Send all scraped data to Claude with a comparison prompt.',
+        'Generate a structured intelligence report with change detection and threat ratings.',
+        'Email the weekly report to the business owner.'
+      ],
+      setupSteps: [
+        { title: 'Enter your competitor URLs', description: 'When deploying the agent, enter your competitor website URLs as a comma-separated list in the "Competitor URLs" field. The system will scrape these automatically each week.' },
+        { title: 'Describe your business', description: 'Fill in your business name and what you do so the AI can assess threats relative to your positioning.' },
+        { title: 'Set your schedule', description: 'Choose weekly delivery (Monday recommended) and enter your email address.' }
+      ],
+      tools: ['Firecrawl', 'Claude', 'Hoursback Autopilot']
+    },
+    troubleshooting: [
+      {
+        problem: 'The report says "Could not scrape" for one of my competitors',
+        solution: 'Some websites block automated scraping. Try entering the specific pages you want tracked instead of just the homepage (e.g. https://competitor.com/pricing rather than https://competitor.com). Firecrawl handles most JavaScript-rendered sites, but some may have aggressive bot protection.'
+      },
+      {
+        problem: 'The intelligence report is too generic',
+        solution: 'Be more specific in your "What to Track" field. Instead of "everything," say "pricing changes, new integrations, and job postings in engineering." The more focused your brief, the more actionable the AI\'s analysis will be.'
+      },
+      {
+        problem: 'I want to track social media, not just websites',
+        solution: 'Enter the specific social media profile URLs as competitor URLs (e.g. https://twitter.com/competitor or https://linkedin.com/company/competitor). Firecrawl can scrape public social profiles too.'
+      }
+    ],
+    relatedPlaybooks: [
+      { id: 'smb-bk-2', title: 'Monthly Financial Snapshot & P&L Analyzer', slug: 'monthly-financial-snapshot-pl-analyzer' }
+    ],
+    steps: [
+      {
+        id: 'smb-ci-1-s1',
+        stepNumber: 1,
+        title: 'Define Your Competitive Landscape',
+        instruction: 'Enter your business details and competitor information. The AI will create a structured competitive map showing who competes where, their positioning, and their current strengths.',
+        promptTemplate: 'I need a competitive intelligence analysis for my business.\\n\\n**My Business:** [Your Business Name & Description]\\n\\n**My Key Differentiators:** [What Makes You Different]\\n\\n**Competitors to Track:** [Competitor URLs]\\n\\n**What I Care About Tracking:**\\n[What to Track]\\n\\nFirst, create a COMPETITIVE MAP that shows:\\n1. Each competitor\'s core positioning (one sentence each)\\n2. Where we overlap vs. where we are differentiated\\n3. Their likely target customer vs. ours\\n4. A quick SWOT for each competitor relative to us\\n\\nFormat this as a clean table.',
+        expectedOutput: 'A structured competitive map table showing each competitor\'s positioning, overlap areas, target customers, and a relative SWOT analysis.',
+        tips: 'Be honest about your own weaknesses in the "What Makes You Different" field. The more honest you are, the more useful the threat analysis will be.'
+      },
+      {
+        id: 'smb-ci-1-s2',
+        stepNumber: 2,
+        title: 'Deep-Dive Snapshot — Live Web Intelligence',
+        instruction: 'The system scrapes your competitor websites via Firecrawl and feeds the live content to the AI for analysis. In manual mode, you can paste competitor website content directly.',
+        promptTemplate: 'Based on the following LIVE SCRAPED DATA from competitor websites, create a detailed intelligence snapshot for each competitor.\\n\\n**SCRAPED COMPETITOR DATA:**\\n[Competitor URLs]\\n\\nFor EACH competitor, analyse the scraped content and report:\\n\\n**Homepage & Messaging:** What is their current headline and value proposition? Has their messaging shifted toward any new themes?\\n\\n**Pricing & Plans:** What pricing is visible? Any new tiers, discounts, or "free" offers?\\n\\n**Product / Features:** Any new features, integrations, or product announcements mentioned?\\n\\n**Careers & Hiring:** Are they hiring? What roles are open? (Sales hires signal revenue push, engineering hires signal product investment.)\\n\\n**Blog & Content:** What are they publishing about? Any thought leadership themes or SEO plays?\\n\\n**Partnerships & Integrations:** Any new partner logos, integration announcements, or ecosystem plays?\\n\\nFormat each competitor as a separate section with clear headings.',
+        expectedOutput: 'A per-competitor intelligence snapshot covering their latest messaging, pricing, features, hiring signals, content strategy, and partnerships — all derived from live scraped web data.',
+        tips: 'For autopilot mode, the Competitor URLs variable is automatically scraped via Firecrawl before the prompt is sent to the AI. In manual mode, you can paste the content yourself or use the Firecrawl website to grab it.'
+      },
+      {
+        id: 'smb-ci-1-s3',
+        stepNumber: 3,
+        title: 'Threat & Opportunity Analysis',
+        instruction: 'The AI synthesises all competitor intelligence into actionable strategic insights: what to respond to, what to ignore, and where the opportunities are.',
+        promptTemplate: 'Based on all the competitor intelligence gathered above, now perform a STRATEGIC ANALYSIS:\\n\\n**1. What are they doing that we are NOT doing?**\\nList specific features, strategies, or moves that our competitors have made that we have not. Rate each as HIGH / MEDIUM / LOW priority to respond to.\\n\\n**2. Where are they vulnerable?**\\nIdentify weaknesses, gaps, or blind spots in each competitor\'s strategy that we could exploit.\\n\\n**3. What should we RESPOND to vs. IGNORE?**\\nNot every competitor move requires a response. For each significant change detected, recommend either:\\n- RESPOND: Here is what we should do and why\\n- MONITOR: Watch but do not act yet\\n- IGNORE: This does not affect our positioning\\n\\n**4. Emerging Opportunities**\\nBased on gaps in the competitive landscape, what opportunities exist that NOBODY is addressing yet?\\n\\nBe specific. Reference actual data from the snapshots above.',
+        expectedOutput: 'A strategic analysis with prioritised response recommendations, competitor vulnerabilities to exploit, and emerging market opportunities.',
+        tips: 'The best competitive intelligence is not about copying competitors — it is about finding the gaps they are leaving open.'
+      },
+      {
+        id: 'smb-ci-1-s4',
+        stepNumber: 4,
+        title: 'Executive Dashboard — Weekly Briefing',
+        instruction: 'Compile everything into a single executive summary table that you can share with your team or review in 60 seconds.',
+        promptTemplate: 'Create a WEEKLY COMPETITIVE INTELLIGENCE EXECUTIVE SUMMARY using this exact format:\\n\\n## Competitive Intelligence Briefing\\n\\n| Competitor | What Changed This Week | Threat Level | Recommended Action |\\n|---|---|---|---|\\n| [Name] | [1-2 sentence summary of changes] | [HIGH / MEDIUM / LOW with emoji: HIGH, MEDIUM, LOW] | [Specific action in 1 sentence] |\\n\\nRepeat for each competitor.\\n\\n## Top 3 Actions This Week\\n1. [Most urgent action with deadline]\\n2. [Second priority action]\\n3. [Third priority action]\\n\\n## Market Pulse\\n[2-3 sentences on overall competitive landscape trends — what direction is the market moving?]\\n\\nKeep the entire summary to ONE PAGE. This should be readable in 60 seconds by a busy founder.',
+        expectedOutput: 'A concise, one-page executive summary with a competitor change table, threat ratings, top 3 recommended actions, and a market pulse — ready to share with your team.',
+        tips: 'Save these weekly reports so you can track competitor trends over time. After 4-8 weeks, patterns emerge that are invisible in any single snapshot.'
+      }
+    ]
+  },
+  {
+    id: 'smb-fc-1',
+    slug: 'brand-mention-monitor',
+    title: 'Brand Mention Monitor',
+    subtitle: 'Track what people are saying about your brand across the web. Get a weekly sentiment report with actionable insights delivered to your inbox.',
+    category: 'Marketing',
+    difficulty: 'Beginner',
+    timeToComplete: 10,
+    timeSaved: 90,
+    completionCount: 214,
+    rating: 4.7,
+    isPro: false,
+    isNew: true,
+    tools: ['Claude', 'Firecrawl'],
+    beforeYouStart: [
+      'Your brand name and any common misspellings or abbreviations.',
+      'URLs of places your brand is likely mentioned: Google search results, Reddit threads, review sites (G2, Trustpilot, etc.).',
+      'Know which competitors you want to compare sentiment against.'
+    ],
+    expectedOutcome: 'A weekly sentiment analysis report showing where your brand was mentioned, what people said, overall sentiment score, and recommended response actions.',
+    agentAutomation: {
+      description: 'Deploy a weekly agent that scrapes review sites, Reddit, and Google search results for your brand name, analyses sentiment, and emails you a prioritised response plan.',
+      trigger: 'Every Monday at 9 AM.',
+      actions: [
+        'Scrape each monitoring URL via Firecrawl for fresh brand mentions.',
+        'Analyse sentiment across all mentions: positive, neutral, negative.',
+        'Flag urgent negative mentions that need immediate response.',
+        'Email the weekly brand health report.'
+      ],
+      setupSteps: [
+        { title: 'Enter your monitoring URLs', description: 'Add URLs where your brand gets mentioned: Google search results pages, Reddit threads, review sites, social profiles.' },
+        { title: 'Describe your brand', description: 'Enter your brand name, industry, and key products so the AI can correctly identify relevant mentions.' },
+        { title: 'Set your schedule', description: 'Weekly on Monday is recommended for most businesses.' }
+      ],
+      tools: ['Firecrawl', 'Claude', 'Hoursback Autopilot']
+    },
+    troubleshooting: [
+      {
+        problem: 'Not finding many brand mentions',
+        solution: 'Try adding more specific search URLs. Search Google for your brand name and paste that search results URL. Also try site-specific searches like "site:reddit.com [brand name]".'
+      },
+      {
+        problem: 'Sentiment analysis seems inaccurate',
+        solution: 'Add context in your brand description about common industry terms that might be confused with sentiment words. Also specify if your brand name is a common word.'
+      }
+    ],
+    relatedPlaybooks: [
+      { id: 'smb-ci-1', title: 'Competitor Intelligence Tracker', slug: 'competitor-intelligence-tracker' }
+    ],
+    steps: [
+      {
+        id: 'smb-fc-1-s1',
+        stepNumber: 1,
+        title: 'Set Up Your Monitoring Sources',
+        instruction: 'Enter URLs where your brand is likely to be mentioned. The system will scrape these via Firecrawl to find fresh mentions.',
+        promptTemplate: 'I want to monitor brand mentions for my business.\n\n**Brand Name:** [Your Brand Name]\n**Industry:** [Your Industry]\n**Monitoring URLs (scraped via Firecrawl):**\n[Scrape Brand Mention URLs]\n\nFrom the scraped content, find every mention of my brand (including misspellings and abbreviations). For each mention found:\n1. Quote the exact mention\n2. Note the source and context\n3. Rate sentiment: Positive / Neutral / Negative\n4. Flag urgency: HIGH (negative review needing response) / MEDIUM (worth noting) / LOW (routine)\n\nOrganise findings by sentiment category.',
+        expectedOutput: 'A categorised list of all brand mentions found, with sentiment ratings and urgency flags.',
+        tips: 'Start with Google search results for your brand name, your G2/Trustpilot page, and any Reddit threads mentioning your product.'
+      },
+      {
+        id: 'smb-fc-1-s2',
+        stepNumber: 2,
+        title: 'Sentiment Analysis & Trends',
+        instruction: 'The AI analyses all mentions to identify patterns, calculate an overall sentiment score, and spot emerging themes.',
+        promptTemplate: 'Based on all the brand mentions gathered above, create a BRAND HEALTH REPORT:\n\n## Overall Sentiment Score\nCalculate a score from 1-10 (10 = overwhelmingly positive). Show the breakdown: X% positive, X% neutral, X% negative.\n\n## Key Themes\nWhat topics keep coming up? Group mentions by theme (e.g. product quality, customer support, pricing, onboarding).\n\n## Urgent Actions Needed\nList any negative mentions that require an immediate response. Draft a suggested response for each one.\n\n## Competitive Comparison\nIf any competitor brands were mentioned alongside ours, how does sentiment compare?\n\n## Trend\nCompared to general industry sentiment, are we trending up or down? What is driving the trend?',
+        expectedOutput: 'A complete brand health report with sentiment scores, themed analysis, urgent action items with draft responses, and trend analysis.',
+        tips: 'Run this weekly and save the reports. After a month, you will see clear trends in how your brand perception is shifting.'
+      }
+    ]
+  },
+  {
+    id: 'smb-fc-2',
+    slug: 'seo-content-gap-analyzer',
+    title: 'SEO Content Gap Analyzer',
+    subtitle: 'Scrape your competitors\' blogs, find the topics they rank for that you do not, and get a prioritised content plan to close the gap.',
+    category: 'Marketing',
+    difficulty: 'Intermediate',
+    timeToComplete: 15,
+    timeSaved: 180,
+    completionCount: 156,
+    rating: 4.8,
+    isPro: true,
+    isNew: true,
+    tools: ['Claude', 'Firecrawl'],
+    beforeYouStart: [
+      'Your website blog/content URL (e.g. https://yourbrand.com/blog).',
+      '2-3 competitor blog URLs.',
+      'A general understanding of your target keywords and audience.'
+    ],
+    expectedOutcome: 'A prioritised list of content gaps: topics your competitors cover that you do not, ranked by estimated traffic potential, with suggested article titles and outlines for each.',
+    agentAutomation: {
+      description: 'Deploy a monthly agent that scrapes your blog and competitor blogs, identifies new content gaps, and emails you a prioritised content plan with article briefs.',
+      trigger: 'First Monday of each month at 9 AM.',
+      actions: [
+        'Scrape your blog and competitor blogs via Firecrawl.',
+        'Compare topic coverage and identify gaps.',
+        'Prioritise gaps by estimated search volume and competition.',
+        'Generate article briefs for the top 5 gaps.',
+        'Email the content gap report.'
+      ],
+      setupSteps: [
+        { title: 'Enter your blog URL', description: 'Your blog or content hub URL so the system knows what you already cover.' },
+        { title: 'Enter competitor blog URLs', description: 'Add 2-3 competitor blog URLs for comparison.' },
+        { title: 'Set your cadence', description: 'Monthly is recommended — content gaps do not change weekly.' }
+      ],
+      tools: ['Firecrawl', 'Claude', 'Hoursback Autopilot']
+    },
+    troubleshooting: [
+      {
+        problem: 'The analysis says I have no gaps but I know competitors outrank me',
+        solution: 'Make sure you are providing blog/content page URLs, not just homepages. The tool needs to see your actual articles to compare topic coverage.'
+      },
+      {
+        problem: 'Too many gaps to act on',
+        solution: 'Focus on the top 5 prioritised by the AI. These are ranked by traffic potential and relevance to your business.'
+      }
+    ],
+    relatedPlaybooks: [
+      { id: 'smb-ci-1', title: 'Competitor Intelligence Tracker', slug: 'competitor-intelligence-tracker' }
+    ],
+    steps: [
+      {
+        id: 'smb-fc-2-s1',
+        stepNumber: 1,
+        title: 'Scrape and Map Content Coverage',
+        instruction: 'Enter your blog URL and competitor blog URLs. The system scrapes all of them via Firecrawl and maps what topics each site covers.',
+        promptTemplate: 'Analyse content coverage across these blogs:\n\n**My Blog:** [Scrape My Blog URL]\n\n**Competitor Blogs:** [Scrape Competitor Blog URLs]\n\nFor each blog, extract:\n1. List of all article titles and topics visible on the page\n2. Main topic categories/themes covered\n3. Estimated content volume (how many articles visible)\n\nThen create a CONTENT COVERAGE MAP showing which topics each competitor covers that we do NOT cover. These are our content gaps.',
+        expectedOutput: 'A side-by-side content coverage map showing exactly which topics competitors cover that you are missing.',
+        tips: 'Enter the blog index page URL (e.g. /blog or /resources) so Firecrawl can see all article titles at once.'
+      },
+      {
+        id: 'smb-fc-2-s2',
+        stepNumber: 2,
+        title: 'Prioritise Gaps and Generate Briefs',
+        instruction: 'The AI prioritises content gaps by estimated search intent and business relevance, then generates article briefs for the top 5.',
+        promptTemplate: 'Based on the content gaps identified above, create a CONTENT GAP ACTION PLAN:\n\n## Top 10 Content Gaps (Ranked by Priority)\n\n| Rank | Topic | Competitors Covering It | Estimated Intent (Informational / Commercial / Transactional) | Priority |\n|---|---|---|---|---|\n\n## Article Briefs for Top 5\n\nFor each of the top 5 gaps, provide:\n- Suggested title (SEO-optimised)\n- Target keyword\n- Article outline (H2 headings)\n- Unique angle we can take that competitors are missing\n- Estimated word count\n- Internal linking opportunities to our existing content',
+        expectedOutput: 'A prioritised gap list with 5 ready-to-write article briefs including titles, outlines, and unique angles.',
+        tips: 'Focus on commercial and transactional intent gaps first — these drive revenue, not just traffic.'
+      }
+    ]
+  },
+  {
+    id: 'smb-fc-3',
+    slug: 'pricing-intelligence-agent',
+    title: 'Pricing Intelligence Agent',
+    subtitle: 'Monitor competitor pricing pages weekly. Detect price changes, new tiers, discounts, and free tier launches before your customers tell you.',
+    category: 'Strategy',
+    difficulty: 'Beginner',
+    timeToComplete: 8,
+    timeSaved: 60,
+    completionCount: 198,
+    rating: 4.9,
+    isPro: false,
+    isNew: true,
+    tools: ['Claude', 'Firecrawl'],
+    beforeYouStart: [
+      'Competitor pricing page URLs (e.g. https://competitor.com/pricing).',
+      'Your own current pricing structure for comparison.',
+      'Know your key differentiators beyond price.'
+    ],
+    expectedOutcome: 'A weekly pricing comparison report showing exactly what changed on competitor pricing pages, how your pricing compares, and whether you need to adjust your strategy.',
+    agentAutomation: {
+      description: 'Deploy a weekly agent that scrapes competitor pricing pages and alerts you to any changes — new tiers, price drops, free trials, or feature bundling shifts.',
+      trigger: 'Every Wednesday at 8 AM.',
+      actions: [
+        'Scrape each competitor pricing page via Firecrawl.',
+        'Compare current pricing to your own pricing structure.',
+        'Detect and flag any changes from previous reports.',
+        'Email the pricing intelligence briefing.'
+      ],
+      setupSteps: [
+        { title: 'Enter competitor pricing URLs', description: 'Add the direct /pricing page URL for each competitor.' },
+        { title: 'Describe your pricing', description: 'Enter your current plans and prices so the AI can make direct comparisons.' },
+        { title: 'Set your schedule', description: 'Weekly on Wednesday recommended — mid-week gives you time to react before the weekend.' }
+      ],
+      tools: ['Firecrawl', 'Claude', 'Hoursback Autopilot']
+    },
+    troubleshooting: [
+      {
+        problem: 'Competitor pricing page is behind a login',
+        solution: 'Some companies hide pricing. Try scraping their G2 or Capterra listing instead — these often list pricing details that the company does not show publicly.'
+      },
+      {
+        problem: 'Pricing page uses JavaScript sliders or calculators',
+        solution: 'Firecrawl handles JS-rendered content, but dynamic calculators may not return all tiers. Add the specific plan pages if available (e.g. /pricing/enterprise).'
+      }
+    ],
+    relatedPlaybooks: [
+      { id: 'smb-ci-1', title: 'Competitor Intelligence Tracker', slug: 'competitor-intelligence-tracker' }
+    ],
+    steps: [
+      {
+        id: 'smb-fc-3-s1',
+        stepNumber: 1,
+        title: 'Scrape Competitor Pricing Pages',
+        instruction: 'Enter the direct pricing page URLs for your competitors. Firecrawl will extract all visible pricing tiers, features, and offers.',
+        promptTemplate: 'Analyse competitor pricing from the following scraped pricing pages:\n\n**Competitor Pricing Pages (scraped):**\n[Scrape Competitor Pricing URLs]\n\n**My Current Pricing:**\n[Your Current Pricing]\n\nFor EACH competitor, extract:\n1. Plan names and prices (monthly and annual if both shown)\n2. Key features included in each tier\n3. Any free tier, free trial, or freemium offering\n4. Any visible discounts, promotions, or special offers\n5. Enterprise/custom pricing indicators\n\nOrganise as a comparison table.',
+        expectedOutput: 'A detailed pricing comparison table showing every competitor plan alongside your own pricing.',
+        tips: 'Use the direct /pricing URL, not the homepage. Some companies have pricing at /plans or /packages instead.'
+      },
+      {
+        id: 'smb-fc-3-s2',
+        stepNumber: 2,
+        title: 'Pricing Strategy Analysis',
+        instruction: 'The AI analyses the pricing landscape and gives you strategic recommendations.',
+        promptTemplate: 'Based on the pricing comparison above, provide a PRICING STRATEGY ANALYSIS:\n\n## How We Compare\nFor each plan tier, are we priced above, below, or at parity with competitors? What is our price position?\n\n## Changes Detected\nFlag anything that looks new or different from typical SaaS pricing in this space.\n\n## Threat Assessment\n- Is any competitor undercutting us significantly?\n- Has anyone launched a free tier that threatens our entry-level plan?\n- Are competitors bundling features we charge extra for?\n\n## Recommended Actions\nGive 2-3 specific pricing strategy recommendations based on this competitive landscape. Should we adjust? Bundle differently? Add a free tier? Hold firm?\n\nBe specific and reference actual numbers from the comparison.',
+        expectedOutput: 'A strategic pricing analysis with competitive positioning, detected changes, threat assessment, and specific recommended actions.',
+        tips: 'Price is only one axis — also consider value perception. Sometimes being more expensive is the right strategy if you can justify it with features or support.'
+      }
+    ]
+  },
+  {
+    id: 'smb-fc-4',
+    slug: 'job-market-scout',
+    title: 'Job Market Scout',
+    subtitle: 'Track what your competitors are hiring for. Sales hires signal revenue push, engineering signal product investment, marketing signal growth mode.',
+    category: 'Strategy',
+    difficulty: 'Beginner',
+    timeToComplete: 8,
+    timeSaved: 45,
+    completionCount: 142,
+    rating: 4.6,
+    isPro: false,
+    isNew: true,
+    tools: ['Claude', 'Firecrawl'],
+    beforeYouStart: [
+      'Competitor careers page URLs (e.g. https://competitor.com/careers).',
+      'Your own current hiring priorities for comparison.',
+      'Basic understanding of what different department hires signal strategically.'
+    ],
+    expectedOutcome: 'A strategic hiring intelligence report showing what competitors are investing in based on their open roles, with implications for your own strategy.',
+    agentAutomation: {
+      description: 'Deploy a weekly agent that scrapes competitor careers pages and alerts you to new roles that signal strategic shifts — like a competitor suddenly hiring 5 SDRs or a Head of AI.',
+      trigger: 'Every Friday at 8 AM.',
+      actions: [
+        'Scrape each competitor careers page via Firecrawl.',
+        'Categorise open roles by department and seniority.',
+        'Analyse what the hiring patterns signal about their strategy.',
+        'Email the hiring intelligence report.'
+      ],
+      setupSteps: [
+        { title: 'Enter competitor careers URLs', description: 'Add the careers/jobs page URL for each competitor.' },
+        { title: 'Describe your priorities', description: 'Enter what you are currently focused on so the AI can flag relevant competitive hires.' },
+        { title: 'Set your schedule', description: 'Weekly on Friday is recommended — review over the weekend and plan your response on Monday.' }
+      ],
+      tools: ['Firecrawl', 'Claude', 'Hoursback Autopilot']
+    },
+    troubleshooting: [
+      {
+        problem: 'Careers page shows no jobs',
+        solution: 'Many companies use Lever, Greenhouse, or Ashby for job postings. Try scraping their job board directly (e.g. jobs.lever.co/companyname).'
+      },
+      {
+        problem: 'Too many roles to analyse',
+        solution: 'Focus on leadership and strategic hires. Senior roles and new departments matter more than individual contributor backfills.'
+      }
+    ],
+    relatedPlaybooks: [
+      { id: 'smb-ci-1', title: 'Competitor Intelligence Tracker', slug: 'competitor-intelligence-tracker' }
+    ],
+    steps: [
+      {
+        id: 'smb-fc-4-s1',
+        stepNumber: 1,
+        title: 'Scrape Competitor Careers Pages',
+        instruction: 'Enter the careers page URLs for your competitors. Firecrawl extracts all visible job listings.',
+        promptTemplate: 'Analyse competitor hiring from the following scraped careers pages:\n\n**Competitor Careers Pages (scraped):**\n[Scrape Competitor Careers URLs]\n\nFor EACH competitor, extract and categorise all open roles:\n\n| Department | Role Title | Seniority | Location | What It Signals |\n|---|---|---|---|---|\n\nGroup by department: Engineering, Sales, Marketing, Product, Operations, Leadership, Other.',
+        expectedOutput: 'A categorised table of all open roles per competitor, grouped by department with strategic signals.',
+        tips: 'Try competitor.com/careers, jobs.lever.co/competitor, or boards.greenhouse.io/competitor depending on what job board they use.'
+      },
+      {
+        id: 'smb-fc-4-s2',
+        stepNumber: 2,
+        title: 'Strategic Hiring Analysis',
+        instruction: 'The AI interprets what the hiring patterns mean for each competitor\'s strategy and what it means for you.',
+        promptTemplate: 'Based on the hiring data above, create a STRATEGIC HIRING INTELLIGENCE REPORT:\n\n## Hiring Heatmap\nWhich departments are each competitor investing in most heavily? Show as a simple heatmap table.\n\n## Strategic Signals\nFor each competitor, what does their hiring pattern tell us about their next 6-12 months?\n- Heavy sales hiring = revenue push / market expansion\n- Engineering hiring = product investment / new features coming\n- Marketing hiring = growth mode / brand building\n- Leadership hiring = strategic pivot / scaling up\n\n## Implications for Us\n- Are they building capabilities we lack?\n- Are they entering markets we operate in?\n- Should we accelerate any of our own hiring in response?\n\n## Key Takeaways\nTop 3 things to pay attention to, ranked by urgency.',
+        expectedOutput: 'A strategic hiring analysis with a heatmap, signal interpretation, implications for your business, and key takeaways.',
+        tips: 'Pay special attention to leadership hires — a new VP of Product or Chief Revenue Officer signals a major strategic shift within 3-6 months.'
+      }
+    ]
+  },
+  {
+    id: 'smb-fc-5',
+    slug: 'content-repurposing-engine',
+    title: 'Content Repurposing Engine',
+    subtitle: 'Drop in a URL to your latest blog post and instantly get 3 social media posts, an email newsletter snippet, and a Twitter thread — all in your brand voice.',
+    category: 'Marketing',
+    difficulty: 'Beginner',
+    timeToComplete: 5,
+    timeSaved: 60,
+    completionCount: 389,
+    rating: 4.9,
+    isPro: false,
+    isNew: true,
+    tools: ['Claude', 'Firecrawl'],
+    beforeYouStart: [
+      'A URL to the content you want to repurpose (blog post, article, landing page).',
+      'Your brand voice guidelines or a few example social posts that match your tone.',
+      'Your primary social platforms (Twitter/X, LinkedIn, Instagram, etc.).'
+    ],
+    expectedOutcome: 'A complete content repurposing package: 3 platform-optimised social posts, a Twitter/X thread, an email newsletter snippet, and a LinkedIn article summary — all derived from your original content and written in your brand voice.',
+    agentAutomation: {
+      description: 'Deploy a weekly agent that scrapes your latest blog post and automatically generates social media content, a newsletter snippet, and a Twitter thread — emailed to you ready to copy and paste.',
+      trigger: 'Every Tuesday at 9 AM.',
+      actions: [
+        'Scrape your blog URL to find the most recent post.',
+        'Extract key points, quotes, and data from the content.',
+        'Generate platform-specific social posts in your brand voice.',
+        'Email the complete repurposing package.'
+      ],
+      setupSteps: [
+        { title: 'Enter your blog URL', description: 'The main blog page URL so the agent can find your latest post each week.' },
+        { title: 'Define your brand voice', description: 'Paste 2-3 example social posts or describe your tone (e.g. "professional but witty, data-driven, uses emojis sparingly").' },
+        { title: 'Set your platforms', description: 'Specify which platforms you post on so the content is formatted correctly.' }
+      ],
+      tools: ['Firecrawl', 'Claude', 'Hoursback Autopilot']
+    },
+    troubleshooting: [
+      {
+        problem: 'The social posts do not match my brand voice',
+        solution: 'Paste 2-3 of your best-performing posts in the "Brand Voice Examples" field. The AI mimics your actual tone much better with concrete examples than with descriptions like "professional."'
+      },
+      {
+        problem: 'Content was scraped but key information is missing',
+        solution: 'Some blog platforms load content dynamically. Try scraping the specific article URL rather than the blog index page.'
+      }
+    ],
+    relatedPlaybooks: [
+      { id: 'smb-fc-2', title: 'SEO Content Gap Analyzer', slug: 'seo-content-gap-analyzer' }
+    ],
+    steps: [
+      {
+        id: 'smb-fc-5-s1',
+        stepNumber: 1,
+        title: 'Scrape and Extract Key Points',
+        instruction: 'Enter the URL of your blog post or article. Firecrawl scrapes the full content and the AI extracts the key points, data, and quotable moments.',
+        promptTemplate: 'Scrape and analyse this content for repurposing:\n\n**Content URL (scraped via Firecrawl):**\n[Scrape Content URL]\n\n**Brand Voice:** [Brand Voice Examples]\n\n**Target Platforms:** [Your Social Platforms]\n\nFirst, extract from the scraped content:\n1. Main thesis / key argument (1 sentence)\n2. 3-5 key supporting points or data\n3. Best quotable lines or statistics\n4. The core takeaway readers should remember',
+        expectedOutput: 'A structured extraction of the article\'s key points, data, quotable moments, and core takeaway.',
+        tips: 'Firecrawl returns the full article as clean markdown, so the AI gets the complete context — not just the preview.'
+      },
+      {
+        id: 'smb-fc-5-s2',
+        stepNumber: 2,
+        title: 'Generate Multi-Platform Content Package',
+        instruction: 'The AI creates platform-specific content from your extracted key points, all in your brand voice.',
+        promptTemplate: 'Using the extracted content above and matching the brand voice provided, create a COMPLETE REPURPOSING PACKAGE:\n\n## Twitter/X Posts (3 standalone tweets)\n- Each under 280 characters\n- Hook-driven, punchy, designed for engagement\n- Include 1 with a statistic, 1 with a hot take, 1 with a question\n\n## Twitter/X Thread (5-7 tweets)\n- Start with a strong hook tweet\n- Build the argument step by step\n- End with a CTA that links back to the full article\n\n## LinkedIn Post (1 long-form post)\n- Professional tone, storytelling format\n- Open with a personal insight or counter-intuitive statement\n- 150-300 words\n- End with a question to drive comments\n\n## Email Newsletter Snippet (1 section)\n- 3-4 sentences summarising the article\n- Include the key takeaway\n- End with a "Read the full article" CTA\n\nIMPORTANT: Match the brand voice examples provided. Do not use generic marketing language.',
+        expectedOutput: 'A ready-to-use content package with 3 tweets, a Twitter thread, a LinkedIn post, and an email newsletter snippet — all written in your brand voice.',
+        tips: 'The LinkedIn post performs best when you open with a personal story or surprising statement, not a summary of the article.'
+      }
+    ]
+  },
+  {
+    id: 'smb-fc-6',
+    slug: 'lead-research-enricher',
+    title: 'Lead Research Enricher',
+    subtitle: 'Enter a prospect\'s company URL. Get a sales-ready intelligence brief with company overview, tech stack, team size, recent news, and 3 personalised outreach angles.',
+    category: 'Business Development',
+    difficulty: 'Beginner',
+    timeToComplete: 5,
+    timeSaved: 30,
+    completionCount: 276,
+    rating: 4.8,
+    isPro: false,
+    isNew: true,
+    tools: ['Claude', 'Firecrawl'],
+    beforeYouStart: [
+      'The prospect company\'s website URL.',
+      'Your product/service and how it helps companies like this.',
+      'The role/title of the person you are reaching out to (optional but improves personalisation).'
+    ],
+    expectedOutcome: 'A one-page sales intelligence brief containing: company overview, what they do, team size signals, tech stack clues, recent activity, and 3 personalised outreach angles tailored to the specific prospect.',
+    troubleshooting: [
+      {
+        problem: 'The company website is very minimal and lacks detail',
+        solution: 'Try scraping their LinkedIn company page or Crunchbase profile instead. You can enter multiple URLs separated by commas.'
+      },
+      {
+        problem: 'Outreach angles are too generic',
+        solution: 'Add more context about your product and the specific pain point you solve. The more you tell the AI about YOUR offering, the better it can connect your solution to the prospect\'s situation.'
+      }
+    ],
+    relatedPlaybooks: [
+      { id: '1', title: 'Account Research Brief', slug: 'account-research-brief' }
+    ],
+    steps: [
+      {
+        id: 'smb-fc-6-s1',
+        stepNumber: 1,
+        title: 'Scrape and Analyse the Prospect',
+        instruction: 'Enter the prospect company\'s website URL. Firecrawl scrapes their site and the AI builds a comprehensive intelligence profile.',
+        promptTemplate: 'Scrape and analyse this prospect company for sales outreach:\n\n**Prospect Website (scraped via Firecrawl):**\n[Scrape Prospect URL]\n\n**My Product/Service:** [Your Product Description]\n**Target Contact Role:** [Target Role Title]\n\nFrom the scraped website content, extract:\n\n## Company Profile\n- What they do (1 sentence)\n- Industry and market\n- Approximate company size (clues from team page, about page)\n- Founded / headquarters (if visible)\n\n## Tech Stack & Tools\n- Any technologies, platforms, or tools mentioned on their site\n- Integration pages or partner logos visible\n\n## Recent Activity\n- Blog posts, press releases, or announcements on the site\n- New product launches or feature updates\n- Hiring signals from a careers page\n\n## Business Signals\n- What problems are they trying to solve? (inferred from their messaging)\n- What stage are they at? (startup, growth, enterprise)\n- Any pain points visible in their positioning that my product addresses?',
+        expectedOutput: 'A comprehensive company profile with business details, tech stack, recent activity, and identified pain points.',
+        tips: 'For deeper intel, enter multiple URLs separated by commas: homepage, about page, careers page, and blog.'
+      },
+      {
+        id: 'smb-fc-6-s2',
+        stepNumber: 2,
+        title: 'Generate Personalised Outreach Angles',
+        instruction: 'The AI creates 3 personalised outreach angles based on the prospect intelligence, connecting their specific situation to your product\'s value.',
+        promptTemplate: 'Based on the prospect intelligence above and my product description, create 3 PERSONALISED OUTREACH ANGLES:\n\n## Angle 1: Pain Point Match\nConnect a specific problem visible on their website to how my product solves it. Reference something concrete from their site.\n\n## Angle 2: Recent Activity Hook\nReference a recent blog post, announcement, or hire and connect it to a relevant capability of my product.\n\n## Angle 3: Industry Trend\nConnect a broader industry trend affecting companies like theirs to my product\'s value proposition.\n\nFor each angle, provide:\n- A one-line email subject line\n- A 3-sentence opening paragraph ready to paste into an outreach email\n- Why this angle should work for this specific prospect\n\nIMPORTANT: Be specific. Reference actual details from the scraped website. Generic outreach is worse than no outreach.',
+        expectedOutput: '3 ready-to-use outreach angles, each with a subject line, opening paragraph, and strategic rationale — all personalised to the specific prospect.',
+        tips: 'Angle 2 (Recent Activity Hook) typically gets the highest response rate because it shows you did your homework and the timing is relevant.'
+      }
+    ]
+  },
+  {
+    id: 'smb-fc-7',
+    slug: 'rfp-tender-scout',
+    title: 'RFP & Tender Scout',
+    subtitle: 'Automatically scrape government procurement portals and tender sites daily. Get alerted the moment a relevant RFP drops — before your competitors even see it.',
+    category: 'Business Development',
+    difficulty: 'Intermediate',
+    timeToComplete: 10,
+    timeSaved: 120,
+    completionCount: 87,
+    rating: 4.7,
+    isPro: true,
+    isNew: true,
+    tools: ['Claude', 'Firecrawl'],
+    beforeYouStart: [
+      'URLs of procurement portals relevant to your industry (e.g. SAM.gov, state procurement sites, industry-specific tender boards).',
+      'A clear description of the types of contracts you bid on — services, products, size range, geography.',
+      'Your company capabilities and past performance keywords so the AI can match relevant opportunities.'
+    ],
+    expectedOutcome: 'A daily or weekly digest of new RFPs and tenders matching your capabilities, with a qualification score for each, key submission deadlines, and a recommended bid/no-bid decision.',
+    agentAutomation: {
+      description: 'Deploy a daily agent that scrapes procurement portals for new RFPs, scores them against your capabilities, and emails you a prioritised list with deadlines and recommended actions.',
+      trigger: 'Every weekday at 7 AM.',
+      actions: [
+        'Scrape each procurement portal URL via Firecrawl for new postings.',
+        'Filter results by relevance to your capabilities and service areas.',
+        'Score each opportunity: HIGH / MEDIUM / LOW fit.',
+        'Flag urgent deadlines within the next 7 days.',
+        'Email the daily RFP digest with qualification scores.'
+      ],
+      setupSteps: [
+        { title: 'Enter procurement portal URLs', description: 'Add the URLs of tender sites and procurement portals you want to monitor (e.g. SAM.gov results pages, state portals, industry boards).' },
+        { title: 'Describe your capabilities', description: 'Enter your company services, specialisations, certifications, geographic coverage, and typical contract size range.' },
+        { title: 'Set your schedule', description: 'Daily on weekdays is recommended for competitive procurement environments.' }
+      ],
+      tools: ['Firecrawl', 'Claude', 'Hoursback Autopilot']
+    },
+    troubleshooting: [
+      {
+        problem: 'Not finding relevant RFPs',
+        solution: 'Many procurement sites use search filters — try entering the URL of a pre-filtered search results page rather than the homepage. For example, on SAM.gov, set your filters (NAICS code, location, etc.) and use that filtered URL.'
+      },
+      {
+        problem: 'Too many irrelevant results',
+        solution: 'Be more specific in your capabilities description. Instead of \"IT services\" try \"cloud migration consulting for federal agencies, FedRAMP certified, 8(a) eligible\". The more specific you are, the better the AI filters.'
+      }
+    ],
+    relatedPlaybooks: [
+      { id: 'smb-fc-6', title: 'Lead Research Enricher', slug: 'lead-research-enricher' }
+    ],
+    steps: [
+      {
+        id: 'smb-fc-7-s1',
+        stepNumber: 1,
+        title: 'Scrape Procurement Portals',
+        instruction: 'Enter the URLs of procurement portals and tender sites you want to monitor. Firecrawl scrapes them for the latest postings.',
+        promptTemplate: 'Analyse these procurement portal pages for new RFP and tender opportunities:\\n\\n**Procurement Portal URLs (scraped via Firecrawl):**\\n[Scrape Procurement URLs]\\n\\n**My Company Capabilities:**\\n[Your Company Capabilities]\\n\\n**Services We Offer:** [Your Services]\\n**Geographic Coverage:** [Your Geography]\\n**Typical Contract Size:** [Your Contract Size Range]\\n\\nFrom the scraped content, identify ALL new procurement opportunities. For each one found:\\n\\n| Opportunity | Agency/Org | Due Date | Est. Value | Fit Score | Key Requirements |\\n|---|---|---|---|---|---|\\n\\nFit Score should be HIGH / MEDIUM / LOW based on how well it matches our capabilities.',
+        expectedOutput: 'A table of all procurement opportunities found, scored by fit, with due dates, estimated values, and key requirements.',
+        tips: 'For government portals, enter the search results page URL with filters pre-applied for your NAICS code or service category.'
+      },
+      {
+        id: 'smb-fc-7-s2',
+        stepNumber: 2,
+        title: 'Qualification Analysis & Bid Strategy',
+        instruction: 'The AI deep-analyses the highest-fit opportunities and provides bid/no-bid recommendations with a strategy for each.',
+        promptTemplate: 'For each HIGH and MEDIUM fit opportunity identified above, provide a QUALIFICATION ANALYSIS:\\n\\n## Bid/No-Bid Recommendation\\nFor each opportunity, recommend BID or NO-BID with specific reasoning.\\n\\n## For Each BID Recommendation:\\n1. **Why we should bid:** Specific capability matches\\n2. **Key risks:** What could go wrong, where are we weak\\n3. **Win strategy:** Our competitive angle for this specific opportunity\\n4. **Key deadlines:** Submission date, Q&A period, pre-bid conference\\n5. **Teaming needs:** Do we need a subcontractor for any requirements?\\n6. **Estimated effort to respond:** Hours to prepare the proposal\\n\\n## Priority Ranking\\nRank all BID recommendations by: (Fit Score × Estimated Value) ÷ Effort to Respond\\n\\nHighest ratio = best use of our time.',
+        expectedOutput: 'A detailed qualification analysis for each opportunity with bid/no-bid recommendations, win strategies, risk assessment, and a priority ranking.',
+        tips: 'Focus your energy on the top 2-3 opportunities ranked by priority. Spreading too thin across many bids reduces win probability.'
+      }
+    ]
+  },
+  {
+    id: 'smb-fc-8',
+    slug: 'partnership-opportunity-finder',
+    title: 'Partnership Opportunity Finder',
+    subtitle: 'Scrape potential partner company websites to assess integration fit, co-marketing alignment, and mutual value — then generate a personalised partnership pitch.',
+    category: 'Business Development',
+    difficulty: 'Intermediate',
+    timeToComplete: 12,
+    timeSaved: 90,
+    completionCount: 65,
+    rating: 4.6,
+    isPro: false,
+    isNew: true,
+    tools: ['Claude', 'Firecrawl'],
+    beforeYouStart: [
+      'URLs of companies you are considering partnering with.',
+      'A clear description of your product/service and what you bring to a partnership.',
+      'What type of partnership you are looking for: integration, referral, co-marketing, reseller, white-label.'
+    ],
+    expectedOutcome: 'A partnership assessment for each company showing mutual fit, integration opportunities, potential deal structure, and a personalised outreach message ready to send to the partnership contact.',
+    troubleshooting: [
+      {
+        problem: 'Cannot determine partnership fit from the website alone',
+        solution: 'Supplement with their integrations page (/integrations) or partner directory (/partners). Also try scraping their LinkedIn company page for recent partnership announcements.'
+      },
+      {
+        problem: 'Outreach pitch is too generic',
+        solution: 'Add more detail about a specific use case where your products work together. The more concrete the value proposition, the better the pitch.'
+      }
+    ],
+    relatedPlaybooks: [
+      { id: 'smb-fc-6', title: 'Lead Research Enricher', slug: 'lead-research-enricher' }
+    ],
+    steps: [
+      {
+        id: 'smb-fc-8-s1',
+        stepNumber: 1,
+        title: 'Scrape and Assess Partner Fit',
+        instruction: 'Enter the website URLs of potential partner companies. Firecrawl scrapes their sites and the AI analyses partnership fit across multiple dimensions.',
+        promptTemplate: 'Analyse these potential partner companies for partnership fit:\\n\\n**Partner Company Websites (scraped via Firecrawl):**\\n[Scrape Partner URLs]\\n\\n**My Company:**\\n[Your Company Description]\\n\\n**What We Offer Partners:** [Your Partnership Value]\\n**Partnership Type Seeking:** [Partnership Type]\\n\\nFor EACH potential partner, analyse:\\n\\n## Company Overview\\n- What they do, who they serve, their market position\\n\\n## Partnership Fit Assessment\\n| Dimension | Score (1-10) | Notes |\\n|---|---|---|\\n| Product Complementarity | | |\\n| Audience Overlap | | |\\n| Market Position Compatibility | | |\\n| Integration Feasibility | | |\\n| Brand Alignment | | |\\n| **Overall Fit** | | |\\n\\n## Mutual Value Proposition\\n- What we bring to them\\n- What they bring to us\\n- Specific use cases where our products work together\\n\\n## Red Flags\\n- Any reasons this partnership might NOT work',
+        expectedOutput: 'A detailed partnership assessment for each company with fit scores, mutual value analysis, and red flags.',
+        tips: 'Scrape their /integrations, /partners, and /about pages for the best partnership intelligence. Also check if they have an existing partner programme.'
+      },
+      {
+        id: 'smb-fc-8-s2',
+        stepNumber: 2,
+        title: 'Generate Partnership Outreach',
+        instruction: 'The AI creates personalised partnership pitches for the highest-fit companies, including a proposed deal structure.',
+        promptTemplate: 'For each partner company with an Overall Fit score of 7 or above, create a PARTNERSHIP OUTREACH PACKAGE:\\n\\n## Proposed Partnership Structure\\n- Partnership type (integration / referral / co-marketing / reseller)\\n- Revenue model suggestion (revenue share %, referral fees, etc.)\\n- Pilot programme suggestion (scope, timeline, metrics)\\n\\n## Outreach Email\\nDraft a personalised email to their partnerships or BD team that:\\n1. Opens with something specific about their company (from the scrape)\\n2. Explains the mutual value in 2-3 sentences\\n3. Proposes a specific, low-commitment next step (\"15-min call to explore X\")\\n4. Keeps it under 150 words\\n\\n## Talking Points for First Call\\n- 3 concrete ways the partnership creates value for their customers\\n- 1 case study idea you could co-create\\n- A suggested pilot scope that can prove value in 30 days',
+        expectedOutput: 'A complete partnership outreach package with proposed deal structure, personalised email, and call talking points for each high-fit partner.',
+        tips: 'The best partnership outreach focuses on what you can do for THEIR customers, not what you need from the partnership. Lead with value.'
+      }
+    ]
+  },
+  {
+    id: 'smb-fc-9',
+    slug: 'review-response-generator',
+    title: 'Review Response Generator',
+    subtitle: 'Scrape your G2, Trustpilot, Yelp, and Google reviews daily. Get draft responses for every new review — empathetic for negatives, grateful for positives — ready to paste.',
+    category: 'Customer Success',
+    difficulty: 'Beginner',
+    timeToComplete: 5,
+    timeSaved: 45,
+    completionCount: 423,
+    rating: 4.9,
+    isPro: false,
+    isNew: true,
+    tools: ['Claude', 'Firecrawl'],
+    beforeYouStart: [
+      'URLs of your review profiles: Google Business, G2, Trustpilot, Yelp, Capterra, etc.',
+      'Your brand voice and tone guidelines for customer-facing communication.',
+      'Any internal policies on review responses (e.g. never offer refunds publicly, always escalate to DM for complaints).'
+    ],
+    expectedOutcome: 'Draft responses for every new review found, matching your brand voice. Negative reviews get empathetic, solution-oriented responses. Positive reviews get warm, specific thank-yous. All ready to copy-paste.',
+    agentAutomation: {
+      description: 'Deploy a daily agent that scrapes your review profiles, identifies new reviews, drafts appropriate responses for each, and emails you the complete set — ready to post.',
+      trigger: 'Every weekday at 8 AM.',
+      actions: [
+        'Scrape each review platform URL via Firecrawl for recent reviews.',
+        'Categorise each review: Positive / Neutral / Negative.',
+        'Draft a personalised response for each review in your brand voice.',
+        'Flag any negative reviews that need urgent escalation.',
+        'Email the complete response package.'
+      ],
+      setupSteps: [
+        { title: 'Enter your review profile URLs', description: 'Add the direct URLs to your review profiles on G2, Trustpilot, Google Business, Yelp, etc.' },
+        { title: 'Define your response voice', description: 'Paste 2-3 example responses you have written before, or describe your tone (e.g. \"warm, professional, first-name basis, always acknowledge the specific issue\").' },
+        { title: 'Set response policies', description: 'Any rules? E.g. \"never offer refunds in public responses\", \"always invite complainants to email support@\", \"never argue back\".' }
+      ],
+      tools: ['Firecrawl', 'Claude', 'Hoursback Autopilot']
+    },
+    troubleshooting: [
+      {
+        problem: 'Review pages require login to view',
+        solution: 'Most review platforms show reviews publicly. Make sure you are entering the public-facing profile URL, not a dashboard URL. For Google Business, use the Google Maps listing URL.'
+      },
+      {
+        problem: 'Responses sound too corporate',
+        solution: 'Paste 2-3 of your best actual review responses in the brand voice section. The AI will mimic your real tone much better than following a description like \"professional but friendly\".'
+      }
+    ],
+    relatedPlaybooks: [
+      { id: 'smb-fc-1', title: 'Brand Mention Monitor', slug: 'brand-mention-monitor' }
+    ],
+    steps: [
+      {
+        id: 'smb-fc-9-s1',
+        stepNumber: 1,
+        title: 'Scrape and Categorise Reviews',
+        instruction: 'Enter the URLs of your review profiles across platforms. Firecrawl scrapes the latest reviews and the AI categorises them by sentiment and urgency.',
+        promptTemplate: 'Scrape and analyse my business reviews from these platforms:\\n\\n**Review Profile URLs (scraped via Firecrawl):**\\n[Scrape Review URLs]\\n\\n**My Business:** [Your Business Name]\\n**My Brand Voice:** [Your Brand Voice Examples]\\n**Response Policies:** [Your Response Policies]\\n\\nFor EACH review found, extract and categorise:\\n\\n| Reviewer | Platform | Rating | Sentiment | Key Points | Urgency |\\n|---|---|---|---|---|---|\\n\\nSentiment: Positive / Neutral / Negative\\nUrgency: URGENT (1-2 stars with specific complaint) / NORMAL / LOW\\n\\nSort by urgency, then by date (newest first).',
+        expectedOutput: 'A categorised table of all recent reviews with sentiment ratings, key points extracted, and urgency classification.',
+        tips: 'For Google Business reviews, use your Google Maps listing URL. For G2, use your product\'s G2 reviews page URL.'
+      },
+      {
+        id: 'smb-fc-9-s2',
+        stepNumber: 2,
+        title: 'Generate Review Responses',
+        instruction: 'The AI drafts personalised responses for each review, matching your brand voice and following your response policies.',
+        promptTemplate: 'For EACH review listed above, draft a response following these guidelines:\\n\\n## For NEGATIVE Reviews (1-3 stars):\\n- Open with empathy: acknowledge their specific frustration (name the issue)\\n- Take responsibility without being defensive\\n- Offer a concrete next step (not vague \"we will do better\")\\n- Invite them to reach out directly for resolution\\n- Keep it under 100 words\\n- FOLLOW the response policies provided\\n\\n## For NEUTRAL Reviews (3 stars):\\n- Thank them for the honest feedback\\n- Address any specific concerns mentioned\\n- Highlight what you are doing to improve in that area\\n- Keep it under 80 words\\n\\n## For POSITIVE Reviews (4-5 stars):\\n- Thank them by referencing something SPECIFIC they mentioned (not generic \"thanks for the review\")\\n- Reinforce the positive aspect they highlighted\\n- Keep it warm and brief — under 60 words\\n- Do NOT ask them to refer friends (it cheapens the gratitude)\\n\\nFormat each response as:\\n**[Reviewer Name] — [Platform] — [Rating]**\\n> [Draft Response]',
+        expectedOutput: 'Ready-to-post response drafts for every review — empathetic for negatives, warm for positives, all in your brand voice and under word limits.',
+        tips: 'The fastest way to improve your review score is to respond to every negative review within 24 hours with a genuine, solution-oriented response. Many reviewers update their rating after a good response.'
+      }
+    ]
+  },
+  {
+    id: 'smb-fc-10',
+    slug: 'regulatory-compliance-monitor',
+    title: 'Regulatory & Compliance Monitor',
+    subtitle: 'Stay ahead of regulation changes. Automatically scrape government and industry regulatory sites and get a weekly compliance briefing with action items.',
+    category: 'Operations',
+    difficulty: 'Intermediate',
+    timeToComplete: 10,
+    timeSaved: 120,
+    completionCount: 78,
+    rating: 4.7,
+    isPro: true,
+    isNew: true,
+    tools: ['Claude', 'Firecrawl'],
+    beforeYouStart: [
+      'URLs of regulatory bodies and agencies relevant to your industry (e.g. SEC.gov, FDA.gov, ICO.org.uk, state-specific sites).',
+      'Your industry and the specific regulations that apply to your business.',
+      'Current compliance status — what you already comply with so the AI can identify gaps from new rules.'
+    ],
+    expectedOutcome: 'A weekly compliance intelligence briefing showing new regulatory developments, how they affect your business, required actions, and deadlines — preventing costly compliance surprises.',
+    agentAutomation: {
+      description: 'Deploy a weekly agent that scrapes regulatory websites for new rules, guidance, and enforcement actions, then emails you a prioritised compliance action plan.',
+      trigger: 'Every Monday at 7 AM.',
+      actions: [
+        'Scrape each regulatory site URL via Firecrawl for new postings.',
+        'Filter for developments relevant to your industry and business.',
+        'Assess impact: HIGH (requires immediate action) / MEDIUM (plan needed) / LOW (awareness only).',
+        'Generate a compliance action plan with deadlines.',
+        'Email the weekly compliance briefing.'
+      ],
+      setupSteps: [
+        { title: 'Enter regulatory site URLs', description: 'Add the URLs of regulatory bodies, industry watchdogs, and compliance news sources relevant to your business.' },
+        { title: 'Describe your regulatory landscape', description: 'Enter your industry, business activities, and current compliance certifications so the AI can filter relevant changes.' },
+        { title: 'Set your schedule', description: 'Weekly on Monday is recommended — gives you the full week to act on new compliance requirements.' }
+      ],
+      tools: ['Firecrawl', 'Claude', 'Hoursback Autopilot']
+    },
+    troubleshooting: [
+      {
+        problem: 'Regulatory sites are hard to scrape',
+        solution: 'Government sites often have RSS feeds or specific news/updates pages. Use those URLs instead of the homepage. For example, use FDA.gov/news-events rather than FDA.gov.'
+      },
+      {
+        problem: 'Too much noise — irrelevant regulations flagged',
+        solution: 'Be very specific about your industry activities. Instead of \"healthcare\" specify \"telehealth services in Texas for Medicare patients\". Specificity dramatically improves filtering.'
+      }
+    ],
+    relatedPlaybooks: [
+      { id: 'smb-ci-1', title: 'Competitor Intelligence Tracker', slug: 'competitor-intelligence-tracker' }
+    ],
+    steps: [
+      {
+        id: 'smb-fc-10-s1',
+        stepNumber: 1,
+        title: 'Scrape Regulatory Sources',
+        instruction: 'Enter the URLs of regulatory bodies, industry associations, and compliance news sources relevant to your business. Firecrawl scrapes them for the latest updates.',
+        promptTemplate: 'Analyse these regulatory sources for new compliance developments:\\n\\n**Regulatory Site URLs (scraped via Firecrawl):**\\n[Scrape Regulatory URLs]\\n\\n**My Industry:** [Your Industry]\\n**My Business Activities:** [Your Business Activities]\\n**Current Compliance:** [Your Current Certifications and Compliance]\\n**Geography:** [Your Operating Regions]\\n\\nFrom the scraped content, identify ALL new regulatory developments. For each one found:\\n\\n| Development | Agency | Effective Date | Impact Level | Affects Our Business? |\\n|---|---|---|---|---|\\n\\nImpact Level: HIGH (requires action) / MEDIUM (plan needed) / LOW (awareness only)\\nOnly include developments that are directly or indirectly relevant to our business activities.',
+        expectedOutput: 'A filtered table of relevant regulatory developments with effective dates, impact levels, and relevance assessment.',
+        tips: 'Use the regulatory body\'s \"news\" or \"updates\" or \"recent changes\" page URL for the most focused results.'
+      },
+      {
+        id: 'smb-fc-10-s2',
+        stepNumber: 2,
+        title: 'Compliance Action Plan',
+        instruction: 'The AI creates a prioritised action plan for each HIGH and MEDIUM impact regulatory change, with specific steps and deadlines.',
+        promptTemplate: 'For each HIGH and MEDIUM impact regulatory development identified above, create a COMPLIANCE ACTION PLAN:\\n\\n## For Each Development:\\n\\n### [Regulation Name/Title]\\n**Impact:** [HIGH/MEDIUM]\\n**Effective Date:** [Date]\\n**Summary:** What changed in plain English (2-3 sentences, no legal jargon)\\n\\n**What This Means For Us:**\\n- Specific business processes affected\\n- Current gaps between our practices and the new requirement\\n\\n**Required Actions:**\\n1. [Specific action] — Deadline: [Date] — Owner: [Suggested role]\\n2. [Specific action] — Deadline: [Date] — Owner: [Suggested role]\\n\\n**Risk of Non-Compliance:**\\n- Potential penalties, fines, or business impact\\n\\n**Resources Needed:**\\n- Estimated cost and time to comply\\n\\n## Priority Summary\\nRank all actions by: Deadline urgency × Impact severity',
+        expectedOutput: 'A detailed compliance action plan with specific steps, deadlines, responsible roles, non-compliance risks, and a priority ranking.',
+        tips: 'The most expensive compliance failure is the one you did not see coming. Even LOW impact items should be filed for quarterly review.'
+      }
+    ]
+  },
+  {
+    id: 'smb-fc-11',
+    slug: 'supplier-price-tracker',
+    title: 'Supplier Price Tracker',
+    subtitle: 'Monitor your suppliers and vendors for price changes, new product launches, and bulk discount updates. Never miss a price hike or savings opportunity.',
+    category: 'Operations',
+    difficulty: 'Beginner',
+    timeToComplete: 8,
+    timeSaved: 60,
+    completionCount: 134,
+    rating: 4.6,
+    isPro: false,
+    isNew: true,
+    tools: ['Claude', 'Firecrawl'],
+    beforeYouStart: [
+      'Pricing page URLs for your key suppliers and vendors.',
+      'Your current supplier costs for comparison.',
+      'Alternative suppliers you want to benchmark against.'
+    ],
+    expectedOutcome: 'A weekly supplier pricing report showing current prices vs. your contracted rates, any detected changes, and recommendations for renegotiation or switching opportunities.',
+    agentAutomation: {
+      description: 'Deploy a weekly agent that scrapes supplier pricing pages and alerts you to changes — price increases you need to budget for, new discounts you can negotiate, or cheaper alternatives available.',
+      trigger: 'Every Thursday at 8 AM.',
+      actions: [
+        'Scrape each supplier pricing page via Firecrawl.',
+        'Compare current prices against your existing contracts.',
+        'Detect any changes from typical pricing.',
+        'Identify potential savings from alternative suppliers.',
+        'Email the supplier pricing report.'
+      ],
+      setupSteps: [
+        { title: 'Enter supplier pricing URLs', description: 'Add the pricing or product catalog page URLs for your current suppliers and any alternatives you want to track.' },
+        { title: 'Enter your current costs', description: 'List your current contracted rates or recent invoice prices so the AI can compare.' },
+        { title: 'Set your schedule', description: 'Weekly on Thursday recommended — gives you time to act before month-end procurement cycles.' }
+      ],
+      tools: ['Firecrawl', 'Claude', 'Hoursback Autopilot']
+    },
+    troubleshooting: [
+      {
+        problem: 'Supplier does not have a public pricing page',
+        solution: 'Try scraping their product catalog pages instead — even without explicit prices, changes in product descriptions, minimum order quantities, or packaging can signal pricing shifts.'
+      },
+      {
+        problem: 'Prices require a login or quote request',
+        solution: 'Use distributor or marketplace sites that list the same products (e.g. Amazon Business, Alibaba, industry-specific marketplaces) as proxy pricing sources.'
+      }
+    ],
+    relatedPlaybooks: [
+      { id: 'smb-fc-3', title: 'Pricing Intelligence Agent', slug: 'pricing-intelligence-agent' }
+    ],
+    steps: [
+      {
+        id: 'smb-fc-11-s1',
+        stepNumber: 1,
+        title: 'Scrape Supplier Pricing',
+        instruction: 'Enter the pricing or catalog page URLs for your suppliers and any alternatives. Firecrawl extracts current pricing information.',
+        promptTemplate: 'Analyse supplier pricing from these scraped sources:\\n\\n**Supplier Pricing Pages (scraped via Firecrawl):**\\n[Scrape Supplier URLs]\\n\\n**My Current Costs:**\\n[Your Current Supplier Costs]\\n\\nFor EACH supplier, extract all visible pricing information:\\n\\n| Supplier | Product/Service | Listed Price | Unit | Min Order | My Current Cost | Difference |\\n|---|---|---|---|---|---|---|\\n\\nFlag any prices that are HIGHER than what I currently pay (potential increase coming) or LOWER than what I currently pay (savings opportunity).',
+        expectedOutput: 'A detailed supplier pricing comparison table with your current costs vs. listed prices, flagged increases and savings opportunities.',
+        tips: 'Include both your current suppliers AND 2-3 alternative suppliers for the same products. This gives you leverage in negotiations.'
+      },
+      {
+        id: 'smb-fc-11-s2',
+        stepNumber: 2,
+        title: 'Procurement Strategy Recommendations',
+        instruction: 'The AI analyses the pricing landscape and provides specific recommendations for cost optimisation.',
+        promptTemplate: 'Based on the supplier pricing comparison above, provide PROCUREMENT STRATEGY RECOMMENDATIONS:\\n\\n## Cost Alert: Price Increases Detected\\nList any products where the supplier\'s current price exceeds your contracted rate. For each:\\n- How much higher (% and absolute)\\n- Whether to renegotiate, switch suppliers, or absorb the increase\\n- Timing recommendation\\n\\n## Savings Opportunities\\nList any products where you could save money. For each:\\n- Alternative supplier and their price\\n- Estimated annual savings if you switched\\n- Any switching costs or risks to consider\\n\\n## Negotiation Talking Points\\nFor your top 3 spending categories, provide:\\n- Your leverage (alternative suppliers, volume, loyalty)\\n- Specific ask (target price, volume discount, payment terms)\\n- Best timing to renegotiate\\n\\n## Total Potential Impact\\nSum up all identified savings opportunities. What is the total annual impact if you act on all recommendations?',
+        expectedOutput: 'A complete procurement strategy with price alerts, savings opportunities, negotiation talking points, and total potential financial impact.',
+        tips: 'Keep a record of these reports over time. A pattern of creeping price increases is powerful leverage in your next contract renegotiation.'
+      }
+    ]
+  },
+  {
+    id: 'smb-fc-12',
+    slug: 'industry-news-digest',
+    title: 'Industry News Digest',
+    subtitle: 'Stop reading 10 industry blogs. Scrape them all automatically and get one clean daily digest with the 5 stories that actually matter to your business.',
+    category: 'Strategy',
+    difficulty: 'Beginner',
+    timeToComplete: 5,
+    timeSaved: 30,
+    completionCount: 512,
+    rating: 4.9,
+    isPro: false,
+    isNew: true,
+    tools: ['Claude', 'Firecrawl'],
+    beforeYouStart: [
+      'URLs of 5-10 industry blogs, news sites, and thought leader pages you want to monitor.',
+      'Your specific interests and business focus so the AI can prioritise relevant stories.',
+      'How you want the digest delivered — email, or as a workspace report.'
+    ],
+    expectedOutcome: 'A daily or weekly digest email containing the top 5 industry stories that matter to your business, each summarised in 2-3 sentences with a \"why it matters to you\" analysis and a link to the full article.',
+    agentAutomation: {
+      description: 'Deploy a daily agent that scrapes your curated list of industry sources, identifies the most important stories, and emails you a 2-minute-read digest before your morning coffee.',
+      trigger: 'Every weekday at 6:30 AM.',
+      actions: [
+        'Scrape each news source URL via Firecrawl.',
+        'Identify the most recent articles and developments.',
+        'Filter and rank by relevance to your business.',
+        'Summarise the top 5 stories.',
+        'Email the morning digest.'
+      ],
+      setupSteps: [
+        { title: 'Enter your news source URLs', description: 'Add the blog or news page URLs for industry publications, analyst blogs, competitor blogs, and thought leaders you follow.' },
+        { title: 'Define your focus areas', description: 'What topics matter most? E.g. \"AI in healthcare\", \"SaaS pricing trends\", \"European fintech regulation\". This helps the AI prioritise.' },
+        { title: 'Set your schedule', description: 'Daily at 6:30 AM recommended — read it before your first meeting. Weekly is also fine for less fast-moving industries.' }
+      ],
+      tools: ['Firecrawl', 'Claude', 'Hoursback Autopilot']
+    },
+    troubleshooting: [
+      {
+        problem: 'Digest contains old stories I have already seen',
+        solution: 'Make sure you are entering the blog\'s main page or latest posts page, not a specific article URL. The AI looks for the most recent content visible on the page.'
+      },
+      {
+        problem: 'Stories are too general and not relevant',
+        solution: 'Be more specific with your focus areas. Instead of \"technology news\" try \"enterprise AI adoption trends affecting B2B SaaS companies in financial services\". Specificity is everything.'
+      }
+    ],
+    relatedPlaybooks: [
+      { id: 'smb-ci-1', title: 'Competitor Intelligence Tracker', slug: 'competitor-intelligence-tracker' }
+    ],
+    steps: [
+      {
+        id: 'smb-fc-12-s1',
+        stepNumber: 1,
+        title: 'Scrape and Curate Industry Sources',
+        instruction: 'Enter the URLs of industry blogs, news sites, and thought leader pages. Firecrawl scrapes them all and the AI identifies the most recent content.',
+        promptTemplate: 'Analyse these industry news sources for the latest developments:\\n\\n**News Source URLs (scraped via Firecrawl):**\\n[Scrape News Source URLs]\\n\\n**My Industry:** [Your Industry]\\n**My Focus Areas:** [Your Focus Areas]\\n**My Business:** [Your Business Description]\\n\\nFrom ALL scraped sources, identify the most recent articles and developments. Then select the TOP 5 stories that are most relevant to my business and focus areas.\\n\\nFor each of the top 5:\\n\\n## [Story #] — [Headline]\\n**Source:** [Publication name]\\n**Summary:** [2-3 sentence summary of what happened]\\n**Why It Matters to You:** [1-2 sentences connecting this story specifically to my business]\\n**Action Required:** NONE / MONITOR / ACT — with specific suggestion if ACT\\n**Read Full:** [URL if available]\\n\\nOrder by relevance to my business, not by recency.',
+        expectedOutput: 'A curated digest of the top 5 industry stories, each with a summary, business relevance analysis, and action recommendation.',
+        tips: 'The best sources to include are: 1-2 major industry publications, 2-3 competitor blogs, and 2-3 niche analyst or thought leader pages.'
+      },
+      {
+        id: 'smb-fc-12-s2',
+        stepNumber: 2,
+        title: 'Weekly Trends & Implications',
+        instruction: 'Run this at the end of each week to identify emerging trends from the week\'s stories and strategic implications for your business.',
+        promptTemplate: 'Based on all the industry stories and developments identified this week, create a WEEKLY TREND ANALYSIS:\\n\\n## Emerging Trends\\nWhat patterns or themes are appearing across multiple sources? List 2-3 emerging trends with evidence from the stories.\\n\\n## Industry Shift Signals\\nAre any major shifts happening? New technology, regulatory changes, market consolidation, customer behaviour changes?\\n\\n## Implications for Our Business\\nFor each trend identified:\\n- How could this affect us in the next 3-6 months?\\n- Should we accelerate, pivot, or prepare for anything?\\n- Is there a first-mover opportunity?\\n\\n## One Thing to Do This Week\\nBased on everything above, what is the single most important action we should take this week? Be specific.',
+        expectedOutput: 'A weekly trend analysis with emerging patterns, industry shift signals, business implications, and one clear action item.',
+        tips: 'After running this for a month, you will have a trend radar that no one else in your company has. Use it to be the most informed person in strategy meetings.'
+      }
+    ]
+  },
+  {
+    id: 'smb-fc-13',
+    slug: 'customer-expansion-radar',
+    title: 'Customer Expansion Radar',
+    subtitle: 'Scrape your existing customers\' websites monthly. Detect growth signals — new products, hiring sprees, funding rounds — and surface upsell and cross-sell opportunities.',
+    category: 'Customer Success',
+    difficulty: 'Intermediate',
+    timeToComplete: 10,
+    timeSaved: 90,
+    completionCount: 96,
+    rating: 4.8,
+    isPro: true,
+    isNew: true,
+    tools: ['Claude', 'Firecrawl'],
+    beforeYouStart: [
+      'Website URLs of your top 10-20 customers.',
+      'Your full product catalog or service offerings — especially things they are not currently buying.',
+      'Their current contract or subscription details (what they already use).'
+    ],
+    expectedOutcome: 'A monthly expansion intelligence report for each customer, highlighting growth signals from their website and matching those signals to upsell/cross-sell opportunities from your product lineup.',
+    agentAutomation: {
+      description: 'Deploy a monthly agent that scrapes your customer websites, detects business changes and growth signals, and emails your account management team a prioritised upsell report.',
+      trigger: 'First Monday of each month at 9 AM.',
+      actions: [
+        'Scrape each customer website via Firecrawl.',
+        'Detect growth signals: new products, hiring, partnerships, expansion.',
+        'Match growth signals to relevant products/services they do not currently use.',
+        'Prioritise upsell opportunities by estimated revenue impact.',
+        'Email the monthly expansion report to the CS team.'
+      ],
+      setupSteps: [
+        { title: 'Enter customer website URLs', description: 'Add website URLs for your top customers. Focus on the ones with the most expansion potential.' },
+        { title: 'List your offerings', description: 'Enter your full product/service catalog, especially features, tiers, or add-ons they could upgrade to.' },
+        { title: 'Set your schedule', description: 'Monthly on the first Monday is recommended to align with quarterly business reviews.' }
+      ],
+      tools: ['Firecrawl', 'Claude', 'Hoursback Autopilot']
+    },
+    troubleshooting: [
+      {
+        problem: 'Customer website has not changed',
+        solution: 'Supplement with their LinkedIn company page and blog. Also check press release pages (/press, /news). Companies often announce changes on social media before updating their website.'
+      },
+      {
+        problem: 'Upsell recommendations are too generic',
+        solution: 'Be more specific about what each customer currently uses. The gap between \"what they have\" and \"what they could have\" is where the best upsell opportunities live.'
+      }
+    ],
+    relatedPlaybooks: [
+      { id: 'smb-fc-6', title: 'Lead Research Enricher', slug: 'lead-research-enricher' }
+    ],
+    steps: [
+      {
+        id: 'smb-fc-13-s1',
+        stepNumber: 1,
+        title: 'Scrape Customer Websites for Growth Signals',
+        instruction: 'Enter the website URLs of your key customers. Firecrawl scrapes them and the AI detects business changes and growth signals.',
+        promptTemplate: 'Analyse these customer websites for growth signals and expansion opportunities:\\n\\n**Customer Website URLs (scraped via Firecrawl):**\\n[Scrape Customer URLs]\\n\\n**My Product/Service Catalog:**\\n[Your Full Product Catalog]\\n\\n**What They Currently Use:**\\n[Current Customer Contracts]\\n\\nFor EACH customer, analyse the scraped content for GROWTH SIGNALS:\\n\\n| Customer | Signal Type | Evidence | Confidence | Expansion Opportunity |\\n|---|---|---|---|---|\\n\\nSignal Types to look for:\\n- NEW PRODUCT LAUNCH (they are expanding their offering)\\n- HIRING SPREE (team growth = budget growth)\\n- NEW MARKET ENTRY (geographic or vertical expansion)\\n- FUNDING/REVENUE (capital to invest)\\n- PARTNERSHIP (new integrations or collaborations)\\n- TECH UPGRADE (changing their stack)\\n\\nConfidence: HIGH (explicitly stated) / MEDIUM (strongly implied) / LOW (inferred)',
+        expectedOutput: 'A growth signal table for each customer with evidence, confidence levels, and matched expansion opportunities.',
+        tips: 'Scrape the /careers, /blog, /press, and /about pages in addition to the homepage for the richest signal detection.'
+      },
+      {
+        id: 'smb-fc-13-s2',
+        stepNumber: 2,
+        title: 'Expansion Playbook per Customer',
+        instruction: 'The AI creates a specific expansion strategy for each customer showing growth signals, matched to products they should buy from you.',
+        promptTemplate: 'For each customer with HIGH or MEDIUM confidence growth signals, create an EXPANSION PLAYBOOK:\\n\\n## [Customer Name]\\n\\n**Current Relationship:** What they currently use from us\\n**Growth Signals Detected:** Summary of what changed\\n\\n**Recommended Expansion:**\\n1. **Primary Upsell:** The #1 product/service they should add, and why the growth signal makes it timely\\n2. **Secondary Upsell:** A second relevant offering\\n3. **Estimated Additional Revenue:** Rough estimate based on typical pricing\\n\\n**Outreach Strategy:**\\n- Who to contact (suggested role/title at the customer)\\n- Opening line that references their specific growth signal\\n- Timing recommendation (when to reach out)\\n\\n**Conversation Starter:**\\nDraft a 3-sentence email opening that:\\n1. Congratulates them on [specific growth signal]\\n2. Connects it to a relevant challenge they might be facing\\n3. Proposes a brief check-in to discuss how you can help\\n\\n## Overall Portfolio Summary\\nRank all customers by expansion revenue potential. Show top 5 priorities.',
+        expectedOutput: 'Individual expansion playbooks per customer with upsell recommendations, outreach strategies, and a portfolio-level priority ranking.',
+        tips: 'The best time to approach a customer for expansion is right after a growth signal — they have budget momentum and are actively building. Timing is everything.'
+      }
+    ]
+  },
+  {
+    id: 'smb-fc-14',
+    slug: 'directory-listing-auditor',
+    title: 'Directory Listing Auditor',
+    subtitle: 'Scrape your business listings across Yelp, Google, Capterra, G2, and industry directories. Find inconsistencies in your name, address, phone, and description before customers do.',
+    category: 'Marketing',
+    difficulty: 'Beginner',
+    timeToComplete: 8,
+    timeSaved: 60,
+    completionCount: 187,
+    rating: 4.7,
+    isPro: false,
+    isNew: true,
+    tools: ['Claude', 'Firecrawl'],
+    beforeYouStart: [
+      'URLs of all your business directory listings (Google Business, Yelp, Capterra, G2, industry-specific directories).',
+      'Your correct/canonical business information: name, address, phone, website, description, hours.',
+      'Any specific branding guidelines for how your business name and description should appear.'
+    ],
+    expectedOutcome: 'A complete audit of your business listings across all directories, with every inconsistency flagged and specific corrections provided — ready to update.',
+    agentAutomation: {
+      description: 'Deploy a monthly agent that scrapes all your directory listings and emails you an inconsistency report with exact corrections needed for each listing.',
+      trigger: 'First Wednesday of each month at 9 AM.',
+      actions: [
+        'Scrape each directory listing URL via Firecrawl.',
+        'Compare each listing against your canonical business information.',
+        'Flag any inconsistencies in name, address, phone, hours, description.',
+        'Generate exact corrections for each inconsistency.',
+        'Email the monthly listing audit report.'
+      ],
+      setupSteps: [
+        { title: 'Enter your listing URLs', description: 'Add the URLs of your business profiles on Google, Yelp, Capterra, G2, BBB, and any industry directories.' },
+        { title: 'Enter your correct information', description: 'Provide your canonical business name, address, phone, website, hours, and description exactly as they should appear everywhere.' },
+        { title: 'Set your schedule', description: 'Monthly is recommended — listings rarely change without you knowing, but drift happens over time.' }
+      ],
+      tools: ['Firecrawl', 'Claude', 'Hoursback Autopilot']
+    },
+    troubleshooting: [
+      {
+        problem: 'Cannot scrape Google Business listing',
+        solution: 'Use your Google Maps URL (the one that starts with google.com/maps/place/). This is publicly accessible and contains your business information.'
+      },
+      {
+        problem: 'Listing shows old information I already updated',
+        solution: 'Some directories cache old information. If you have updated the listing but it still shows old data, note the date and check again in 2 weeks. If it persists, contact the directory\'s support team.'
+      }
+    ],
+    relatedPlaybooks: [
+      { id: 'smb-fc-1', title: 'Brand Mention Monitor', slug: 'brand-mention-monitor' }
+    ],
+    steps: [
+      {
+        id: 'smb-fc-14-s1',
+        stepNumber: 1,
+        title: 'Scrape and Compare All Listings',
+        instruction: 'Enter the URLs of your business listings across all directories. Firecrawl scrapes each one and the AI compares against your correct information.',
+        promptTemplate: 'Audit my business directory listings for inconsistencies:\\n\\n**Directory Listing URLs (scraped via Firecrawl):**\\n[Scrape Directory Listing URLs]\\n\\n**My Correct Business Information:**\\nBusiness Name: [Your Correct Business Name]\\nAddress: [Your Correct Address]\\nPhone: [Your Correct Phone]\\nWebsite: [Your Correct Website]\\nHours: [Your Correct Hours]\\nDescription: [Your Correct Description]\\n\\nFor EACH listing, compare the scraped information against my correct details:\\n\\n| Directory | Name Match? | Address Match? | Phone Match? | Website Match? | Hours Match? | Description Accurate? | Issues Found |\\n|---|---|---|---|---|---|---|---|\\n\\nFor any mismatches, show EXACTLY what the listing says vs. what it should say.',
+        expectedOutput: 'A comprehensive audit table comparing every listing against your canonical information, with all inconsistencies flagged.',
+        tips: 'NAP consistency (Name, Address, Phone) across directories is a major local SEO factor. Inconsistencies hurt your Google ranking.'
+      },
+      {
+        id: 'smb-fc-14-s2',
+        stepNumber: 2,
+        title: 'Correction Action Plan',
+        instruction: 'The AI generates specific corrections for each inconsistency and prioritises which listings to fix first based on SEO and customer impact.',
+        promptTemplate: 'Based on the listing audit above, create a CORRECTION ACTION PLAN:\\n\\n## Inconsistency Summary\\n- Total listings audited: [count]\\n- Listings with issues: [count]\\n- Total issues found: [count]\\n\\n## Corrections Needed (Prioritised)\\nFor each listing with issues, provide:\\n\\n### [Directory Name]\\n**URL:** [listing URL]\\n**Priority:** HIGH (Google/Yelp) / MEDIUM (industry directories) / LOW (minor directories)\\n**Issues:**\\n- Field: [what is wrong] — Currently says: \"[wrong text]\" → Should say: \"[correct text]\"\\n\\n## SEO Impact Assessment\\n- How badly are these inconsistencies likely affecting your local search ranking?\\n- Which fixes will have the biggest SEO impact?\\n\\n## Correction Checklist\\nA simple checklist format you can follow to update each listing, ordered by priority.',
+        expectedOutput: 'A prioritised correction plan with exact text changes for each listing, SEO impact assessment, and a step-by-step checklist.',
+        tips: 'Fix Google Business and Yelp first — these have the highest impact on local SEO and customer trust. Then work down to smaller directories.'
+      }
+    ]
+  },
+  {
+    id: 'smb-fc-15',
+    slug: 'salary-benchmark-scanner',
+    title: 'Salary Benchmark Scanner',
+    subtitle: 'Scrape job boards for similar roles at competitor companies. Extract salary ranges, benefits, and perks — so you know exactly what the market is paying.',
+    category: 'Operations',
+    difficulty: 'Beginner',
+    timeToComplete: 10,
+    timeSaved: 60,
+    completionCount: 108,
+    rating: 4.6,
+    isPro: false,
+    isNew: true,
+    tools: ['Claude', 'Firecrawl'],
+    beforeYouStart: [
+      'Job board URLs with searches for roles you are hiring for or benchmarking (e.g. LinkedIn Jobs, Indeed, Glassdoor searches).',
+      'The specific roles you want to benchmark: titles, seniority levels, locations.',
+      'Your current compensation packages for comparison.'
+    ],
+    expectedOutcome: 'A salary benchmarking report showing market rates for your key roles across seniority levels, with clear positioning of your current offers vs. the market and specific recommendations for adjustment.',
+    troubleshooting: [
+      {
+        problem: 'Job postings do not include salary information',
+        solution: 'Try Glassdoor salary pages or Levels.fyi for tech roles. Also try filtering job boards for postings that include salary (many US states now require it). Indeed and LinkedIn often show estimated salary ranges.'
+      },
+      {
+        problem: 'Wide salary ranges make benchmarking hard',
+        solution: 'Focus on the midpoint of each range and compare midpoints. Also pay attention to location — a \"$120K-180K\" range usually means $180K in SF and $120K in Austin.'
+      }
+    ],
+    relatedPlaybooks: [
+      { id: 'smb-fc-4', title: 'Job Market Scout', slug: 'job-market-scout' }
+    ],
+    steps: [
+      {
+        id: 'smb-fc-15-s1',
+        stepNumber: 1,
+        title: 'Scrape Job Boards for Salary Data',
+        instruction: 'Enter job board URLs with search results for the roles you want to benchmark. Firecrawl extracts salary ranges, benefits, and requirements from the listings.',
+        promptTemplate: 'Analyse these job board pages for salary benchmarking data:\\n\\n**Job Board URLs (scraped via Firecrawl):**\\n[Scrape Job Board URLs]\\n\\n**Roles I Am Benchmarking:**\\n[Your Target Roles]\\n\\n**My Current Compensation:**\\n[Your Current Salary Packages]\\n\\n**My Location:** [Your Office Location]\\n\\nFrom the scraped job listings, extract compensation data for each relevant role:\\n\\n| Company | Role Title | Seniority | Location | Salary Range | Benefits Mentioned | Remote? |\\n|---|---|---|---|---|---|---|\\n\\nAlso note any non-monetary compensation mentioned: equity, bonuses, PTO, remote work policy, signing bonus, etc.',
+        expectedOutput: 'A comprehensive salary data table extracted from job board listings with ranges, benefits, remote policies, and non-monetary compensation.',
+        tips: 'For the best data, scrape Glassdoor salary pages, LinkedIn Jobs with salary filter on, and Indeed with \"salary\" in the search. Also try levels.fyi for tech roles.'
+      },
+      {
+        id: 'smb-fc-15-s2',
+        stepNumber: 2,
+        title: 'Compensation Strategy Analysis',
+        instruction: 'The AI analyses the market data and provides specific recommendations for your compensation packages.',
+        promptTemplate: 'Based on the salary benchmarking data above and my current compensation packages, create a COMPENSATION STRATEGY ANALYSIS:\\n\\n## Market Rate Summary\\nFor each benchmarked role:\\n- Market range: $X - $Y (25th to 75th percentile)\\n- Market midpoint: $X\\n- Our current offer: $X\\n- Our position: ABOVE / AT / BELOW market\\n\\n## Roles At Risk\\nFlag any roles where we are paying significantly below market (>10% under midpoint). These are flight risks.\\n\\n## Roles Over-Indexed\\nFlag any roles where we are paying significantly above market (>10% over midpoint). These may not need increases.\\n\\n## Recommended Adjustments\\nFor each role:\\n- Specific salary adjustment recommendation\\n- Priority: HIGH (retention risk) / MEDIUM / LOW\\n- Estimated budget impact\\n\\n## Total Budget Impact\\nSum all recommended adjustments. What is the total annual cost to bring all roles to competitive market positioning?\\n\\n## Non-Salary Levers\\nBased on what competitors are offering, what non-salary benefits should we consider adding? (remote work, equity, PTO, signing bonuses, etc.)',
+        expectedOutput: 'A complete compensation strategy with market positioning, at-risk roles, specific adjustment recommendations, budget impact, and non-salary improvement suggestions.',
+        tips: 'Being at the 50th percentile is market-matching. Aim for 60th-75th percentile for critical roles you cannot afford to lose. Below 25th percentile = expect turnover.'
+      }
+    ]
+  },
+  {
+    id: 'smb-fc-16',
+    slug: 'employer-brand-monitor',
+    title: 'Employer Brand Monitor',
+    subtitle: 'Scrape Glassdoor, Indeed, and Blind reviews about your company. Understand what employees and candidates really think — and fix issues before they become viral.',
+    category: 'Operations',
+    difficulty: 'Beginner',
+    timeToComplete: 8,
+    timeSaved: 45,
+    completionCount: 92,
+    rating: 4.7,
+    isPro: false,
+    isNew: true,
+    tools: ['Claude', 'Firecrawl'],
+    beforeYouStart: [
+      'Your company profile URLs on Glassdoor, Indeed, Blind, Comparably, or other employer review sites.',
+      'Your current employer value proposition and any known internal issues you are already working on.',
+      'Competitor employer profiles for comparison (optional but valuable).'
+    ],
+    expectedOutcome: 'A monthly employer brand health report showing employee sentiment trends, recurring themes in reviews, comparison against competitor employer brands, and specific HR actions to address issues.',
+    agentAutomation: {
+      description: 'Deploy a monthly agent that scrapes employee review sites, analyses sentiment trends, compares your employer brand against competitors, and emails the HR team an actionable report.',
+      trigger: 'Last Friday of each month at 9 AM.',
+      actions: [
+        'Scrape your employer review profiles via Firecrawl.',
+        'Categorise reviews by theme: culture, compensation, leadership, growth, work-life balance.',
+        'Calculate sentiment scores and identify trends.',
+        'Compare against competitor employer profiles if provided.',
+        'Email the monthly employer brand report to HR.'
+      ],
+      setupSteps: [
+        { title: 'Enter your employer review URLs', description: 'Add your Glassdoor, Indeed, Comparably, and Blind company profile URLs.' },
+        { title: 'Add competitor employer profiles', description: 'Optional: add competitor employer profiles for benchmarking your employer brand against the competition.' },
+        { title: 'Set your schedule', description: 'Monthly on the last Friday is recommended — review before your monthly HR sync.' }
+      ],
+      tools: ['Firecrawl', 'Claude', 'Hoursback Autopilot']
+    },
+    troubleshooting: [
+      {
+        problem: 'Glassdoor profile has very few reviews',
+        solution: 'If you have fewer than 10 reviews, the analysis will be limited. Consider asking satisfied employees to leave honest reviews. Also check Indeed and Comparably — they may have reviews Glassdoor does not.'
+      },
+      {
+        problem: 'Reviews seem to be from disgruntled ex-employees only',
+        solution: 'This is common — unhappy people are more likely to leave reviews. The AI accounts for negativity bias, but the themes in negative reviews still reveal real issues worth addressing.'
+      }
+    ],
+    relatedPlaybooks: [
+      { id: 'smb-fc-15', title: 'Salary Benchmark Scanner', slug: 'salary-benchmark-scanner' }
+    ],
+    steps: [
+      {
+        id: 'smb-fc-16-s1',
+        stepNumber: 1,
+        title: 'Scrape Employer Review Profiles',
+        instruction: 'Enter your company profile URLs on employer review sites. Optionally add competitor employer profiles for comparison. Firecrawl scrapes the latest reviews.',
+        promptTemplate: 'Analyse employer reviews from these platforms:\\n\\n**My Company Review URLs (scraped via Firecrawl):**\\n[Scrape Employer Review URLs]\\n\\n**Competitor Employer URLs (optional, scraped):**\\n[Scrape Competitor Employer URLs]\\n\\n**My Company:** [Your Company Name]\\n\\nFor my company, analyse ALL visible reviews:\\n\\n## Overall Ratings\\n| Platform | Overall Rating | # of Reviews | Recommend to Friend % | CEO Approval % |\\n|---|---|---|---|---|\\n\\n## Review Themes\\nCategorise all reviews by theme and sentiment:\\n\\n| Theme | Positive Mentions | Negative Mentions | Net Sentiment |\\n|---|---|---|---|\\n| Culture & Values | | | |\\n| Compensation & Benefits | | | |\\n| Leadership & Management | | | |\\n| Career Growth | | | |\\n| Work-Life Balance | | | |\\n| Diversity & Inclusion | | | |\\n| Job Security | | | |\\n\\n## Strongest Praise (Top 3 themes people love)\\n## Biggest Complaints (Top 3 themes people criticise)',
+        expectedOutput: 'A comprehensive employer brand analysis with ratings, themed sentiment breakdown, top praise areas, and biggest complaint themes.',
+        tips: 'For Glassdoor, use the reviews tab URL (e.g. glassdoor.com/Reviews/company-reviews-XXXXX.htm).'
+      },
+      {
+        id: 'smb-fc-16-s2',
+        stepNumber: 2,
+        title: 'Employer Brand Action Plan',
+        instruction: 'The AI creates a specific action plan to address employee sentiment issues and strengthen your employer brand, with competitor benchmarking if provided.',
+        promptTemplate: 'Based on the employer review analysis above, create an EMPLOYER BRAND ACTION PLAN:\\n\\n## Employer Brand Score Card\\nRate our employer brand 1-10 across:\\n- Overall Attractiveness to Candidates\\n- Employee Retention Risk\\n- Culture Perception\\n- Compensation Competitiveness\\n- Leadership Trust\\n\\n## Competitor Comparison (if data available)\\nHow does our employer brand compare to competitors? Where are we ahead? Where are we behind?\\n\\n## Top 3 Issues to Address\\nFor each issue:\\n1. **The Problem:** What employees are saying (with quotes if available)\\n2. **The Impact:** How this affects hiring and retention\\n3. **Recommended Action:** Specific, concrete step to improve this\\n4. **Expected Timeline:** When employees would notice the change\\n5. **How to Measure:** What metric would show improvement\\n\\n## Quick Wins (Next 30 Days)\\nList 2-3 things the company can do immediately to improve employer sentiment. These should be low-cost, high-visibility actions.\\n\\n## Long-Term Initiatives (Next 6 Months)\\nList 2-3 structural changes that would address the root causes of dissatisfaction.',
+        expectedOutput: 'A complete employer brand action plan with scorecard, competitor comparison, prioritised issues with concrete actions, quick wins, and long-term initiatives.',
+        tips: 'Quick wins matter more than you think. Something as simple as improving onboarding or adding a monthly team lunch can shift employer sentiment within one quarter.'
+      }
+    ]
+  },
+  // --- Architecture Firm Playbooks ---
+  {
+    id: 'smb-arch-1',
+    slug: 'rfp-response-builder',
+    title: 'RFP Response Builder',
+    subtitle: 'Turn a raw RFP document into a structured, win-theme-driven proposal outline in 20 minutes',
+    category: 'Business Development',
+    difficulty: 'Intermediate',
+    timeToComplete: 20,
+    timeSaved: 180,
+    completionCount: 312,
+    rating: 4.9,
+    isPro: false,
+    isNew: true,
+    tools: ['Claude', 'Firecrawl'],
+    beforeYouStart: [
+      'The full RFP document (PDF or text)',
+      'Your firm\'s project portfolio summary',
+      'Your standard rate card or fee structure',
+      '30 minutes of focused time'
+    ],
+    expectedOutcome: 'A complete proposal outline with executive summary, win themes, relevant project examples, fee narrative, and a differentiators section — ready to hand off to your writing team.',
+    troubleshooting: [
+      {
+        problem: 'AI generates generic win themes that don\'t match our firm',
+        solution: 'Feed it 2-3 lines from your firm\'s actual mission statement and past award submissions before asking for win themes. The more specific your input, the more tailored the output.'
+      },
+      {
+        problem: 'RFP is too long to paste into Claude',
+        solution: 'Paste only the Scope of Work, Evaluation Criteria, and Submission Requirements sections — those are the only parts you need for a strong outline.'
+      },
+      {
+        problem: 'Fee narrative feels off',
+        solution: 'Never ask AI to set fees. Provide your locked fee table and ask it only to write the narrative justification around it.'
+      }
+    ],
+    agentAutomation: {
+      description: 'Automatically monitor public procurement portals for new RFPs matching your firm\'s project types, summarise them, and draft an initial go/no-go brief each morning.',
+      trigger: 'Daily at 7 AM — checks procurement portals for new RFPs',
+      actions: [
+        'Scrape configured procurement portal URLs for new RFP listings',
+        'Filter for project types matching your firm\'s keywords (e.g. "mixed-use", "civic", "adaptive reuse")',
+        'Summarise each matching RFP: client, deadline, scope, evaluation criteria',
+        'Score each opportunity 1-10 against your firm\'s win criteria',
+        'Email a daily digest with go/no-go recommendation for each new RFP'
+      ],
+      setupSteps: [
+        { title: 'Configure procurement sources', description: 'Add the URLs of procurement portals you monitor (e.g. state eProcurement, city bids portal, AIA opportunities) to your agent context.' },
+        { title: 'Define your project type keywords', description: 'List the project types your firm pursues: e.g. "K-12 education, civic/municipal, affordable housing, mixed-use commercial". The agent uses these to filter irrelevant RFPs.' },
+        { title: 'Set your win criteria', description: 'Define what makes a good opportunity for your firm: budget range, geography, project type, client type. The agent scores each RFP against these.' },
+        { title: 'Connect your email', description: 'Add your email address so the daily digest lands in your inbox before the morning standup.' }
+      ],
+      tools: ['Claude', 'Firecrawl', 'Make.com', 'Gmail']
+    },
+    steps: [
+      {
+        id: 'smb-arch-1-s1',
+        stepNumber: 1,
+        title: 'Extract RFP Requirements',
+        instruction: 'Paste the full RFP text (or the Scope of Work + Evaluation Criteria sections) and ask Claude to extract the key requirements, evaluation weights, and any mandatory submission elements.',
+        promptTemplate: 'I am responding to this RFP on behalf of an architectural firm. Extract and organise the following from the document below:\n\n1. **Project Overview** — what is being designed/built, for whom, and where\n2. **Scope of Services** — what the architect is expected to deliver\n3. **Evaluation Criteria** — how responses will be scored, with weightings if stated\n4. **Mandatory Requirements** — certifications, insurance minimums, format requirements\n5. **Key Deadlines** — submission date, interview date, project milestones\n6. **Unstated Priorities** — based on tone and emphasis, what does this client really care about?\n\nRFP TEXT:\n[Paste RFP here]\n\nOrganise your output as a structured brief I can share with my proposal team.',
+        expectedOutput: 'A clean structured summary of the RFP requirements, evaluation criteria, mandatory items, and implied client priorities.',
+        tips: 'Pay close attention to evaluation criteria weightings — they tell you exactly where to spend your writing energy.',
+        tools: ['Claude']
+      },
+      {
+        id: 'smb-arch-1-s2',
+        stepNumber: 2,
+        title: 'Define Win Themes',
+        instruction: 'Based on the extracted requirements and your firm\'s strengths, generate 3 win themes — the core messages that will run through every section of your proposal.',
+        promptTemplate: 'Based on the RFP requirements extracted above, and the following firm strengths, develop 3 WIN THEMES for our proposal.\n\nOur firm\'s relevant strengths:\n[Paste 3-5 bullet points about your firm\'s relevant experience, approach, or differentiators]\n\nA win theme is a short, specific, client-focused statement that:\n- Addresses a stated or implied client need\n- Differentiates our firm from competitors\n- Can be substantiated with evidence (project examples, metrics)\n\nFor each win theme, provide:\n1. The theme headline (1 sentence)\n2. The client need it addresses\n3. Our proof point (which project or credential demonstrates this)\n4. How to weave it through the proposal (executive summary hook, team intro, approach section)',
+        expectedOutput: '3 win themes with headlines, proof points, and placement guidance for your proposal.',
+        tips: 'The best win themes address something the client specifically called out in the RFP — not just your firm\'s general strengths.',
+        tools: ['Claude']
+      },
+      {
+        id: 'smb-arch-1-s3',
+        stepNumber: 3,
+        title: 'Build the Proposal Outline',
+        instruction: 'Generate a full section-by-section outline with talking points, relevant project callouts, and the fee narrative structure.',
+        promptTemplate: 'Using the win themes above, create a full PROPOSAL OUTLINE for this RFP.\n\nFor each section, provide:\n- Section title and recommended page length\n- 3-5 bullet points of content to include\n- Which win theme(s) this section should reinforce\n- Recommended project example to reference (I will fill in the actual project name)\n- Opening sentence to set the tone\n\nRequired sections (add others if the RFP specifies):\n1. Cover Letter / Executive Summary\n2. Firm Overview & Relevant Experience\n3. Project Team & Key Personnel\n4. Technical Approach & Methodology\n5. Similar Project Experience\n6. Project Schedule\n7. Fee Proposal Narrative\n\nFee information (do not change these numbers — only write narrative around them):\n[Paste your fee breakdown here]\n\nOutput the outline in a format I can paste directly into a Word document.',
+        expectedOutput: 'A complete section-by-section proposal outline with talking points, win theme alignment, and fee narrative — ready for your writing team.',
+        tips: 'Send this outline to your team with a 48-hour deadline. The outline does the hardest thinking — the writing should be fast from here.',
+        tools: ['Claude']
+      }
+    ],
+    relatedPlaybooks: [
+      { id: 'smb-arch-2', title: 'Billable Hours Audit', slug: 'billable-hours-audit' },
+      { id: 'smb-arch-3', title: 'Scope Creep Log', slug: 'scope-creep-log' }
+    ]
+  },
+  {
+    id: 'smb-arch-2',
+    slug: 'billable-hours-audit',
+    title: 'Billable Hours Audit',
+    subtitle: 'Spot budget overruns and fee bleed before they kill your project margin',
+    category: 'Finance',
+    difficulty: 'Beginner',
+    timeToComplete: 15,
+    timeSaved: 120,
+    completionCount: 287,
+    rating: 4.8,
+    isPro: false,
+    isNew: true,
+    tools: ['Claude', 'Excel'],
+    beforeYouStart: [
+      'Timesheet export from your practice management system (Deltek, BQE, Monograph, etc.) as CSV',
+      'Your contracted fee and phase breakdown for the project',
+      'Project start date and current phase'
+    ],
+    expectedOutcome: 'A clear project health report showing burn rate by phase, projected overrun risk, staff utilisation flags, and a recommended corrective action for any phases in the red.',
+    troubleshooting: [
+      {
+        problem: 'CSV has too many columns and AI gets confused',
+        solution: 'Before pasting, delete all columns except: Date, Staff Name, Phase, Hours, Billable Rate. That\'s all the AI needs.'
+      },
+      {
+        problem: 'Phase names in my timesheet don\'t match my fee schedule',
+        solution: 'Add a mapping note in your prompt: "Phase code SD = Schematic Design, DD = Design Development" etc. Claude will reconcile them automatically.'
+      }
+    ],
+    agentAutomation: {
+      description: 'Automatically pull weekly timesheet data and generate a project health email every Friday — so you know your burn rate before it becomes a problem.',
+      trigger: 'Every Friday at 4 PM',
+      actions: [
+        'Export this week\'s timesheet data from your practice management system via API or email',
+        'Calculate hours burned vs budget remaining for each active project phase',
+        'Flag any phase exceeding 80% budget consumption before phase completion',
+        'Identify staff members significantly over or under their planned allocation',
+        'Send a project health digest email to the principal-in-charge of each flagged project'
+      ],
+      setupSteps: [
+        { title: 'Export your fee schedule', description: 'Create a simple spreadsheet with project name, phase, contracted fee, and budgeted hours per phase. This becomes the baseline the agent compares against.' },
+        { title: 'Set up your timesheet export', description: 'Configure a weekly automated export from your PM system (most support scheduled CSV exports or API access). The agent needs: date, staff, phase, hours.' },
+        { title: 'Define your alert threshold', description: 'Set the burn rate percentage that triggers an alert. 80% is a good default — it gives you time to act before you\'re over budget.' },
+        { title: 'Configure recipient emails', description: 'Map each project to the principal or PM who should receive alerts. One email per project keeps it actionable.' }
+      ],
+      tools: ['Claude', 'Make.com', 'Google Sheets', 'Gmail']
+    },
+    steps: [
+      {
+        id: 'smb-arch-2-s1',
+        stepNumber: 1,
+        title: 'Prepare Your Data',
+        instruction: 'Export your timesheet data as CSV and clean it down to the essential columns. Then paste it alongside your contracted fee breakdown.',
+        promptTemplate: 'I am an architect reviewing the financial health of a project. Below is our timesheet data and our contracted fee breakdown.\n\nPlease analyse this data and tell me:\n1. Total hours logged to date vs total hours budgeted\n2. Hours and budget consumed by phase, sorted from most at-risk to least\n3. Any phase exceeding 80% of budgeted hours (flag these as OVERRUN RISK)\n4. Any staff member logging significantly more hours than expected for their role\n5. At current burn rate, what is the projected total hours at project completion?\n6. Overall project health rating: Green / Amber / Red — with one-line explanation\n\nCONTRACTED FEE BREAKDOWN:\n[Paste phase names, contracted fees, and budgeted hours]\n\nTIMESHEET DATA (CSV):\n[Paste timesheet export here]',
+        expectedOutput: 'A phase-by-phase burn rate analysis with overrun flags, staff utilisation notes, and a projected completion hours estimate.',
+        tips: 'If you have multiple projects, run this one project at a time. Mixing projects in one paste leads to confused analysis.',
+        tools: ['Claude', 'Excel']
+      },
+      {
+        id: 'smb-arch-2-s2',
+        stepNumber: 2,
+        title: 'Get Corrective Actions',
+        instruction: 'For any phases flagged as Amber or Red, ask Claude to recommend specific corrective actions you can take this week.',
+        promptTemplate: 'Based on the burn rate analysis above, the following phases are at risk:\n[Paste the flagged phases from Step 1]\n\nFor each at-risk phase, recommend:\n1. **Root cause hypothesis** — why is this phase burning faster than budgeted?\n2. **Immediate action (this week)** — one specific thing the PM can do to slow the burn\n3. **Client conversation needed?** — yes or no, and if yes, draft a 2-sentence talking point\n4. **Scope adjustment option** — what could we descope or defer without impacting project quality?\n\nKeep recommendations practical and specific to an architectural practice.',
+        expectedOutput: 'A corrective action plan for each at-risk phase, with root cause analysis and a draft client talking point if needed.',
+        tips: 'The most common root cause is undocumented scope additions. Run this alongside the Scope Creep Log playbook to connect the dots.',
+        tools: ['Claude']
+      }
+    ],
+    relatedPlaybooks: [
+      { id: 'smb-arch-3', title: 'Scope Creep Log', slug: 'scope-creep-log' },
+      { id: 'smb-arch-1', title: 'RFP Response Builder', slug: 'rfp-response-builder' }
+    ]
+  },
+  {
+    id: 'smb-arch-3',
+    slug: 'scope-creep-log',
+    title: 'Scope Creep Log',
+    subtitle: 'Document, price, and present out-of-scope requests so every change order sticks',
+    category: 'Operations',
+    difficulty: 'Beginner',
+    timeToComplete: 10,
+    timeSaved: 90,
+    completionCount: 198,
+    rating: 4.9,
+    isPro: false,
+    isNew: true,
+    tools: ['Claude', 'Google Docs'],
+    beforeYouStart: [
+      'The original Scope of Services from your contract',
+      'Notes or emails documenting the client\'s out-of-scope request',
+      'Your standard hourly rates by staff level'
+    ],
+    expectedOutcome: 'A formal change order memo with scope description, hours estimate, fee, and a client-ready justification — ready to send within 10 minutes of the request.',
+    troubleshooting: [
+      {
+        problem: 'Client pushes back saying "this was always in scope"',
+        solution: 'Paste both your original scope of services and the new request into Claude and ask it to identify the exact line where the original scope ends. Use that output verbatim in your response email.'
+      },
+      {
+        problem: 'Not sure how to price the hours',
+        solution: 'Use your standard rate card. If you don\'t have one, start with a blended rate: average your staff hourly rates weighted by how much each level would work on this task.'
+      }
+    ],
+    agentAutomation: {
+      description: 'Automatically scan your project email threads for out-of-scope language, log each instance, and draft a change order memo — so nothing falls through the cracks.',
+      trigger: 'Daily scan of project email inbox',
+      actions: [
+        'Monitor your project email inbox for messages containing scope-change language ("can you also", "in addition to", "while you\'re at it", "one more thing")',
+        'Extract the requested addition and the original scope reference',
+        'Auto-generate a draft change order memo with scope description and placeholder fee',
+        'Log the item to your Scope Creep Tracker spreadsheet with date, client, project, and status',
+        'Send a daily digest of new scope items flagged for your review'
+      ],
+      setupSteps: [
+        { title: 'Connect your project email', description: 'Grant the agent read access to your project email inbox or a specific project folder. Gmail and Outlook both support this via Make.com.' },
+        { title: 'Upload your contract scope', description: 'Paste your standard Scope of Services template so the agent knows what is and isn\'t included.' },
+        { title: 'Set your rate card', description: 'Add your hourly rates by staff level (Principal, Project Architect, Job Captain, Intern) so the agent can auto-estimate fees.' },
+        { title: 'Create your tracker sheet', description: 'Create a Google Sheet with columns: Date, Project, Client, Request Description, Estimated Fee, Status (Pending / Sent / Approved). The agent will write to this automatically.' }
+      ],
+      tools: ['Claude', 'Make.com', 'Gmail', 'Google Sheets']
+    },
+    steps: [
+      {
+        id: 'smb-arch-3-s1',
+        stepNumber: 1,
+        title: 'Classify the Request',
+        instruction: 'Paste the client\'s request alongside your original scope and ask Claude to determine whether it\'s in or out of scope — and why.',
+        promptTemplate: 'I am an architect reviewing whether a client request is within our contracted scope of services.\n\nOUR ORIGINAL SCOPE OF SERVICES:\n[Paste the relevant section of your contract]\n\nCLIENT\'S NEW REQUEST:\n[Paste the client email or meeting note describing the request]\n\nPlease tell me:\n1. Is this request within our original contracted scope? Yes / No / Partial\n2. Which specific line of our scope includes or excludes it?\n3. If out of scope, what is the clearest one-sentence explanation for the client?\n4. What additional services would be required to fulfil this request?\n5. Estimated staff time by role: Principal (hrs), Project Architect (hrs), Job Captain (hrs)',
+        expectedOutput: 'A clear in/out-of-scope verdict with contract reference, client explanation, and hours estimate by staff level.',
+        tips: 'Always get the classification in writing before quoting a fee. It prevents the conversation from jumping to price before the scope is agreed.',
+        tools: ['Claude']
+      },
+      {
+        id: 'smb-arch-3-s2',
+        stepNumber: 2,
+        title: 'Draft the Change Order Memo',
+        instruction: 'Use the classification output to generate a formal change order memo ready to send to the client.',
+        promptTemplate: 'Based on the scope analysis above, draft a CHANGE ORDER MEMO I can send to my client.\n\nTone: professional but not adversarial. We value this relationship and want to be transparent about how scope changes affect fees.\n\nRate card:\n- Principal: $[X]/hr\n- Project Architect: $[X]/hr\n- Job Captain: $[X]/hr\n\nThe memo should include:\n1. A brief reference to the original scope and contract date\n2. A clear description of the additional service requested\n3. The estimated hours and fee (calculated from the rate card above)\n4. A simple approval line: "Please sign and return to authorise this change order"\n5. A note that work will commence upon written approval\n\nKeep it to one page. Use a professional memo format.',
+        expectedOutput: 'A one-page change order memo ready to send, with fee calculation and approval signature line.',
+        tips: 'Send the memo the same day the request is made. The longer you wait, the harder it is to price and the more awkward the conversation becomes.',
+        tools: ['Claude']
+      }
+    ],
+    relatedPlaybooks: [
+      { id: 'smb-arch-2', title: 'Billable Hours Audit', slug: 'billable-hours-audit' },
+      { id: 'smb-arch-1', title: 'RFP Response Builder', slug: 'rfp-response-builder' }
+    ]
+  }
 ];
 
 export const claudeCrashCoursePlaybooks: Playbook[] = [

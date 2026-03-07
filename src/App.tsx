@@ -13,6 +13,9 @@ import AdminDashboard from './pages/AdminDashboard';
 import PlaybookEditorPage from './pages/PlaybookEditorPage';
 import CrashCoursePage from './pages/CrashCoursePage';
 import AutopilotPage from './pages/AutopilotPage';
+import WatchersDashboard from './pages/WatchersDashboard';
+import CreateWatcherPage from './pages/CreateWatcherPage';
+import WatcherDetailPage from './pages/WatcherDetailPage';
 
 // Inner component — can use useAuth because it's inside AuthProvider
 function AppWithOnboarding() {
@@ -60,6 +63,9 @@ function AppWithOnboarding() {
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/admin/playbooks/new" element={<PlaybookEditorPage />} />
         <Route path="/admin/playbooks/:id/edit" element={<PlaybookEditorPage />} />
+        <Route path="/watchers" element={<WatchersDashboard />} />
+        <Route path="/watchers/new" element={<CreateWatcherPage />} />
+        <Route path="/watchers/:id" element={<WatcherDetailPage />} />
       </Routes>
 
       <AnimatePresence>
