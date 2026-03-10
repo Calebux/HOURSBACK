@@ -7962,6 +7962,108 @@ Creator notes:
     relatedPlaybooks: [
       { id: 'career-1', title: 'Indeed Job Matcher & Resume Tailor', slug: 'indeed-job-matcher-resume-tailor' }
     ]
+  },
+  {
+    id: 'dai-4',
+    slug: '21st-dev-ai-components',
+    title: 'Build Stunning UIs with 21st.dev & Claude',
+    subtitle: 'Instantly generate and integrate high-quality, animated React/Tailwind components from 21st.dev using AI.',
+    category: 'AI for Designers',
+    difficulty: 'Intermediate',
+    timeToComplete: 15,
+    timeSaved: 120,
+    completionCount: 412,
+    rating: 4.9,
+    isPro: false,
+    isNew: true,
+    supportsCodePreview: true,
+    codePreviewFiles: {
+      'App.tsx': `import React from 'react';
+import { motion } from 'framer-motion';
+
+export default function App() {
+  return (
+    <div className="min-h-screen bg-neutral-950 flex flex-col items-center justify-center p-4">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5, type: 'spring' }}
+        className="max-w-md w-full bg-neutral-900 border border-neutral-800 rounded-3xl p-8 shadow-2xl relative overflow-hidden"
+      >
+        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 rounded-bl-full blur-2xl" />
+        <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center mb-6 backdrop-blur-md border border-white/5">
+          <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+        </div>
+        <h2 className="text-2xl font-bold text-white mb-2 relative z-10">21st.dev Magic</h2>
+        <p className="text-neutral-400 mb-8 leading-relaxed relative z-10">
+          This is a live preview of a React component using Tailwind CSS and Framer Motion. 
+          Use the copy button above to drop this into your app.
+        </p>
+        <button className="w-full py-3 px-4 bg-white text-black font-semibold rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all relative z-10">
+          Copy to Clipboard
+        </button>
+      </motion.div>
+    </div>
+  );
+}`
+    },
+    tools: ['21st.dev', 'Claude', 'React/Tailwind'],
+    beforeYouStart: [
+      'A React/Next.js codebase with Tailwind CSS installed',
+      'shadcn/ui or motion.dev installed (depending on component requirements)',
+      'A blank page or section where you want to add the UI'
+    ],
+    expectedOutcome: 'A beautiful, fully functional UI component (like a hero section, pricing table, or animated card) seamlessly integrated into your app.',
+    troubleshooting: [
+      {
+        problem: 'Component looks completely unstyled or broken',
+        solution: 'Make sure you have Tailwind CSS properly configured in your project. Check if the component requires specific `framer-motion` or `lucide-react` dependencies.'
+      },
+      {
+        problem: 'Claude generates outdated code for 21st.dev',
+        solution: 'Always paste the exact component code or use the "Magic Chat" directly on 21st.dev, then bring the generated code back to your main project in Cursor/Claude.'
+      }
+    ],
+    steps: [
+      {
+        id: 'dai-4-s1',
+        stepNumber: 1,
+        title: 'Discover & Select a Component',
+        instruction: 'Go to 21st.dev/home. Browse the registry for a component that fits your needs (e.g., an animated hero section, a pricing card, or a bento grid). The marketplace has thousands of high-quality components.',
+        promptTemplate: 'No specific prompt needed. Just find a component on 21st.dev that you love.',
+        expectedOutput: 'You have selected a component and are viewing its details page.',
+        tools: ['21st.dev']
+      },
+      {
+        id: 'dai-4-s2',
+        stepNumber: 2,
+        title: 'Use the Magic Agent to Customize',
+        instruction: 'Instead of just copying the raw code, use the 21st.dev Magic Agent to customize it to your exact needs before integrating.',
+        promptTemplate: 'In the 21st.dev Magic Chat input, type:\n\n"Adapt this component for a [YOUR APP TYPE]. Change the primary color to [YOUR HEX CODE], remove the secondary button, and ensure the font matches [YOUR FONT]."',
+        expectedOutput: 'A fully customized variation of the component generated directly on 21st.dev.',
+        tools: ['21st.dev', 'Claude']
+      },
+      {
+        id: 'dai-4-s3',
+        stepNumber: 3,
+        title: 'Install Dependencies & Copy Code',
+        instruction: 'Look at the installation instructions for your chosen component. Some require additional libraries like framer-motion or clsx.',
+        promptTemplate: 'In your terminal, run the specific installation commands provided by 21st.dev (e.g., `npx 21st add <component-name>` or manually `npm install framer-motion lucide-react`). Then copy the component code.',
+        expectedOutput: 'Your project has the necessary dependencies installed, and the component code is on your clipboard.'
+      },
+      {
+        id: 'dai-4-s4',
+        stepNumber: 4,
+        title: 'Integrate with your Codebase via AI',
+        instruction: 'Open your project in Cursor, or open a chat with Claude Pro. Paste the component code and ask the AI to wire it up to your actual state or business logic.',
+        promptTemplate: 'I am adding this UI component from 21st.dev to my app:\n\n[PASTE COMPONENT CODE]\n\nPlease integrate this into my `LandingPage.tsx`. Replace the placeholder text with actual marketing copy for a [YOUR PRODUCT]. Hook up the "Get Started" button to my authentication flow.',
+        expectedOutput: 'The beautiful UI component is now a fully functional part of your application, connected to real data and logic.',
+        tools: ['Claude', 'Cursor']
+      }
+    ],
+    relatedPlaybooks: []
   }
 ];
 

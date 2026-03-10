@@ -39,6 +39,7 @@ export interface Playbook {
   isNew?: boolean;
   coworkCompatible?: boolean;
   supportsCodePreview?: boolean;
+  codePreviewFiles?: Record<string, string>;
   tools: string[];
   beforeYouStart: string[];
   expectedOutcome: string;

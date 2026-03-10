@@ -22,7 +22,8 @@ import {
   LayoutDashboard,
   RotateCcw,
   X,
-  Download
+  Download,
+  Code2
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getCategoryColor, type Playbook, mockPlaybooks, smbPlaybooks, coworkPlaybooks, coworkPluginPlaybooks, designerAIPlaybooks } from '../data/playbooks';
@@ -30,6 +31,7 @@ import { fetchPlaybookBySlug, checkIsSaved, toggleSavedPlaybook, getSinglePlaybo
 import { useFlutterwave, closePaymentModal } from 'flutterwave-react-v3';
 import { useAuth } from '../contexts/AuthContext';
 import { AuthModal } from '../components/AuthModal';
+import { CodePreviewModal } from '../components/CodePreviewModal';
 import WebhookExecutor from '../components/WebhookExecutor';
 import AgentCopilot from '../components/AgentCopilot';
 import AutopilotModal from '../components/AutopilotModal';
@@ -60,6 +62,7 @@ export default function PlaybookViewerPage() {
   const { user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isAnnual, setIsAnnual] = useState(false);
   const [isProUser, setIsProUser] = useState(false);
   const [userRating, setUserRating] = useState<number>(0);
@@ -477,6 +480,17 @@ export default function PlaybookViewerPage() {
                     Deploy Autopilot Agent
                   </button>
                 )}
+
+                {/* Code Preview Button */}
+                {playbook.supportsCodePreview && playbook.codePreviewFiles && (
+                  <button
+                    onClick={() => setIsPreviewOpen(true)}
+                    className="mt-3 w-full py-2 px-4 bg-[#635BFF] text-white text-sm rounded-xl font-medium hover:bg-[#635BFF]/90 transition-all flex items-center justify-center gap-2 shadow-antigravity-md"
+                  >
+                    <Code2 className="w-4 h-4" />
+                    Live Component Preview
+                  </button>
+                )}
               </div>
 
               {/* Variable Configuration (Desktop Only) */}
@@ -491,27 +505,27 @@ export default function PlaybookViewerPage() {
                     {extractedVariables.map(v => {
                       const isOptional = hasCsvDataLoaded && !isCsvVariable(v);
                       return (
-                      <div key={v} className={isOptional ? 'opacity-50' : ''}>
-                        <label className="block text-xs font-medium text-brand-dark/70 mb-1.5 flex items-center gap-1.5">
-                          {v}
-                          {isOptional && <span className="text-[10px] font-normal text-brand-dark/40 bg-brand-dark/5 px-1.5 py-0.5 rounded-full">optional</span>}
-                        </label>
-                        {isCsvVariable(v) ? (
-                          <CsvDataInput
-                            variableName={v}
-                            value={variables[v] || ''}
-                            onChange={(val) => setVariables(prev => ({ ...prev, [v]: val }))}
-                          />
-                        ) : (
-                          <input
-                            type="text"
-                            placeholder={isOptional ? `Leave blank — inferred from your data` : `Enter ${v.toLowerCase()}...`}
-                            value={variables[v] || ''}
-                            onChange={(e) => setVariables(prev => ({ ...prev, [v]: e.target.value }))}
-                            className="w-full px-4 py-2.5 bg-brand-light border border-brand-dark/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue transition-all"
-                          />
-                        )}
-                      </div>
+                        <div key={v} className={isOptional ? 'opacity-50' : ''}>
+                          <label className="block text-xs font-medium text-brand-dark/70 mb-1.5 flex items-center gap-1.5">
+                            {v}
+                            {isOptional && <span className="text-[10px] font-normal text-brand-dark/40 bg-brand-dark/5 px-1.5 py-0.5 rounded-full">optional</span>}
+                          </label>
+                          {isCsvVariable(v) ? (
+                            <CsvDataInput
+                              variableName={v}
+                              value={variables[v] || ''}
+                              onChange={(val) => setVariables(prev => ({ ...prev, [v]: val }))}
+                            />
+                          ) : (
+                            <input
+                              type="text"
+                              placeholder={isOptional ? `Leave blank — inferred from your data` : `Enter ${v.toLowerCase()}...`}
+                              value={variables[v] || ''}
+                              onChange={(e) => setVariables(prev => ({ ...prev, [v]: e.target.value }))}
+                              className="w-full px-4 py-2.5 bg-brand-light border border-brand-dark/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue transition-all"
+                            />
+                          )}
+                        </div>
                       );
                     })}
                   </div>
@@ -673,27 +687,27 @@ export default function PlaybookViewerPage() {
                         {extractedVariables.map(v => {
                           const isOptional = hasCsvDataLoaded && !isCsvVariable(v);
                           return (
-                          <div key={v} className={isOptional ? 'opacity-50' : ''}>
-                            <label className="block text-xs font-medium text-brand-dark/70 mb-1.5 flex items-center gap-1.5">
-                              {v}
-                              {isOptional && <span className="text-[10px] font-normal text-brand-dark/40 bg-brand-dark/5 px-1.5 py-0.5 rounded-full">optional</span>}
-                            </label>
-                            {isCsvVariable(v) ? (
-                              <CsvDataInput
-                                variableName={v}
-                                value={variables[v] || ''}
-                                onChange={(val) => setVariables(prev => ({ ...prev, [v]: val }))}
-                              />
-                            ) : (
-                              <input
-                                type="text"
-                                placeholder={isOptional ? `Leave blank — inferred from your data` : `Enter ${v.toLowerCase()}...`}
-                                value={variables[v] || ''}
-                                onChange={(e) => setVariables(prev => ({ ...prev, [v]: e.target.value }))}
-                                className="w-full px-4 py-2.5 bg-brand-light border border-brand-dark/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue transition-all"
-                              />
-                            )}
-                          </div>
+                            <div key={v} className={isOptional ? 'opacity-50' : ''}>
+                              <label className="block text-xs font-medium text-brand-dark/70 mb-1.5 flex items-center gap-1.5">
+                                {v}
+                                {isOptional && <span className="text-[10px] font-normal text-brand-dark/40 bg-brand-dark/5 px-1.5 py-0.5 rounded-full">optional</span>}
+                              </label>
+                              {isCsvVariable(v) ? (
+                                <CsvDataInput
+                                  variableName={v}
+                                  value={variables[v] || ''}
+                                  onChange={(val) => setVariables(prev => ({ ...prev, [v]: val }))}
+                                />
+                              ) : (
+                                <input
+                                  type="text"
+                                  placeholder={isOptional ? `Leave blank — inferred from your data` : `Enter ${v.toLowerCase()}...`}
+                                  value={variables[v] || ''}
+                                  onChange={(e) => setVariables(prev => ({ ...prev, [v]: e.target.value }))}
+                                  className="w-full px-4 py-2.5 bg-brand-light border border-brand-dark/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue transition-all"
+                                />
+                              )}
+                            </div>
                           );
                         })}
                       </div>
@@ -903,8 +917,8 @@ export default function PlaybookViewerPage() {
                       {blueprintLoading
                         ? <div className="w-4 h-4 border-2 border-green-400 border-t-transparent rounded-full animate-spin" />
                         : blueprintDone
-                        ? <CheckCircle2 className="w-4 h-4" />
-                        : <Download className="w-4 h-4" />}
+                          ? <CheckCircle2 className="w-4 h-4" />
+                          : <Download className="w-4 h-4" />}
                       {blueprintLoading ? '$ generating blueprint…' : blueprintDone ? '✓ downloaded!' : '$ download make.com blueprint'}
                     </button>
                     <p className="text-[11px] text-gray-600 text-center -mt-4">
@@ -1147,6 +1161,11 @@ export default function PlaybookViewerPage() {
         )}
       </AnimatePresence>
 
+      <CodePreviewModal
+        isOpen={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+        files={playbook?.codePreviewFiles || {}}
+      />
       <AuthModal
         isOpen={authModalOpen}
         onClose={() => { setAuthModalOpen(false); navigate('/playbooks'); }}
