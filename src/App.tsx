@@ -15,7 +15,6 @@ import CrashCoursePage from './pages/CrashCoursePage';
 import AutopilotPage from './pages/AutopilotPage';
 import WatchersDashboard from './pages/WatchersDashboard';
 import CreateWatcherPage from './pages/CreateWatcherPage';
-import KnockOrderLandingPage from './pages/KnockOrderLandingPage';
 import WatcherDetailPage from './pages/WatcherDetailPage';
 
 // Inner component — can use useAuth because it's inside AuthProvider
@@ -67,7 +66,6 @@ function AppWithOnboarding() {
         <Route path="/watchers" element={<WatchersDashboard />} />
         <Route path="/watchers/new" element={<CreateWatcherPage />} />
         <Route path="/watchers/:id" element={<WatcherDetailPage />} />
-        <Route path="/knock-order" element={<KnockOrderLandingPage />} />
       </Routes>
 
       <AnimatePresence>
