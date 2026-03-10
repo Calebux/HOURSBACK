@@ -18,91 +18,144 @@ async function sendConfirmationEmail(email: string, amount: string, currency: st
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>You're now Pro — Hoursback</title>
 </head>
-<body style="margin:0;padding:0;background-color:#F0F2F5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#F0F2F5;padding:32px 16px 48px;">
-    <tr><td align="center">
-      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+<body style="margin:0;padding:0;background-color:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
 
-        <!-- Header -->
-        <tr>
-          <td style="background:#0F1012;border-radius:12px 12px 0 0;padding:24px 32px;">
-            <span style="font-size:20px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;">Hoursback</span>
-            <span style="font-size:13px;color:#9CA3AF;margin-left:10px;">Pro Confirmation</span>
-          </td>
-        </tr>
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f3f4f6;padding:40px 16px;">
+    <tr>
+      <td align="center">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;border-radius:20px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
 
-        <!-- Body -->
-        <tr>
-          <td style="background:#ffffff;padding:36px 32px 28px;border-left:1px solid #E5E7EB;border-right:1px solid #E5E7EB;">
-            <h1 style="margin:0 0 8px;font-size:22px;font-weight:800;color:#0F1012;">You're now Pro!</h1>
-            <p style="margin:0 0 28px;font-size:15px;color:#6B7280;">Here's your payment confirmation and invoice.</p>
+          <!-- Header -->
+          <tr>
+            <td style="background-color:#202124;padding:28px 36px;">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td>
+                    <span style="display:inline-block;width:32px;height:32px;background:#4285F4;border-radius:50%;vertical-align:middle;margin-right:10px;"></span>
+                    <span style="color:#ffffff;font-size:17px;font-weight:600;vertical-align:middle;letter-spacing:-0.3px;">hoursback</span>
+                  </td>
+                  <td align="right">
+                    <span style="background:rgba(66,133,244,0.2);color:#93c5fd;font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px;letter-spacing:0.5px;">PRO CONFIRMED</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
 
-            <!-- Invoice box -->
-            <table width="100%" cellpadding="0" cellspacing="0" style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:10px;margin-bottom:28px;">
-              <tr>
-                <td style="padding:20px 24px;">
-                  <p style="margin:0 0 14px;font-size:13px;font-weight:600;color:#9CA3AF;text-transform:uppercase;letter-spacing:0.5px;">Invoice</p>
-                  <table width="100%" cellpadding="0" cellspacing="0">
-                    <tr>
-                      <td style="font-size:14px;color:#6B7280;padding:6px 0;">Date</td>
-                      <td align="right" style="font-size:14px;color:#0F1012;font-weight:600;">${now}</td>
-                    </tr>
-                    <tr>
-                      <td style="font-size:14px;color:#6B7280;padding:6px 0;">Reference</td>
-                      <td align="right" style="font-size:14px;color:#0F1012;font-weight:600;">${txRef}</td>
-                    </tr>
-                    <tr>
-                      <td style="font-size:14px;color:#6B7280;padding:6px 0;">Plan</td>
-                      <td align="right" style="font-size:14px;color:#0F1012;font-weight:600;">Hoursback Pro (Monthly)</td>
-                    </tr>
-                    <tr>
-                      <td style="font-size:14px;color:#6B7280;padding:6px 0;">Amount paid</td>
-                      <td align="right" style="font-size:14px;color:#0F1012;font-weight:600;">${amount} ${currency}</td>
-                    </tr>
-                    <tr>
-                      <td colspan="2" style="padding-top:14px;border-top:1px solid #E5E7EB;"></td>
-                    </tr>
-                    <tr>
-                      <td style="font-size:14px;color:#6B7280;padding:6px 0;">Pro access until</td>
-                      <td align="right" style="font-size:14px;color:#16A34A;font-weight:700;">${expiryStr}</td>
-                    </tr>
-                  </table>
-                </td>
-              </tr>
-            </table>
+          <!-- Blue accent bar -->
+          <tr><td style="background:#4285F4;height:3px;"></td></tr>
 
-            <p style="margin:0 0 8px;font-size:14px;color:#6B7280;">
-              You now have full access to all Pro playbooks, the Autopilot Agent, and Watchers.
-              We'll remind you 3 days before your subscription renews.
-            </p>
-          </td>
-        </tr>
+          <!-- Body -->
+          <tr>
+            <td style="background:#ffffff;padding:40px 36px 32px;">
+              <h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#111827;line-height:1.3;">You're now Pro!</h1>
+              <p style="margin:0 0 28px;font-size:15px;color:#6b7280;line-height:1.6;">
+                Here's your payment confirmation and invoice. Full access to all Pro playbooks, Autopilot Agents, and Watchers is now active.
+              </p>
 
-        <!-- CTA -->
-        <tr>
-          <td style="background:#ffffff;padding:0 32px 32px;border-left:1px solid #E5E7EB;border-right:1px solid #E5E7EB;">
-            <a href="https://www.hoursback.xyz/playbooks" style="display:inline-block;background:#0F1012;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:8px;">
-              Explore Pro Playbooks →
-            </a>
-          </td>
-        </tr>
+              <!-- Invoice box -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;margin-bottom:28px;">
+                <tr>
+                  <td style="padding:20px 24px;">
+                    <p style="margin:0 0 14px;font-size:12px;font-weight:600;color:#4285F4;letter-spacing:1px;text-transform:uppercase;">Invoice</p>
+                    <table width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="font-size:14px;color:#6b7280;padding:5px 0;">Date</td>
+                        <td align="right" style="font-size:14px;color:#111827;font-weight:600;">${now}</td>
+                      </tr>
+                      <tr>
+                        <td style="font-size:14px;color:#6b7280;padding:5px 0;">Reference</td>
+                        <td align="right" style="font-size:14px;color:#111827;font-weight:600;">${txRef}</td>
+                      </tr>
+                      <tr>
+                        <td style="font-size:14px;color:#6b7280;padding:5px 0;">Plan</td>
+                        <td align="right" style="font-size:14px;color:#111827;font-weight:600;">Hoursback Pro (Monthly)</td>
+                      </tr>
+                      <tr>
+                        <td style="font-size:14px;color:#6b7280;padding:5px 0;">Amount paid</td>
+                        <td align="right" style="font-size:14px;color:#111827;font-weight:600;">${amount} ${currency}</td>
+                      </tr>
+                      <tr>
+                        <td colspan="2" style="padding-top:12px;border-top:1px solid #e5e7eb;"></td>
+                      </tr>
+                      <tr>
+                        <td style="font-size:14px;color:#6b7280;padding:5px 0;">Pro access until</td>
+                        <td align="right" style="font-size:14px;color:#16a34a;font-weight:700;">${expiryStr}</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
 
-        <!-- Footer -->
-        <tr>
-          <td style="background:#F9FAFB;border:1px solid #E5E7EB;border-top:none;border-radius:0 0 12px 12px;padding:20px 32px;">
-            <p style="margin:0;font-size:12px;color:#9CA3AF;">
-              Hoursback · Questions? Reply to this email.<br>
-              You're receiving this because you upgraded to Pro.
-            </p>
-          </td>
-        </tr>
+              <!-- CTA button -->
+              <table cellpadding="0" cellspacing="0" style="margin:0 0 28px;">
+                <tr>
+                  <td style="border-radius:24px;background:#202124;">
+                    <a href="https://www.hoursback.xyz/playbooks"
+                       style="display:inline-block;padding:14px 32px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;letter-spacing:0.1px;border-radius:24px;">
+                      Explore Pro Playbooks →
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
 
-      </table>
-    </td></tr>
+          <!-- Divider -->
+          <tr>
+            <td style="background:#ffffff;padding:0 36px;">
+              <div style="border-top:1px solid #f3f4f6;"></div>
+            </td>
+          </tr>
+
+          <!-- What's included -->
+          <tr>
+            <td style="background:#ffffff;padding:24px 36px 36px;">
+              <p style="margin:0 0 14px;font-size:12px;font-weight:600;color:#4285F4;letter-spacing:1px;text-transform:uppercase;">What's now unlocked</p>
+              <table cellpadding="0" cellspacing="0" width="100%">
+                <tr>
+                  <td style="padding:6px 0;">
+                    <span style="display:inline-block;width:28px;height:28px;background:#eff6ff;border-radius:8px;text-align:center;line-height:28px;font-size:14px;vertical-align:middle;margin-right:12px;">📋</span>
+                    <span style="font-size:14px;color:#374151;vertical-align:middle;">All Pro playbooks across growth, finance, sales &amp; more</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:6px 0;">
+                    <span style="display:inline-block;width:28px;height:28px;background:#eff6ff;border-radius:8px;text-align:center;line-height:28px;font-size:14px;vertical-align:middle;margin-right:12px;">🤖</span>
+                    <span style="font-size:14px;color:#374151;vertical-align:middle;">Autopilot Agents — run playbooks on a schedule, results to your inbox</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:6px 0;">
+                    <span style="display:inline-block;width:28px;height:28px;background:#eff6ff;border-radius:8px;text-align:center;line-height:28px;font-size:14px;vertical-align:middle;margin-right:12px;">👁</span>
+                    <span style="font-size:14px;color:#374151;vertical-align:middle;">Watchers — monitor competitors, jobs, and trends automatically</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background:#f9fafb;border-top:1px solid #e5e7eb;border-radius:0 0 20px 20px;padding:20px 36px;text-align:center;">
+              <p style="margin:0 0 4px;font-size:12px;color:#9ca3af;">
+                We'll remind you 3 days before your subscription expires.
+              </p>
+              <p style="margin:8px 0 0;font-size:12px;color:#9ca3af;">
+                <a href="https://www.hoursback.xyz" style="color:#4285F4;text-decoration:none;">hoursback.xyz</a>
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
   </table>
+
 </body>
 </html>`
 

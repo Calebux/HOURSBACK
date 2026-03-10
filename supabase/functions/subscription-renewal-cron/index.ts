@@ -16,63 +16,106 @@ async function sendReminderEmail(email: string, expiresAt: Date) {
   const html = `
 <!DOCTYPE html>
 <html lang="en">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background-color:#F0F2F5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#F0F2F5;padding:32px 16px 48px;">
-    <tr><td align="center">
-      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Your Pro expires in 3 days — Hoursback</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
 
-        <tr>
-          <td style="background:#0F1012;border-radius:12px 12px 0 0;padding:24px 32px;">
-            <span style="font-size:20px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;">Hoursback</span>
-            <span style="font-size:13px;color:#9CA3AF;margin-left:10px;">Pro Renewal Reminder</span>
-          </td>
-        </tr>
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f3f4f6;padding:40px 16px;">
+    <tr>
+      <td align="center">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;border-radius:20px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
 
-        <tr>
-          <td style="background:#ffffff;padding:36px 32px 28px;border-left:1px solid #E5E7EB;border-right:1px solid #E5E7EB;">
-            <h1 style="margin:0 0 8px;font-size:22px;font-weight:800;color:#0F1012;">Your Pro access expires in 3 days</h1>
-            <p style="margin:0 0 24px;font-size:15px;color:#6B7280;">
-              Your Hoursback Pro subscription expires on <strong>${expiryStr}</strong>.
-              Renew now to keep your Autopilot Agents running without interruption.
-            </p>
+          <!-- Header -->
+          <tr>
+            <td style="background-color:#202124;padding:28px 36px;">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td>
+                    <span style="display:inline-block;width:32px;height:32px;background:#4285F4;border-radius:50%;vertical-align:middle;margin-right:10px;"></span>
+                    <span style="color:#ffffff;font-size:17px;font-weight:600;vertical-align:middle;letter-spacing:-0.3px;">hoursback</span>
+                  </td>
+                  <td align="right">
+                    <span style="background:rgba(251,191,36,0.2);color:#fbbf24;font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px;letter-spacing:0.5px;">RENEWAL REMINDER</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
 
-            <table width="100%" cellpadding="0" cellspacing="0" style="background:#FEF9C3;border:1px solid #FDE047;border-radius:10px;margin-bottom:28px;">
-              <tr>
-                <td style="padding:16px 20px;">
-                  <p style="margin:0;font-size:14px;color:#854D0E;font-weight:600;">
-                    What happens when Pro expires?
-                  </p>
-                  <ul style="margin:8px 0 0;padding-left:18px;font-size:14px;color:#854D0E;">
-                    <li>Autopilot Agents will be paused</li>
-                    <li>Pro playbooks will be locked</li>
-                    <li>Watchers will stop running</li>
-                  </ul>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
+          <!-- Amber accent bar -->
+          <tr><td style="background:#f59e0b;height:3px;"></td></tr>
 
-        <tr>
-          <td style="background:#ffffff;padding:0 32px 32px;border-left:1px solid #E5E7EB;border-right:1px solid #E5E7EB;">
-            <a href="https://www.hoursback.xyz/playbooks" style="display:inline-block;background:#0F1012;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:8px;">
-              Renew Pro →
-            </a>
-          </td>
-        </tr>
+          <!-- Body -->
+          <tr>
+            <td style="background:#ffffff;padding:40px 36px 32px;">
+              <h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#111827;line-height:1.3;">Your Pro access expires in 3 days</h1>
+              <p style="margin:0 0 24px;font-size:15px;color:#6b7280;line-height:1.6;">
+                Your Hoursback Pro subscription expires on <strong style="color:#111827;">${expiryStr}</strong>. Renew now to keep your Autopilot Agents running without interruption.
+              </p>
 
-        <tr>
-          <td style="background:#F9FAFB;border:1px solid #E5E7EB;border-top:none;border-radius:0 0 12px 12px;padding:20px 32px;">
-            <p style="margin:0;font-size:12px;color:#9CA3AF;">
-              Hoursback · Questions? Reply to this email.
-            </p>
-          </td>
-        </tr>
+              <!-- Warning box -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="background:#fffbeb;border:1px solid #fde68a;border-radius:12px;margin-bottom:28px;">
+                <tr>
+                  <td style="padding:18px 22px;">
+                    <p style="margin:0 0 10px;font-size:13px;font-weight:600;color:#92400e;">What happens when Pro expires</p>
+                    <table cellpadding="0" cellspacing="0" width="100%">
+                      <tr>
+                        <td style="padding:4px 0;">
+                          <span style="display:inline-block;width:28px;height:28px;background:#fef3c7;border-radius:8px;text-align:center;line-height:28px;font-size:13px;vertical-align:middle;margin-right:10px;">⏸</span>
+                          <span style="font-size:14px;color:#78350f;vertical-align:middle;">Autopilot Agents will be paused</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding:4px 0;">
+                          <span style="display:inline-block;width:28px;height:28px;background:#fef3c7;border-radius:8px;text-align:center;line-height:28px;font-size:13px;vertical-align:middle;margin-right:10px;">🔒</span>
+                          <span style="font-size:14px;color:#78350f;vertical-align:middle;">Pro playbooks will be locked</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding:4px 0;">
+                          <span style="display:inline-block;width:28px;height:28px;background:#fef3c7;border-radius:8px;text-align:center;line-height:28px;font-size:13px;vertical-align:middle;margin-right:10px;">👁</span>
+                          <span style="font-size:14px;color:#78350f;vertical-align:middle;">Watchers will stop running</span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
 
-      </table>
-    </td></tr>
+              <!-- CTA button -->
+              <table cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="border-radius:24px;background:#202124;">
+                    <a href="https://www.hoursback.xyz/playbooks"
+                       style="display:inline-block;padding:14px 32px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;letter-spacing:0.1px;border-radius:24px;">
+                      Renew Pro →
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background:#f9fafb;border-top:1px solid #e5e7eb;border-radius:0 0 20px 20px;padding:20px 36px;text-align:center;">
+              <p style="margin:0 0 4px;font-size:12px;color:#9ca3af;">
+                Your agent schedules are saved — renewing picks up exactly where you left off.
+              </p>
+              <p style="margin:8px 0 0;font-size:12px;color:#9ca3af;">
+                <a href="https://www.hoursback.xyz" style="color:#4285F4;text-decoration:none;">hoursback.xyz</a>
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
   </table>
+
 </body>
 </html>`;
 
@@ -97,45 +140,111 @@ async function sendExpiredEmail(email: string) {
   const html = `
 <!DOCTYPE html>
 <html lang="en">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background-color:#F0F2F5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#F0F2F5;padding:32px 16px 48px;">
-    <tr><td align="center">
-      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Your Pro has expired — Hoursback</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
 
-        <tr>
-          <td style="background:#0F1012;border-radius:12px 12px 0 0;padding:24px 32px;">
-            <span style="font-size:20px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;">Hoursback</span>
-          </td>
-        </tr>
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f3f4f6;padding:40px 16px;">
+    <tr>
+      <td align="center">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;border-radius:20px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
 
-        <tr>
-          <td style="background:#ffffff;padding:36px 32px 28px;border-left:1px solid #E5E7EB;border-right:1px solid #E5E7EB;">
-            <h1 style="margin:0 0 8px;font-size:22px;font-weight:800;color:#0F1012;">Your Pro subscription has expired</h1>
-            <p style="margin:0 0 24px;font-size:15px;color:#6B7280;">
-              Your Hoursback Pro access has ended. Your Autopilot Agents, Pro playbooks, and Watchers are now paused.
-              Renew to pick up exactly where you left off — your agent schedules are saved.
-            </p>
-          </td>
-        </tr>
+          <!-- Header -->
+          <tr>
+            <td style="background-color:#202124;padding:28px 36px;">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td>
+                    <span style="display:inline-block;width:32px;height:32px;background:#4285F4;border-radius:50%;vertical-align:middle;margin-right:10px;"></span>
+                    <span style="color:#ffffff;font-size:17px;font-weight:600;vertical-align:middle;letter-spacing:-0.3px;">hoursback</span>
+                  </td>
+                  <td align="right">
+                    <span style="background:rgba(239,68,68,0.2);color:#fca5a5;font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px;letter-spacing:0.5px;">PRO EXPIRED</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
 
-        <tr>
-          <td style="background:#ffffff;padding:0 32px 32px;border-left:1px solid #E5E7EB;border-right:1px solid #E5E7EB;">
-            <a href="https://www.hoursback.xyz/playbooks" style="display:inline-block;background:#0F1012;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:8px;">
-              Renew Pro →
-            </a>
-          </td>
-        </tr>
+          <!-- Red accent bar -->
+          <tr><td style="background:#ef4444;height:3px;"></td></tr>
 
-        <tr>
-          <td style="background:#F9FAFB;border:1px solid #E5E7EB;border-top:none;border-radius:0 0 12px 12px;padding:20px 32px;">
-            <p style="margin:0;font-size:12px;color:#9CA3AF;">Hoursback · Questions? Reply to this email.</p>
-          </td>
-        </tr>
+          <!-- Body -->
+          <tr>
+            <td style="background:#ffffff;padding:40px 36px 32px;">
+              <h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#111827;line-height:1.3;">Your Pro subscription has expired</h1>
+              <p style="margin:0 0 24px;font-size:15px;color:#6b7280;line-height:1.6;">
+                Your Hoursback Pro access has ended. Your Autopilot Agents, Pro playbooks, and Watchers are now paused. Renew to pick up exactly where you left off — your agent schedules are saved.
+              </p>
 
-      </table>
-    </td></tr>
+              <!-- CTA button -->
+              <table cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="border-radius:24px;background:#202124;">
+                    <a href="https://www.hoursback.xyz/playbooks"
+                       style="display:inline-block;padding:14px 32px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;letter-spacing:0.1px;border-radius:24px;">
+                      Renew Pro →
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Divider -->
+          <tr>
+            <td style="background:#ffffff;padding:0 36px;">
+              <div style="border-top:1px solid #f3f4f6;"></div>
+            </td>
+          </tr>
+
+          <!-- Reassurance -->
+          <tr>
+            <td style="background:#ffffff;padding:24px 36px 36px;">
+              <p style="margin:0 0 14px;font-size:12px;font-weight:600;color:#4285F4;letter-spacing:1px;text-transform:uppercase;">What's waiting when you renew</p>
+              <table cellpadding="0" cellspacing="0" width="100%">
+                <tr>
+                  <td style="padding:6px 0;">
+                    <span style="display:inline-block;width:28px;height:28px;background:#eff6ff;border-radius:8px;text-align:center;line-height:28px;font-size:14px;vertical-align:middle;margin-right:12px;">🤖</span>
+                    <span style="font-size:14px;color:#374151;vertical-align:middle;">All your Autopilot Agent schedules, ready to resume</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:6px 0;">
+                    <span style="display:inline-block;width:28px;height:28px;background:#eff6ff;border-radius:8px;text-align:center;line-height:28px;font-size:14px;vertical-align:middle;margin-right:12px;">📋</span>
+                    <span style="font-size:14px;color:#374151;vertical-align:middle;">Full access to all Pro playbooks</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:6px 0;">
+                    <span style="display:inline-block;width:28px;height:28px;background:#eff6ff;border-radius:8px;text-align:center;line-height:28px;font-size:14px;vertical-align:middle;margin-right:12px;">👁</span>
+                    <span style="font-size:14px;color:#374151;vertical-align:middle;">Watchers back on, monitoring your signals</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background:#f9fafb;border-top:1px solid #e5e7eb;border-radius:0 0 20px 20px;padding:20px 36px;text-align:center;">
+              <p style="margin:0 0 4px;font-size:12px;color:#9ca3af;">
+                Questions? Reply to this email — we're here to help.
+              </p>
+              <p style="margin:8px 0 0;font-size:12px;color:#9ca3af;">
+                <a href="https://www.hoursback.xyz" style="color:#4285F4;text-decoration:none;">hoursback.xyz</a>
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
   </table>
+
 </body>
 </html>`;
 
