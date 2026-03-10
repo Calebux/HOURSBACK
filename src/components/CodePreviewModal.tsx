@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Copy, Download, Check, Code2 } from 'lucide-react';
+import { X, Copy, Download, Check, Code2, Loader2 } from 'lucide-react';
 import { Sandpack } from '@codesandbox/sandpack-react';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
@@ -10,14 +10,13 @@ interface CodePreviewModalProps {
     isOpen: boolean;
     onClose: () => void;
     files: Record<string, string>;
-    primaryFile?: string; // e.g. 'App.tsx' if we specifically want to copy that one
+    primaryFile?: string;
 }
 
 export function CodePreviewModal({ isOpen, onClose, files, primaryFile = 'App.tsx' }: CodePreviewModalProps) {
     const [isCopied, setIsCopied] = useState(false);
     const [isDownloading, setIsDownloading] = useState(false);
-
-    if (!isOpen) return null;
+    const [sandpackReady, setSandpackReady] = useState(false);
 
     const handleCopy = async () => {
         const contentToCopy = files[primaryFile] || Object.values(files)[0];
@@ -162,14 +161,22 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     };
 
     return (
-        <AnimatePresence>
+        <AnimatePresence onExitComplete={() => setSandpackReady(false)}>
             {isOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-brand-dark/40 backdrop-blur-sm">
+                <motion.div
+                    key="code-preview-backdrop"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-brand-dark/40 backdrop-blur-sm"
+                >
                     <motion.div
                         initial={{ opacity: 0, scale: 0.95, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                        className="bg-white w-full max-w-7xl h-[90vh] rounded-3xl shadow-antigravity-2xl overflow-hidden relative flex flex-col border border-brand-dark/10"
+                        transition={{ duration: 0.2 }}
+                        className="bg-white w-full max-w-7xl h-[90vh] rounded-3xl shadow-2xl overflow-hidden relative flex flex-col border border-brand-dark/10"
                     >
                         {/* Header */}
                         <div className="flex items-center justify-between px-6 py-4 border-b border-brand-dark/10 bg-brand-light/50">
@@ -214,7 +221,22 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                         </div>
 
                         {/* Sandpack Environment */}
-                        <div className="flex-1 overflow-hidden bg-[#1E1E1E]">
+                        <div className="flex-1 overflow-hidden bg-[#1E1E1E] relative">
+                            {/* Loading overlay — shown until Sandpack signals it's ready */}
+                            <AnimatePresence>
+                                {!sandpackReady && (
+                                    <motion.div
+                                        key="sandpack-loader"
+                                        initial={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        transition={{ duration: 0.3 }}
+                                        className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-[#1E1E1E] gap-3"
+                                    >
+                                        <Loader2 className="w-6 h-6 text-white/40 animate-spin" />
+                                        <p className="text-sm text-white/40">Booting sandbox…</p>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
                             <Sandpack
                                 template="react-ts"
                                 theme="dark"
@@ -223,7 +245,6 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                                         code: files['App.tsx'] || files['/src/App.tsx'] || Object.values(files)[0],
                                         active: true
                                     },
-                                    // Include any other auxiliary files if they exist
                                     ...Object.entries(files).reduce((acc, [fileName, content]) => {
                                         if (!fileName.includes('App.tsx') && fileName !== Object.keys(files)[0]) {
                                             acc[`/${fileName.replace('/src/', '')}`] = { code: content };
@@ -250,10 +271,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                                         "sp-preview": "h-full border-l border-white/10 rounded-none bg-white",
                                     }
                                 }}
+                                onReadyContent={() => setSandpackReady(true)}
                             />
                         </div>
                     </motion.div>
-                </div>
+                </motion.div>
             )}
         </AnimatePresence>
     );
