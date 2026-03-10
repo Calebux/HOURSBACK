@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Copy, Download, Check, Code2, Loader2 } from 'lucide-react';
 import { Sandpack } from '@codesandbox/sandpack-react';
@@ -17,6 +17,14 @@ export function CodePreviewModal({ isOpen, onClose, files, primaryFile = 'App.ts
     const [isCopied, setIsCopied] = useState(false);
     const [isDownloading, setIsDownloading] = useState(false);
     const [sandpackReady, setSandpackReady] = useState(false);
+
+    useEffect(() => {
+        if (isOpen) {
+            setSandpackReady(false);
+            const t = setTimeout(() => setSandpackReady(true), 3000);
+            return () => clearTimeout(t);
+        }
+    }, [isOpen]);
 
     const handleCopy = async () => {
         const contentToCopy = files[primaryFile] || Object.values(files)[0];
@@ -271,7 +279,6 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                                         "sp-preview": "h-full border-l border-white/10 rounded-none bg-white",
                                     }
                                 }}
-                                onReadyContent={() => setSandpackReady(true)}
                             />
                         </div>
                     </motion.div>
