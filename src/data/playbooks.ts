@@ -7820,6 +7820,148 @@ Output the letter ready to paste. Then give me 2 alternative opening lines I cou
     relatedPlaybooks: [
       { id: '1', title: 'Account Research Brief', slug: 'account-research-brief' }
     ]
+  },
+  {
+    id: 'career-2',
+    slug: 'tiktok-creator-outreach',
+    title: 'TikTok Creator Outreach Agent',
+    subtitle: 'Discovers 20 creators in your niche, researches their content, and writes personalized DMs — weekly, automatically',
+    category: 'Growth',
+    difficulty: 'Beginner',
+    timeToComplete: 2,
+    timeSaved: 300,
+    completionCount: 0,
+    rating: 4.9,
+    isPro: true,
+    isNew: true,
+    tools: ['Claude', 'Apify', 'TikTok'],
+    beforeYouStart: [
+      'Your brand name and product description (1–2 sentences)',
+      'Your niche keyword (e.g. "fitness", "skincare", "home decor")',
+      'Target follower range (e.g. 10,000–500,000)',
+      'Preferred outreach tone (e.g. "casual and friendly" or "professional")',
+    ],
+    expectedOutcome: 'Every week: a scored list of 20 TikTok creators in your niche with engagement data, content summaries, and a personalized outreach DM for each — delivered to your inbox.',
+    troubleshooting: [
+      {
+        problem: 'Fewer than 20 creators returned',
+        solution: 'Broaden your niche keyword (e.g. "skin" instead of "skincare routine") or widen your follower range to capture more results.'
+      },
+      {
+        problem: 'DMs feel generic or templated',
+        solution: 'Make sure your brand product description is specific and detailed — the more context Claude has, the more targeted the DMs.'
+      },
+      {
+        problem: 'Apify scrape returns no results',
+        solution: 'Check that your APIFY_API_KEY is set correctly in Supabase Edge Function secrets and that the key has sufficient credits.'
+      },
+      {
+        problem: 'Creators don\'t match my niche',
+        solution: 'Try a more specific hashtag keyword. Instead of "fitness" try "homeworkout" or "gymtok" to narrow the audience.'
+      }
+    ],
+    steps: [
+      {
+        id: 'tiktok-s1',
+        stepNumber: 1,
+        title: 'Define Your Creator Profile',
+        instruction: 'Before searching, get crystal-clear on who you\'re looking for. Paste this prompt into Claude with your brand details filled in.',
+        promptTemplate: `I'm looking for TikTok creators to partner with for [brand_name], which sells [brand_product].
+
+Define my ideal creator profile:
+- Niche: [niche]
+- Follower range: [follower_min] – [follower_max]
+- Engagement rate target: 3%+ (micro-influencer sweet spot)
+- Content style signals: what type of content would indicate brand alignment?
+- Red flags: what content or behaviours should disqualify a creator?
+
+Output a 1-paragraph creator brief I can use as a filter when reviewing profiles.`,
+        expectedOutput: 'A clear creator brief defining your ideal partner — niche, follower range, content style, and red flags.',
+        tips: 'Save this brief — you\'ll use it to evaluate each creator you find in Steps 2 and 3.',
+        tools: ['Claude']
+      },
+      {
+        id: 'tiktok-s2',
+        stepNumber: 2,
+        title: 'Search TikTok by Hashtag',
+        instruction: 'Go to TikTok and search for your niche hashtag (e.g. #skincareRoutine, #homeworkout). Sort by "Most Liked" to find the top creators in that space. Open 20–30 profiles and paste their details below.',
+        promptTemplate: `Evaluate these TikTok creators for a brand partnership with [brand_name] ([brand_product]).
+
+Creator Brief: [Paste your brief from Step 1]
+
+Creators to evaluate:
+[Paste creator handles, follower counts, and recent video descriptions]
+
+For each creator, score them 1–10 on brand fit and explain why in one sentence.
+Output a table: Handle | Followers | Fit Score | Reason`,
+        expectedOutput: 'A scored table of creators ranked by brand fit, with a one-sentence rationale for each score.',
+        tips: 'Focus on creators whose recent content naturally intersects with your product\'s use case — authenticity converts better than reach.',
+        tools: ['Claude', 'TikTok']
+      },
+      {
+        id: 'tiktok-s3',
+        stepNumber: 3,
+        title: 'Research Top Creators',
+        instruction: 'Take your top 10 scoring creators and dig deeper. Watch 3–5 recent videos for each. Note their hook style, recurring themes, and any brand mentions. Paste your notes into Claude for DM generation.',
+        promptTemplate: `Write personalized outreach DMs for these TikTok creators on behalf of [brand_name].
+
+Brand: [brand_name]
+Product: [brand_product]
+Tone: [outreach_tone]
+
+For each creator, write a DM (max 120 words) that:
+- Opens with a specific reference to their recent content
+- Connects their content style to why [brand_name] is a natural fit
+- Includes a clear, low-pressure call to action
+- Feels human and personal — not like a template
+
+Creator notes:
+[Paste your research notes for each creator]`,
+        expectedOutput: 'A personalized outreach DM for each creator, referencing their specific content and connecting it naturally to your brand.',
+        tips: 'The best DMs reference a specific video or moment — "I loved your video on X" outperforms generic compliments every time.',
+        tools: ['Claude']
+      },
+      {
+        id: 'tiktok-s4',
+        stepNumber: 4,
+        title: 'Send & Track',
+        instruction: 'Send your DMs directly via TikTok\'s creator marketplace or Instagram DM (most creators list their IG in bio). Track responses in a simple spreadsheet: Creator, Date Sent, Response, Status.',
+        expectedOutput: 'A live outreach tracker showing which creators have been contacted, responded, and are in negotiation.',
+        tips: 'Follow up once after 5–7 days with a lighter message. Many creators miss DMs — one follow-up typically doubles your response rate.',
+        tools: ['TikTok']
+      }
+    ],
+    agentAutomation: {
+      description: 'Deploy once. Every week Claude discovers 20 fresh creators in your niche, scores their fit, and writes personalized DMs referencing their actual videos.',
+      trigger: 'Weekly (Monday 8 AM) via Hoursback Autopilot',
+      actions: [
+        'Scrapes TikTok via Apify for creators matching your niche hashtags',
+        'Filters by your follower range and engagement rate',
+        'Analyses each creator\'s recent content, hook style, and brand signals',
+        'Scores each creator 1–10 against your brand fit',
+        'Writes a personalized outreach DM referencing their specific videos',
+        'Delivers scored list + DMs to your inbox',
+      ],
+      setupSteps: [
+        { title: 'Set your brand context', description: 'Fill in brand name, product description, niche keyword, follower range, and outreach tone when deploying.' },
+        { title: 'Deploy the agent', description: 'Click "Deploy Autopilot Agent", set your schedule (weekly recommended), done.' },
+      ],
+      tools: ['Apify', 'Claude', 'TikTok'],
+    },
+    webhookConfig: {
+      supportedTools: [],
+      inputs: [
+        { id: 'brand_name', label: 'Brand Name', placeholder: 'e.g. GlowSkin', type: 'text' },
+        { id: 'brand_product', label: 'Product / Service', placeholder: 'e.g. organic skincare for sensitive skin', type: 'text' },
+        { id: 'niche', label: 'Niche Keyword', placeholder: 'e.g. skincare, fitness, home decor', type: 'text' },
+        { id: 'follower_min', label: 'Min Followers', placeholder: 'e.g. 10000', type: 'text' },
+        { id: 'follower_max', label: 'Max Followers', placeholder: 'e.g. 500000', type: 'text' },
+        { id: 'outreach_tone', label: 'Outreach Tone', placeholder: 'e.g. casual and friendly', type: 'text' },
+      ],
+    },
+    relatedPlaybooks: [
+      { id: 'career-1', title: 'Indeed Job Matcher & Resume Tailor', slug: 'indeed-job-matcher-resume-tailor' }
+    ]
   }
 ];
 

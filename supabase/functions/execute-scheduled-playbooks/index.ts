@@ -5,6 +5,7 @@ import Anthropic from "npm:@anthropic-ai/sdk";
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
+const APIFY_API_KEY = Deno.env.get("APIFY_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
@@ -472,6 +473,61 @@ async function resolveVariables(variables: Record<string, string>): Promise<Reco
   return resolved;
 }
 
+// ---------------------------------------------------------------------------
+// Apify TikTok scraper — used by the tiktok-creator-outreach playbook
+// ---------------------------------------------------------------------------
+async function scrapeCreatorsFromApify(
+  niche: string,
+  followerMin: number,
+  followerMax: number
+): Promise<string> {
+  const hashtags = [niche, `${niche}creator`, `${niche}tok`].map(h => h.replace(/\s/g, ''));
+
+  const res = await fetch(
+    `https://api.apify.com/v2/acts/clockworks~free-tiktok-scraper/run-sync-get-dataset-items?token=${APIFY_API_KEY}&timeout=60`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        hashtags,
+        resultsPerPage: 60,
+        maxProfilesPerQuery: 30,
+      }),
+    }
+  );
+
+  const items = await res.json();
+
+  const seen = new Set<string>();
+  const creators: any[] = [];
+
+  for (const item of items) {
+    const handle = item?.authorMeta?.name;
+    const fans = item?.authorMeta?.fans ?? 0;
+    if (!handle || seen.has(handle)) continue;
+    if (fans < followerMin || fans > followerMax) continue;
+    seen.add(handle);
+
+    const totalEngagement = (item.diggCount ?? 0) + (item.commentCount ?? 0) + (item.shareCount ?? 0);
+    const engagementRate = fans > 0 ? ((totalEngagement / fans) * 100).toFixed(2) : '0';
+
+    creators.push({
+      handle,
+      followers: fans.toLocaleString(),
+      engagementRate: `${engagementRate}%`,
+      verified: item?.authorMeta?.verified ? 'Yes' : 'No',
+      recentVideo: item.desc?.slice(0, 120) ?? 'N/A',
+      videoLikes: item.diggCount?.toLocaleString() ?? '0',
+    });
+
+    if (creators.length >= 20) break;
+  }
+
+  return creators.map((c, i) =>
+    `Creator ${i + 1}: @${c.handle} | Followers: ${c.followers} | Engagement: ${c.engagementRate} | Verified: ${c.verified}\nRecent video: "${c.recentVideo}" (${c.videoLikes} likes)`
+  ).join('\n\n');
+}
+
 async function executeSchedule(schedule: any, supabaseAdmin: any): Promise<void> {
   const playbookData = schedule.playbook_data;
   const playbookSlug = schedule.playbook_slug;
@@ -485,6 +541,17 @@ async function executeSchedule(schedule: any, supabaseAdmin: any): Promise<void>
     throw new Error(`Could not fetch email for user ${schedule.user_id}`);
   }
   const deliveryEmail = schedule.custom_delivery_email || userData.user.email;
+
+  // ── TikTok creator outreach — Apify pre-step ──
+  let apifyCreatorData = '';
+  if (playbookSlug === 'tiktok-creator-outreach' && APIFY_API_KEY) {
+    const niche = variables['niche'] ?? 'lifestyle';
+    const followerMin = parseInt(variables['follower_min'] ?? '10000', 10);
+    const followerMax = parseInt(variables['follower_max'] ?? '1000000', 10);
+    console.log(`[Autopilot] Scraping TikTok creators via Apify — niche: ${niche}, range: ${followerMin}–${followerMax}`);
+    apifyCreatorData = await scrapeCreatorsFromApify(niche, followerMin, followerMax);
+    console.log(`[Autopilot] Apify returned data for ${apifyCreatorData ? apifyCreatorData.split('\n\n').length : 0} creators`);
+  }
 
   // ── Daily-drip mode: count previous runs to determine today's item ──
   const dripConfig = DAILY_DRIP_SLUGS[playbookSlug];
@@ -536,12 +603,31 @@ async function executeSchedule(schedule: any, supabaseAdmin: any): Promise<void>
     // ── Standard mode: run all steps, deliver full output ──
     console.log(`[Autopilot] Executing "${playbookData?.title || playbookSlug}" for ${deliveryEmail}`);
 
-    compiledPrompt = `You are an autonomous AI Agent executing the playbook: "${playbookData?.title || playbookSlug}".\n\n`;
-    compiledPrompt += `### USER CONFIGURATION:\n`;
-    Object.entries(variables).forEach(([key, value]) => {
-      if (value && value.trim()) compiledPrompt += `- ${key}: ${value}\n`;
-    });
-    compiledPrompt += `\n### EXECUTION STEPS:\n`;
+    // Inject live Apify creator data for TikTok outreach playbook
+    const systemContext = apifyCreatorData
+      ? `\n\n## LIVE CREATOR DATA (scraped from TikTok via Apify)\n${apifyCreatorData}\n\n`
+      : '';
+
+    if (playbookSlug === 'tiktok-creator-outreach') {
+      compiledPrompt = `You are an influencer marketing strategist.${systemContext}Using the live TikTok creator data above, produce:\n\n`;
+      compiledPrompt += `1. A scored creator table (handle, followers, engagement rate, fit score 1–10, fit reason)\n`;
+      compiledPrompt += `2. For each creator scoring 7+: a personalized outreach DM (max 120 words) that references their actual recent video content. The DM should feel human and specific, not templated.\n\n`;
+      compiledPrompt += `Brand context:\n`;
+      compiledPrompt += `- Brand: ${variables['brand_name'] ?? 'the brand'}\n`;
+      compiledPrompt += `- Product: ${variables['brand_product'] ?? 'their product'}\n`;
+      compiledPrompt += `- Tone: ${variables['outreach_tone'] ?? 'friendly and professional'}\n\n`;
+      compiledPrompt += `Format the scored table first, then the personalized DMs beneath it.\n`;
+      compiledPrompt += `\nCRITICAL RULES:\n`;
+      compiledPrompt += `- Do NOT use any emoji characters anywhere in your output.\n`;
+      compiledPrompt += `- Format the table using standard Markdown | pipes |.\n`;
+      compiledPrompt += `- Deliver final polished content only — no preamble or commentary.\n`;
+    } else {
+      compiledPrompt = `You are an autonomous AI Agent executing the playbook: "${playbookData?.title || playbookSlug}".\n\n`;
+      compiledPrompt += `### USER CONFIGURATION:\n`;
+      Object.entries(variables).forEach(([key, value]) => {
+        if (value && value.trim()) compiledPrompt += `- ${key}: ${value}\n`;
+      });
+      compiledPrompt += `\n### EXECUTION STEPS:\n`;
 
     if (playbookData?.steps) {
       playbookData.steps.forEach((step: any, index: number) => {
@@ -580,6 +666,7 @@ async function executeSchedule(schedule: any, supabaseAdmin: any): Promise<void>
     if (INFOGRAPHIC_SLUGS.has(playbookSlug)) {
       compiledPrompt += `\n\n---\nFINAL STEP — after finishing your full analysis, append EXACTLY this block at the very end. Raw JSON only. No markdown, no code fences, no extra text after INFOGRAPH_DATA_END.\n\nINFOGRAPH_DATA_START\n{"title":"${(playbookData?.title || playbookSlug).replace(/"/g, "'")}","kpis":[{"label":"Total Revenue","value":"₦48.75M","trend":"down","note":"-0.73% vs prior"},{"label":"Net Profit","value":"₦6.01M","trend":"down","note":"-18.7% vs prior"},{"label":"Gross Margin","value":"51.8%","trend":"down"},{"label":"Net Margin","value":"12.3%","trend":"down"},{"label":"EBITDA","value":"₦9.28M","trend":"down"}],"tables":[{"title":"P&L Summary","headers":["Line Item","Amount","vs Prior"],"rows":[["TOTAL REVENUE","₦48.75M","-0.73%"],["Cost of Goods","₦23.48M","+3.9%"],["GROSS PROFIT","₦25.27M","-4.7%"],["Total Opex","₦15.99M","+4.8%"],["EBITDA","₦9.28M","-2.1%"],["NET PROFIT","₦6.01M","-18.7%"]]}],"bars":[{"label":"Raw Materials","value":13.89,"max":16,"unit":"M"},{"label":"Salaries","value":8.73,"max":16,"unit":"M"},{"label":"Rent & Utils","value":2.65,"max":16,"unit":"M"},{"label":"Marketing","value":1.78,"max":16,"unit":"M"},{"label":"Logistics","value":1.38,"max":16,"unit":"M"}],"highlights":[{"type":"strength","text":"Gross margin at 51.8% — strong pricing power maintained"},{"type":"risk","text":"Net profit fell 18.7% as OPEX grew faster than revenue"},{"type":"action","text":"Reduce Raw Materials cost — it is 28.5% of revenue and rising"}]}\nINFOGRAPH_DATA_END\n\nIMPORTANT — replace every example value with REAL numbers from your analysis above:\n- kpis: exactly 4–5 headline figures. trend = "up", "down", or "neutral". note = short comparison like "-18% vs prior".\n- tables: ONE P&L summary, max 3 columns, max 8 rows. Rows starting with TOTAL/GROSS/NET/EBITDA/REVENUE will be bold.\n- bars: top 4–5 largest costs/expenses as plain numbers. max = largest value rounded up to nearest 5 or 10.\n- highlights: exactly 3 items — one strength, one risk, one action. Max 15 words each. Be specific with numbers.\n- Output the JSON as a single line with no line breaks inside it.`;
     }
+    } // end standard playbook prompt (non-TikTok)
   }
 
   const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
