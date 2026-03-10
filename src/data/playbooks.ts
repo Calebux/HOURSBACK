@@ -1751,7 +1751,9 @@ export const getCategoryColor = (category: string): string => {
     'Legal': '#475569',
     'Claude Crash Course': '#DA7756',
     'Fitness & Wellness': '#10B981',
-    'Risk & Strategy': '#DC2626'
+    'Risk & Strategy': '#DC2626',
+    'Content': '#8B5CF6',
+    'Career': '#0EA5E9'
   };
   return colors[category] || '#4F46E5';
 };
@@ -6040,6 +6042,150 @@ Header format: ## [Client Name] — Invoice [#] — [Amount] — [X days overdue
       { id: 'smb-arch-2', title: 'Billable Hours Audit', slug: 'billable-hours-audit' },
       { id: 'smb-arch-1', title: 'RFP Response Builder', slug: 'rfp-response-builder' }
     ]
+  },
+  {
+    id: 'smb-humanizer-1',
+    slug: 'humanizer-remove-ai-writing',
+    title: 'Humanizer: Remove AI Writing Patterns',
+    subtitle: 'Strip the 24 telltale signs of AI-generated text from any draft and rewrite it to sound genuinely human.',
+    category: 'Content',
+    difficulty: 'Beginner',
+    timeToComplete: 10,
+    timeSaved: 45,
+    completionCount: 0,
+    rating: 5.0,
+    isPro: false,
+    isNew: true,
+    tools: ['Claude'],
+    beforeYouStart: [
+      'A piece of text you want to humanize (email, article, LinkedIn post, proposal, etc.)',
+      'Claude.ai or any Claude API access'
+    ],
+    expectedOutcome: 'A rewritten version of your text that reads like a real human wrote it — no inflation, no jargon soup, no formulaic structure.',
+    troubleshooting: [
+      {
+        problem: 'The rewrite still sounds stiff or formal',
+        solution: 'Add a voice note at the top of the Step 2 prompt: "Write in a casual, first-person tone. Short sentences. No hedging." The more specific the voice instruction, the better Claude calibrates.'
+      },
+      {
+        problem: 'Claude keeps the same structure and just swaps words',
+        solution: 'In Step 3, explicitly tell Claude: "Restructure the piece completely. Start with a different angle. Move the most interesting point to the first sentence."'
+      },
+      {
+        problem: 'The output is too short after humanizing',
+        solution: 'AI prose is often padded — shorter usually means it\'s working. If you genuinely need more content, add: "Expand each point with a concrete example or specific detail."'
+      }
+    ],
+    steps: [
+      {
+        id: 'smb-humanizer-s1',
+        stepNumber: 1,
+        title: 'Paste Your Text',
+        instruction: 'Copy the text you want to humanize. This works on anything: emails, LinkedIn posts, blog articles, proposals, cover letters, or any other draft. Paste it below so Claude can audit it in the next step.',
+        expectedOutput: 'Your raw text, ready for the AI writing pattern audit.',
+        tips: 'Longer pieces (500+ words) benefit most from this process. For short texts like one-paragraph emails, you can skip to Step 2 directly.'
+      },
+      {
+        id: 'smb-humanizer-s2',
+        stepNumber: 2,
+        title: 'Run the 24-Pattern Audit',
+        instruction: 'Paste your text into Claude along with this audit prompt. Claude will flag every instance of AI-typical writing in your draft, organized by pattern type.',
+        promptTemplate: `You are an expert editor trained to identify AI-generated writing patterns. Audit the following text against these 24 patterns from Wikipedia's "Signs of AI writing" guide.
+
+For each pattern found, quote the offending phrase and briefly explain why it's flagged.
+
+CONTENT PATTERNS:
+1. Significance inflation – words like "pivotal", "transformative", "groundbreaking", "testament to", "marking a moment in the evolution of"
+2. Notability name-dropping – citing publications (NYT, Forbes, etc.) without a specific claim or date
+3. Superficial -ing analyses – "symbolizing...", "reflecting...", "showcasing..." used without citing sources
+4. Promotional language – "nestled within", "breathtaking", "vibrant community"
+5. Vague attributions – "experts believe", "studies show", "many people feel" with no specifics
+6. Formulaic challenges – "Despite challenges... continues to thrive"
+
+LANGUAGE PATTERNS:
+7. AI vocabulary – "Additionally", "Furthermore", "testament", "landscape", "delve into", "showcase", "underscore", "crucial", "vital", "pivotal"
+8. Copula avoidance – "serves as", "functions as", "stands as", "acts as" instead of just "is"
+9. Negative parallelisms – "It's not just X, it's Y"
+10. Rule of three – triple noun/adjective lists used formulaically ("innovation, inspiration, and insights")
+11. Synonym cycling – using multiple synonyms for the same noun within one piece to avoid repetition
+12. False ranges – "from X to Y" constructions that don't add real information ("from startups to enterprises")
+
+STYLE PATTERNS:
+13. Em dash overuse – more than one em dash per paragraph
+14. Boldface overuse – bolding terms mid-sentence that don't need emphasis
+15. Inline-header lists – bullet points where the first word is bolded as a mini-header ("Speed: Performance improved...")
+16. Title Case Headings – headings with unnecessary capitalisation on every word
+17. Emojis used as section markers or bullet points
+18. Curly/smart quotes instead of straight quotes (aesthetic choice that signals AI formatting)
+
+COMMUNICATION PATTERNS:
+19. Chatbot artifacts – "I hope this helps!", "Let me know if you'd like more!", "Great question!"
+20. Cutoff disclaimers – "While details are limited based on available information...", "As of my knowledge cutoff..."
+21. Sycophantic tone – "You're absolutely right!", "That's a fantastic point!"
+
+FILLER AND HEDGING:
+22. Filler phrases – "In order to", "Due to the fact that", "It is important to note that", "It goes without saying"
+23. Excessive hedging – "could potentially possibly", "may or may not", "it's possible that"
+24. Generic conclusions – "The future looks bright", "Exciting times lie ahead", "Only time will tell"
+
+TEXT TO AUDIT:
+[PASTE YOUR TEXT HERE]
+
+List only the patterns actually present. If a pattern is clean, skip it. At the end, give a one-line verdict on the overall AI-score (Low / Medium / High).`,
+        expectedOutput: 'A list of flagged phrases organized by pattern number, with a final Low/Medium/High AI-score verdict.',
+        tips: 'Don\'t be surprised if a Medium or High score comes back — most AI-assisted drafts hit 8–12 patterns. The audit is just a map, not a judgment.'
+      },
+      {
+        id: 'smb-humanizer-s3',
+        stepNumber: 3,
+        title: 'Rewrite Based on Audit',
+        instruction: 'Take the audit output and ask Claude to rewrite the text, fixing every flagged issue. Add a voice direction so the rewrite matches your tone.',
+        promptTemplate: `Rewrite the text below, fixing every pattern flagged in the audit above.
+
+Rules:
+- Replace significance inflation with plain facts or specific details
+- Cut vague attributions entirely if you can't replace them with a source
+- Remove all AI vocabulary (Additionally, Furthermore, testament, landscape, showcase, etc.)
+- Replace "serves as / functions as / stands as" with "is" or "has"
+- Break up the rule of three — use however many items are actually needed
+- Remove em dashes where a comma or period works better
+- Kill all chatbot sign-offs ("I hope this helps", "Let me know if...")
+- Replace filler phrases with direct constructions ("To" instead of "In order to")
+- Cut excessive hedging — pick a lane and state it directly
+- Replace generic conclusions with a specific fact, plan, or next step
+
+Voice direction: [DESCRIBE YOUR TONE — e.g. "casual and direct, first person, short sentences" or "professional but warm, third person, no jargon"]
+
+Original text:
+[PASTE YOUR TEXT HERE]`,
+        expectedOutput: 'A rewritten version of your text with all flagged patterns removed, matching your specified voice.',
+        tips: 'The voice direction line is the most important variable. "Write like a 35-year-old CFO explaining this to a colleague" gets dramatically better results than leaving it blank.'
+      },
+      {
+        id: 'smb-humanizer-s4',
+        stepNumber: 4,
+        title: 'Final Audit Pass',
+        instruction: 'Run one more audit on the rewritten text to catch anything the first rewrite missed. LLMs often reintroduce patterns in the second draft. This final pass catches the stragglers.',
+        promptTemplate: `Read the rewritten text below and flag any remaining AI writing patterns from the 24-pattern list.
+
+Pay special attention to:
+- Filler phrases that crept back in
+- Em dashes or inline-header formatting
+- Any phrases that still sound like a chatbot (too smooth, too complete, no texture)
+- Generic or vague conclusions
+
+If the text is clean, say so directly. If there are remaining issues, quote them and suggest a specific fix for each.
+
+Rewritten text:
+[PASTE REWRITTEN TEXT HERE]`,
+        expectedOutput: 'Either "Text is clean" or a short list of remaining issues with specific fixes. The second pass is usually much shorter than the first.',
+        tips: 'If the final audit comes back clean, you\'re done. If there are 1–2 stubborn patterns, fix them manually rather than running another full rewrite — at this point your own judgment is faster than another round-trip.'
+      }
+    ],
+    relatedPlaybooks: [
+      { id: 'smb-1', title: 'The 30-Day Social Media Content Engine', slug: '30-day-social-media-content-engine' },
+      { id: 'lm-1', title: 'The "Business Operating System" Master Prompt', slug: 'the-operating-system-prompt' }
+    ]
   }
 ];
 
@@ -7487,6 +7633,192 @@ Polish Requirements:
     ],
     relatedPlaybooks: [
        { id: 'dai-2', title: 'Build a Modern Landing Page in Minutes', slug: 'build-modern-landing-page-ai' }
+    ]
+  },
+  {
+    id: 'career-1',
+    slug: 'indeed-job-matcher-resume-tailor',
+    title: 'Indeed Job Matcher & Resume Tailor',
+    subtitle: 'Paste your resume, find your top 10 Indeed matches from the last 24–72 hours, and get a tailored resume + cover letter in minutes',
+    category: 'Career',
+    difficulty: 'Beginner',
+    timeToComplete: 15,
+    timeSaved: 180,
+    completionCount: 0,
+    rating: 4.9,
+    isPro: false,
+    isNew: true,
+    tools: ['Claude', 'Indeed'],
+    beforeYouStart: [
+      'Your resume as a PDF or plain text (copy-paste works fine)',
+      'A Claude.ai account with the Indeed connector enabled (Settings → Integrations)',
+      'Your target job title, location, and remote preference ready'
+    ],
+    expectedOutcome: 'A ranked list of the 10 best-matched Indeed jobs posted in the last 24–72 hours, plus a tailored version of your resume and a cover letter for your top pick.',
+    troubleshooting: [
+      {
+        problem: 'Indeed connector is not available in Claude settings',
+        solution: 'Make sure you are on a Claude.ai Pro or Team plan. Connectors are not available on the free tier. Go to claude.ai → Settings → Integrations to enable Indeed.'
+      },
+      {
+        problem: 'Too few results with hoursback=24',
+        solution: 'Increase to hoursback=72 or hoursback=168 (7 days). Niche roles post less frequently — a longer window gives you more signal.'
+      },
+      {
+        problem: 'Claude returns generic resume rewrites',
+        solution: 'Paste the full job description text into the prompt, not just the job title. The more specific the JD, the more targeted the tailoring.'
+      },
+      {
+        problem: 'Jobs returned are in the wrong location',
+        solution: 'Be explicit: add your city or "remote only" to the search prompt. E.g. "Senior Product Manager, London, hybrid" or "fully remote, US only".'
+      }
+    ],
+    steps: [
+      {
+        id: 'career1-s1',
+        stepNumber: 1,
+        title: 'Extract Your Career Profile',
+        instruction: 'Open claude.ai and paste your full resume into a new conversation. Use the prompt below to extract a structured career profile. This becomes your "source of truth" for matching — save the output, you\'ll reference it in every step.',
+        promptTemplate: `I'm going to give you my resume. Extract a structured career profile I can use for job matching.
+
+[Paste your full resume here]
+
+From my resume, extract and format:
+
+**My Core Role Titles** (the 3–5 job titles that best describe me)
+**Years of Experience** (total, and by domain)
+**Key Skills** (hard skills, tools, languages, certifications — bullet list)
+**Industry Background** (sectors I've worked in)
+**Seniority Level** (IC, Manager, Director, VP, etc.)
+**Education & Credentials**
+**Standout Achievements** (3–5 metrics-backed wins from my experience)
+**What I'm Looking For** (infer from career trajectory — I'll correct you if wrong)
+
+Format this as a clean profile I can copy and paste into future prompts.`,
+        expectedOutput: 'A structured 1-page career profile with your skills, experience, seniority, and standout achievements clearly formatted.',
+        tips: 'If your resume is a PDF, copy the text out first. LinkedIn\'s "Save as PDF" → open in browser → select all text works well. The richer your resume, the better the matches.',
+        tools: ['Claude']
+      },
+      {
+        id: 'career1-s2',
+        stepNumber: 2,
+        title: 'Search Indeed for Fresh Matches',
+        instruction: 'Still in the same Claude conversation, run the prompt below. Claude will use the Indeed connector to search live job listings. Set the hoursback value to control how fresh the results are — 24 is very fresh, 72 is a good balance of volume and recency.',
+        promptTemplate: `Using the Indeed connector, search for jobs that match my career profile above.
+
+**Search parameters:**
+- Job titles to search: [e.g. "Senior Product Manager", "Head of Product", "Group Product Manager"]
+- Location: [e.g. London / New York / Remote]
+- Remote preference: [Remote / Hybrid / On-site / Any]
+- hoursback: [24 = last 24 hrs | 72 = last 3 days | 168 = last week]
+- Exclude: [any industries or company types to avoid, e.g. "staffing agencies"]
+
+For each result, return:
+| # | Job Title | Company | Location | Posted | Match Score (1–10) | Why It Matches |
+|---|---|---|---|---|---|---|
+
+Score each job against my career profile. Rank by match score. Return the top 10.`,
+        expectedOutput: 'A ranked table of 10 Indeed jobs with match scores and a 1-line reason each is a strong fit for your profile.',
+        tips: 'Run 2–3 searches with different job title variants to cast a wider net. Save the full table — you\'ll pick your top target from it in the next step.',
+        tools: ['Claude', 'Indeed']
+      },
+      {
+        id: 'career1-s3',
+        stepNumber: 3,
+        title: 'Deep-Dive Your Top 3 Picks',
+        instruction: 'Pick your top 3 jobs from the table. For each one, ask Claude to pull the full job description and score it more precisely against your profile. This surfaces gaps you\'ll need to address in your resume.',
+        promptTemplate: `For each of these 3 jobs from the Indeed results above, retrieve the full job description and do a detailed match analysis:
+
+1. [Job Title – Company]
+2. [Job Title – Company]
+3. [Job Title – Company]
+
+For each job, output:
+
+**Role:** [Title, Company, Location, Salary if listed]
+**Match Score:** X/10
+**Why You're a Strong Fit:** (3 bullet points citing specific experience from my profile)
+**Gaps to Address:** (skills or experience in the JD that aren't obvious in my current resume)
+**Tailoring Priority:** High / Medium / Low
+
+Rank the 3 jobs by overall opportunity (fit × role quality × company).`,
+        expectedOutput: 'A side-by-side analysis of your top 3 picks with fit scores, gap analysis, and a recommended priority order.',
+        tips: 'Pay close attention to the Gaps section — these are exactly the points your tailored resume needs to speak to. Don\'t fabricate experience; instead, surface adjacent experience that maps to the gap.',
+        tools: ['Claude', 'Indeed']
+      },
+      {
+        id: 'career1-s4',
+        stepNumber: 4,
+        title: 'Tailor Your Resume for the #1 Role',
+        instruction: 'Pick your highest-priority job. Paste the full job description into Claude and ask it to rewrite your resume to match. The goal is a targeted, keyword-optimised version — not a fabricated one.',
+        promptTemplate: `Rewrite my resume to be tailored for this specific role. Do not fabricate experience — only reposition, reframe, and reorder what's already there.
+
+**Target Role:**
+[Paste full job description here]
+
+**My Current Resume / Career Profile:**
+[Paste your resume or the profile from Step 1]
+
+Instructions:
+1. Rewrite the summary/objective to speak directly to this role's priorities
+2. Reorder bullet points so the most relevant achievements appear first
+3. Mirror keywords and phrases from the job description where truthfully applicable
+4. Quantify any bullet points that are currently vague (prompt me for numbers if needed)
+5. Remove bullet points that have zero relevance to this role
+6. Flag any gaps from the JD that I should address in a cover letter instead
+
+Output the full rewritten resume in clean text format, ready to paste into Google Docs.`,
+        expectedOutput: 'A fully tailored version of your resume, keyword-optimised for the target role, in clean text format ready to copy into your preferred template.',
+        tips: 'Run this for your top 2–3 jobs if you\'re applying to multiple roles. Each tailored version should feel distinct — generic resumes get filtered out by ATS before a human ever reads them.',
+        tools: ['Claude']
+      },
+      {
+        id: 'career1-s5',
+        stepNumber: 5,
+        title: 'Write the Cover Letter',
+        instruction: 'With your tailored resume ready, generate a high-signal cover letter for the role. This prompt produces a letter that feels personal, not templated.',
+        promptTemplate: `Write a cover letter for this role using my tailored resume above as the source of truth.
+
+**Role:** [Job Title] at [Company Name]
+**Hiring Manager name (if known):** [Name or "not known"]
+**One thing I know about this company that I genuinely find interesting:** [e.g. "their recent Series B to expand into EMEA"]
+**The single biggest gap in my profile vs this JD:** [Gap from Step 3 analysis]
+
+Guidelines:
+- Opening: Lead with why THIS company, not a generic "I am excited to apply"
+- Para 2: 2–3 strongest relevant achievements, specific and metrics-backed
+- Para 3: Address the gap honestly — frame adjacent experience or show learning momentum
+- Closing: Clear call to action, professional tone
+- Length: 3–4 short paragraphs, under 350 words
+- Tone: Confident, specific, human — not corporate buzzword soup
+
+Output the letter ready to paste. Then give me 2 alternative opening lines I could swap in.`,
+        expectedOutput: 'A 3–4 paragraph cover letter under 350 words, tailored to the specific company and role, plus 2 alternative opening lines.',
+        tips: 'The "one thing I genuinely find interesting" line is the most important input — it\'s what makes the letter feel real. Spend 5 minutes on the company\'s latest blog post, press release, or LinkedIn before filling this in.',
+        tools: ['Claude']
+      }
+    ],
+    agentAutomation: {
+      description: 'Automate daily job alerts — Claude searches Indeed every morning and emails you a ranked shortlist of new matches before 9 AM.',
+      trigger: 'Every weekday at 7 AM via Make.com',
+      actions: [
+        'Claude searches Indeed with your saved job titles, location, and hoursback=24',
+        'Scores each result against your stored career profile',
+        'Filters to matches scoring 7/10 or above',
+        'Sends you a formatted email with the shortlist and direct Indeed links',
+        'Logs all results to a Google Sheet for tracking'
+      ],
+      setupSteps: [
+        { title: 'Store your career profile', description: 'Save your Step 1 career profile output in a Google Doc — the automation will reference this file.' },
+        { title: 'Set your search parameters', description: 'Add your job titles, location, and minimum match score to a Make.com data store.' },
+        { title: 'Connect Indeed via Make.com', description: 'Use Make\'s Indeed module or an HTTP module with the Indeed Publisher API to pull fresh listings.' },
+        { title: 'Connect Claude for scoring', description: 'Pipe each job listing to Claude with your career profile and ask for a 1–10 match score.' },
+        { title: 'Set up email + Google Sheets', description: 'Route 7+ scores to your email digest and log everything to Sheets for tracking your pipeline.' }
+      ],
+      tools: ['Make.com', 'Claude', 'Indeed', 'Google Sheets', 'Gmail']
+    },
+    relatedPlaybooks: [
+      { id: '1', title: 'Account Research Brief', slug: 'account-research-brief' }
     ]
   }
 ];
