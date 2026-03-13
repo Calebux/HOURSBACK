@@ -173,7 +173,7 @@ export default function LandingPage() {
             className="text-4xl md:text-6xl font-semibold tracking-tight text-brand-dark leading-[1.08] max-w-4xl"
           >
             Get hours back every week.{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-blue to-purple-500">
+            <span style={{ color: '#4285F4' }}>
               Deploy AI workflows that monitor your business automatically.
             </span>
           </motion.h1>
