@@ -251,8 +251,8 @@ export default function WorkspacePage() {
               <Bot className="w-4 h-4" />
               Workflows
             </Link>
-            <Link to="/playbooks" className="text-sm text-brand-dark/80 hover:text-brand-dark transition-colors">
-              Browse Playbooks
+            <Link to="/workflows/new" className="text-sm text-brand-dark/80 hover:text-brand-dark transition-colors">
+              Browse Workflows
             </Link>
             <Link to="/settings" className="p-2 text-slate-400 hover:text-brand-dark transition-colors rounded-full hover:bg-slate-100">
               <Settings className="w-5 h-5" />
