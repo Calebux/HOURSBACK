@@ -1,36 +1,41 @@
-import { useState, useEffect } from 'react';
-import { HashRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
+import { useState, useEffect, lazy, Suspense } from 'react';
+import { HashRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { ToastProvider } from './components/ToastProvider';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { OnboardingModal, type OnboardingData } from './components/OnboardingModal';
-import LandingPage from './pages/LandingPage';
-import PlaybooksPage from './pages/PlaybooksPage';
-import PlaybookViewerPage from './pages/PlaybookViewerPage';
-import WorkspacePage from './pages/WorkspacePage';
-import SettingsPage from './pages/SettingsPage';
-import AdminDashboard from './pages/AdminDashboard';
-import PlaybookEditorPage from './pages/PlaybookEditorPage';
-import CrashCoursePage from './pages/CrashCoursePage';
-import AutopilotPage from './pages/AutopilotPage';
-import WatchersDashboard from './pages/WatchersDashboard';
-import CreateWatcherPage from './pages/CreateWatcherPage';
-import WatcherDetailPage from './pages/WatcherDetailPage';
 
-// Inner component — can use useAuth because it's inside AuthProvider
+// Eagerly loaded — core experience
+import LandingPage from './pages/LandingPage';
+import WorkflowsDashboard from './pages/WorkflowsDashboard';
+import ReportsPage from './pages/ReportsPage';
+import AccountPage from './pages/AccountPage';
+
+// Lazily loaded — not needed on first paint
+const WorkflowBuilder   = lazy(() => import('./pages/WorkflowBuilder'));
+const WorkspacePage     = lazy(() => import('./pages/WorkspacePage'));
+const PlaybooksPage     = lazy(() => import('./pages/PlaybooksPage'));
+const PlaybookViewerPage = lazy(() => import('./pages/PlaybookViewerPage'));
+const CrashCoursePage   = lazy(() => import('./pages/CrashCoursePage'));
+
+function PageLoader() {
+  return (
+    <div className="min-h-screen bg-brand-light flex items-center justify-center">
+      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-dark" />
+    </div>
+  );
+}
+
 function AppWithOnboarding() {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const navigate = useNavigate();
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     if (!user) return;
-
     const key = `hb_onboarding_${user.id}`;
     const done = localStorage.getItem(key);
-
     if (!done) {
-      // Small delay so the page finishes rendering first
       const t = setTimeout(() => setShowOnboarding(true), 800);
       return () => clearTimeout(t);
     }
@@ -38,11 +43,10 @@ function AppWithOnboarding() {
 
   const handleOnboardingComplete = (_data: OnboardingData) => {
     setShowOnboarding(false);
-    navigate('/playbooks');
+    navigate('/workflows');
   };
 
   const handleOnboardingDismiss = () => {
-    // Mark as dismissed so it doesn't reappear this session
     if (user) {
       localStorage.setItem(`hb_onboarding_${user.id}`, JSON.stringify({ dismissed: true, completedAt: new Date().toISOString() }));
     }
@@ -52,21 +56,19 @@ function AppWithOnboarding() {
   return (
     <>
       <ToastProvider />
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/playbooks" element={<PlaybooksPage />} />
-        <Route path="/playbooks/:slug" element={<PlaybookViewerPage />} />
-        <Route path="/crash-course" element={<CrashCoursePage />} />
-        <Route path="/workspace" element={<WorkspacePage />} />
-        <Route path="/autopilot" element={<AutopilotPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
-        <Route path="/admin" element={<AdminDashboard />} />
-        <Route path="/admin/playbooks/new" element={<PlaybookEditorPage />} />
-        <Route path="/admin/playbooks/:id/edit" element={<PlaybookEditorPage />} />
-        <Route path="/watchers" element={<WatchersDashboard />} />
-        <Route path="/watchers/new" element={<CreateWatcherPage />} />
-        <Route path="/watchers/:id" element={<WatcherDetailPage />} />
-      </Routes>
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route path="/" element={isLoading ? null : user ? <Navigate to="/workflows" replace /> : <LandingPage />} />
+          <Route path="/playbooks" element={<PlaybooksPage />} />
+          <Route path="/playbooks/:slug" element={<PlaybookViewerPage />} />
+          <Route path="/crash-course" element={<CrashCoursePage />} />
+          <Route path="/workspace" element={<WorkspacePage />} />
+          <Route path="/workflows" element={<WorkflowsDashboard />} />
+          <Route path="/workflows/new" element={<WorkflowBuilder />} />
+          <Route path="/reports" element={<ReportsPage />} />
+          <Route path="/account" element={<AccountPage />} />
+        </Routes>
+      </Suspense>
 
       <AnimatePresence>
         {showOnboarding && user && (

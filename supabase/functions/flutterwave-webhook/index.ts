@@ -181,12 +181,19 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const signature = req.headers.get('verif-hash')
-    const secretHash = Deno.env.get('FLUTTERWAVE_WEBHOOK_HASH')
+    const signature = (req.headers.get('verif-hash') || req.headers.get('verif_hash'))?.trim()
+    const secretHash = Deno.env.get('FLUTTERWAVE_WEBHOOK_HASH')?.trim()
 
     // If a webhook hash is configured in Supabase secrets, verify it
-    if (secretHash && signature !== secretHash) {
-      console.error('Invalid signature')
+    if (!signature) {
+      console.error('CRITICAL: Missing verif-hash header from Flutterwave.')
+      const skipVerify = Deno.env.get('SKIP_WEBHOOK_VERIFICATION') === 'true'
+      if (!skipVerify) {
+        return new Response('Missing verif-hash header', { status: 401 })
+      }
+      console.warn('WARNING: Proceeding without signature verification (SKIP_WEBHOOK_VERIFICATION=true)')
+    } else if (secretHash && signature !== secretHash) {
+      console.error('Invalid signature mismatch.')
       return new Response('Invalid signature', { status: 401 })
     }
 

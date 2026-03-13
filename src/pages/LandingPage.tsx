@@ -172,9 +172,9 @@ export default function LandingPage() {
             variants={fadeInUp}
             className="text-4xl md:text-6xl font-semibold tracking-tight text-brand-dark leading-[1.08] max-w-4xl"
           >
-            The exact AI prompts and workflows your business needs{' '}
+            Get hours back every week.{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-blue to-purple-500">
-              to complete tasks in less time.
+              Deploy AI workflows that monitor your business automatically.
             </span>
           </motion.h1>
 
@@ -182,18 +182,18 @@ export default function LandingPage() {
             variants={fadeInUp}
             className="text-base md:text-lg text-brand-dark/70 leading-relaxed font-normal max-w-xl"
           >
-            Not sure what to say to AI? HoursBack gives you step-by-step playbooks with expert-written prompts for finance, sales, marketing and more. Follow the steps, get real results. Then automate everything on autopilot.
+            Connect Google Sheets, websites, or webhooks. Hoursback monitors changes, analyzes them with AI, and sends clear insights directly to your inbox — on your schedule.
           </motion.p>
 
           <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row items-center justify-center gap-4">
             {user ? (
-              <Link to="/playbooks">
+              <Link to="/workflows">
                 <motion.button
                   className="px-6 py-3 bg-brand-dark text-white rounded-full font-medium hover:bg-brand-dark/90 transition-all shadow-antigravity-sm flex items-center justify-center gap-2 text-base group"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
-                  Start building
+                  Deploy a Workflow
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </motion.button>
               </Link>
@@ -204,7 +204,7 @@ export default function LandingPage() {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
-                Start now
+                Deploy a Workflow
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </motion.button>
             )}
@@ -245,12 +245,12 @@ export default function LandingPage() {
               {/* Playbook cards grid */}
               <div className="px-4 pb-4 grid grid-cols-3 gap-2.5 flex-1 overflow-hidden">
                 {[
-                  { title: 'Financial Health Check', desc: 'Paste your numbers and get a plain-English breakdown of your cash flow and profit.', outcome: 'Cash flow report + profit breakdown', cat: 'Finance', time: '12 min', steps: 5, badge: 'bg-blue-100 text-blue-700' },
-                  { title: 'Cold Outreach Machine', desc: 'Write personalised cold emails in minutes using proven sales prompts.', outcome: '10 ready-to-send cold emails', cat: 'Sales', time: '8 min', steps: 4, badge: 'bg-green-100 text-green-700' },
-                  { title: '60-Min Marketing Plan', desc: 'Answer 5 questions and get a full content strategy ready to execute.', outcome: '30-day content calendar + channel plan', cat: 'Marketing', time: '10 min', steps: 6, badge: 'bg-purple-100 text-purple-700' },
-                  { title: 'Competitor Intelligence', desc: 'Find out exactly what your competitors are doing and where you can beat them.', outcome: 'Competitor matrix + gap analysis', cat: 'Research', time: '15 min', steps: 7, badge: 'bg-orange-100 text-orange-700' },
-                  { title: 'Risk Scorecard', desc: 'Spot the biggest risks in your business before they become problems.', outcome: 'Prioritised risk register + action plan', cat: 'Risk', time: '9 min', steps: 4, badge: 'bg-red-100 text-red-700' },
-                  { title: 'Loan Prep Kit', desc: 'Prepare everything a lender needs in the right format, first time.', outcome: 'Lender-ready financial summary doc', cat: 'Finance', time: '11 min', steps: 5, badge: 'bg-yellow-100 text-yellow-700' },
+                  { title: 'Weekly CEO Briefing', desc: 'High-level synthesis of metrics across sales, finance, and operations.', outcome: 'Weekly executive summary', cat: 'Executive', time: 'Automated', steps: 3, badge: 'bg-blue-100 text-blue-700' },
+                  { title: 'Sales Pipeline Health', desc: 'Alerts you to stalled deals and changes in probability.', outcome: 'At-risk pipeline alert', cat: 'Sales', time: 'Automated', steps: 4, badge: 'bg-green-100 text-green-700' },
+                  { title: 'Competitor Intelligence', desc: 'Monitors competitor websites for pricing or feature changes.', outcome: 'Competitor movement alert', cat: 'Marketing', time: 'Automated', steps: 2, badge: 'bg-orange-100 text-orange-700' },
+                  { title: 'AR Aging Monitor', desc: 'Notifies you when key clients go 30+ days overdue.', outcome: 'Late payment alert', cat: 'Finance', time: 'Automated', steps: 3, badge: 'bg-red-100 text-red-700' },
+                  { title: 'Industry News Digest', desc: 'Curates top news from your specific niche and provides a summary.', outcome: 'Curated news briefing', cat: 'Research', time: 'Automated', steps: 3, badge: 'bg-purple-100 text-purple-700' },
+                  { title: 'Supplier Price Tracker', desc: 'Monitors your core suppliers for unannounced price hikes.', outcome: 'Price hike alert', cat: 'Operations', time: 'Automated', steps: 2, badge: 'bg-yellow-100 text-yellow-700' },
                 ].map((p, i) => (
                   <div
                     key={i}
@@ -549,18 +549,18 @@ function HowItWorksSection() {
   const steps = [
     {
       icon: <Clock className="w-6 h-6" />,
-      title: "Choose what you want to get done",
-      description: "Browse playbooks for finance, sales, marketing, operations and more. Each one focuses on one specific task so you always know exactly what you're getting."
+      title: "Connect your data sources",
+      description: "Integrate your existing tools like Salesforce, QuickBooks, or any custom API. Our webhooks securely listen to your business data."
     },
     {
       icon: <Zap className="w-6 h-6" />,
-      title: "Copy the prompt. Paste it. Done.",
-      description: "Every step tells you exactly what to type into AI. Word for word. No guessing, no experience needed. If you can copy and paste, you can do this."
+      title: "The AI reasoning layer operates",
+      description: "Our agents automatically analyze your incoming data according to expert-crafted logic, extracting the signals and insights that matter most."
     },
     {
       icon: <BarChart3 className="w-6 h-6" />,
-      title: "Get a finished result in minutes",
-      description: "Tasks that used to take hours now take minutes. The AI does the heavy lifting. You just review what comes back and use it."
+      title: "Results delivered on autopilot",
+      description: "Wake up to finished reports, alerts, and recommendations delivered straight to your email. No logging in, no prompt copying."
     }
   ];
 
@@ -596,31 +596,31 @@ function HowItWorksSection() {
 function PlaybookPreviewSection() {
   const playbooks = [
     {
-      category: "Business Development",
-      title: "Account Research Brief",
-      time: "5 min",
-      saved: "40 min",
-      difficulty: "Beginner",
+      category: "Executive",
+      title: "Weekly CEO Briefing",
+      time: "Automated",
+      saved: "2 hours",
+      difficulty: "Advanced",
       color: "#635BFF",
-      preview: "Turn any company into a 1-page intelligence doc..."
+      preview: "High-level synthesis of metrics across sales, finance, and operations..."
     },
     {
       category: "Finance",
-      title: "Expense Anomaly Detection",
-      time: "10 min",
-      saved: "2 hours",
+      title: "AR Aging Monitor",
+      time: "Automated",
+      saved: "3 hours",
       difficulty: "Intermediate",
       color: "#10B981",
-      preview: "Find unusual spending patterns automatically..."
+      preview: "Notifies you when key clients go 30+ days overdue automatically..."
     },
     {
       category: "Operations",
-      title: "Vendor Scorecard",
-      time: "15 min",
-      saved: "3 hours",
+      title: "Supplier Price Tracker",
+      time: "Automated",
+      saved: "4 hours",
       difficulty: "Intermediate",
       color: "#F59E0B",
-      preview: "Data-driven supplier evaluation in minutes..."
+      preview: "Monitors your core suppliers for unannounced material price hikes..."
     }
   ];
 
@@ -634,7 +634,7 @@ function PlaybookPreviewSection() {
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-semibold mb-6">Popular playbooks</h2>
           <p className="text-xl text-brand-dark/70 max-w-2xl mx-auto font-normal">
-            These are some of the most used playbooks. Each one tells you exactly what to say to AI to get a real business task done.
+            These are our most popular deployable workflows. Each one automatically analyzes your data and delivers insights directly to you.
           </p>
         </div>
 
@@ -701,22 +701,22 @@ function FeaturesSection() {
     {
       icon: <Lock className="w-6 h-6" />,
       title: "No code required",
-      description: "Every playbook uses tools you already know: Excel, ChatGPT, Google Docs. If you can copy and paste, you can use this."
+      description: "Set up complex webhooks and scheduled jobs using our plain-English visual builder. Zero engineering resources needed."
     },
     {
       icon: <Users className="w-6 h-6" />,
       title: "Built for teams",
-      description: "Share playbooks across your team. Track who's using what. See collective time saved. Onboard new hires faster."
+      description: "Deploy workflows that notify entire teams. Send alerts to Slack channels, group inboxes, or external stakeholders."
     },
     {
       icon: <Shield className="w-6 h-6" />,
-      title: "Always current",
-      description: "AI tools change fast. We update playbooks when interfaces change. You're never stuck with outdated instructions."
+      title: "Secure architecture",
+      description: "Your data passes through our secure edge functions to best-in-class models and isn't used for training. Enterprise-grade security."
     },
     {
       icon: <Bot className="w-6 h-6" />,
-      title: "Autopilot agents",
-      description: "Schedule any playbook to run automatically. Your AI agent executes every step and delivers a finished report to your inbox with no manual trigger needed."
+      title: "Completely autonomous",
+      description: "Unlike copilot tools that require chatting, our agents run in the background. They only alert you when human action is needed."
     }
   ];
 
@@ -728,7 +728,7 @@ function FeaturesSection() {
             Everything you need. Nothing you don't.
           </h2>
           <p className="text-brand-dark/60 text-lg font-normal">
-            HoursBack is designed for real business owners, not developers. Pick a playbook, follow the steps, get results.
+            HoursBack is designed for business operators, not developers. Connect data, configure rules, and get insights.
           </p>
         </div>
         <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
@@ -861,12 +861,12 @@ function PricingPlanCard({ plan, isAnnual, onAuthRequired }: { plan: any, isAnnu
 
       <button
         onClick={() => {
-          if (plan.name === 'Enterprise' || plan.name === 'Custom Build') {
-            window.location.href = 'mailto:petersoncaleb275@gmail.com?subject=Enterprise%20Inquiry';
+          if (plan.name === 'Custom') {
+            window.location.href = 'mailto:petersoncaleb275@gmail.com?subject=Custom%20Plan%20Inquiry';
           } else if (plan.name === 'Pro') {
             if (!isPro) handlePayment();
           } else {
-            window.location.href = '/playbooks';
+            window.location.href = '/workflows';
           }
         }}
         disabled={plan.name === 'Pro' && isPro}
@@ -882,6 +882,8 @@ function PricingPlanCard({ plan, isAnnual, onAuthRequired }: { plan: any, isAnnu
             <Lightbulb className="w-5 h-5 text-green-400" />
             <span>Pro Active</span>
           </>
+        ) : plan.name === 'Custom' ? (
+          <span>Contact Us →</span>
         ) : (
           <span>{plan.cta}</span>
         )}
@@ -917,7 +919,7 @@ function PricingSection({ onAuthRequired }: { onAuthRequired?: () => void }) {
         </div>
 
         <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-          {pricingPlans.filter(p => p.name !== 'Enterprise').map((plan, i) => (
+          {pricingPlans.map((plan, i) => (
             <PricingPlanCard key={i} plan={plan} isAnnual={isAnnual} onAuthRequired={onAuthRequired} />
           ))}
         </div>

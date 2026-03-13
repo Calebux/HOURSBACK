@@ -22,17 +22,16 @@ import {
   ExternalLink,
   FileDown,
   Copy,
-  XCircle,
-  Eye
+  XCircle
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
-import { getCategoryColor, type Playbook, mockPlaybooks, smbPlaybooks, coworkPlaybooks, designerAIPlaybooks, coworkPluginPlaybooks, ecommercePlaybooks, launchPlaybooks, personalBrandPlaybooks, educationPlaybooks } from '../data/playbooks';
+import { type Playbook, launchCatalog, getCategoryColor } from '../data/playbooks';
 import { getSavedPlaybooks, getPlaybookProgress, toggleSavedPlaybook, getProfile } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 
-const allPlaybooks = [...mockPlaybooks, ...smbPlaybooks, ...coworkPlaybooks, ...designerAIPlaybooks, ...coworkPluginPlaybooks, ...ecommercePlaybooks, ...launchPlaybooks, ...personalBrandPlaybooks, ...educationPlaybooks];
+const allPlaybooks = launchCatalog;
 
 interface AutonomousRun {
   id: string;
@@ -248,13 +247,9 @@ export default function WorkspacePage() {
                 Admin
               </Link>
             )}
-            <Link to="/autopilot" className="hidden sm:flex items-center gap-1.5 text-sm font-medium text-[#DA7756] hover:text-brand-dark transition-colors bg-[#DA7756]/10 px-3 py-1.5 rounded-full">
+            <Link to="/workflows" className="hidden sm:flex items-center gap-1.5 text-sm font-medium text-[#DA7756] hover:text-brand-dark transition-colors bg-[#DA7756]/10 px-3 py-1.5 rounded-full">
               <Bot className="w-4 h-4" />
-              Autopilot
-            </Link>
-            <Link to="/watchers" className="hidden sm:flex items-center gap-1.5 text-sm font-medium text-[#635BFF] hover:text-brand-dark transition-colors bg-[#635BFF]/10 px-3 py-1.5 rounded-full">
-              <Eye className="w-4 h-4" />
-              Watchers
+              Workflows
             </Link>
             <Link to="/playbooks" className="text-sm text-brand-dark/80 hover:text-brand-dark transition-colors">
               Browse Playbooks

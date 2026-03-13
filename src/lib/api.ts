@@ -1,18 +1,25 @@
 import { supabase } from './supabase';
 import type { Playbook } from '../data/playbooks';
-import { smbPlaybooks, coworkPlaybooks, claudeCrashCoursePlaybooks, coworkPluginPlaybooks, designerAIPlaybooks, leadMagnetPlaybooks, ecommercePlaybooks, launchPlaybooks, personalBrandPlaybooks, educationPlaybooks } from '../data/playbooks';
+import { launchCatalog } from '../data/playbooks';
 // --- Local Playbook Helpers ---
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export function isUUID(id: string) { return UUID_REGEX.test(id); }
 
-export const allLocalPlaybooks = [...smbPlaybooks, ...coworkPlaybooks, ...claudeCrashCoursePlaybooks, ...coworkPluginPlaybooks, ...designerAIPlaybooks, ...leadMagnetPlaybooks, ...ecommercePlaybooks, ...launchPlaybooks, ...personalBrandPlaybooks, ...educationPlaybooks];
+export const allLocalPlaybooks = launchCatalog;
 export function findLocalPlaybook(id: string): Playbook | undefined {
     return allLocalPlaybooks.find(p => p.id === id);
 }
 
+export async function fetchPlaybooks(): Promise<Playbook[]> {
+    return launchCatalog;
+}
+
+export async function fetchPlaybookBySlug(slug: string): Promise<Playbook | null> {
+    return launchCatalog.find(p => p.slug === slug) ?? null;
+}
+
 export const mapDbPlaybook = (dbPb: any): Playbook => {
-    const localMatch = allLocalPlaybooks.find(p => p.slug === dbPb.slug);
-    
+    const localMatch = launchCatalog.find(p => p.slug === dbPb.slug);
     return {
         id: dbPb.id,
         slug: dbPb.slug,
@@ -30,8 +37,6 @@ export const mapDbPlaybook = (dbPb: any): Playbook => {
         beforeYouStart: dbPb.before_you_start || [],
         expectedOutcome: dbPb.expected_outcome || '',
         troubleshooting: localMatch?.troubleshooting || [],
-        coworkCompatible: localMatch?.coworkCompatible,
-        agentAutomation: localMatch?.agentAutomation,
         steps: (dbPb.steps || []).sort((a: any, b: any) => a.step_number - b.step_number).map((s: any) => ({
             id: s.id,
             stepNumber: s.step_number,
@@ -42,60 +47,9 @@ export const mapDbPlaybook = (dbPb: any): Playbook => {
             tips: s.tips,
             tools: s.tools || []
         })),
-        relatedPlaybooks: [] // Simplified for now
+        relatedPlaybooks: []
     };
 };
-
-export async function fetchPlaybooks(): Promise<Playbook[]> {
-    const { data, error } = await supabase
-        .from('playbooks')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-    if (error) {
-        console.error('Error fetching playbooks:', error);
-        throw error;
-    }
-
-    const fetchedPlaybooks = (data || []).map(mapDbPlaybook);
-
-    // Check which SMB and Cowork playbooks aren't already in the database and prepend them
-    const dbSlugs = new Set(fetchedPlaybooks.map(pb => pb.slug));
-    const missingSmbPlaybooks = smbPlaybooks.filter((pb: Playbook) => !dbSlugs.has(pb.slug));
-    const missingCoworkPlaybooks = coworkPlaybooks.filter((pb: Playbook) => !dbSlugs.has(pb.slug));
-    const missingCrashCoursePlaybooks = claudeCrashCoursePlaybooks.filter((pb: Playbook) => !dbSlugs.has(pb.slug));
-    const missingPluginPlaybooks = coworkPluginPlaybooks.filter((pb: Playbook) => !dbSlugs.has(pb.slug));
-    const missingDesignerPlaybooks = designerAIPlaybooks.filter((pb: Playbook) => !dbSlugs.has(pb.slug));
-    const missingLeadMagnetPlaybooks = leadMagnetPlaybooks.filter((pb: Playbook) => !dbSlugs.has(pb.slug));
-    const missingEcommercePlaybooks = ecommercePlaybooks.filter((pb: Playbook) => !dbSlugs.has(pb.slug));
-    const missingLaunchPlaybooks = launchPlaybooks.filter((pb: Playbook) => !dbSlugs.has(pb.slug));
-    const missingPersonalBrandPlaybooks = personalBrandPlaybooks.filter((pb: Playbook) => !dbSlugs.has(pb.slug));
-    const missingEducationPlaybooks = educationPlaybooks.filter((pb: Playbook) => !dbSlugs.has(pb.slug));
-
-    // Business playbooks first, then crash course, then DB playbooks
-    return [...missingLeadMagnetPlaybooks, ...missingEcommercePlaybooks, ...missingLaunchPlaybooks, ...missingPersonalBrandPlaybooks, ...missingEducationPlaybooks, ...missingDesignerPlaybooks, ...missingPluginPlaybooks, ...missingCoworkPlaybooks, ...missingSmbPlaybooks, ...fetchedPlaybooks, ...missingCrashCoursePlaybooks];
-}
-
-export async function fetchPlaybookBySlug(slug: string): Promise<Playbook | null> {
-    // Check locally injected SMB or Cowork playbooks first
-    const localMatch = allLocalPlaybooks.find(p => p.slug === slug);
-    if (localMatch) return localMatch;
-
-    const { data, error } = await supabase
-        .from('playbooks')
-        .select('*, steps:playbook_steps(*)')
-        .eq('slug', slug)
-        .single();
-
-    if (error) {
-        console.error('Error fetching playbook details:', error);
-        return null;
-    }
-
-    if (!data) return null;
-
-    return mapDbPlaybook(data);
-}
 
 // --- localStorage-based storage for local playbooks ---
 
