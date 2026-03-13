@@ -22,7 +22,7 @@ function timeUntil(dateStr: string): string {
 }
 
 export default function AccountPage() {
-  const { user, isPro, signOut, refreshPro } = useAuth();
+  const { user, signOut, refreshPro } = useAuth();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);

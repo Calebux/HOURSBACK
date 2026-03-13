@@ -9,7 +9,7 @@ import {
   Play, Plus, Clock, CheckCircle2, XCircle, Bot,
   Trash2, Copy, CheckCheck, Pencil, X, Link2, FileText,
   Loader2, MoreVertical, Pause, TrendingUp, Activity,
-  ChevronDown, ChevronUp, ExternalLink, User
+  ChevronDown, ChevronUp, ExternalLink
 } from 'lucide-react';
 import { MobileNav } from '../components/MobileNav';
 
