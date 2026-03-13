@@ -216,11 +216,11 @@ export default function PlaybooksPage() {
             {user ? (
               <>
                 <Link
-                  to="/workspace"
+                  to="/workflows"
                   className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 text-sm text-brand-dark/80 hover:text-brand-dark hover:bg-slate-100 rounded-full transition-all whitespace-nowrap"
                 >
                   <LayoutDashboard className="w-4 h-4 shrink-0" />
-                  <span className="hidden sm:inline">My Progress</span>
+                  <span className="hidden sm:inline">My Workflows</span>
                 </Link>
                 <Link
                   to="/workflows"

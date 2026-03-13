@@ -13,7 +13,6 @@ import AccountPage from './pages/AccountPage';
 
 // Lazily loaded — not needed on first paint
 const WorkflowBuilder   = lazy(() => import('./pages/WorkflowBuilder'));
-const WorkspacePage     = lazy(() => import('./pages/WorkspacePage'));
 const PlaybooksPage     = lazy(() => import('./pages/PlaybooksPage'));
 const PlaybookViewerPage = lazy(() => import('./pages/PlaybookViewerPage'));
 const CrashCoursePage   = lazy(() => import('./pages/CrashCoursePage'));
@@ -62,7 +61,7 @@ function AppWithOnboarding() {
           <Route path="/playbooks" element={<PlaybooksPage />} />
           <Route path="/playbooks/:slug" element={<PlaybookViewerPage />} />
           <Route path="/crash-course" element={<CrashCoursePage />} />
-          <Route path="/workspace" element={<WorkspacePage />} />
+          <Route path="/workspace" element={<Navigate to="/workflows" replace />} />
           <Route path="/workflows" element={<WorkflowsDashboard />} />
           <Route path="/workflows/new" element={<WorkflowBuilder />} />
           <Route path="/reports" element={<ReportsPage />} />

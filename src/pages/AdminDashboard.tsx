@@ -106,9 +106,9 @@ export default function AdminDashboard() {
 
             <main className="container mx-auto px-6 py-8">
                 <div className="flex items-center gap-2 mb-8">
-                    <Link to="/workspace" className="text-brand-dark/70 hover:text-brand-dark flex items-center gap-1 text-sm bg-white px-3 py-1.5 rounded-full border border-slate-200">
+                    <Link to="/workflows" className="text-brand-dark/70 hover:text-brand-dark flex items-center gap-1 text-sm bg-white px-3 py-1.5 rounded-full border border-slate-200">
                         <ChevronLeft className="w-4 h-4" />
-                        Back to My Workspace
+                        Back to Workflows
                     </Link>
                 </div>
 

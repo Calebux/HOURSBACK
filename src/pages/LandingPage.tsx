@@ -89,10 +89,10 @@ export default function LandingPage() {
 
           <div className="flex items-center gap-4">
             <button
-              onClick={() => { if (user) { navigate('/workspace'); } else { setAuthView('signup'); setAuthModalOpen(true); } }}
+              onClick={() => { if (user) { navigate('/workflows'); } else { setAuthView('signup'); setAuthModalOpen(true); } }}
               className="hidden sm:block text-sm text-brand-dark/80 hover:text-brand-dark transition-colors cursor-pointer"
             >
-              My Workspace
+              My Workflows
             </button>
 
             {user ? (
@@ -142,7 +142,7 @@ export default function LandingPage() {
               <button onClick={() => { document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' }); setMobileMenuOpen(false); }} className="block text-left text-brand-dark/80 hover:text-brand-dark transition-colors cursor-pointer">Pricing</button>
               <button onClick={() => { document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' }); setMobileMenuOpen(false); }} className="block text-left text-brand-dark/80 hover:text-brand-dark transition-colors cursor-pointer">Features</button>
               {user ? (
-                <button onClick={() => { navigate('/workspace'); setMobileMenuOpen(false); }} className="block text-left text-brand-dark/80 hover:text-brand-dark transition-colors cursor-pointer">My Workspace</button>
+                <button onClick={() => { navigate('/workflows'); setMobileMenuOpen(false); }} className="block text-left text-brand-dark/80 hover:text-brand-dark transition-colors cursor-pointer">My Workflows</button>
               ) : (
                 <>
                   <button onClick={() => { setAuthView('signin'); setAuthModalOpen(true); setMobileMenuOpen(false); }} className="block text-left text-brand-dark/80 hover:text-brand-dark transition-colors cursor-pointer">Sign in</button>
