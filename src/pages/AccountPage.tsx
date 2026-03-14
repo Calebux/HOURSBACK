@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Bot, FileText, User, LogOut, Crown, CheckCircle2, Clock, RefreshCw } from 'lucide-react';
 import { MobileNav } from '../components/MobileNav';
+import { ProUpgradeButton } from '../components/ProUpgradeButton';
 import { toast } from 'sonner';
 
 interface Profile {
@@ -132,9 +133,9 @@ export default function AccountPage() {
               </div>
             </div>
             {!isProStatus && (
-              <a href="/#pricing" className="shrink-0 bg-purple-600 text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-purple-700 transition-colors">
-                Upgrade
-              </a>
+              <ProUpgradeButton className="shrink-0 bg-purple-600 text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-purple-700 transition-colors flex items-center gap-1.5">
+                Upgrade →
+              </ProUpgradeButton>
             )}
           </div>
 

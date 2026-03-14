@@ -99,6 +99,7 @@ export default function WorkflowBuilder() {
   const preselectedId = searchParams.get('id') ?? '';
   const [step, setStep] = useState(preselectedId ? 2 : 1);
   const [selectedWorkflow, setSelectedWorkflow] = useState(preselectedId);
+  const [activeCategory, setActiveCategory] = useState('All');
   const [triggerType, setTriggerType] = useState('schedule');
   const [schedule, setSchedule] = useState('weekly');
   const [runTime, setRunTime] = useState('08:00');
@@ -232,8 +233,25 @@ export default function WorkflowBuilder() {
               <p className="text-slate-600">Click any workflow to configure and deploy it automatically.</p>
             </div>
 
+            {/* Category filter */}
+            <div className="flex gap-2 flex-wrap">
+              {['All', 'Finance', 'Sales', 'Marketing', 'Operations', 'Research', 'Creator', 'Executive', 'Legal/Compliance'].map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => setActiveCategory(cat)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                    activeCategory === cat
+                      ? 'bg-brand-dark text-white border-brand-dark'
+                      : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+
             <div className="space-y-3">
-              {launchCatalog.map(p => {
+              {launchCatalog.filter(p => activeCategory === 'All' || p.category === activeCategory).map(p => {
                 const locked = p.isPro && !hasPro;
                 const color = getCategoryColor(p.category);
                 return (
@@ -252,7 +270,7 @@ export default function WorkflowBuilder() {
                     {/* Color accent bar */}
                     <div className="w-1 self-stretch shrink-0" style={{ backgroundColor: locked ? '#CBD5E1' : color }} />
 
-                    <div className="flex flex-1 items-start gap-4 p-5">
+                    <div className="flex flex-1 items-start gap-3 p-4 sm:p-5">
                       {/* Main content */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1.5 flex-wrap">
@@ -268,8 +286,8 @@ export default function WorkflowBuilder() {
                             </span>
                           )}
                         </div>
-                        <h3 className="font-bold text-base mb-1">{p.title}</h3>
-                        <p className="text-sm text-slate-500 leading-relaxed">
+                        <h3 className="font-bold text-sm sm:text-base mb-1">{p.title}</h3>
+                        <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
                           {workflowDescriptions[p.id] || p.subtitle}
                         </p>
                         <div className="flex items-center gap-1 mt-2 text-xs text-slate-400">

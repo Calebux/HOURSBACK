@@ -12,10 +12,13 @@ import ReportsPage from './pages/ReportsPage';
 import AccountPage from './pages/AccountPage';
 
 // Lazily loaded — not needed on first paint
-const WorkflowBuilder   = lazy(() => import('./pages/WorkflowBuilder'));
-const PlaybooksPage     = lazy(() => import('./pages/PlaybooksPage'));
+const WorkflowBuilder    = lazy(() => import('./pages/WorkflowBuilder'));
+const PlaybooksPage      = lazy(() => import('./pages/PlaybooksPage'));
 const PlaybookViewerPage = lazy(() => import('./pages/PlaybookViewerPage'));
-const CrashCoursePage   = lazy(() => import('./pages/CrashCoursePage'));
+const CrashCoursePage    = lazy(() => import('./pages/CrashCoursePage'));
+const PrivacyPage        = lazy(() => import('./pages/PrivacyPage'));
+const TermsPage          = lazy(() => import('./pages/TermsPage'));
+const NotFoundPage       = lazy(() => import('./pages/NotFoundPage'));
 
 function PageLoader() {
   return (
@@ -66,6 +69,9 @@ function AppWithOnboarding() {
           <Route path="/workflows/new" element={<WorkflowBuilder />} />
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/account" element={<AccountPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>
 

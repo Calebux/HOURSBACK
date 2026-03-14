@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import posthog from 'posthog-js';
+import { ProUpgradeButton } from '../components/ProUpgradeButton';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -55,7 +56,7 @@ function SuccessRateBadge({ rate, total }: { rate: number | null; total: number 
 }
 
 export default function WorkflowsDashboard() {
-  const { user, refreshPro } = useAuth();
+  const { user, refreshPro, isPro } = useAuth();
   const navigate = useNavigate();
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [runs, setRuns] = useState<WorkflowRun[]>([]);
@@ -357,6 +358,19 @@ export default function WorkflowsDashboard() {
             </button>
           </Link>
         </div>
+
+        {/* Pro upgrade banner */}
+        {!isPro && (
+          <div className="mb-6 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div>
+              <p className="font-semibold text-white text-sm">Unlock all 15 workflows with Pro</p>
+              <p className="text-white/70 text-xs mt-0.5">Cash flow, competitor tracking, YouTube trends, sales pipeline — $99/month.</p>
+            </div>
+            <ProUpgradeButton className="shrink-0 bg-white text-purple-700 px-4 py-2 rounded-full text-sm font-semibold hover:bg-purple-50 transition-colors flex items-center gap-1.5 whitespace-nowrap">
+              Upgrade to Pro →
+            </ProUpgradeButton>
+          </div>
+        )}
 
         {/* Stats bar */}
         {workflows.length > 0 && (

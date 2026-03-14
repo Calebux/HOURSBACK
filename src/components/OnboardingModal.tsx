@@ -129,8 +129,8 @@ export function OnboardingModal({ userId, onComplete, onDismiss }: OnboardingMod
                 exit={{ opacity: 0, x: 12 }}
                 transition={{ duration: 0.2 }}
               >
-                <h2 className="text-xl font-semibold text-white mb-1">What do you do?</h2>
-                <p className="text-white/50 text-sm">We'll put the most useful playbooks at the top for you.</p>
+                <h2 className="text-xl font-semibold text-white mb-1">What kind of business do you run?</h2>
+                <p className="text-white/50 text-sm">We'll recommend the most useful workflows for you.</p>
               </motion.div>
             ) : (
               <motion.div
@@ -140,8 +140,8 @@ export function OnboardingModal({ userId, onComplete, onDismiss }: OnboardingMod
                 exit={{ opacity: 0, x: 12 }}
                 transition={{ duration: 0.2 }}
               >
-                <h2 className="text-xl font-semibold text-white mb-1">What are you here to do?</h2>
-                <p className="text-white/50 text-sm">Pick up to 3 goals — we'll sort the right playbooks first.</p>
+                <h2 className="text-xl font-semibold text-white mb-1">What do you want to automate?</h2>
+                <p className="text-white/50 text-sm">Pick up to 3 goals — we'll suggest the right workflows.</p>
               </motion.div>
             )}
           </AnimatePresence>
@@ -251,7 +251,7 @@ export function OnboardingModal({ userId, onComplete, onDismiss }: OnboardingMod
                 disabled={goals.length === 0}
                 className="px-5 py-2.5 bg-brand-dark text-white rounded-full text-sm font-medium shadow-antigravity-sm hover:bg-brand-dark/90 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                Personalise my library
+                Set up my workflows
               </button>
             )}
           </div>

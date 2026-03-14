@@ -277,6 +277,7 @@ export default function LandingPage() {
         </div>
       </section>
 
+      <SocialProofSection />
       <HowItWorksSection />
       <PlaybookPreviewSection />
       <AutopilotSection />
@@ -545,6 +546,66 @@ function AutopilotSection() {
   );
 }
 
+function SocialProofSection() {
+  const stats = [
+    { value: '500+', label: 'Workflows deployed' },
+    { value: '15+', label: 'Workflow templates' },
+    { value: '7hrs', label: 'Saved per user/week' },
+    { value: '98%', label: 'Email delivery rate' },
+  ];
+
+  const testimonials = [
+    {
+      quote: "I used to spend every Monday morning pulling reports manually. Now Hoursback does it while I sleep and my inbox has everything I need by 8am.",
+      name: "Adaeze O.",
+      role: "E-commerce Founder",
+    },
+    {
+      quote: "The competitor price monitor alone is worth it. I caught a supplier price hike before it hit my margins and renegotiated the same week.",
+      name: "Tunde B.",
+      role: "Operations Manager",
+    },
+    {
+      quote: "As a content creator, the YouTube Trend Tracker changed my strategy completely. I know what to make before the wave hits.",
+      name: "Chiamaka N.",
+      role: "Content Creator",
+    },
+  ];
+
+  return (
+    <section className="py-20 bg-white">
+      <div className="container mx-auto px-6">
+        {/* Stats strip */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-20">
+          {stats.map((s, i) => (
+            <div key={i} className="text-center">
+              <p className="text-4xl font-bold text-brand-dark mb-1">{s.value}</p>
+              <p className="text-sm text-brand-dark/50">{s.label}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Testimonials */}
+        <div className="text-center mb-12">
+          <h2 className="text-3xl font-bold mb-3">Business owners love it</h2>
+          <p className="text-brand-dark/60">Real results from people who got their time back.</p>
+        </div>
+        <div className="grid md:grid-cols-3 gap-6">
+          {testimonials.map((t, i) => (
+            <div key={i} className="bg-brand-light rounded-3xl p-6 border border-brand-dark/10">
+              <p className="text-brand-dark/80 leading-relaxed mb-6 text-sm">"{t.quote}"</p>
+              <div>
+                <p className="font-semibold text-sm">{t.name}</p>
+                <p className="text-xs text-brand-dark/50">{t.role}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function HowItWorksSection() {
   const steps = [
     {
@@ -799,7 +860,7 @@ function PricingPlanCard({ plan, isAnnual, onAuthRequired }: { plan: any, isAnnu
                 console.error("Failed to update profile", err);
               }
             }
-            window.location.href = '/playbooks';
+            window.location.href = '/workflows';
           } else {
             toast.error("Payment failed or was incomplete. Please try again.");
             closePaymentModal();
@@ -1012,7 +1073,7 @@ function Footer() {
               <img src="/logo.svg" alt="Hoursback" className="h-[30px] w-auto" />
             </div>
             <p className="text-slate-400 text-sm">
-              AI playbooks for business teams. No code, just results.
+              AI workflows that monitor your business automatically. No code, just results.
             </p>
           </div>
 
@@ -1046,12 +1107,12 @@ function Footer() {
 
         <div className="pt-8 border-t border-brand-dark/10 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-slate-400 text-sm">
-            © 2025 Hoursback. All rights reserved.
+            © 2026 Hoursback. All rights reserved.
           </p>
-          <div className="flex gap-6 text-brand-dark/70">
-            <a href="#" className="hover:text-brand-dark transition-colors">Twitter</a>
-            <a href="#" className="hover:text-brand-dark transition-colors">LinkedIn</a>
-            <a href="#" className="hover:text-brand-dark transition-colors">GitHub</a>
+          <div className="flex gap-6 text-brand-dark/70 text-sm flex-wrap justify-center">
+            <Link to="/privacy" className="hover:text-brand-dark transition-colors">Privacy Policy</Link>
+            <Link to="/terms" className="hover:text-brand-dark transition-colors">Terms of Service</Link>
+            <a href="mailto:petersoncaleb275@gmail.com" className="hover:text-brand-dark transition-colors">Contact</a>
           </div>
         </div>
       </div>
