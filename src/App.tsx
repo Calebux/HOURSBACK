@@ -42,7 +42,7 @@ function AppWithOnboarding() {
 
   const handleOnboardingComplete = (_data: OnboardingData) => {
     setShowOnboarding(false);
-    navigate('/workflows');
+    navigate('/workflows/new');
   };
 
   const handleOnboardingDismiss = () => {

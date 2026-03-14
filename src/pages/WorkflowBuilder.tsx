@@ -2,16 +2,34 @@ import { useState, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { launchCatalog } from '../data/playbooks';
+import { launchCatalog, getCategoryColor } from '../data/playbooks';
 import { toast } from 'sonner';
 import posthog from 'posthog-js';
-import { ArrowLeft, Check, ChevronRight, Copy, CheckCheck, ExternalLink, Upload, FileSpreadsheet } from 'lucide-react';
+import { ArrowLeft, ChevronRight, Copy, CheckCheck, ExternalLink, Upload, FileSpreadsheet, Clock, Lock } from 'lucide-react';
 
 interface WorkflowInput {
   label: string;
   placeholder: string;
   type: 'url' | 'text' | 'textarea';
 }
+
+const workflowDescriptions: Record<string, string> = {
+  'wkflow-1': 'Every week, Hoursback reads your Google Sheets dashboard, synthesises sales, finance, and operations metrics, and delivers a plain-English executive briefing to your inbox — so you start the week with a full picture of business health without opening a single spreadsheet.',
+  'wkflow-2': 'Connects to your CRM data and reviews every open deal each week. Flags stalled opportunities, tracks probability changes, and surfaces at-risk deals so your sales team can act before revenue slips through the cracks.',
+  'wkflow-3': 'Scans your accounting data for invoices past 30, 60, or 90 days overdue. Delivers a prioritised list of late payments with suggested follow-up actions — so you never lose track of money owed to you.',
+  'wkflow-4': 'Reads your P&L from QuickBooks, Xero, or Google Sheets and produces a narrative monthly summary — comparing revenue, expenses, and margins to the previous month in plain English, so you always know your financial position.',
+  'wkflow-5': 'Watches your competitors\' websites for changes — pricing updates, new product launches, or messaging shifts. Sends a weekly digest of what changed and what it might mean for your business, so you\'re never caught off guard.',
+  'wkflow-6': 'Monitors your suppliers\' pricing pages and alerts you the moment prices change — giving you time to renegotiate, find alternatives, or adjust your own pricing before it hits your margins.',
+  'wkflow-7': 'Scans news, blogs, and publications in your industry every week and delivers a curated digest of the most important trends — so you\'re always informed without spending hours reading through noise.',
+  'wkflow-8': 'Tracks mentions of your brand across news sites, forums, and social platforms. Sends a weekly digest of what people are saying — positive and negative — so you can respond quickly and protect your reputation.',
+  'wkflow-9': 'Monitors regulatory bodies and news sources in your jurisdiction for rule changes, new guidelines, or enforcement updates — so you\'re never caught off-guard by compliance requirements that could affect your business.',
+  'wkflow-10': 'Watches your supplier product pages for inventory changes, new arrivals, or discontinued items. Keeps you ahead of supply chain disruptions before they affect your stock levels and customer orders.',
+  'wkflow-11': 'Tracks key customer companies for news events — funding rounds, leadership changes, expansions, or downturns — so your account managers can reach out at the right moment with the right message to expand the relationship.',
+  'wkflow-14': 'Reads your income and expense data from Google Sheets and delivers a weekly cash flow summary — highlighting trends, upcoming cash gaps, and actionable recommendations to keep your business financially healthy.',
+  'wkflow-15': 'Monitors your supplier catalog and product pages for stock availability changes. Alerts you when items are low, back in stock, or discontinued — so you can reorder proactively and avoid stockouts.',
+  'wkflow-20': 'Scans YouTube and social platforms for trending topics, video formats, and keywords in your niche. Delivers a weekly digest of what\'s gaining traction so you can create content that rides the wave before it peaks.',
+  'wkflow-21': 'Analyses your niche\'s trending topics, seasonal patterns, and audience interests, then generates a ready-to-use 7-day content calendar — complete with post ideas, hooks, and optimal formats for each platform.',
+};
 
 const dataSourceHelp: Record<string, string> = {
   'wkflow-1': 'Share your Google Sheet and set access to "Anyone with link can view".',
@@ -211,39 +229,63 @@ export default function WorkflowBuilder() {
           <div className="space-y-6 animate-in slide-in-from-right-4 fade-in duration-300">
             <div>
               <h1 className="text-3xl font-bold mb-2">Choose a workflow</h1>
-              <p className="text-slate-600">Select the automated workflow you want to deploy.</p>
+              <p className="text-slate-600">Click any workflow to configure and deploy it automatically.</p>
             </div>
-            <div className="grid md:grid-cols-2 gap-4">
+
+            <div className="space-y-3">
               {launchCatalog.map(p => {
                 const locked = p.isPro && !hasPro;
-                const isSelected = selectedWorkflow === p.id;
+                const color = getCategoryColor(p.category);
                 return (
                   <div
                     key={p.id}
-                    onClick={() => setSelectedWorkflow(p.id)}
-                    className={`p-5 rounded-2xl border-2 transition-all ${
+                    onClick={() => {
+                      setSelectedWorkflow(p.id);
+                      if (!locked) setStep(2);
+                    }}
+                    className={`flex items-start gap-0 rounded-2xl border-2 overflow-hidden transition-all cursor-pointer ${
                       locked
-                        ? 'cursor-pointer border-slate-200 bg-slate-50/50 opacity-75'
-                        : isSelected
-                          ? 'cursor-pointer border-brand-blue bg-blue-50/30 shadow-md'
-                          : 'cursor-pointer border-slate-200 bg-white hover:border-slate-300'
+                        ? 'border-slate-200 bg-slate-50/50 opacity-80 hover:opacity-100'
+                        : 'border-slate-200 bg-white hover:border-brand-blue/50 hover:shadow-md'
                     }`}
                   >
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-semibold px-2 py-1 bg-slate-100 rounded-md text-slate-600">
-                          {p.category}
-                        </span>
-                        {p.isPro && (
-                          <span className={`text-xs font-semibold px-2 py-1 rounded-md ${locked ? 'bg-slate-200 text-slate-500' : 'bg-purple-100 text-purple-700'}`}>
-                            {locked ? '🔒 Pro' : 'Pro'}
+                    {/* Color accent bar */}
+                    <div className="w-1 self-stretch shrink-0" style={{ backgroundColor: locked ? '#CBD5E1' : color }} />
+
+                    <div className="flex flex-1 items-start gap-4 p-5">
+                      {/* Main content */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                          <span
+                            className="text-xs font-semibold px-2 py-0.5 rounded-md"
+                            style={{ backgroundColor: `${locked ? '#64748B' : color}18`, color: locked ? '#64748B' : color }}
+                          >
+                            {p.category}
                           </span>
-                        )}
+                          {p.isPro && (
+                            <span className={`flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-md ${locked ? 'bg-slate-100 text-slate-500' : 'bg-purple-100 text-purple-700'}`}>
+                              {locked && <Lock className="w-3 h-3" />} Pro
+                            </span>
+                          )}
+                        </div>
+                        <h3 className="font-bold text-base mb-1">{p.title}</h3>
+                        <p className="text-sm text-slate-500 leading-relaxed">
+                          {workflowDescriptions[p.id] || p.subtitle}
+                        </p>
+                        <div className="flex items-center gap-1 mt-2 text-xs text-slate-400">
+                          <Clock className="w-3 h-3" />
+                          Saves ~{p.timeSaved} min/week
+                        </div>
                       </div>
-                      {isSelected && !locked && <Check className="w-5 h-5 text-brand-blue" />}
+
+                      {/* Arrow */}
+                      <div className="shrink-0 mt-1">
+                        {locked
+                          ? <Lock className="w-4 h-4 text-slate-300" />
+                          : <ChevronRight className="w-5 h-5 text-slate-300" />
+                        }
+                      </div>
                     </div>
-                    <h3 className="font-bold text-lg mb-1">{p.title}</h3>
-                    <p className="text-sm text-slate-500">{p.subtitle}</p>
                   </div>
                 );
               })}
@@ -264,16 +306,6 @@ export default function WorkflowBuilder() {
                 </a>
               </div>
             )}
-
-            <div className="pt-6 flex justify-end border-t border-slate-200">
-              <button
-                disabled={!selectedWorkflow || (workflow?.isPro && !hasPro)}
-                onClick={() => setStep(2)}
-                className="bg-brand-dark text-white px-8 py-3 rounded-full font-medium hover:bg-brand-dark/90 disabled:opacity-50 transition-colors"
-              >
-                Configure Trigger
-              </button>
-            </div>
           </div>
         )}
 
