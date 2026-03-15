@@ -19,6 +19,8 @@ import {
   PauseCircle
 } from 'lucide-react';
 import { AuthModal } from '../components/AuthModal';
+import { BouncyCardsFeatures } from '../components/ui/bounce-card-features';
+import { N8nWorkflowBlock } from '../components/ui/n8n-workflow-block-shadcnui';
 import { useAuth } from '../contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { pricingPlans } from '../data/playbooks';
@@ -168,19 +170,16 @@ export default function LandingPage() {
         >
           <motion.h1
             variants={fadeInUp}
-            className="text-4xl md:text-6xl font-semibold tracking-tight text-brand-dark leading-[1.08] max-w-4xl"
+            className="text-4xl md:text-6xl font-semibold tracking-tight text-brand-dark leading-[1.15] max-w-4xl"
           >
-            Get hours back every week.{' '}
+            Get hours back every week.<br />
             <span style={{ color: '#4285F4' }}>
               Deploy AI workflows that monitor your business automatically.
             </span>
           </motion.h1>
 
-          <motion.p
-            variants={fadeInUp}
-            className="text-base md:text-lg text-brand-dark/70 leading-relaxed font-normal max-w-xl"
-          >
-            Deploy AI workflows that monitor your business data and send you clear insights automatically.
+          <motion.p variants={fadeInUp} className="text-base md:text-lg text-brand-dark/55 max-w-xl leading-relaxed">
+            Connect your data, set your schedule, and get clear AI-powered insights delivered straight to your inbox.
           </motion.p>
 
           <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -217,9 +216,6 @@ export default function LandingPage() {
             </motion.button>
           </motion.div>
 
-          <motion.p variants={fadeInUp} className="text-xs text-brand-dark/35 -mt-1">
-            No setup headaches. Deploy in minutes.
-          </motion.p>
         </motion.div>
 
         {/* ── Scroll-animated product card only ── */}
@@ -232,16 +228,16 @@ export default function LandingPage() {
               <div className="flex items-center justify-between px-4 py-2.5 bg-white border-b border-brand-dark/10 shrink-0">
                 <img src="/logo.svg" alt="hoursback" className="h-5 w-auto" />
                 <div className="flex gap-5 text-xs text-brand-dark/50">
-                  <span className="text-brand-blue font-semibold">Playbooks</span>
-                  <span>Workspace</span>
-                  <span>Autopilot</span>
+                  <span className="text-brand-blue font-semibold">Workflows</span>
+                  <span>Reports</span>
+                  <span>Account</span>
                 </div>
                 <div className="w-6 h-6 rounded-full bg-brand-blue flex items-center justify-center text-[10px] text-white font-bold">C</div>
               </div>
 
               {/* Section label */}
               <div className="px-4 pt-3 pb-1 shrink-0">
-                <p className="text-[10px] tracking-widest text-brand-dark/40 font-semibold uppercase">Your AI Playbooks</p>
+                <p className="text-[10px] tracking-widest text-brand-dark/40 font-semibold uppercase">Your AI Workflows</p>
               </div>
 
               {/* Playbook cards grid */}
@@ -280,12 +276,12 @@ export default function LandingPage() {
       </section>
 
       <HowItWorksSection />
-      <WhoIsItForSection />
       <WorkflowDiagramSection />
       <PlaybookPreviewSection />
+      <WhoIsItForSection />
       <AutopilotSection />
       <WhyHoursbackSection />
-      <FeaturesSection />
+      <BouncyCardsFeatures />
       <SocialProofSection />
       <PricingSection onAuthRequired={() => { setAuthView('signup'); setAuthModalOpen(true); }} />
       <EnterpriseSection />
@@ -304,88 +300,132 @@ export default function LandingPage() {
 function EnterpriseSection() {
   const services = [
     {
-      title: "Claude Migration workshop",
+      title: "Claude Migration Workshop",
       price: "$2,500+",
+      tag: "One-time",
+      tagColor: "#4285F4",
       desc: "Stop playing LLMs on hard mode. We'll migrate your team from ChatGPT to Claude in one day, including memory imports and project setup.",
-      features: ["On-site or remote workshop", "Team memory migration", "Initial Project structure setup"]
+      features: ["On-site or remote workshop", "Team memory migration", "Initial Project structure setup"],
+      avatar: "CM",
+      avatarColor: "#4285F4",
     },
     {
       title: "Custom Agent / SOP Mapping",
       price: "$5,000/mo",
+      tag: "Ongoing",
+      tagColor: "#DA7756",
       desc: "We interview your team, record your chaos, and turn your SOPs into autonomous Claude agents that run your business for you.",
-      features: ["Workflow transcription", "Custom Skill creation", "Agentic process automation"]
+      features: ["Workflow transcription", "Custom Skill creation", "Agentic process automation"],
+      avatar: "SA",
+      avatarColor: "#DA7756",
     },
     {
       title: "Done-For-You Dashboard",
       price: "$10,000+",
+      tag: "Project",
+      tagColor: "#7c3aed",
       desc: "A custom interface that reacts to your business. We build the dashboards so you can manage your operations, not manually run them.",
-      features: ["Custom React interfaces", "MCP integration builds", "End-to-end maintenance"]
-    }
+      features: ["Custom React interfaces", "MCP integration builds", "End-to-end maintenance"],
+      avatar: "DY",
+      avatarColor: "#7c3aed",
+    },
   ];
 
   return (
-    <section id="enterprise" className="py-32 bg-white relative overflow-hidden">
-      {/* Background decoration */}
-      <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-brand-blue/5 rounded-full blur-3xl pointer-events-none" />
+    <section id="enterprise" className="py-24 bg-brand-dark text-white overflow-hidden relative">
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#4285F4]/8 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-purple-600/8 rounded-full blur-3xl pointer-events-none" />
 
       <div className="container mx-auto px-6 relative z-10">
-        <div className="text-center mb-20">
-          <h2 className="text-4xl md:text-6xl font-semibold mb-6 leading-tight max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-16">
+          <p className="text-xs font-semibold text-white/30 uppercase tracking-widest mb-4">Done-For-You Services</p>
+          <h2 className="text-4xl md:text-5xl font-semibold mb-5 leading-tight max-w-3xl mx-auto">
             Scale your intelligence layer with{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-blue to-purple-600">
-              Done-For-You automation.
-            </span>
+            <span style={{ color: '#4285F4' }}>Done-For-You automation.</span>
           </h2>
-          <p className="text-lg md:text-xl text-brand-dark/60 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-lg text-white/50 max-w-xl mx-auto leading-relaxed">
             You don't need "AI consulting." You need autonomy. We build the systems that make your business run itself.
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          {services.map((service, i) => (
-            <div key={i} className="bg-gray-50 border border-gray-100 rounded-[32px] p-8 flex flex-col hover:shadow-antigravity-md transition-all group">
-              <div className="mb-6">
-                <h3 className="text-2xl font-semibold mb-2">{service.title}</h3>
-                <div className="text-brand-blue font-bold text-lg mb-4">{service.price}</div>
-                <p className="text-brand-dark/70 text-sm leading-relaxed">{service.desc}</p>
+        {/* Service cards — testimonial card style */}
+        <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+          {services.map((s, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: i * 0.1 }}
+              className="relative bg-white/5 border border-white/10 rounded-3xl p-6 flex flex-col hover:bg-white/8 transition-colors"
+            >
+              {/* Price tag */}
+              <div className="flex items-center justify-between mb-5">
+                <span
+                  className="text-xs font-semibold px-3 py-1 rounded-full"
+                  style={{ backgroundColor: `${s.tagColor}25`, color: s.tagColor }}
+                >
+                  {s.tag}
+                </span>
+                <span className="text-xl font-bold text-white">{s.price}</span>
               </div>
 
-              <ul className="space-y-3 mb-8 flex-grow">
-                {service.features.map((f, j) => (
-                  <li key={j} className="flex items-center gap-2 text-sm text-brand-dark/80">
-                    <CheckCircle2 className="w-4 h-4 text-brand-blue" />
+              {/* Title + desc */}
+              <h3 className="text-lg font-bold text-white mb-2 leading-snug">{s.title}</h3>
+              <p className="text-white/55 text-sm leading-relaxed mb-5 flex-1">{s.desc}</p>
+
+              {/* Features */}
+              <ul className="space-y-2 mb-6 pt-4 border-t border-white/10">
+                {s.features.map((f, j) => (
+                  <li key={j} className="flex items-center gap-2 text-sm text-white/70">
+                    <CheckCircle2 className="w-4 h-4 shrink-0" style={{ color: s.tagColor }} />
                     {f}
                   </li>
                 ))}
               </ul>
 
-              <button
-                onClick={() => window.location.href = `mailto:petersoncaleb275@gmail.com?subject=Inquiry:%20${encodeURIComponent(service.title)}`}
-                className="w-full py-3 bg-brand-dark text-white rounded-full font-medium hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 group"
-              >
-                Inquire now
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </button>
-            </div>
+              {/* CTA + avatar */}
+              <div className="flex items-center gap-3 pt-4 border-t border-white/10">
+                <div
+                  className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
+                  style={{ backgroundColor: s.avatarColor }}
+                >
+                  {s.avatar}
+                </div>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => window.location.href = `mailto:petersoncaleb275@gmail.com?subject=Inquiry:%20${encodeURIComponent(s.title)}`}
+                  className="flex-1 py-2.5 rounded-full font-semibold text-sm flex items-center justify-center gap-2 group transition-colors"
+                  style={{ backgroundColor: s.tagColor }}
+                >
+                  Inquire now
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </motion.button>
+              </div>
+            </motion.div>
           ))}
         </div>
 
-        <div className="mt-20 p-10 bg-brand-dark rounded-[40px] text-white overflow-hidden relative">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-brand-blue/20 rounded-full blur-3xl pointer-events-none" />
-          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+        {/* MaaS banner */}
+        <div className="mt-10 p-8 bg-white/5 border border-white/10 rounded-3xl overflow-hidden relative max-w-5xl mx-auto">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-[#4285F4]/15 rounded-full blur-3xl pointer-events-none" />
+          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="max-w-xl text-center md:text-left">
-              <h3 className="text-3xl font-semibold mb-4">Migration as a Service (MaaS)</h3>
-              <p className="text-white/60 text-lg">
-                Still using personal ChatGPT accounts? Your team is playing LLMs on hard mode. We'll migrate your entire company context to Claude Projects and MCP in less than 48 hours.
+              <p className="text-xs font-semibold text-white/30 uppercase tracking-widest mb-2">Migration as a Service</p>
+              <h3 className="text-2xl font-bold mb-3">Still using personal ChatGPT accounts?</h3>
+              <p className="text-white/55 leading-relaxed">
+                Your team is playing LLMs on hard mode. We'll migrate your entire company context to Claude Projects and MCP in less than 48 hours.
               </p>
             </div>
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => window.location.href = 'mailto:petersoncaleb275@gmail.com?subject=Migration%20Consulting'}
-              className="px-8 py-4 bg-white text-brand-dark rounded-full font-bold text-lg shadow-xl"
+              className="px-7 py-3.5 bg-white text-brand-dark rounded-full font-bold text-sm shadow-xl whitespace-nowrap"
             >
-              Book 48h Migration
+              Book 48h Migration →
             </motion.button>
           </div>
         </div>
@@ -564,46 +604,87 @@ function SocialProofSection() {
       quote: "I used to spend every Monday morning pulling reports manually. Now Hoursback does it while I sleep and my inbox has everything I need by 8am.",
       name: "Adaeze O.",
       role: "E-commerce Founder",
+      avatar: "AO",
+      color: "#4285F4",
+      stars: 5,
     },
     {
       quote: "The competitor price monitor alone is worth it. I caught a supplier price hike before it hit my margins and renegotiated the same week.",
       name: "Tunde B.",
       role: "Operations Manager",
+      avatar: "TB",
+      color: "#DA7756",
+      stars: 5,
     },
     {
       quote: "As a content creator, the YouTube Trend Tracker changed my strategy completely. I know what to make before the wave hits.",
       name: "Chiamaka N.",
       role: "Content Creator",
+      avatar: "CN",
+      color: "#7c3aed",
+      stars: 5,
     },
   ];
 
   return (
-    <section className="py-20 bg-white">
-      <div className="container mx-auto px-6">
-        {/* Stats strip */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-20">
+    <section className="py-24 bg-brand-dark text-white overflow-hidden relative">
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#4285F4]/8 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-purple-600/8 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="container mx-auto px-6 relative z-10">
+        {/* Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-20 max-w-3xl mx-auto">
           {stats.map((s, i) => (
             <div key={i} className="text-center">
-              <p className="text-4xl font-bold text-brand-dark mb-1">{s.value}</p>
-              <p className="text-sm text-brand-dark/50">{s.label}</p>
+              <p className="text-4xl md:text-5xl font-bold text-white mb-1" style={{ color: i === 0 ? '#4285F4' : 'white' }}>{s.value}</p>
+              <p className="text-sm text-white/40">{s.label}</p>
             </div>
           ))}
         </div>
 
-        {/* Testimonials */}
+        {/* Heading */}
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold mb-3">Users saved 47+ hours this week</h2>
-          <p className="text-brand-dark/60">Real results from business owners who automated their repetitive work.</p>
+          <h2 className="text-3xl md:text-4xl font-bold mb-3">Business owners love it</h2>
+          <p className="text-white/50">Real results from people who got their time back.</p>
         </div>
-        <div className="grid md:grid-cols-3 gap-6">
+
+        {/* Testimonial cards */}
+        <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
           {testimonials.map((t, i) => (
-            <div key={i} className="bg-brand-light rounded-3xl p-6 border border-brand-dark/10">
-              <p className="text-brand-dark/80 leading-relaxed mb-6 text-sm">"{t.quote}"</p>
-              <div>
-                <p className="font-semibold text-sm">{t.name}</p>
-                <p className="text-xs text-brand-dark/50">{t.role}</p>
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: i * 0.1 }}
+              className="relative bg-white/5 border border-white/10 rounded-3xl p-6 flex flex-col hover:bg-white/8 transition-colors"
+            >
+              {/* Stars */}
+              <div className="flex gap-0.5 mb-4">
+                {Array.from({ length: t.stars }).map((_, s) => (
+                  <span key={s} className="text-[#FBBC04] text-sm">★</span>
+                ))}
               </div>
-            </div>
+
+              {/* Quote */}
+              <p className="text-white/75 leading-relaxed text-sm flex-1 mb-6">
+                "{t.quote}"
+              </p>
+
+              {/* Author */}
+              <div className="flex items-center gap-3 pt-4 border-t border-white/10">
+                <div
+                  className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
+                  style={{ backgroundColor: t.color }}
+                >
+                  {t.avatar}
+                </div>
+                <div>
+                  <p className="font-semibold text-sm text-white">{t.name}</p>
+                  <p className="text-xs text-white/40">{t.role}</p>
+                </div>
+              </div>
+            </motion.div>
           ))}
         </div>
       </div>
@@ -680,61 +761,14 @@ function WhoIsItForSection() {
 }
 
 function WorkflowDiagramSection() {
-  const steps = [
-    { label: 'Connect Data', sub: 'Google Sheets, website, or text input', color: '#4285F4', bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700' },
-    { label: 'Hoursback Detects Changes', sub: 'Monitors on your schedule — daily or weekly', color: '#8B5CF6', bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-700' },
-    { label: 'AI Analyzes Data', sub: 'Claude reads, interprets, and extracts signals', color: '#F59E0B', bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700' },
-    { label: 'Insight Sent to Inbox', sub: 'Clear summary email lands in your inbox', color: '#10B981', bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700' },
-  ];
-
   return (
     <section className="py-20 bg-white">
-      <div className="container mx-auto px-6 max-w-4xl">
-        <div className="text-center mb-12">
+      <div className="container mx-auto px-6 max-w-5xl">
+        <div className="text-center mb-10">
           <h2 className="text-3xl md:text-4xl font-semibold mb-3">How the AI watches your business</h2>
           <p className="text-brand-dark/60">Four steps. Fully automatic. You only see the result.</p>
         </div>
-
-        {/* Desktop: horizontal flow */}
-        <div className="hidden md:flex items-center gap-0">
-          {steps.map((step, i) => (
-            <div key={i} className="flex items-center flex-1">
-              <div className={`flex-1 rounded-2xl p-5 border ${step.bg} ${step.border} text-center`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white mx-auto mb-3`} style={{ backgroundColor: step.color }}>
-                  {i + 1}
-                </div>
-                <p className={`font-semibold text-sm ${step.text} mb-1`}>{step.label}</p>
-                <p className="text-xs text-brand-dark/50 leading-snug">{step.sub}</p>
-              </div>
-              {i < steps.length - 1 && (
-                <div className="flex flex-col items-center px-2 shrink-0">
-                  <div className="w-6 h-0.5 bg-brand-dark/20" />
-                  <span className="text-brand-dark/30 text-xs mt-1">↓</span>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-
-        {/* Mobile: vertical flow */}
-        <div className="md:hidden flex flex-col gap-0">
-          {steps.map((step, i) => (
-            <div key={i} className="flex flex-col items-center">
-              <div className={`w-full rounded-2xl p-5 border ${step.bg} ${step.border} flex items-start gap-4`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0`} style={{ backgroundColor: step.color }}>
-                  {i + 1}
-                </div>
-                <div>
-                  <p className={`font-semibold text-sm ${step.text} mb-0.5`}>{step.label}</p>
-                  <p className="text-xs text-brand-dark/50 leading-snug">{step.sub}</p>
-                </div>
-              </div>
-              {i < steps.length - 1 && (
-                <div className="text-brand-dark/30 text-xl py-1">↓</div>
-              )}
-            </div>
-          ))}
-        </div>
+        <N8nWorkflowBlock />
       </div>
     </section>
   );
@@ -905,58 +939,6 @@ function PlaybookPreviewSection() {
   );
 }
 
-function FeaturesSection() {
-  const features = [
-    {
-      icon: <Zap className="w-6 h-6" />,
-      title: "15+ ready-to-deploy workflows",
-      description: "Finance, sales, marketing, operations — pick the workflows that match your business and deploy in minutes."
-    },
-    {
-      icon: <Mail className="w-6 h-6" />,
-      title: "Insights delivered by email",
-      description: "No dashboards to log into. Results land in your inbox on your schedule — daily, weekly, or monthly."
-    },
-    {
-      icon: <Bot className="w-6 h-6" />,
-      title: "AI-powered analysis",
-      description: "Powered by Claude AI to give you real insights, not just raw data dumps. Clear summaries you can act on."
-    },
-    {
-      icon: <Users className="w-6 h-6" />,
-      title: "Built for non-technical teams",
-      description: "If you can write an email, you can deploy a workflow. Zero coding, no consultants, no setup headaches."
-    }
-  ];
-
-  return (
-    <section id="features" className="py-24 bg-brand-light text-brand-dark">
-      <div className="container mx-auto px-6">
-        <div className="text-center mb-16 max-w-2xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-brand-dark mb-4">
-            Everything you need to automate your business intelligence
-          </h2>
-          <p className="text-brand-dark/60 text-lg font-normal">
-            Built for operators, not developers. Connect your data once and let AI do the rest.
-          </p>
-        </div>
-        <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-          {features.map((feature, i) => (
-            <div key={i} className="flex gap-5 bg-white rounded-2xl p-6 border border-brand-dark/8 shadow-antigravity-sm">
-              <div className="w-11 h-11 bg-brand-blue/10 rounded-2xl flex items-center justify-center text-brand-blue shrink-0">
-                {feature.icon}
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold mb-1.5">{feature.title}</h3>
-                <p className="text-brand-dark/65 leading-relaxed text-sm font-normal">{feature.description}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
 
 function PricingPlanCard({ plan, isAnnual, onAuthRequired }: { plan: any, isAnnual: boolean, onAuthRequired?: () => void }) {
   const { user } = useAuth();
@@ -1122,7 +1104,7 @@ function PricingSection({ onAuthRequired }: { onAuthRequired?: () => void }) {
               <div className={`w-6 h-6 bg-white rounded-full shadow-sm transition-transform duration-300 ${isAnnual ? 'translate-x-6' : 'translate-x-0'}`} />
             </button>
             <span className={`text-sm font-medium flex items-center gap-2 ${isAnnual ? 'text-brand-dark' : 'text-slate-400'}`}>
-              Annually <span className="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full">Save 4%</span>
+              Annually <span className="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full">Save 20%</span>
             </span>
           </div>
         </div>

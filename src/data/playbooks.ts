@@ -531,7 +531,7 @@ export function getCategoryColor(category: string) {
 }
 export const pricingPlans = [
   {
-    name: "Basic",
+    name: "Starter",
     description: "For individuals getting started with AI automation",
     features: [
       "3 free workflows (Competitor Intel, Brand Monitor, Industry News)",
@@ -541,8 +541,8 @@ export const pricingPlans = [
     ],
     cta: "Get Started Free",
     popular: false,
-    monthlyPrice: 12,
-    annualPrice: 10,
+    monthlyPrice: 0,
+    annualPrice: 0,
   },
   {
     name: "Pro",
@@ -556,8 +556,8 @@ export const pricingPlans = [
     ],
     cta: "Upgrade to Pro",
     popular: true,
-    monthlyPrice: 99,
-    annualPrice: 79,
+    monthlyPrice: 20,
+    annualPrice: 16,
   },
   {
     name: "Custom",
