@@ -229,6 +229,10 @@ async function fetchData(sourceType: string, config: any, supabaseClient?: any):
     } catch (e) { console.error("youtube_trends error", e); }
   }
 
+  else if (sourceType === "text_prompt" && config.text) {
+    return `User input:\n\n${config.text}`;
+  }
+
   else if (sourceType === "linkedin_monitor" && config.query) {
     if (!APIFY_API_KEY) return "Apify API key not configured.";
     try {

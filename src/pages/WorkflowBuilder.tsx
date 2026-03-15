@@ -29,6 +29,11 @@ const workflowDescriptions: Record<string, string> = {
   'wkflow-15': 'Monitors your supplier catalog and product pages for stock availability changes. Alerts you when items are low, back in stock, or discontinued — so you can reorder proactively and avoid stockouts.',
   'wkflow-20': 'Scans YouTube and social platforms for trending topics, video formats, and keywords in your niche. Delivers a weekly digest of what\'s gaining traction so you can create content that rides the wave before it peaks.',
   'wkflow-21': 'Analyses your niche\'s trending topics, seasonal patterns, and audience interests, then generates a ready-to-use 7-day content calendar — complete with post ideas, hooks, and optimal formats for each platform.',
+  'wkflow-22': 'Crawls your website every week and emails a prioritised SEO report — missing meta tags, thin content, broken links, keyword gaps, and a ranked list of exactly what to fix first to move up in search.',
+  'wkflow-23': 'Reads your landing page every week and emails specific conversion improvements — exact copy rewrites, CTA placement fixes, trust signal gaps, and a score for each element so you know what to tackle first.',
+  'wkflow-25': 'Searches the web, Reddit, and news sources for mentions of your brand every week. Tells you where you\'re showing up, what people are saying, whether competitors are dominating the conversation, and what to do about it.',
+  'wkflow-26': 'Every week, generates a fresh 5-email cold outreach sequence tailored to your target customer — opener, case study, value pitch, objection handler, and breakup email. Ready to paste into your email tool.',
+  'wkflow-28': 'Reads your customer activity spreadsheet every week and flags who\'s at risk of churning — with a risk score, the reason why, and a recommended action for each at-risk customer prioritised by revenue.',
 };
 
 const dataSourceHelp: Record<string, string> = {
@@ -45,6 +50,11 @@ const dataSourceHelp: Record<string, string> = {
   'wkflow-15': 'Add the product listing or catalog pages — not the supplier homepage.',
   'wkflow-20': 'Use 2–3 specific keywords — "personal finance tips" works better than "money".',
   'wkflow-21': 'Be specific about your niche — "keto recipes for busy moms" beats "food".',
+  'wkflow-22': 'Enter your homepage URL. The audit will crawl the page and check for common SEO issues.',
+  'wkflow-23': 'Enter the URL of the landing page you want to improve. Make sure it is publicly accessible.',
+  'wkflow-25': 'Enter your brand name exactly as it appears online, including any common variations.',
+  'wkflow-26': 'Describe your ideal customer in 2–3 sentences and what problem your product solves for them.',
+  'wkflow-28': 'Share a Google Sheet with columns for customer name, last login, plan, and any usage metrics.',
 };
 
 const workflowInputs: Record<string, WorkflowInput> = {
@@ -63,6 +73,11 @@ const workflowInputs: Record<string, WorkflowInput> = {
   'wkflow-15': { label: 'Supplier product page URLs (one per line)', placeholder: 'https://supplier.com/products\nhttps://wholesale.com/catalog', type: 'textarea' },
   'wkflow-20': { label: 'Niche or topic keywords', placeholder: 'e.g. personal finance, home workouts, productivity tips', type: 'text' },
   'wkflow-21': { label: 'Your content niche or topic', placeholder: 'e.g. small business tips, travel on a budget, fitness for beginners', type: 'text' },
+  'wkflow-22': { label: 'Your website URL', placeholder: 'https://yourwebsite.com', type: 'url' },
+  'wkflow-23': { label: 'Landing page URL to audit', placeholder: 'https://yourwebsite.com/landing-page', type: 'url' },
+  'wkflow-25': { label: 'Brand or product name to monitor', placeholder: 'e.g. Hoursback, Acme Corp', type: 'text' },
+  'wkflow-26': { label: 'Target customer profile + product description', placeholder: 'e.g. We sell project management software to marketing agencies with 5–20 employees who struggle to track client deliverables.', type: 'textarea' },
+  'wkflow-28': { label: 'Customer activity spreadsheet URL', placeholder: 'https://docs.google.com/spreadsheets/d/...', type: 'url' },
 };
 
 function detectSourceType(url: string): 'google_sheets' | 'website' | 'api' {
@@ -86,6 +101,11 @@ function getDataSourceConfig(workflowId: string, dataSource: string): Record<str
     case 'wkflow-15': return { type: 'website_list', urls: dataSource.split('\n').map(u => u.trim()).filter(Boolean) };
     case 'wkflow-20': return { type: 'youtube_trends', query: dataSource };
     case 'wkflow-21': return { type: 'brand_monitor', query: dataSource };
+    case 'wkflow-22': return { type: 'website', url: dataSource };
+    case 'wkflow-23': return { type: 'website', url: dataSource };
+    case 'wkflow-25': return { type: 'brand_monitor', query: dataSource };
+    case 'wkflow-26': return { type: 'text_prompt', text: dataSource };
+    case 'wkflow-28': return { type: 'google_sheets', url: dataSource };
     default:
       return { type: detectSourceType(dataSource), url: dataSource };
   }
