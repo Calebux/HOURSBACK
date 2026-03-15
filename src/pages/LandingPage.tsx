@@ -286,6 +286,8 @@ export default function LandingPage() {
       </section>
 
       <HowItWorksSection />
+      <WhoIsItForSection />
+      <WorkflowDiagramSection />
       <PlaybookPreviewSection />
       <AutopilotSection />
       <WhyHoursbackSection />
@@ -607,6 +609,135 @@ function SocialProofSection() {
                 <p className="font-semibold text-sm">{t.name}</p>
                 <p className="text-xs text-brand-dark/50">{t.role}</p>
               </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function WhoIsItForSection() {
+  const audience = [
+    { emoji: '📊', title: 'Founders who track metrics in spreadsheets', desc: 'Stop manually pulling numbers. Get automated weekly reports from your Google Sheets.' },
+    { emoji: '👥', title: 'Small teams without data analysts', desc: 'You don\'t need to hire an analyst. Hoursback does the monitoring and summarising for you.' },
+    { emoji: '🔁', title: 'Operators who run weekly reports', desc: 'Replace the copy-paste grind with a workflow that runs, analyzes, and emails — automatically.' },
+    { emoji: '🛠️', title: 'Non-technical teams that want automation', desc: 'If you can fill in a form, you can deploy a workflow. Zero code, zero setup headaches.' },
+  ];
+
+  return (
+    <section className="py-24 bg-brand-light text-brand-dark">
+      <div className="container mx-auto px-6 max-w-6xl">
+        {/* Positioning line — prominent */}
+        <div className="text-center mb-16">
+          <p className="inline-block text-sm font-semibold text-brand-blue uppercase tracking-widest mb-4">What makes us different</p>
+          <h2 className="text-3xl md:text-4xl font-semibold mb-4 max-w-3xl mx-auto leading-tight">
+            Hoursback doesn't just automate tasks —<br />
+            <span style={{ color: '#4285F4' }}>it watches your systems and explains what changed.</span>
+          </h2>
+          <p className="text-brand-dark/60 max-w-xl mx-auto">Most tools run a job. Hoursback tells you why it matters.</p>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-16 items-start">
+          {/* Who it's for */}
+          <div>
+            <p className="text-xs font-semibold text-brand-dark/40 uppercase tracking-widest mb-6">Built for</p>
+            <div className="space-y-4">
+              {audience.map((a, i) => (
+                <div key={i} className="flex gap-4 bg-white rounded-2xl p-5 border border-brand-dark/8 shadow-antigravity-sm">
+                  <span className="text-2xl shrink-0">{a.emoji}</span>
+                  <div>
+                    <p className="font-semibold text-sm leading-snug mb-1">{a.title}</p>
+                    <p className="text-brand-dark/55 text-xs leading-relaxed">{a.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* No-code emphasis */}
+          <div className="flex flex-col justify-center gap-6">
+            <p className="text-xs font-semibold text-brand-dark/40 uppercase tracking-widest">Why teams choose Hoursback</p>
+            {[
+              { icon: '⚡', label: 'No coding required', sub: 'Deploy workflows with a simple form. No engineers needed.' },
+              { icon: '⚡', label: 'Deploy in minutes', sub: 'Pick a workflow, connect your data, go live. Under 5 minutes.' },
+              { icon: '⚡', label: 'Works with your existing tools', sub: 'Google Sheets, websites, spreadsheets — use what you already have.' },
+            ].map((item, i) => (
+              <div key={i} className="flex gap-4 items-start">
+                <span className="text-2xl shrink-0">{item.icon}</span>
+                <div>
+                  <p className="font-semibold text-brand-dark">{item.label}</p>
+                  <p className="text-sm text-brand-dark/55 mt-0.5">{item.sub}</p>
+                </div>
+              </div>
+            ))}
+
+            <div className="mt-4 p-6 bg-brand-dark rounded-2xl text-white">
+              <p className="text-sm font-semibold mb-1 text-white/60 uppercase tracking-wider text-xs">The result</p>
+              <p className="text-white font-medium leading-relaxed">
+                Your business stays monitored, you stay informed — without ever logging in, opening a spreadsheet, or writing a single line of code.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function WorkflowDiagramSection() {
+  const steps = [
+    { label: 'Connect Data', sub: 'Google Sheets, website, or text input', color: '#4285F4', bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700' },
+    { label: 'Hoursback Detects Changes', sub: 'Monitors on your schedule — daily or weekly', color: '#8B5CF6', bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-700' },
+    { label: 'AI Analyzes Data', sub: 'Claude reads, interprets, and extracts signals', color: '#F59E0B', bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700' },
+    { label: 'Insight Sent to Inbox', sub: 'Clear summary email lands in your inbox', color: '#10B981', bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700' },
+  ];
+
+  return (
+    <section className="py-20 bg-white">
+      <div className="container mx-auto px-6 max-w-4xl">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-semibold mb-3">How the AI watches your business</h2>
+          <p className="text-brand-dark/60">Four steps. Fully automatic. You only see the result.</p>
+        </div>
+
+        {/* Desktop: horizontal flow */}
+        <div className="hidden md:flex items-center gap-0">
+          {steps.map((step, i) => (
+            <div key={i} className="flex items-center flex-1">
+              <div className={`flex-1 rounded-2xl p-5 border ${step.bg} ${step.border} text-center`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white mx-auto mb-3`} style={{ backgroundColor: step.color }}>
+                  {i + 1}
+                </div>
+                <p className={`font-semibold text-sm ${step.text} mb-1`}>{step.label}</p>
+                <p className="text-xs text-brand-dark/50 leading-snug">{step.sub}</p>
+              </div>
+              {i < steps.length - 1 && (
+                <div className="flex flex-col items-center px-2 shrink-0">
+                  <div className="w-6 h-0.5 bg-brand-dark/20" />
+                  <span className="text-brand-dark/30 text-xs mt-1">↓</span>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Mobile: vertical flow */}
+        <div className="md:hidden flex flex-col gap-0">
+          {steps.map((step, i) => (
+            <div key={i} className="flex flex-col items-center">
+              <div className={`w-full rounded-2xl p-5 border ${step.bg} ${step.border} flex items-start gap-4`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0`} style={{ backgroundColor: step.color }}>
+                  {i + 1}
+                </div>
+                <div>
+                  <p className={`font-semibold text-sm ${step.text} mb-0.5`}>{step.label}</p>
+                  <p className="text-xs text-brand-dark/50 leading-snug">{step.sub}</p>
+                </div>
+              </div>
+              {i < steps.length - 1 && (
+                <div className="text-brand-dark/30 text-xl py-1">↓</div>
+              )}
             </div>
           ))}
         </div>
