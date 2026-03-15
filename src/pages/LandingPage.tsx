@@ -4,12 +4,9 @@ import { ContainerScroll } from '../components/ContainerScroll';
 import {
   Clock,
   Zap,
-  Shield,
   CheckCircle2,
   ChevronRight,
-  BarChart3,
   Users,
-  Lock,
   Menu,
   X,
   ArrowRight,
@@ -82,9 +79,9 @@ export default function LandingPage() {
 
           {/* Absolutely centered so links stay in the true middle regardless of logo width */}
           <div className="absolute left-1/2 -translate-x-1/2 hidden md:flex items-center gap-8 text-sm text-brand-dark/80">
-            <Link to="/playbooks" className="hover:text-brand-dark transition-colors">Playbooks</Link>
+            <button onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-brand-dark transition-colors cursor-pointer">How it works</button>
             <button onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-brand-dark transition-colors cursor-pointer">Pricing</button>
-            <button onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-brand-dark transition-colors cursor-pointer">Features</button>
+            <button onClick={() => document.getElementById('example-workflows')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-brand-dark transition-colors cursor-pointer">Workflows</button>
           </div>
 
           <div className="flex items-center gap-4">
@@ -138,9 +135,9 @@ export default function LandingPage() {
             className="md:hidden bg-brand-light/95 backdrop-blur-md border-t border-brand-dark/10"
           >
             <div className="px-6 py-4 space-y-4">
-              <Link to="/playbooks" className="block text-brand-dark/80 hover:text-brand-dark transition-colors" onClick={() => setMobileMenuOpen(false)}>Playbooks</Link>
+              <button onClick={() => { document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' }); setMobileMenuOpen(false); }} className="block text-left text-brand-dark/80 hover:text-brand-dark transition-colors cursor-pointer">How it works</button>
               <button onClick={() => { document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' }); setMobileMenuOpen(false); }} className="block text-left text-brand-dark/80 hover:text-brand-dark transition-colors cursor-pointer">Pricing</button>
-              <button onClick={() => { document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' }); setMobileMenuOpen(false); }} className="block text-left text-brand-dark/80 hover:text-brand-dark transition-colors cursor-pointer">Features</button>
+              <button onClick={() => { document.getElementById('example-workflows')?.scrollIntoView({ behavior: 'smooth' }); setMobileMenuOpen(false); }} className="block text-left text-brand-dark/80 hover:text-brand-dark transition-colors cursor-pointer">Workflows</button>
               {user ? (
                 <button onClick={() => { navigate('/workflows'); setMobileMenuOpen(false); }} className="block text-left text-brand-dark/80 hover:text-brand-dark transition-colors cursor-pointer">My Workflows</button>
               ) : (
@@ -182,12 +179,19 @@ export default function LandingPage() {
             variants={fadeInUp}
             className="text-base md:text-lg text-brand-dark/70 leading-relaxed font-normal max-w-xl"
           >
-            Connect Google Sheets, websites, or webhooks. Hoursback monitors changes, analyzes them with AI, and sends clear insights directly to your inbox — on your schedule.
+            Deploy AI workflows that monitor your business data and send you clear insights automatically.
+          </motion.p>
+
+          <motion.p
+            variants={fadeInUp}
+            className="text-sm text-brand-dark/45 max-w-md -mt-2"
+          >
+            Hoursback is an AI workflow engine that monitors your data and automatically sends you insights.
           </motion.p>
 
           <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row items-center justify-center gap-4">
             {user ? (
-              <Link to="/workflows">
+              <Link to="/workflows/new">
                 <motion.button
                   className="px-6 py-3 bg-brand-dark text-white rounded-full font-medium hover:bg-brand-dark/90 transition-all shadow-antigravity-sm flex items-center justify-center gap-2 text-base group"
                   whileHover={{ scale: 1.02 }}
@@ -209,15 +213,19 @@ export default function LandingPage() {
               </motion.button>
             )}
             <motion.button
-              onClick={() => window.open('https://calendly.com/petersoncaleb', '_blank')}
+              onClick={() => document.getElementById('example-workflows')?.scrollIntoView({ behavior: 'smooth' })}
               className="px-6 py-3 border border-brand-dark/20 text-brand-dark rounded-full font-medium hover:bg-brand-dark/5 transition-all flex items-center justify-center gap-2 text-base group"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
-              Contact sales
+              See Example Workflows
               <ArrowRight className="w-4 h-4 opacity-0 -ml-4 group-hover:opacity-100 group-hover:ml-0 transition-all" />
             </motion.button>
           </motion.div>
+
+          <motion.p variants={fadeInUp} className="text-xs text-brand-dark/35 -mt-1">
+            No setup headaches. Deploy in minutes.
+          </motion.p>
         </motion.div>
 
         {/* ── Scroll-animated product card only ── */}
@@ -277,13 +285,14 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <SocialProofSection />
       <HowItWorksSection />
       <PlaybookPreviewSection />
       <AutopilotSection />
-      <EnterpriseSection />
+      <WhyHoursbackSection />
       <FeaturesSection />
+      <SocialProofSection />
       <PricingSection onAuthRequired={() => { setAuthView('signup'); setAuthModalOpen(true); }} />
+      <EnterpriseSection />
       <FAQSection />
       <CTASection />
       <Footer />
@@ -431,13 +440,13 @@ function AutopilotSection() {
         {/* Header */}
         <div className="text-center mb-20">
           <h2 className="text-4xl md:text-6xl font-semibold mb-6 leading-tight max-w-3xl mx-auto">
-            Tell the AI what to do once.{' '}
+            Set it up once.{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">
-              It keeps doing it for you.
+              Get insights forever.
             </span>
           </h2>
           <p className="text-lg md:text-xl text-white/60 max-w-2xl mx-auto leading-relaxed font-normal">
-            Once you know a playbook works for you, put it on a schedule. Your AI agent runs it automatically and sends the results straight to your inbox. No logging in, no clicking, no reminders.
+            Deploy a workflow today and it runs every week without you touching it. Your business stays monitored while you focus on what actually matters.
           </p>
         </div>
 
@@ -459,14 +468,14 @@ function AutopilotSection() {
             ))}
 
             <div className="pt-4">
-              <Link to="/autopilot">
+              <Link to="/workflows/new">
                 <motion.button
                   className="px-6 py-3 bg-white text-brand-dark rounded-full font-medium flex items-center gap-2 text-sm group hover:bg-white/90 transition-all"
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.97 }}
                 >
                   <Sparkles className="w-4 h-4 text-indigo-500" />
-                  Set up your first agent
+                  Deploy your first workflow
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </motion.button>
               </Link>
@@ -548,9 +557,9 @@ function AutopilotSection() {
 
 function SocialProofSection() {
   const stats = [
-    { value: '500+', label: 'Workflows deployed' },
+    { value: '47+', label: 'Hours saved this week' },
     { value: '15+', label: 'Workflow templates' },
-    { value: '7hrs', label: 'Saved per user/week' },
+    { value: '500+', label: 'Workflows deployed' },
     { value: '98%', label: 'Email delivery rate' },
   ];
 
@@ -587,8 +596,8 @@ function SocialProofSection() {
 
         {/* Testimonials */}
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold mb-3">Business owners love it</h2>
-          <p className="text-brand-dark/60">Real results from people who got their time back.</p>
+          <h2 className="text-3xl font-bold mb-3">Users saved 47+ hours this week</h2>
+          <p className="text-brand-dark/60">Real results from business owners who automated their repetitive work.</p>
         </div>
         <div className="grid md:grid-cols-3 gap-6">
           {testimonials.map((t, i) => (
@@ -610,42 +619,42 @@ function HowItWorksSection() {
   const steps = [
     {
       icon: <Clock className="w-6 h-6" />,
-      title: "Connect your data sources",
-      description: "Integrate your existing tools like Salesforce, QuickBooks, or any custom API. Our webhooks securely listen to your business data."
+      title: "Connect your data",
+      description: "Link your Google Sheets, website, or just type in what you want to track. No technical setup needed."
     },
     {
       icon: <Zap className="w-6 h-6" />,
-      title: "The AI reasoning layer operates",
-      description: "Our agents automatically analyze your incoming data according to expert-crafted logic, extracting the signals and insights that matter most."
+      title: "Deploy a workflow",
+      description: "Pick from 15+ ready-made AI workflows. No code, no setup headaches. Live in under 5 minutes."
     },
     {
-      icon: <BarChart3 className="w-6 h-6" />,
-      title: "Results delivered on autopilot",
-      description: "Wake up to finished reports, alerts, and recommendations delivered straight to your email. No logging in, no prompt copying."
+      icon: <Mail className="w-6 h-6" />,
+      title: "Receive insights",
+      description: "Your AI runs on schedule and sends clear summaries straight to your inbox — daily, weekly, or monthly."
     }
   ];
 
   return (
-    <section className="py-32 bg-white text-brand-dark">
+    <section id="how-it-works" className="py-32 bg-white text-brand-dark">
       <div className="container mx-auto px-6">
         <div className="text-center mb-20">
-          <h2 className="text-4xl md:text-5xl font-semibold mb-6">How it works</h2>
-          <p className="text-xl text-brand-dark/80 max-w-2xl mx-auto font-normal">
-            You don't need to be a tech expert. Just pick what you want to do, follow the steps, and get it done.
+          <h2 className="text-4xl md:text-5xl font-semibold mb-6">Automate the work you repeat every week</h2>
+          <p className="text-xl text-brand-dark/60 max-w-2xl mx-auto font-normal">
+            Three steps and your business runs on autopilot. No developers, no dashboards, no manual reports.
           </p>
         </div>
 
         <div className="grid md:grid-cols-3 gap-8">
           {steps.map((step, i) => (
             <div key={i} className="relative p-8 rounded-3xl bg-gray-50 hover:bg-gray-100 transition-colors group">
-              <div className="w-12 h-12 bg-brand-dark text-white rounded-3xl flex items-center justify-center text-brand-dark mb-6 group-hover:scale-110 transition-transform">
+              <div className="w-12 h-12 bg-brand-dark text-white rounded-3xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                 {step.icon}
               </div>
               <div className="absolute top-8 right-8 text-6xl font-bold text-gray-200">
                 {String(i + 1).padStart(2, '0')}
               </div>
               <h3 className="text-xl font-semibold mb-3">{step.title}</h3>
-              <p className="text-brand-dark/80 leading-relaxed">{step.description}</p>
+              <p className="text-brand-dark/70 leading-relaxed">{step.description}</p>
             </div>
           ))}
         </div>
@@ -655,89 +664,103 @@ function HowItWorksSection() {
 }
 
 function PlaybookPreviewSection() {
-  const playbooks = [
-    {
-      category: "Executive",
-      title: "Weekly CEO Briefing",
-      time: "Automated",
-      saved: "2 hours",
-      difficulty: "Advanced",
-      color: "#635BFF",
-      preview: "High-level synthesis of metrics across sales, finance, and operations..."
-    },
+  const workflows = [
     {
       category: "Finance",
-      title: "AR Aging Monitor",
-      time: "Automated",
-      saved: "3 hours",
-      difficulty: "Intermediate",
+      title: "Weekly Business Report",
       color: "#10B981",
-      preview: "Notifies you when key clients go 30+ days overdue automatically..."
+      saved: "3 hours/week",
+      bullets: [
+        "Monitors your Google Sheets for key numbers",
+        "Pulls revenue, expenses, and trends automatically",
+        "Sends a weekly email with metrics, flags, and recommendations",
+      ],
+      result: "Clear weekly report every Monday morning"
     },
     {
       category: "Operations",
-      title: "Supplier Price Tracker",
-      time: "Automated",
-      saved: "4 hours",
-      difficulty: "Intermediate",
+      title: "Website Change Monitor",
+      color: "#635BFF",
+      saved: "2 hours/week",
+      bullets: [
+        "Checks your website or competitor sites for changes",
+        "Summarises exactly what's different since last check",
+        "Alerts you immediately when something important shifts",
+      ],
+      result: "Instant alert when something changes"
+    },
+    {
+      category: "Marketing",
+      title: "Data Insight Generator",
       color: "#F59E0B",
-      preview: "Monitors your core suppliers for unannounced material price hikes..."
+      saved: "4 hours/week",
+      bullets: [
+        "Connects to any dataset you share",
+        "Generates plain-English insights and key takeaways",
+        "Delivers actionable summaries without touching spreadsheets",
+      ],
+      result: "Actionable insights without touching spreadsheets"
     }
   ];
 
   return (
-    <section className="py-24 bg-white glass-grid-line-x relative overflow-hidden">
-      {/* Blue lines background image */}
+    <section id="example-workflows" className="py-24 bg-white glass-grid-line-x relative overflow-hidden">
       <div className="absolute inset-0 z-0 opacity-50 mix-blend-multiply pointer-events-none flex items-end justify-center overflow-hidden">
-        <img src="/blue-lines.jpg" alt="Abstract Lines" className="w-full object-cover object-bottom" />
+        <img src="/blue-lines.jpg" alt="" className="w-full object-cover object-bottom" />
       </div>
       <div className="container mx-auto px-6 relative z-10">
         <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-semibold mb-6">Popular playbooks</h2>
+          <h2 className="text-4xl md:text-5xl font-semibold mb-6">Example Workflows</h2>
           <p className="text-xl text-brand-dark/70 max-w-2xl mx-auto font-normal">
-            These are our most popular deployable workflows. Each one automatically analyzes your data and delivers insights directly to you.
+            Deploy one of these today. Each workflow monitors your data and sends clear insights — automatically.
           </p>
         </div>
 
         <div className="grid md:grid-cols-3 gap-6">
-          {playbooks.map((playbook, i) => (
+          {workflows.map((wf, i) => (
             <div
               key={i}
               className="group relative bg-white/60 backdrop-blur-xl shadow-antigravity-md border border-brand-dark/10 rounded-3xl p-6 hover:bg-slate-50 transition-all duration-300 cursor-pointer overflow-hidden"
             >
               <div
                 className="absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                style={{
-                  background: `linear-gradient(135deg, ${playbook.color}20 0%, transparent 50%)`,
-                }}
+                style={{ background: `linear-gradient(135deg, ${wf.color}18 0%, transparent 60%)` }}
               />
-
               <div className="relative z-10">
                 <div className="flex items-center justify-between mb-4">
                   <span
                     className="text-xs font-medium px-3 py-1 rounded-full"
-                    style={{ backgroundColor: `${playbook.color}20`, color: playbook.color }}
+                    style={{ backgroundColor: `${wf.color}20`, color: wf.color }}
                   >
-                    {playbook.category}
+                    {wf.category}
                   </span>
                   <span className="text-xs text-slate-400 flex items-center gap-1">
                     <Clock className="w-3 h-3" />
-                    {playbook.time}
+                    Automated
                   </span>
                 </div>
 
-                <h3 className="text-xl font-semibold mb-2 group-hover:text-brand-blue transition-colors">
-                  {playbook.title}
+                <h3 className="text-xl font-semibold mb-4 group-hover:text-brand-blue transition-colors">
+                  {wf.title}
                 </h3>
 
-                <p className="text-brand-dark/70 text-sm mb-6 line-clamp-2">{playbook.preview}</p>
+                <ul className="space-y-2 mb-5">
+                  {wf.bullets.map((b, j) => (
+                    <li key={j} className="flex items-start gap-2 text-sm text-brand-dark/70">
+                      <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" style={{ color: wf.color }} />
+                      {b}
+                    </li>
+                  ))}
+                </ul>
 
-                <div className="flex items-center justify-between pt-4 border-t border-brand-dark/10">
-                  <div className="flex items-center gap-2 text-sm text-brand-dark/70">
-                    <Zap className="w-4 h-4 text-brand-blue" />
-                    <span>Saves {playbook.saved}</span>
+                <div className="pt-4 border-t border-brand-dark/10">
+                  <p className="text-xs font-medium text-brand-dark/50">
+                    ✦ Result: <span className="text-brand-dark/80">{wf.result}</span>
+                  </p>
+                  <div className="flex items-center gap-1.5 mt-2 text-sm text-brand-dark/60">
+                    <Zap className="w-3.5 h-3.5 text-brand-blue" />
+                    Saves {wf.saved}
                   </div>
-                  <span className="text-xs text-slate-400">{playbook.difficulty}</span>
                 </div>
               </div>
             </div>
@@ -745,9 +768,9 @@ function PlaybookPreviewSection() {
         </div>
 
         <div className="text-center mt-12">
-          <Link to="/playbooks">
+          <Link to="/workflows/new">
             <button className="text-brand-blue hover:text-brand-dark transition-colors flex items-center gap-2 mx-auto font-medium">
-              Browse all 50+ playbooks
+              Browse all 15+ workflows
               <ChevronRight className="w-4 h-4" />
             </button>
           </Link>
@@ -760,24 +783,24 @@ function PlaybookPreviewSection() {
 function FeaturesSection() {
   const features = [
     {
-      icon: <Lock className="w-6 h-6" />,
-      title: "No code required",
-      description: "Set up complex webhooks and scheduled jobs using our plain-English visual builder. Zero engineering resources needed."
+      icon: <Zap className="w-6 h-6" />,
+      title: "15+ ready-to-deploy workflows",
+      description: "Finance, sales, marketing, operations — pick the workflows that match your business and deploy in minutes."
     },
     {
-      icon: <Users className="w-6 h-6" />,
-      title: "Built for teams",
-      description: "Deploy workflows that notify entire teams. Send alerts to Slack channels, group inboxes, or external stakeholders."
-    },
-    {
-      icon: <Shield className="w-6 h-6" />,
-      title: "Secure architecture",
-      description: "Your data passes through our secure edge functions to best-in-class models and isn't used for training. Enterprise-grade security."
+      icon: <Mail className="w-6 h-6" />,
+      title: "Insights delivered by email",
+      description: "No dashboards to log into. Results land in your inbox on your schedule — daily, weekly, or monthly."
     },
     {
       icon: <Bot className="w-6 h-6" />,
-      title: "Completely autonomous",
-      description: "Unlike copilot tools that require chatting, our agents run in the background. They only alert you when human action is needed."
+      title: "AI-powered analysis",
+      description: "Powered by Claude AI to give you real insights, not just raw data dumps. Clear summaries you can act on."
+    },
+    {
+      icon: <Users className="w-6 h-6" />,
+      title: "Built for non-technical teams",
+      description: "If you can write an email, you can deploy a workflow. Zero coding, no consultants, no setup headaches."
     }
   ];
 
@@ -786,10 +809,10 @@ function FeaturesSection() {
       <div className="container mx-auto px-6">
         <div className="text-center mb-16 max-w-2xl mx-auto">
           <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-brand-dark mb-4">
-            Everything you need. Nothing you don't.
+            Everything you need to automate your business intelligence
           </h2>
           <p className="text-brand-dark/60 text-lg font-normal">
-            HoursBack is designed for business operators, not developers. Connect data, configure rules, and get insights.
+            Built for operators, not developers. Connect your data once and let AI do the rest.
           </p>
         </div>
         <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
@@ -1028,30 +1051,98 @@ function FAQSection() {
   );
 }
 
+function WhyHoursbackSection() {
+  const painPoints = [
+    "Manually pulling reports every Monday morning",
+    "Checking competitor websites by hand",
+    "Reviewing the same spreadsheets week after week",
+    "Paying someone just to send you a weekly summary",
+  ];
+  const benefits = [
+    "Save 2–5 hours every week",
+    "Never miss a key business signal",
+    "Get insights without hiring a data analyst",
+    "Start in minutes, not months",
+  ];
+
+  return (
+    <section className="py-24 bg-white text-brand-dark">
+      <div className="container mx-auto px-6 max-w-5xl">
+        <div className="grid md:grid-cols-2 gap-16 items-center">
+          <div>
+            <h2 className="text-3xl md:text-4xl font-semibold mb-6 leading-tight">
+              Most business owners repeat the same tasks every week.
+            </h2>
+            <p className="text-brand-dark/60 mb-8 leading-relaxed">
+              Manually pulling reports, checking websites, reviewing spreadsheets, tracking competitor updates. Hoursback automates all of it.
+            </p>
+            <ul className="space-y-3">
+              {painPoints.map((p, i) => (
+                <li key={i} className="flex items-start gap-3 text-brand-dark/70 text-sm">
+                  <span className="w-5 h-5 shrink-0 mt-0.5 rounded-full bg-red-100 flex items-center justify-center text-red-500 text-xs font-bold">✕</span>
+                  {p}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="bg-brand-light rounded-3xl p-8 border border-brand-dark/10">
+            <p className="text-sm font-semibold text-brand-dark/40 uppercase tracking-wider mb-6">With Hoursback</p>
+            <ul className="space-y-4">
+              {benefits.map((b, i) => (
+                <li key={i} className="flex items-start gap-3 text-brand-dark font-medium">
+                  <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5 text-emerald-500" />
+                  {b}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function CTASection() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authView, setAuthView] = useState<'signin' | 'signup'>('signup');
+
   return (
     <section className="py-32 bg-brand-light relative overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-b from-[#635BFF]/10 to-transparent" />
 
       <div className="container mx-auto px-6 text-center relative z-10">
         <h2 className="text-4xl md:text-5xl font-semibold mb-6">
-          Start getting more done today
+          Start getting hours back today
         </h2>
         <p className="text-xl text-brand-dark/70 mb-10 max-w-2xl mx-auto font-normal">
-          Thousands of business owners are already using HoursBack to get real work done faster with AI. Your first playbook is free.
+          Deploy your first workflow free. No credit card required. Your business stays monitored while you focus on what actually matters.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Link to="/playbooks">
-            <button className="px-8 py-4 bg-brand-dark text-white rounded-full shadow-antigravity-md hover:shadow-antigravity-lg font-medium text-lg hover:bg-gray-800 transition-all">
-              Start free playbook
+          {user ? (
+            <button
+              onClick={() => navigate('/workflows/new')}
+              className="px-8 py-4 bg-brand-dark text-white rounded-full shadow-antigravity-md hover:shadow-antigravity-lg font-medium text-lg hover:bg-gray-800 transition-all flex items-center gap-2 justify-center"
+            >
+              Deploy a Workflow
+              <ArrowRight className="w-5 h-5" />
             </button>
-          </Link>
+          ) : (
+            <button
+              onClick={() => { setAuthView('signup'); setAuthModalOpen(true); }}
+              className="px-8 py-4 bg-brand-dark text-white rounded-full shadow-antigravity-md hover:shadow-antigravity-lg font-medium text-lg hover:bg-gray-800 transition-all flex items-center gap-2 justify-center"
+            >
+              Deploy a Workflow
+              <ArrowRight className="w-5 h-5" />
+            </button>
+          )}
           <button
-            onClick={() => window.open('https://calendly.com/petersoncaleb', '_blank')}
+            onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
             className="px-8 py-4 bg-white/60 backdrop-blur-xl shadow-antigravity-md border border-brand-dark/10 rounded-full font-medium text-lg hover:bg-slate-50 transition-colors"
           >
-            Talk to sales
+            See how it works
           </button>
         </div>
 
@@ -1059,6 +1150,8 @@ function CTASection() {
           Free forever plan available. No credit card required.
         </p>
       </div>
+
+      <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} defaultView={authView} />
     </section>
   );
 }
@@ -1073,16 +1166,16 @@ function Footer() {
               <img src="/logo.svg" alt="Hoursback" className="h-[30px] w-auto" />
             </div>
             <p className="text-slate-400 text-sm">
-              AI workflows that monitor your business automatically. No code, just results.
+              Hoursback helps businesses automate repetitive workflows with AI so teams can focus on what actually matters.
             </p>
           </div>
 
           <div>
             <h4 className="font-semibold mb-4">Product</h4>
             <ul className="space-y-2 text-sm text-brand-dark/70">
-              <li><Link to="/playbooks" className="hover:text-brand-dark transition-colors">Playbooks</Link></li>
+              <li><Link to="/workflows/new" className="hover:text-brand-dark transition-colors">Browse Workflows</Link></li>
               <li><button onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-brand-dark transition-colors cursor-pointer">Pricing</button></li>
-              <li><a href="#" className="hover:text-brand-dark transition-colors">Enterprise</a></li>
+              <li><button onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-brand-dark transition-colors cursor-pointer">How it works</button></li>
             </ul>
           </div>
 
