@@ -34,6 +34,13 @@ const workflowDescriptions: Record<string, string> = {
   'wkflow-25': 'Searches the web, Reddit, and news sources for mentions of your brand every week. Tells you where you\'re showing up, what people are saying, whether competitors are dominating the conversation, and what to do about it.',
   'wkflow-26': 'Every week, generates a fresh 5-email cold outreach sequence tailored to your target customer — opener, case study, value pitch, objection handler, and breakup email. Ready to paste into your email tool.',
   'wkflow-28': 'Reads your customer activity spreadsheet every week and flags who\'s at risk of churning — with a risk score, the reason why, and a recommended action for each at-risk customer prioritised by revenue.',
+  // Nigeria-specific
+  'wkflow-30': 'Every run, Hoursback pulls live USD/NGN, EUR/NGN, and GBP/NGN exchange rates, analyses whether they\'ve moved significantly, explains what\'s driving the movement, and tells you whether now is a good time to convert — so you never get caught off guard by a rate swing.',
+  'wkflow-31': 'Reads your weekly income and expense data from Google Sheets, calculates your net Naira cash position, flags the biggest cost drivers, and tells you whether your runway is healthy — delivered to your inbox every Monday morning before business starts.',
+  'wkflow-32': 'Scans your invoice log every week and categorises overdue balances in Naira — 0–30, 31–60, 61–90, and 90+ days — with a specific follow-up recommendation for each client so you always know who owes you and what to do next.',
+  'wkflow-33': 'Compares your actual weekly sales in Naira against your targets, highlights the biggest gaps, names the under-performing products or channels, and tells you exactly what to do this week to close the gap before month end.',
+  'wkflow-34': 'Reads your WhatsApp lead log from Google Sheets, groups leads by temperature (hot, warm, cold), and generates ready-to-paste WhatsApp follow-up messages for each group — so no lead gets forgotten and your follow-up is consistent every week.',
+  'wkflow-35': 'Analyses your customer order history to predict who is due for a reorder, who is overdue, and who is slipping away — with the likelihood score, last order date, and a specific outreach recommendation for each customer sorted by revenue at risk.',
 };
 
 const dataSourceHelp: Record<string, string> = {
@@ -55,6 +62,12 @@ const dataSourceHelp: Record<string, string> = {
   'wkflow-25': 'Enter your brand name exactly as it appears online, including any common variations.',
   'wkflow-26': 'Describe your ideal customer in 2–3 sentences and what problem your product solves for them.',
   'wkflow-28': 'Share a Google Sheet with columns for customer name, last login, plan, and any usage metrics.',
+  'wkflow-30': 'No data source needed — Hoursback fetches live exchange rates automatically. Just tell it what to watch for.',
+  'wkflow-31': 'Your sheet should have columns for date, description, inflow amount (₦), and outflow amount (₦). Set sharing to "Anyone with link can view".',
+  'wkflow-32': 'Your sheet should have columns for client name, invoice number, amount (₦), invoice date, and payment status. "Anyone with link can view" sharing required.',
+  'wkflow-33': 'Your sheet should have columns for product/service name, actual sales this week (₦), and target (₦). Add a notes column for context if you have it.',
+  'wkflow-34': 'Export your WhatsApp leads to a Google Sheet with columns: name, phone, lead source, last contact date, status (New/Interested/Negotiating/Cold), and any notes.',
+  'wkflow-35': 'Your sheet should have columns: customer name, product ordered, order date, and order value (₦). More order history = more accurate predictions.',
 };
 
 const workflowInputs: Record<string, WorkflowInput> = {
@@ -78,6 +91,12 @@ const workflowInputs: Record<string, WorkflowInput> = {
   'wkflow-25': { label: 'Brand or product name to monitor', placeholder: 'e.g. Hoursback, Acme Corp', type: 'text' },
   'wkflow-26': { label: 'Target customer profile + product description', placeholder: 'e.g. We sell project management software to marketing agencies with 5–20 employees who struggle to track client deliverables.', type: 'textarea' },
   'wkflow-28': { label: 'Customer activity spreadsheet URL', placeholder: 'https://docs.google.com/spreadsheets/d/...', type: 'url' },
+  'wkflow-30': { label: 'Business context (optional)', placeholder: 'e.g. We import electronics and pay USD suppliers monthly. Alert me if USD/NGN moves more than 2%.', type: 'textarea' },
+  'wkflow-31': { label: 'Google Sheets URL (income & expense data)', placeholder: 'https://docs.google.com/spreadsheets/d/...', type: 'url' },
+  'wkflow-32': { label: 'Google Sheets URL (invoice log)', placeholder: 'https://docs.google.com/spreadsheets/d/...', type: 'url' },
+  'wkflow-33': { label: 'Google Sheets URL (sales vs target data)', placeholder: 'https://docs.google.com/spreadsheets/d/...', type: 'url' },
+  'wkflow-34': { label: 'Google Sheets URL (WhatsApp leads log)', placeholder: 'https://docs.google.com/spreadsheets/d/...', type: 'url' },
+  'wkflow-35': { label: 'Google Sheets URL (customer order history)', placeholder: 'https://docs.google.com/spreadsheets/d/...', type: 'url' },
 };
 
 function detectSourceType(url: string): 'google_sheets' | 'website' | 'api' {
@@ -106,6 +125,12 @@ function getDataSourceConfig(workflowId: string, dataSource: string): Record<str
     case 'wkflow-25': return { type: 'brand_monitor', query: dataSource };
     case 'wkflow-26': return { type: 'text_prompt', text: dataSource };
     case 'wkflow-28': return { type: 'google_sheets', url: dataSource };
+    case 'wkflow-30': return { type: 'forex', context: dataSource, currencies: ['USD', 'EUR', 'GBP'] };
+    case 'wkflow-31': return { type: 'google_sheets', url: dataSource };
+    case 'wkflow-32': return { type: 'google_sheets', url: dataSource };
+    case 'wkflow-33': return { type: 'google_sheets', url: dataSource };
+    case 'wkflow-34': return { type: 'google_sheets', url: dataSource };
+    case 'wkflow-35': return { type: 'google_sheets', url: dataSource };
     default:
       return { type: detectSourceType(dataSource), url: dataSource };
   }
@@ -125,6 +150,7 @@ export default function WorkflowBuilder() {
   const [runTime, setRunTime] = useState('08:00');
   const [runDay, setRunDay] = useState('monday');
   const [notifyEmail, setNotifyEmail] = useState(user?.email ?? '');
+  const [teamEmails, setTeamEmails] = useState('');
   const [dataSource, setDataSource] = useState('');
   const [isDeploying, setIsDeploying] = useState(false);
   const [deployedWebhookUrl, setDeployedWebhookUrl] = useState('');
@@ -186,7 +212,13 @@ export default function WorkflowBuilder() {
             model: 'claude-sonnet-4-6',
             data_source: dataSourceMode === 'excel' ? xlsxFileName : dataSource,
           },
-          action_config: { type: 'email', to: notifyEmail || user.email },
+          action_config: {
+            type: 'email',
+            to: notifyEmail || user.email,
+            ...(hasPro && teamEmails.trim()
+              ? { cc: teamEmails.split(',').map(e => e.trim()).filter(Boolean) }
+              : {}),
+          },
           data_source_config: dsConfig,
         })
         .select()
@@ -540,6 +572,34 @@ export default function WorkflowBuilder() {
                 />
                 <p className="text-xs text-slate-400 mt-1">Workflow results will be emailed here.</p>
               </div>
+
+              {/* Team alerts — Pro only */}
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <label className="block font-semibold">Also notify team members</label>
+                  {!hasPro && (
+                    <span className="text-[10px] font-semibold bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <Lock className="w-2.5 h-2.5" /> Pro
+                    </span>
+                  )}
+                </div>
+                {hasPro ? (
+                  <>
+                    <input
+                      type="text"
+                      value={teamEmails}
+                      onChange={e => setTeamEmails(e.target.value)}
+                      placeholder="colleague@company.com, manager@company.com"
+                      className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue outline-none text-sm"
+                    />
+                    <p className="text-xs text-slate-400 mt-1">Separate multiple emails with commas. Each person receives the full report.</p>
+                  </>
+                ) : (
+                  <div className="p-3 rounded-xl bg-slate-50 border border-dashed border-slate-200 text-xs text-slate-400">
+                    Upgrade to Pro to send results to your whole team in one workflow.
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Deployment summary */}
@@ -554,7 +614,7 @@ export default function WorkflowBuilder() {
                       ? 'Webhook triggered'
                       : `${schedule.charAt(0).toUpperCase() + schedule.slice(1)}${schedule === 'weekly' ? ` on ${runDay.charAt(0).toUpperCase() + runDay.slice(1)}` : ''} at ${runTime}`}
                   </p>
-                  <p><span className="text-slate-400">Results to:</span> {notifyEmail}</p>
+                  <p><span className="text-slate-400">Results to:</span> {notifyEmail}{hasPro && teamEmails.trim() ? ` + ${teamEmails.split(',').filter(Boolean).length} team member(s)` : ''}</p>
                   {dataSourceMode === 'excel' && xlsxFileName && (
                     <p><span className="text-slate-400">Data file:</span> {xlsxFileName}</p>
                   )}

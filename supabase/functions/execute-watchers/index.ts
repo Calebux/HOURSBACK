@@ -233,6 +233,22 @@ async function fetchData(sourceType: string, config: any, supabaseClient?: any):
     return `User input:\n\n${config.text}`;
   }
 
+  else if (sourceType === "forex") {
+    try {
+      const currencies = config.currencies || ["USD", "EUR", "GBP"];
+      const res = await fetch("https://open.er-api.com/v6/latest/NGN");
+      const json = await res.json();
+      if (!json.rates) return "Could not fetch exchange rates.";
+      // Rates are NGN per 1 unit of base — invert to get units per NGN
+      const lines = currencies.map((cur: string) => {
+        const rateNGNperFX = json.rates[cur] ? (1 / json.rates[cur]).toFixed(2) : "N/A";
+        return `- ${cur}/NGN: ₦${rateNGNperFX}`;
+      });
+      const context = config.context ? `\n\nBusiness context: ${config.context}` : "";
+      return `Live Exchange Rates (NGN base, as of ${new Date().toUTCString()}):\n${lines.join("\n")}${context}`;
+    } catch (e) { console.error("forex fetch error", e); return "Could not fetch forex data."; }
+  }
+
   else if (sourceType === "linkedin_monitor" && config.query) {
     if (!APIFY_API_KEY) return "Apify API key not configured.";
     try {
@@ -431,24 +447,59 @@ Strict rules:
           // Email delivery
           if (actionConfig.type === "email" && RESEND_API_KEY) {
             const { data: userData } = await supabase.auth.admin.getUserById(workflow.user_id);
-            const email = actionConfig.to || userData?.user?.email;
-            if (email) {
-              const htmlContent = `
-<div style="font-family:-apple-system,sans-serif;max-width:600px;margin:0 auto;color:#333;">
-  <div style="background:#f8fafc;padding:24px;border-radius:12px;margin-bottom:24px;border:1px solid #e2e8f0;">
-    <h2 style="margin:0 0 4px 0;color:#0f172a;font-size:20px;">${workflow.name}</h2>
-    <p style="margin:0;color:#64748b;font-size:13px;">${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}${hasMemory ? ` · Compared to ${lastRunDate}` : " · First run"}</p>
-  </div>
-  <div style="background:#fff;padding:24px;border-radius:12px;border:1px solid #e2e8f0;">
-    ${markdownToHtml(analysisText)}
-  </div>
-  <p style="text-align:center;margin-top:20px;font-size:12px;color:#94a3b8;">Delivered by <a href="https://hoursback.com" style="color:#3b82f6;">Hoursback</a></p>
-</div>`;
+            const primaryEmail = actionConfig.to || userData?.user?.email;
+            const ccEmails: string[] = Array.isArray(actionConfig.cc) ? actionConfig.cc : [];
+            if (primaryEmail) {
+              const runDate = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+              const memoryLine = hasMemory ? ` · Compared to ${lastRunDate}` : " · First run";
+              const htmlContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${workflow.name}</title>
+</head>
+<body style="margin:0;padding:0;background:#f1f5f9;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:24px 0;">
+  <tr><td align="center">
+    <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;">
 
+      <!-- Header -->
+      <tr><td style="background:#0f172a;border-radius:16px 16px 0 0;padding:24px 28px;">
+        <p style="margin:0;color:#94a3b8;font-size:11px;font-family:-apple-system,Helvetica,sans-serif;letter-spacing:1px;text-transform:uppercase;font-weight:600;">Hoursback · Automated Workflow</p>
+        <h1 style="margin:8px 0 4px;color:#ffffff;font-size:22px;font-family:-apple-system,Helvetica,sans-serif;font-weight:700;line-height:1.3;">${workflow.name}</h1>
+        <p style="margin:0;color:#64748b;font-size:13px;font-family:-apple-system,Helvetica,sans-serif;">${runDate}${memoryLine}</p>
+      </td></tr>
+
+      <!-- Body -->
+      <tr><td style="background:#ffffff;padding:28px;font-family:-apple-system,Helvetica,sans-serif;font-size:15px;line-height:1.7;color:#1e293b;border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0;">
+        ${markdownToHtml(analysisText)}
+      </td></tr>
+
+      <!-- Footer -->
+      <tr><td style="background:#f8fafc;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 16px 16px;padding:16px 28px;text-align:center;">
+        <p style="margin:0;font-family:-apple-system,Helvetica,sans-serif;font-size:12px;color:#94a3b8;">
+          Delivered automatically by <a href="https://hoursback.xyz" style="color:#3b82f6;text-decoration:none;font-weight:600;">Hoursback</a>
+          &nbsp;·&nbsp; <a href="https://hoursback.xyz/workflows" style="color:#94a3b8;text-decoration:none;">Manage workflows</a>
+        </p>
+      </td></tr>
+
+    </table>
+  </td></tr>
+</table>
+</body>
+</html>`;
+
+              const toField = ccEmails.length > 0 ? [primaryEmail, ...ccEmails] : primaryEmail;
               const res = await fetch("https://api.resend.com/emails", {
                 method: "POST",
                 headers: { "Authorization": `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
-                body: JSON.stringify({ from: "Hoursback Autopilot <autopilot@hoursback.xyz>", to: email, subject: `[${workflow.name}] ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })} Report`, html: htmlContent }),
+                body: JSON.stringify({
+                  from: "Hoursback Autopilot <autopilot@hoursback.xyz>",
+                  to: toField,
+                  subject: `[${workflow.name}] ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })} Report`,
+                  html: htmlContent,
+                }),
               });
               if (!res.ok) console.error("[Workflow] Email send failed", await res.text());
             }
