@@ -4,6 +4,7 @@ import { ContainerScroll } from '../components/ContainerScroll';
 import {
   Clock,
   Zap,
+  BarChart3,
   CheckCircle2,
   ChevronRight,
   Users,
@@ -180,13 +181,6 @@ export default function LandingPage() {
             className="text-base md:text-lg text-brand-dark/70 leading-relaxed font-normal max-w-xl"
           >
             Deploy AI workflows that monitor your business data and send you clear insights automatically.
-          </motion.p>
-
-          <motion.p
-            variants={fadeInUp}
-            className="text-sm text-brand-dark/45 max-w-md -mt-2"
-          >
-            Hoursback is an AI workflow engine that monitors your data and automatically sends you insights.
           </motion.p>
 
           <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -619,10 +613,10 @@ function SocialProofSection() {
 
 function WhoIsItForSection() {
   const audience = [
-    { emoji: '📊', title: 'Founders who track metrics in spreadsheets', desc: 'Stop manually pulling numbers. Get automated weekly reports from your Google Sheets.' },
-    { emoji: '👥', title: 'Small teams without data analysts', desc: 'You don\'t need to hire an analyst. Hoursback does the monitoring and summarising for you.' },
-    { emoji: '🔁', title: 'Operators who run weekly reports', desc: 'Replace the copy-paste grind with a workflow that runs, analyzes, and emails — automatically.' },
-    { emoji: '🛠️', title: 'Non-technical teams that want automation', desc: 'If you can fill in a form, you can deploy a workflow. Zero code, zero setup headaches.' },
+    { icon: <BarChart3 className="w-5 h-5 text-brand-blue" />, title: 'Founders who track metrics in spreadsheets', desc: 'Stop manually pulling numbers. Get automated weekly reports from your Google Sheets.' },
+    { icon: <Users className="w-5 h-5 text-brand-blue" />, title: 'Small teams without data analysts', desc: 'You don\'t need to hire an analyst. Hoursback does the monitoring and summarising for you.' },
+    { icon: <CalendarClock className="w-5 h-5 text-brand-blue" />, title: 'Operators who run weekly reports', desc: 'Replace the copy-paste grind with a workflow that runs, analyzes, and emails — automatically.' },
+    { icon: <Zap className="w-5 h-5 text-brand-blue" />, title: 'Non-technical teams that want automation', desc: 'If you can fill in a form, you can deploy a workflow. Zero code, zero setup headaches.' },
   ];
 
   return (
@@ -645,7 +639,7 @@ function WhoIsItForSection() {
             <div className="space-y-4">
               {audience.map((a, i) => (
                 <div key={i} className="flex gap-4 bg-white rounded-2xl p-5 border border-brand-dark/8 shadow-antigravity-sm">
-                  <span className="text-2xl shrink-0">{a.emoji}</span>
+                  <div className="w-9 h-9 rounded-xl bg-brand-blue/10 flex items-center justify-center shrink-0">{a.icon}</div>
                   <div>
                     <p className="font-semibold text-sm leading-snug mb-1">{a.title}</p>
                     <p className="text-brand-dark/55 text-xs leading-relaxed">{a.desc}</p>
