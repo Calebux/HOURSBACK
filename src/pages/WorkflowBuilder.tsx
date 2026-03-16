@@ -275,7 +275,7 @@ export default function WorkflowBuilder() {
         </div>
       </nav>
 
-      <div className="container mx-auto max-w-4xl px-6 py-12 flex-1">
+      <div className="container mx-auto max-w-6xl px-6 py-12 flex-1">
 
         {/* Step 1: Choose workflow */}
         {step === 1 && (
@@ -302,7 +302,7 @@ export default function WorkflowBuilder() {
               ))}
             </div>
 
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {launchCatalog.filter(p => activeCategory === 'All' || p.category === activeCategory).map(p => {
                 const locked = p.isPro && !hasPro;
                 const color = getCategoryColor(p.category);
@@ -313,47 +313,44 @@ export default function WorkflowBuilder() {
                       setSelectedWorkflow(p.id);
                       if (!locked) setStep(2);
                     }}
-                    className={`flex items-start gap-0 rounded-2xl border-2 overflow-hidden transition-all cursor-pointer ${
+                    className={`flex flex-col rounded-2xl border-2 overflow-hidden transition-all cursor-pointer ${
                       locked
                         ? 'border-slate-200 bg-slate-50/50 opacity-80 hover:opacity-100'
                         : 'border-slate-200 bg-white hover:border-brand-blue/50 hover:shadow-md'
                     }`}
                   >
                     {/* Color accent bar */}
-                    <div className="w-1 self-stretch shrink-0" style={{ backgroundColor: locked ? '#CBD5E1' : color }} />
+                    <div className="h-1 w-full shrink-0" style={{ backgroundColor: locked ? '#CBD5E1' : color }} />
 
-                    <div className="flex flex-1 items-start gap-3 p-4 sm:p-5">
-                      {/* Main content */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                    <div className="flex flex-col flex-1 p-4">
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           <span
-                            className="text-xs font-semibold px-2 py-0.5 rounded-md"
+                            className="text-[10px] font-semibold px-2 py-0.5 rounded-md"
                             style={{ backgroundColor: `${locked ? '#64748B' : color}18`, color: locked ? '#64748B' : color }}
                           >
                             {p.category}
                           </span>
                           {p.isPro && (
-                            <span className={`flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-md ${locked ? 'bg-slate-100 text-slate-500' : 'bg-purple-100 text-purple-700'}`}>
+                            <span className={`flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-md ${locked ? 'bg-slate-100 text-slate-500' : 'bg-purple-100 text-purple-700'}`}>
                               {locked && <Lock className="w-3 h-3" />} Pro
                             </span>
                           )}
                         </div>
-                        <h3 className="font-bold text-sm sm:text-base mb-1">{p.title}</h3>
-                        <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
-                          {workflowDescriptions[p.id] || p.subtitle}
-                        </p>
-                        <div className="flex items-center gap-1 mt-2 text-xs text-slate-400">
-                          <Clock className="w-3 h-3" />
-                          Saves ~{p.timeSaved} min/week
+                        <div className="shrink-0">
+                          {locked
+                            ? <Lock className="w-3.5 h-3.5 text-slate-300" />
+                            : <ChevronRight className="w-4 h-4 text-slate-300" />
+                          }
                         </div>
                       </div>
-
-                      {/* Arrow */}
-                      <div className="shrink-0 mt-1">
-                        {locked
-                          ? <Lock className="w-4 h-4 text-slate-300" />
-                          : <ChevronRight className="w-5 h-5 text-slate-300" />
-                        }
+                      <h3 className="font-bold text-sm mb-1 leading-snug">{p.title}</h3>
+                      <p className="text-xs text-slate-500 leading-relaxed line-clamp-2 flex-1">
+                        {workflowDescriptions[p.id] || p.subtitle}
+                      </p>
+                      <div className="flex items-center gap-1 mt-3 text-xs text-slate-400">
+                        <Clock className="w-3 h-3" />
+                        Saves ~{p.timeSaved} min/week
                       </div>
                     </div>
                   </div>
