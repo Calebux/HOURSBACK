@@ -267,7 +267,7 @@ export default function LandingPage() {
 
               {/* Bottom strip */}
               <div className="px-4 py-2 bg-white border-t border-brand-dark/10 flex items-center justify-between shrink-0">
-                <span className="text-[10px] text-brand-dark/40">6 playbooks · AI Copilot on every step</span>
+                <span className="text-[10px] text-brand-dark/40">6 workflows · AI on every step</span>
                 <span className="text-[10px] text-brand-blue font-semibold">Explore all →</span>
               </div>
             </div>
@@ -445,7 +445,7 @@ function AutopilotSection() {
     {
       icon: <Bot className="w-5 h-5" />,
       title: 'AI completes the whole task, not just part of it',
-      desc: 'The AI follows every single step in the playbook and gives you a finished, usable result. Not notes or suggestions. A completed task.'
+      desc: 'The AI follows every single step in the workflow and gives you a finished, usable result. Not notes or suggestions. A completed task.'
     },
     {
       icon: <Mail className="w-5 h-5" />,
@@ -734,12 +734,14 @@ function WhoIsItForSection() {
           <div className="flex flex-col justify-center gap-6">
             <p className="text-xs font-semibold text-brand-dark/40 uppercase tracking-widest">Why teams choose Hoursback</p>
             {[
-              { icon: '⚡', label: 'No coding required', sub: 'Deploy workflows with a simple form. No engineers needed.' },
-              { icon: '⚡', label: 'Deploy in minutes', sub: 'Pick a workflow, connect your data, go live. Under 5 minutes.' },
-              { icon: '⚡', label: 'Works with your existing tools', sub: 'Google Sheets, websites, spreadsheets — use what you already have.' },
+              { label: 'No coding required', sub: 'Deploy workflows with a simple form. No engineers needed.' },
+              { label: 'Deploy in minutes', sub: 'Pick a workflow, connect your data, go live. Under 5 minutes.' },
+              { label: 'Works with your existing tools', sub: 'Google Sheets, websites, spreadsheets — use what you already have.' },
             ].map((item, i) => (
               <div key={i} className="flex gap-4 items-start">
-                <span className="text-2xl shrink-0">{item.icon}</span>
+                <div className="w-5 h-5 shrink-0 mt-0.5 rounded-full bg-brand-blue/10 flex items-center justify-center">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-brand-blue" />
+                </div>
                 <div>
                   <p className="font-semibold text-brand-dark">{item.label}</p>
                   <p className="text-sm text-brand-dark/55 mt-0.5">{item.sub}</p>
@@ -1123,20 +1125,20 @@ function PricingSection({ onAuthRequired }: { onAuthRequired?: () => void }) {
 function FAQSection() {
   const faqs = [
     {
-      q: "I have never used AI before. Can I still use this?",
-      a: "Yes, absolutely. HoursBack is made for people who are completely new to AI. Every playbook tells you exactly what to type, word for word. You don't need to understand how AI works. You just follow the steps and get the result."
+      q: "Do I need to know how to code or set up anything technical?",
+      a: "No. If you can fill in a form, you can deploy a workflow. Pick a workflow template, connect your data source (Google Sheets, a website URL, or a webhook), set your schedule, and you're live. It takes under 5 minutes."
     },
     {
-      q: "What is a playbook exactly?",
-      a: "A playbook is a step-by-step guide that tells you exactly what to ask AI to get a business task done. Think of it like a recipe. You follow the instructions, the AI does the work, and you get a finished result at the end."
+      q: "What does Hoursback actually monitor?",
+      a: "Hoursback can watch Google Sheets, websites, CRM data, financial spreadsheets, competitor pages, and any data you connect via webhook. The AI checks your data on your chosen schedule, detects what changed or matters, and sends you a clear summary by email."
     },
     {
-      q: "Do I need to pay for AI tools separately?",
-      a: "Most playbooks work with Claude, which has a free tier you can start with. Some playbooks also work with ChatGPT. You don't need anything else. HoursBack gives you the prompts and the steps, you just need an AI account."
+      q: "How often does the AI run?",
+      a: "You choose — daily, weekly, or monthly. Once deployed, the workflow runs automatically on that schedule. You never have to log in or trigger it manually. The report just arrives in your inbox."
     },
     {
-      q: "What kinds of tasks can I do with HoursBack?",
-      a: "Right now you can use HoursBack for finance reports, sales outreach, marketing plans, competitor research, risk planning, loan preparation and more. New playbooks are added every week based on what users ask for."
+      q: "What kinds of workflows are available?",
+      a: "You can monitor finance metrics, sales pipelines, competitor websites, spreadsheet data, industry news, supplier prices, and more. There are 15+ ready-made workflows across Finance, Sales, Marketing, Operations, and Research. New ones are added regularly."
     }
   ];
 
