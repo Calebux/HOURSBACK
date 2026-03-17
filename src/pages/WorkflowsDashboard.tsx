@@ -359,14 +359,42 @@ export default function WorkflowsDashboard() {
           </Link>
         </div>
 
-        {/* Pro upgrade banner */}
-        {!isPro && (
+        {/* Pro upgrade banner — general (shown when user has < 3 workflows) */}
+        {!isPro && workflows.length < 3 && (
           <div className="mb-6 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div>
               <p className="font-semibold text-white text-sm">Unlock all 15 workflows with Pro</p>
-              <p className="text-white/70 text-xs mt-0.5">Cash flow, competitor tracking, YouTube trends, sales pipeline — $99/month.</p>
+              <p className="text-white/70 text-xs mt-0.5">Cash flow, competitor tracking, YouTube trends, sales pipeline — $20/month.</p>
             </div>
             <ProUpgradeButton className="shrink-0 bg-white text-purple-700 px-4 py-2 rounded-full text-sm font-semibold hover:bg-purple-50 transition-colors flex items-center gap-1.5 whitespace-nowrap">
+              Upgrade to Pro →
+            </ProUpgradeButton>
+          </div>
+        )}
+
+        {/* Contextual upgrade — user is at the 3-workflow limit */}
+        {!isPro && workflows.length >= 3 && (
+          <div className="mb-6 bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div>
+              <p className="font-semibold text-amber-900 text-sm">You've deployed 3 workflows — that's the free limit</p>
+              <p className="text-amber-700 text-xs mt-0.5">Upgrade to Pro to unlock 12 more workflows and run them all simultaneously.</p>
+            </div>
+            <ProUpgradeButton className="shrink-0 bg-amber-600 text-white px-4 py-2 rounded-full text-sm font-semibold hover:bg-amber-700 transition-colors flex items-center gap-1.5 whitespace-nowrap">
+              Unlock more workflows →
+            </ProUpgradeButton>
+          </div>
+        )}
+
+        {/* Milestone banner — after 10 runs, nudge with hours saved */}
+        {!isPro && runs.length >= 10 && workflows.length < 3 && (
+          <div className="mb-6 bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div>
+              <p className="font-semibold text-emerald-900 text-sm">
+                Your workflows have run {runs.length} times — you're saving ~{Math.round(runs.length * 0.5)} hours
+              </p>
+              <p className="text-emerald-700 text-xs mt-0.5">Go Pro to unlock advanced workflows and multiply those savings.</p>
+            </div>
+            <ProUpgradeButton className="shrink-0 bg-emerald-600 text-white px-4 py-2 rounded-full text-sm font-semibold hover:bg-emerald-700 transition-colors flex items-center gap-1.5 whitespace-nowrap">
               Upgrade to Pro →
             </ProUpgradeButton>
           </div>

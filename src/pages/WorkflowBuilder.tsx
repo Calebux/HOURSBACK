@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 import { launchCatalog, getCategoryColor } from '../data/playbooks';
 import { toast } from 'sonner';
 import posthog from 'posthog-js';
-import { ArrowLeft, ChevronRight, Copy, CheckCheck, ExternalLink, Upload, FileSpreadsheet, Clock, Lock } from 'lucide-react';
+import { ArrowLeft, ChevronRight, Copy, CheckCheck, ExternalLink, Upload, FileSpreadsheet, Clock, Lock, Bell, Plus, X, ChevronDown } from 'lucide-react';
 
 interface WorkflowInput {
   label: string;
@@ -162,6 +162,15 @@ export default function WorkflowBuilder() {
   const [xlsxUploading, setXlsxUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Decision triggers
+  type Alert = { metric: string; condition: 'drops_by' | 'rises_by' | 'exceeds' | 'falls_below'; value: string };
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [showAlerts, setShowAlerts] = useState(false);
+  const addAlert = () => setAlerts(a => [...a, { metric: '', condition: 'drops_by', value: '' }]);
+  const removeAlert = (i: number) => setAlerts(a => a.filter((_, idx) => idx !== i));
+  const updateAlert = (i: number, field: keyof Alert, val: string) =>
+    setAlerts(a => a.map((item, idx) => idx === i ? { ...item, [field]: val } : item));
+
   const workflow = launchCatalog.find(p => p.id === selectedWorkflow);
   const inputConfig = workflow ? workflowInputs[workflow.id] : null;
 
@@ -191,9 +200,10 @@ export default function WorkflowBuilder() {
     }
     setIsDeploying(true);
     try {
+      const validAlerts = alerts.filter(a => a.metric.trim() && a.value.trim());
       const trigger_config = triggerType === 'schedule'
-        ? { type: 'schedule', schedule, time: runTime, ...(schedule === 'weekly' ? { day: runDay } : {}) }
-        : { type: 'webhook' };
+        ? { type: 'schedule', schedule, time: runTime, ...(schedule === 'weekly' ? { day: runDay } : {}), ...(validAlerts.length ? { alerts: validAlerts } : {}) }
+        : { type: 'webhook', ...(validAlerts.length ? { alerts: validAlerts } : {}) };
 
       const dsConfig = dataSourceMode === 'excel' && xlsxPath
         ? { type: 'excel_file', storage_path: xlsxPath }
@@ -599,6 +609,70 @@ export default function WorkflowBuilder() {
               </div>
             </div>
 
+            {/* Decision Triggers */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+              <button
+                onClick={() => setShowAlerts(s => !s)}
+                className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <Bell className="w-4 h-4 text-brand-blue" />
+                  <span className="font-semibold text-sm">Decision Triggers</span>
+                  {alerts.length > 0 && (
+                    <span className="text-xs font-semibold bg-brand-blue/10 text-brand-blue px-2 py-0.5 rounded-full">{alerts.length} set</span>
+                  )}
+                  <span className="text-xs text-slate-400 font-normal">Optional</span>
+                </div>
+                <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${showAlerts ? 'rotate-180' : ''}`} />
+              </button>
+
+              {showAlerts && (
+                <div className="px-6 pb-5 border-t border-slate-100 pt-4 space-y-4">
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    Set thresholds that flag a special alert inside your report when triggered. Example: "Alert if revenue drops by more than 10%."
+                  </p>
+
+                  {alerts.map((alert, i) => (
+                    <div key={i} className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs text-slate-400 shrink-0">Alert if</span>
+                      <input
+                        value={alert.metric}
+                        onChange={e => updateAlert(i, 'metric', e.target.value)}
+                        placeholder="e.g. revenue, price, margin"
+                        className="flex-1 min-w-[120px] p-2 text-sm border border-slate-200 rounded-lg bg-slate-50 focus:ring-2 focus:ring-brand-blue/20 outline-none"
+                      />
+                      <select
+                        value={alert.condition}
+                        onChange={e => updateAlert(i, 'condition', e.target.value as Alert['condition'])}
+                        className="p-2 text-sm border border-slate-200 rounded-lg bg-slate-50 focus:ring-2 focus:ring-brand-blue/20 outline-none"
+                      >
+                        <option value="drops_by">drops by more than</option>
+                        <option value="rises_by">rises by more than</option>
+                        <option value="falls_below">falls below</option>
+                        <option value="exceeds">exceeds</option>
+                      </select>
+                      <input
+                        value={alert.value}
+                        onChange={e => updateAlert(i, 'value', e.target.value)}
+                        placeholder="10%"
+                        className="w-20 p-2 text-sm border border-slate-200 rounded-lg bg-slate-50 focus:ring-2 focus:ring-brand-blue/20 outline-none"
+                      />
+                      <button onClick={() => removeAlert(i)} className="p-1.5 text-slate-400 hover:text-red-500 transition-colors">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+
+                  <button
+                    onClick={addAlert}
+                    className="flex items-center gap-1.5 text-xs text-brand-blue hover:text-brand-dark transition-colors font-medium"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Add trigger
+                  </button>
+                </div>
+              )}
+            </div>
+
             {/* Deployment summary */}
             {notifyEmail && workflow && (
               <div className="bg-slate-50 rounded-2xl border border-slate-200 p-4 space-y-2">
@@ -617,6 +691,9 @@ export default function WorkflowBuilder() {
                   )}
                   {dataSourceMode !== 'excel' && dataSource && (
                     <p><span className="text-slate-400">Data source:</span> {dataSource.length > 50 ? dataSource.slice(0, 50) + '…' : dataSource}</p>
+                  )}
+                  {alerts.filter(a => a.metric.trim() && a.value.trim()).length > 0 && (
+                    <p><span className="text-slate-400">Triggers:</span> {alerts.filter(a => a.metric && a.value).length} alert condition{alerts.filter(a => a.metric && a.value).length > 1 ? 's' : ''} set</p>
                   )}
                 </div>
               </div>

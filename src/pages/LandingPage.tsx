@@ -19,6 +19,7 @@ import {
   PauseCircle
 } from 'lucide-react';
 import { AuthModal } from '../components/AuthModal';
+import { ROICalculator } from '../components/ROICalculator';
 import { BouncyCardsFeatures } from '../components/ui/bounce-card-features';
 import { N8nWorkflowBlock } from '../components/ui/n8n-workflow-block-shadcnui';
 import { useAuth } from '../contexts/AuthContext';
@@ -281,6 +282,7 @@ export default function LandingPage() {
       <WhoIsItForSection />
       <AutopilotSection />
       <WhyHoursbackSection />
+      <ROICalculator />
       <BouncyCardsFeatures />
       <SocialProofSection />
       <PricingSection onAuthRequired={() => { setAuthView('signup'); setAuthModalOpen(true); }} />
@@ -601,7 +603,7 @@ function SocialProofSection() {
 
   const testimonials = [
     {
-      quote: "I used to spend every Monday morning pulling reports manually. Now Hoursback does it while I sleep and my inbox has everything I need by 8am.",
+      quote: "I used to spend 3–4 hours every Monday pulling reports manually. Now Hoursback does it while I sleep and my inbox has everything I need by 8am. That's 14+ hours back every month.",
       name: "Adaeze O.",
       role: "E-commerce Founder",
       avatar: "AO",
@@ -609,7 +611,7 @@ function SocialProofSection() {
       stars: 5,
     },
     {
-      quote: "The competitor price monitor alone is worth it. I caught a supplier price hike before it hit my margins and renegotiated the same week.",
+      quote: "The supplier price monitor caught a 15% price hike the same week it went live. I renegotiated before it hit my invoices — that one alert saved me more than a year of the subscription.",
       name: "Tunde B.",
       role: "Operations Manager",
       avatar: "TB",
@@ -617,7 +619,7 @@ function SocialProofSection() {
       stars: 5,
     },
     {
-      quote: "As a content creator, the YouTube Trend Tracker changed my strategy completely. I know what to make before the wave hits.",
+      quote: "The YouTube Trend Tracker saves me 4 hours of research every week. I published a trend video within 3 days of the brief — it hit 28k views, my second highest ever.",
       name: "Chiamaka N.",
       role: "Content Creator",
       avatar: "CN",
@@ -1283,25 +1285,27 @@ function Footer() {
             <h4 className="font-semibold mb-4">Product</h4>
             <ul className="space-y-2 text-sm text-brand-dark/70">
               <li><Link to="/workflows/new" className="hover:text-brand-dark transition-colors">Browse Workflows</Link></li>
+              <li><Link to="/quiz" className="hover:text-brand-dark transition-colors">Workflow Matcher Quiz</Link></li>
               <li><button onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-brand-dark transition-colors cursor-pointer">Pricing</button></li>
-              <li><button onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-brand-dark transition-colors cursor-pointer">How it works</button></li>
+              <li><Link to="/how-it-learns" className="hover:text-brand-dark transition-colors">How It Learns</Link></li>
             </ul>
           </div>
 
           <div>
             <h4 className="font-semibold mb-4">Resources</h4>
             <ul className="space-y-2 text-sm text-brand-dark/70">
-              <li><a href="#" className="hover:text-brand-dark transition-colors">Blog</a></li>
-              <li><a href="#" className="hover:text-brand-dark transition-colors">Guides</a></li>
-              <li><a href="#" className="hover:text-brand-dark transition-colors">Help Center</a></li>
+              <li><Link to="/case-studies" className="hover:text-brand-dark transition-colors">Case Studies</Link></li>
+              <li><Link to="/vs-zapier" className="hover:text-brand-dark transition-colors">Hoursback vs Zapier</Link></li>
+              <li><Link to="/vs-make" className="hover:text-brand-dark transition-colors">Hoursback vs Make</Link></li>
+              <li><Link to="/vs-manual" className="hover:text-brand-dark transition-colors">Hoursback vs Manual</Link></li>
             </ul>
           </div>
 
           <div>
             <h4 className="font-semibold mb-4">Company</h4>
             <ul className="space-y-2 text-sm text-brand-dark/70">
-              <li><a href="#" className="hover:text-brand-dark transition-colors">About</a></li>
-              <li><a href="#" className="hover:text-brand-dark transition-colors">Careers</a></li>
+              <li><Link to="/trust" className="hover:text-brand-dark transition-colors">Trust & Security</Link></li>
+              <li><Link to="/privacy" className="hover:text-brand-dark transition-colors">Privacy Policy</Link></li>
               <li><a href="mailto:petersoncaleb275@gmail.com?subject=Contact%20Inquiry" className="hover:text-brand-dark transition-colors">Contact</a></li>
             </ul>
           </div>

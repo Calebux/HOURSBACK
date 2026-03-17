@@ -146,6 +146,48 @@ function ChartImage({ spec }: { spec: string }) {
   );
 }
 
+// ── Confidence scoring ──────────────────────────────────────────────────────
+export function computeConfidence(output: string): { score: number; level: 'high' | 'medium' | 'low'; reason: string } {
+  const words = output.split(/\s+/).length;
+  const numbers = (output.match(/\b\d+\.?\d*\b/g) || []).length;
+  const hasTable = output.includes('|');
+  const hasHeadings = output.includes('##');
+  const hasUncertainty = /\b(uncertain|unclear|unable|no data|not available|insufficient|error|failed|limited data)\b/i.test(output);
+
+  let score = 40;
+  if (words > 200) score += 12;
+  if (words > 450) score += 10;
+  if (numbers > 5) score += 10;
+  if (numbers > 15) score += 10;
+  if (hasTable) score += 10;
+  if (hasHeadings) score += 8;
+  if (hasUncertainty) score -= 18;
+
+  score = Math.min(97, Math.max(28, score));
+  const level = score >= 75 ? 'high' : score >= 55 ? 'medium' : 'low';
+  const reason =
+    level === 'high' ? `${numbers} data points — strong coverage` :
+    level === 'medium' ? 'Moderate data coverage — some gaps' :
+    'Limited data — verify key points independently';
+
+  return { score, level, reason };
+}
+
+// ── "Why this matters" / callout block detection ─────────────────────────────
+function injectCallouts(md: string): string {
+  // Match lines that are bold-wrapped callout labels
+  return md.replace(
+    /(\*\*(Why this matters|Key takeaway|Bottom line|Action required|Recommendation|Alert|Warning)[:\s*]*\*\*[^\n]*(?:\n(?![#\n]).*)*)/gi,
+    (match) => {
+      const isAlert = /\b(alert|warning)\b/i.test(match);
+      const bg = isAlert ? '#fff7ed' : '#eff6ff';
+      const border = isAlert ? '#fdba74' : '#93c5fd';
+      const icon = isAlert ? '⚠' : '✦';
+      return `\n<div style="background:${bg};border-left:3px solid ${border};border-radius:0 10px 10px 0;padding:10px 14px;margin:12px 0;font-size:13px;line-height:1.65;">${icon} ${match.replace(/\*\*/g, '')}</div>\n`;
+    }
+  );
+}
+
 export function ReportRenderer({ output, compact = false }: { output: string; compact?: boolean }) {
   const parts = parseReport(output);
 
@@ -158,7 +200,7 @@ export function ReportRenderer({ output, compact = false }: { output: string; co
           <div
             key={i}
             className="prose prose-sm max-w-none text-slate-700 leading-relaxed"
-            dangerouslySetInnerHTML={{ __html: renderMarkdown(part.content) }}
+            dangerouslySetInnerHTML={{ __html: renderMarkdown(injectCallouts(part.content)) }}
           />
         )
       )}

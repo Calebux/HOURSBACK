@@ -2,8 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { Bot, CheckCircle2, XCircle, Clock, Filter, FileText, Download, ThumbsUp, ThumbsDown, AlertCircle } from 'lucide-react';
-import { ReportRenderer } from '../components/ReportRenderer';
+import { Bot, CheckCircle2, XCircle, Clock, Filter, FileText, Download, ThumbsUp, ThumbsDown, AlertCircle, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { ReportRenderer, computeConfidence } from '../components/ReportRenderer';
 import { MobileNav } from '../components/MobileNav';
 import { toast } from 'sonner';
 import posthog from 'posthog-js';
@@ -171,11 +171,22 @@ export default function ReportsPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {filtered.map(run => {
+            {filtered.map((run, idx) => {
               const wf = workflows.find(w => w.id === run.workflow_id);
               const isSuccess = run.status === 'success';
               const isExpanded = expandedId === run.id;
               const runDate = new Date(run.created_at);
+
+              // Confidence scoring
+              const confidence = isSuccess && run.generated_output
+                ? computeConfidence(run.generated_output) : null;
+
+              // Comparative baseline: find previous run for same workflow
+              const prevRun = filtered.slice(idx + 1).find(r => r.workflow_id === run.workflow_id && r.status === 'success');
+              const currentWords = run.generated_output ? run.generated_output.split(/\s+/).length : 0;
+              const prevWords = prevRun?.generated_output ? prevRun.generated_output.split(/\s+/).length : 0;
+              const wordDelta = prevRun ? currentWords - prevWords : null;
+              const wordDeltaPct = prevWords > 0 && wordDelta !== null ? Math.round((wordDelta / prevWords) * 100) : null;
 
               return (
                 <div key={run.id} className="bg-white rounded-2xl border border-brand-dark/10 shadow-sm overflow-hidden">
@@ -200,6 +211,35 @@ export default function ReportsPage() {
                               <Clock className="w-3 h-3" />
                               {runDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })} at {runDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
                             </span>
+                            {/* Confidence badge */}
+                            {confidence && (
+                              <span
+                                title={confidence.reason}
+                                className={`text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1 ${
+                                  confidence.level === 'high' ? 'bg-emerald-50 text-emerald-700' :
+                                  confidence.level === 'medium' ? 'bg-amber-50 text-amber-700' :
+                                  'bg-slate-100 text-slate-500'
+                                }`}
+                              >
+                                {confidence.level === 'high' ? <CheckCircle2 className="w-2.5 h-2.5" /> :
+                                 confidence.level === 'medium' ? <Minus className="w-2.5 h-2.5" /> :
+                                 <AlertCircle className="w-2.5 h-2.5" />}
+                                {confidence.score}% confidence
+                              </span>
+                            )}
+
+                            {/* Comparative baseline vs previous run */}
+                            {wordDeltaPct !== null && Math.abs(wordDeltaPct) >= 10 && (
+                              <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1 ${
+                                wordDeltaPct > 0 ? 'bg-blue-50 text-blue-600' : 'bg-orange-50 text-orange-600'
+                              }`}>
+                                {wordDeltaPct > 0
+                                  ? <TrendingUp className="w-2.5 h-2.5" />
+                                  : <TrendingDown className="w-2.5 h-2.5" />}
+                                {wordDeltaPct > 0 ? '+' : ''}{wordDeltaPct}% vs prev
+                              </span>
+                            )}
+
                             {/* Feedback badge in header */}
                             {run.feedback && (
                               <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
@@ -207,7 +247,7 @@ export default function ReportsPage() {
                                 run.feedback === 'not_helpful' ? 'bg-red-50 text-red-600' :
                                 'bg-amber-50 text-amber-600'
                               }`}>
-                                {run.feedback === 'helpful' ? '👍 Helpful' : run.feedback === 'not_helpful' ? '👎 Not helpful' : '💬 Too vague'}
+                                {run.feedback === 'helpful' ? 'Helpful' : run.feedback === 'not_helpful' ? 'Not helpful' : 'Too vague'}
                               </span>
                             )}
                           </div>
