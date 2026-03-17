@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { Shield, Lock, Eye, Trash2, Server, CheckCircle2, ArrowRight, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { MobileNav } from '../components/MobileNav';
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 24 },
@@ -79,7 +80,7 @@ const roadmap = [
 
 export default function TrustPage() {
   return (
-    <div className="min-h-screen bg-brand-light text-brand-dark">
+    <div className="min-h-screen bg-brand-light text-brand-dark pb-16 md:pb-0">
       {/* Nav */}
       <nav className="px-6 py-4 flex items-center justify-between border-b border-brand-dark/10 bg-white">
         <Link to="/">
@@ -154,8 +155,8 @@ export default function TrustPage() {
 
       {/* Internal access controls */}
       <section className="py-16 bg-white border-y border-brand-dark/10">
-        <div className="container mx-auto px-6 max-w-4xl">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
+        <div className="container mx-auto px-4 sm:px-6 max-w-4xl">
+          <div className="grid md:grid-cols-2 gap-8 md:gap-12 items-center">
             <div>
               <p className="text-xs font-semibold text-brand-dark/40 uppercase tracking-widest mb-3">Internal access</p>
               <h2 className="text-2xl md:text-3xl font-semibold mb-4">Who can see your data</h2>
@@ -255,6 +256,7 @@ export default function TrustPage() {
           </div>
         </div>
       </footer>
+      <MobileNav />
     </div>
   );
 }

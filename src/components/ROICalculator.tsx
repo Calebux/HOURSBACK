@@ -28,7 +28,7 @@ export function ROICalculator() {
         <div className="bg-white rounded-3xl border border-brand-dark/10 shadow-antigravity-md overflow-hidden">
           <div className="grid md:grid-cols-2 gap-0">
             {/* Inputs */}
-            <div className="p-8 border-b md:border-b-0 md:border-r border-brand-dark/10">
+            <div className="p-5 sm:p-8 border-b md:border-b-0 md:border-r border-brand-dark/10">
               <p className="text-xs font-semibold text-brand-dark/40 uppercase tracking-widest mb-7">Your situation</p>
 
               <div className="space-y-8">
@@ -41,7 +41,7 @@ export function ROICalculator() {
                   <input
                     type="range" min={1} max={20} value={hours}
                     onChange={e => setHours(Number(e.target.value))}
-                    className="w-full accent-brand-blue h-1.5 rounded-full cursor-pointer"
+                    className="w-full accent-brand-blue h-2 rounded-full cursor-pointer"
                   />
                   <div className="flex justify-between text-xs text-brand-dark/30 mt-1">
                     <span>1h</span><span>20h</span>
@@ -57,7 +57,7 @@ export function ROICalculator() {
                   <input
                     type="range" min={10} max={300} step={5} value={rate}
                     onChange={e => setRate(Number(e.target.value))}
-                    className="w-full accent-brand-blue h-1.5 rounded-full cursor-pointer"
+                    className="w-full accent-brand-blue h-2 rounded-full cursor-pointer"
                   />
                   <div className="flex justify-between text-xs text-brand-dark/30 mt-1">
                     <span>$10</span><span>$300</span>
@@ -73,7 +73,7 @@ export function ROICalculator() {
                   <input
                     type="range" min={1} max={10} value={teamSize}
                     onChange={e => setTeamSize(Number(e.target.value))}
-                    className="w-full accent-brand-blue h-1.5 rounded-full cursor-pointer"
+                    className="w-full accent-brand-blue h-2 rounded-full cursor-pointer"
                   />
                   <div className="flex justify-between text-xs text-brand-dark/30 mt-1">
                     <span>Just me</span><span>10 people</span>
@@ -83,7 +83,7 @@ export function ROICalculator() {
             </div>
 
             {/* Output */}
-            <div className="p-8 bg-brand-dark text-white flex flex-col justify-between">
+            <div className="p-5 sm:p-8 bg-brand-dark text-white flex flex-col justify-between">
               <div>
                 <p className="text-xs font-semibold text-white/30 uppercase tracking-widest mb-7">With Hoursback</p>
 
@@ -94,7 +94,7 @@ export function ROICalculator() {
                       key={hoursPerMonth}
                       initial={{ opacity: 0, y: -8 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="text-2xl font-bold text-white"
+                      className="text-xl sm:text-2xl font-bold text-white"
                     >
                       {hoursPerMonth.toFixed(0)}h
                     </motion.span>
@@ -106,7 +106,7 @@ export function ROICalculator() {
                       key={savedPerMonth}
                       initial={{ opacity: 0, y: -8 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="text-2xl font-bold text-white"
+                      className="text-xl sm:text-2xl font-bold text-white"
                     >
                       ${savedPerMonth.toLocaleString()}
                     </motion.span>
@@ -123,7 +123,7 @@ export function ROICalculator() {
                       key={annualSavings}
                       initial={{ opacity: 0, scale: 0.9 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      className="text-3xl font-bold text-brand-blue"
+                      className="text-2xl sm:text-3xl font-bold text-brand-blue"
                     >
                       ${annualSavings.toLocaleString()}
                     </motion.span>

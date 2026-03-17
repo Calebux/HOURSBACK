@@ -402,7 +402,7 @@ export default function WorkflowsDashboard() {
 
         {/* Stats bar */}
         {workflows.length > 0 && (
-          <div className="grid grid-cols-3 gap-4 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-8">
             <div className="bg-white rounded-2xl border border-brand-dark/10 p-4 flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
                 <Activity className="w-5 h-5 text-emerald-600" />
@@ -455,7 +455,7 @@ export default function WorkflowsDashboard() {
                 </div>
 
                 {/* How it works */}
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                   {[
                     { step: '1', title: 'Choose a workflow', desc: 'Pick from 15 pre-built AI workflows for business intelligence.' },
                     { step: '2', title: 'Connect your data', desc: 'Link a Google Sheet, website, or paste keywords — takes 30 seconds.' },
@@ -472,7 +472,7 @@ export default function WorkflowsDashboard() {
                 {/* Popular starting workflows */}
                 <div className="bg-white rounded-2xl border border-brand-dark/10 p-5">
                   <p className="text-sm font-semibold text-slate-500 mb-3">Popular starting workflows</p>
-                  <div className="grid sm:grid-cols-3 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                     {[
                       { id: 'wkflow-7', name: 'Industry News Digest', tag: 'Free', color: 'bg-indigo-50 text-indigo-700' },
                       { id: 'wkflow-8', name: 'Brand Mention Monitor', tag: 'Free', color: 'bg-pink-50 text-pink-700' },

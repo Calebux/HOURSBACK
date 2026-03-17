@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { CheckCircle2, XCircle, ArrowRight, Minus } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
+import { MobileNav } from '../components/MobileNav';
 
 type ComparisonKey = 'zapier' | 'make' | 'manual';
 
@@ -139,7 +140,7 @@ export default function ComparisonPage() {
   }
 
   return (
-    <div className="min-h-screen bg-brand-light text-brand-dark">
+    <div className="min-h-screen bg-brand-light text-brand-dark pb-16 md:pb-0">
       {/* Nav */}
       <nav className="px-6 py-4 flex items-center justify-between border-b border-brand-dark/10 bg-white">
         <Link to="/"><img src="/logo.svg" alt="Hoursback" className="h-8 w-auto" /></Link>
@@ -165,10 +166,11 @@ export default function ComparisonPage() {
 
       {/* Feature table */}
       <section className="py-20">
-        <div className="container mx-auto px-6 max-w-4xl">
-          <div className="bg-white rounded-3xl border border-brand-dark/10 overflow-hidden shadow-sm">
+        <div className="container mx-auto px-4 sm:px-6 max-w-4xl">
+          <div className="overflow-x-auto rounded-3xl border border-brand-dark/10 shadow-sm">
+          <div className="bg-white min-w-[480px]">
             {/* Table header */}
-            <div className="grid grid-cols-3 border-b border-brand-dark/10 bg-brand-light">
+            <div className="grid grid-cols-3 border-b border-brand-dark/10 bg-brand-light rounded-t-3xl">
               <div className="p-5 text-xs font-semibold text-brand-dark/40 uppercase tracking-widest">Feature</div>
               <div className="p-5 text-center">
                 <span className="text-sm font-bold text-brand-dark">Hoursback</span>
@@ -192,6 +194,7 @@ export default function ComparisonPage() {
                 </div>
               </div>
             ))}
+          </div>
           </div>
 
           <p className="text-xs text-brand-dark/30 text-center mt-3">
@@ -265,6 +268,7 @@ export default function ComparisonPage() {
           </div>
         </div>
       </footer>
+      <MobileNav />
     </div>
   );
 }

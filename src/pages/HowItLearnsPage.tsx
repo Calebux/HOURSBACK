@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { ArrowRight, Lock, Sparkles, TrendingUp, Brain } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { MobileNav } from '../components/MobileNav';
 
 const weeks = [
   {
@@ -73,7 +74,7 @@ const weeks = [
 
 export default function HowItLearnsPage() {
   return (
-    <div className="min-h-screen bg-brand-light text-brand-dark">
+    <div className="min-h-screen bg-brand-light text-brand-dark pb-16 md:pb-0">
       {/* Nav */}
       <nav className="px-6 py-4 flex items-center justify-between border-b border-brand-dark/10 bg-white">
         <Link to="/"><img src="/logo.svg" alt="Hoursback" className="h-8 w-auto" /></Link>
@@ -221,6 +222,7 @@ export default function HowItLearnsPage() {
           </div>
         </div>
       </footer>
+      <MobileNav />
     </div>
   );
 }

@@ -8,6 +8,7 @@ import {
   User, Users, Building2, Building
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { MobileNav } from '../components/MobileNav';
 
 const questions = [
   {
@@ -125,7 +126,7 @@ export default function QuizPage() {
   const recs = getRecommendations(answers);
 
   return (
-    <div className="min-h-screen bg-brand-light flex flex-col">
+    <div className="min-h-screen bg-brand-light flex flex-col pb-16 md:pb-0">
       {/* Nav */}
       <div className="px-6 py-4 flex items-center justify-between border-b border-brand-dark/10 bg-white">
         <Link to="/">
@@ -277,6 +278,7 @@ export default function QuizPage() {
           )}
         </AnimatePresence>
       </div>
+      <MobileNav />
     </div>
   );
 }

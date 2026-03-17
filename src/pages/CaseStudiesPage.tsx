@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { Clock, ArrowRight, CheckCircle2, TrendingUp, Users, BarChart3 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { MobileNav } from '../components/MobileNav';
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 24 },
@@ -132,7 +133,7 @@ const studies = [
 
 export default function CaseStudiesPage() {
   return (
-    <div className="min-h-screen bg-brand-light text-brand-dark">
+    <div className="min-h-screen bg-brand-light text-brand-dark pb-16 md:pb-0">
       {/* Nav */}
       <nav className="px-6 py-4 flex items-center justify-between border-b border-brand-dark/10 bg-white">
         <Link to="/"><img src="/logo.svg" alt="Hoursback" className="h-8 w-auto" /></Link>
@@ -184,10 +185,10 @@ export default function CaseStudiesPage() {
               </div>
 
               {/* Metrics */}
-              <div className="grid grid-cols-3 gap-4 mb-8">
+              <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-8">
                 {study.metrics.map((m, j) => (
-                  <div key={j} className="bg-white rounded-2xl border border-brand-dark/10 p-5 text-center">
-                    <p className="text-2xl font-bold mb-1" style={{ color: study.color }}>{m.value}</p>
+                  <div key={j} className="bg-white rounded-2xl border border-brand-dark/10 p-3 sm:p-5 text-center">
+                    <p className="text-base sm:text-2xl font-bold mb-1 leading-tight" style={{ color: study.color }}>{m.value}</p>
                     <p className="text-xs text-brand-dark/50">{m.label}</p>
                   </div>
                 ))}
@@ -278,6 +279,7 @@ export default function CaseStudiesPage() {
           </div>
         </div>
       </footer>
+      <MobileNav />
     </div>
   );
 }
