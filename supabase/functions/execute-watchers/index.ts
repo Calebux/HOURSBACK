@@ -336,6 +336,25 @@ serve(async (req) => {
         const lastRunDate = hasMemory ? new Date(lastRun!.created_at).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }) : null;
         const lastFeedback: string | null = lastRun?.feedback ?? null;
 
+        // Fetch user's business profile for personalisation
+        const { data: profileRow } = await supabase
+          .from("profiles")
+          .select("business_profile")
+          .eq("id", workflow.user_id)
+          .maybeSingle();
+        const bp = profileRow?.business_profile as any;
+        const businessContext = bp?.businessName ? `## About This Business
+You are analysing data specifically for ${bp.businessName}, a ${bp.industry} business.
+${bp.products ? `Products/services: ${bp.products}.` : ""}
+${bp.metrics?.length ? `Key metrics they track: ${bp.metrics.join(", ")}.` : ""}
+${bp.competitors ? `Their main competitors: ${bp.competitors}.` : ""}
+${bp.challenge ? `Their current biggest challenge: ${bp.challenge}.` : ""}
+${bp.currency ? `They operate in ${bp.currency}.` : ""}
+
+Always frame your findings in the context of this specific business. Mention ${bp.businessName} by name. Reference their industry (${bp.industry}), their tracked metrics, and their stated challenge where relevant. Make the report feel written for them, not generic.
+
+` : "";
+
         // Condition check (Haiku) if set
         if (agentConfig.condition_prompt) {
           const evalResponse = await anthropic.messages.create({
@@ -364,7 +383,7 @@ Workflow: "${workflow.name}"
 Run Date: ${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
 Task: "${agentConfig.prompt || "Analyze the data and provide business insights."}"
 
-${hasMemory ? `## Memory: Previous Run (${lastRunDate})
+${businessContext}${hasMemory ? `## Memory: Previous Run (${lastRunDate})
 The following is what was reported in the last run. Use this to identify what has CHANGED, what is NEW, and what trends are developing:
 <previous_run>
 ${lastRun!.generated_output!.substring(0, 2000)}
@@ -497,7 +516,7 @@ Strict rules:
                 body: JSON.stringify({
                   from: "Hoursback Autopilot <autopilot@hoursback.xyz>",
                   to: toField,
-                  subject: `[${workflow.name}] ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })} Report`,
+                  subject: `[${workflow.name}] ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })} Report${bp?.businessName ? ` · ${bp.businessName}` : ""}`,
                   html: htmlContent,
                 }),
               });

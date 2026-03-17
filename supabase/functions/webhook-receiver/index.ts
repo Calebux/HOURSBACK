@@ -85,7 +85,26 @@ serve(async (req) => {
     let runStatus = "success";
 
     try {
-      // 2. Deep analysis (Sonnet) based on the agent's prompt + webhook payload
+      // 2. Fetch business profile for personalisation
+      const { data: profileRow } = await supabase
+        .from("profiles")
+        .select("business_profile")
+        .eq("id", workflow.user_id)
+        .maybeSingle();
+      const bp = profileRow?.business_profile as any;
+      const businessContext = bp?.businessName ? `## About This Business
+You are analysing data specifically for ${bp.businessName}, a ${bp.industry} business.
+${bp.products ? `Products/services: ${bp.products}.` : ""}
+${bp.metrics?.length ? `Key metrics they track: ${bp.metrics.join(", ")}.` : ""}
+${bp.competitors ? `Their main competitors: ${bp.competitors}.` : ""}
+${bp.challenge ? `Their current biggest challenge: ${bp.challenge}.` : ""}
+${bp.currency ? `They operate in ${bp.currency}.` : ""}
+
+Frame your findings in context of this specific business. Mention ${bp.businessName} by name where relevant.
+
+` : "";
+
+      // 3. Deep analysis (Sonnet) based on the agent's prompt + webhook payload
       const agentConfig = workflow.agent_config || {};
       const aiPrompt = agentConfig.prompt || "Analyze the following incoming webhook data.";
       const model = agentConfig.model || "claude-sonnet-4-6";
@@ -94,7 +113,7 @@ serve(async (req) => {
 Workflow Name: "${workflow.name}"
 Task/Prompt: "${aiPrompt}"
 
-Incoming Webhook Data:
+${businessContext}Incoming Webhook Data:
 <data>
 ${payloadText}
 </data>
