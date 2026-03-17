@@ -24,6 +24,7 @@ const QuizPage           = lazy(() => import('./pages/QuizPage'));
 const ComparisonPage     = lazy(() => import('./pages/ComparisonPage'));
 const CaseStudiesPage    = lazy(() => import('./pages/CaseStudiesPage'));
 const HowItLearnsPage    = lazy(() => import('./pages/HowItLearnsPage'));
+const SettingsPage       = lazy(() => import('./pages/SettingsPage'));
 
 function PageLoader() {
   return (
@@ -81,6 +82,7 @@ function AppWithOnboarding() {
           <Route path="/vs-:slug" element={<ComparisonPage />} />
           <Route path="/case-studies" element={<CaseStudiesPage />} />
           <Route path="/how-it-learns" element={<HowItLearnsPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>

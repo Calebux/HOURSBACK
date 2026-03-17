@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import Anthropic from "npm:@anthropic-ai/sdk";
+import { sanitizeUrl, getClientIp, checkRateLimit, rateLimitResponse } from "../_shared/security.ts";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
@@ -377,7 +378,8 @@ async function resolveVariables(variables: Record<string, string>): Promise<Reco
   const resolved: Record<string, string> = {};
   for (const [key, value] of Object.entries(variables)) {
     if (value.startsWith('SHEETS_URL:')) {
-      const url = value.slice('SHEETS_URL:'.length).trim();
+      const rawUrl = value.slice('SHEETS_URL:'.length).trim();
+      const url = sanitizeUrl(rawUrl) ?? rawUrl; // sanitize but allow google.com through
       try {
         const idMatch = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
         if (!idMatch) throw new Error('Invalid Google Sheets URL');
@@ -406,7 +408,10 @@ async function resolveVariables(variables: Record<string, string>): Promise<Reco
       const rawUrls = value.startsWith('FIRECRAWL:')
         ? value.slice('FIRECRAWL:'.length).trim()
         : value.trim();
-      const urls = rawUrls.split(',').map(u => u.trim()).filter(u => /^https?:\/\//i.test(u));
+      const urls = rawUrls.split(',').map(u => u.trim())
+        .map(u => sanitizeUrl(u))
+        .filter((u): u is string => u !== null)
+        .slice(0, 5);
       let allScraped = '';
 
       for (const url of urls) {
@@ -895,6 +900,18 @@ serve(async (req) => {
 
     // ── MODE 1: Manual single-schedule execution (triggered from UI) ──
     if (body.schedule_id) {
+      // Require auth for manual triggers — cron uses service role JWT
+      const authHeader = req.headers.get("Authorization");
+      if (!authHeader) {
+        return new Response(JSON.stringify({ error: "Unauthorized." }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      // Rate limit: 10 manual runs per hour per IP
+      const clientIp = getClientIp(req);
+      const rl = await checkRateLimit(supabaseAdmin, `manual-schedule:${clientIp}`, 10, 3600);
+      if (!rl.allowed) return rateLimitResponse();
+
       const { data: schedule, error: scheduleError } = await supabaseAdmin
         .from("scheduled_playbooks")
         .select("*")

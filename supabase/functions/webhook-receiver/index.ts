@@ -133,6 +133,12 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Workflow not found or invalid." }), { status: 404, headers: corsHeaders });
     }
 
+    // Verify webhook secret — must match the value generated at deploy time
+    const incomingSecret = url.searchParams.get("secret") || req.headers.get("x-webhook-secret");
+    if (workflow.webhook_secret && incomingSecret !== workflow.webhook_secret) {
+      return new Response(JSON.stringify({ error: "Invalid webhook secret." }), { status: 401, headers: corsHeaders });
+    }
+
     if (workflow.status !== "active") {
       return new Response(JSON.stringify({ message: "Workflow is paused." }), { status: 200, headers: corsHeaders });
     }

@@ -420,13 +420,21 @@ serve(async (req) => {
         const lastRunDate = hasMemory ? new Date(lastRun!.created_at).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }) : null;
         const lastFeedback: string | null = lastRun?.feedback ?? null;
 
-        // Fetch user's business profile for personalisation
+        // Fetch user profile (subscription status + business profile)
         const { data: profileRow } = await supabase
           .from("profiles")
-          .select("business_profile")
+          .select("business_profile, subscription_status")
           .eq("id", workflow.user_id)
           .maybeSingle();
         const bp = profileRow?.business_profile as any;
+
+        // Skip Pro-only workflows for free/downgraded users
+        if (workflow.is_pro && profileRow?.subscription_status !== "pro") {
+          console.log(`[Workflow] Skipping Pro workflow ${workflow.id} — user is on free plan`);
+          runStatus = "failed";
+          errorMessage = "This workflow requires a Pro subscription.";
+          throw new Error(errorMessage);
+        }
         const businessContext = bp?.businessName ? `## About This Business
 You are analysing data specifically for ${bp.businessName}, a ${bp.industry} business.
 ${bp.products ? `Products/services: ${bp.products}.` : ""}

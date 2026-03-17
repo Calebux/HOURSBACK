@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+
+# App routes — no value in indexing
+Disallow: /workflows
+Disallow: /workflows/new
+Disallow: /reports
+Disallow: /account
+Disallow: /settings
+
+# Sitemap
+Sitemap: https://www.hoursback.xyz/sitemap.xml

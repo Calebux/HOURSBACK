@@ -216,6 +216,7 @@ export default function WorkflowBuilder() {
           name: workflow.title,
           category: workflow.category,
           status: 'active',
+          is_pro: workflow.isPro ?? false,
           trigger_config,
           agent_config: {
             prompt: workflow.expectedOutcome,
@@ -247,7 +248,7 @@ export default function WorkflowBuilder() {
 
       if (triggerType === 'webhook' && newWorkflow) {
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-        setDeployedWebhookUrl(`${supabaseUrl}/functions/v1/webhook-receiver?workflow_id=${newWorkflow.id}`);
+        setDeployedWebhookUrl(`${supabaseUrl}/functions/v1/webhook-receiver?workflow_id=${newWorkflow.id}&secret=${newWorkflow.webhook_secret}`);
         setStep(4);
       } else {
         toast.success('Workflow deployed!');
