@@ -78,6 +78,77 @@ function markdownToHtml(md: string): string {
   return html.join("\n");
 }
 
+function tryParseJson(raw: string): any | null {
+  try { return JSON.parse(raw); } catch {}
+  for (const c of [']}', '}}', '}]}', '"}]}']) {
+    try { return JSON.parse(raw + c); } catch {}
+  }
+  return null;
+}
+
+function buildQuickChartUrl(spec: string): string | null {
+  const config = tryParseJson(spec);
+  if (!config || !config.data?.length) return null;
+  const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16'];
+  try {
+    const chartJs = {
+      type: config.type === 'line' ? 'line' : config.type === 'pie' ? 'pie' : 'bar',
+      data: {
+        labels: config.data.map((d: any) => d.name),
+        datasets: [{
+          label: config.title || 'Value',
+          data: config.data.map((d: any) => d.value),
+          backgroundColor: config.type === 'pie' ? colors.slice(0, config.data.length) : (config.color || '#3B82F6'),
+          borderColor: config.type === 'line' ? (config.color || '#3B82F6') : undefined,
+          borderWidth: config.type === 'line' ? 2 : undefined,
+          fill: false,
+          tension: 0.3,
+          borderRadius: config.type === 'bar' ? 6 : undefined,
+        }],
+      },
+      options: {
+        plugins: {
+          title: { display: !!config.title, text: config.title, font: { size: 14, weight: 'bold' } },
+          legend: { display: config.type === 'pie' },
+        },
+        scales: config.type !== 'pie' ? {
+          y: { grid: { color: '#f1f5f9' } },
+          x: { grid: { display: false } },
+        } : undefined,
+      },
+    };
+    const encoded = encodeURIComponent(JSON.stringify(chartJs));
+    return `https://quickchart.io/chart?c=${encoded}&width=600&height=300&backgroundColor=white&devicePixelRatio=2`;
+  } catch { return null; }
+}
+
+// Converts markdown to email HTML, rendering ```chart blocks as <img> tags
+function renderEmailHtml(md: string): string {
+  // Step 1: extract chart blocks and replace with placeholder tokens
+  const chartHtmlMap = new Map<string, string>();
+  let idx = 0;
+  const mdWithTokens = md.replace(/```chart\s*([\s\S]*?)(?:```|$)/g, (_, spec) => {
+    const token = `HBCHARTTOK${idx++}`;
+    const url = buildQuickChartUrl(spec.trim());
+    if (!url) return '';
+    const title = tryParseJson(spec.trim())?.title || '';
+    chartHtmlMap.set(
+      `<p style="margin:8px 0;line-height:1.6;">${token}</p>`,
+      `<div style="margin:16px 0;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0;background:#fff;">${title ? `<p style="margin:0;padding:12px 16px 4px;font-size:13px;font-weight:600;color:#374151;">${title}</p>` : ''}<img src="${url}" alt="${title || 'Chart'}" width="600" style="width:100%;max-width:600px;display:block;" /></div>`
+    );
+    return token;
+  });
+
+  // Step 2: convert remaining markdown to HTML
+  let html = markdownToHtml(mdWithTokens);
+
+  // Step 3: replace token paragraphs with chart img blocks
+  for (const [placeholder, chartHtml] of chartHtmlMap.entries()) {
+    html = html.replace(placeholder, chartHtml);
+  }
+  return html;
+}
+
 function parseNewsRss(xml: string, query: string, limit = 15): string {
   const items = xml.match(/<item>[\s\S]*?<\/item>/g) || [];
   const parsed = items.slice(0, limit).map(item => {
@@ -492,7 +563,7 @@ Strict rules:
 
       <!-- Body -->
       <tr><td style="background:#ffffff;padding:28px;font-family:-apple-system,Helvetica,sans-serif;font-size:15px;line-height:1.7;color:#1e293b;border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0;">
-        ${markdownToHtml(analysisText)}
+        ${renderEmailHtml(analysisText)}
       </td></tr>
 
       <!-- Footer -->
