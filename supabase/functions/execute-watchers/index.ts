@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import Anthropic from "npm:@anthropic-ai/sdk";
 import * as XLSX from "npm:xlsx";
+import { sanitizeDataSourceConfig, getClientIp, checkRateLimit, rateLimitResponse } from "../_shared/security.ts";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
@@ -353,8 +354,20 @@ serve(async (req) => {
     const now = new Date().toISOString();
 
     // Support manual "run now" by passing workflow_id in body
+    // Require Authorization header for manual triggers (cron uses service role JWT)
     const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
     const manualWorkflowId: string | undefined = body.workflow_id;
+
+    if (manualWorkflowId) {
+      const authHeader = req.headers.get("Authorization");
+      if (!authHeader) {
+        return new Response(JSON.stringify({ error: "Unauthorized." }), { status: 401, headers: corsHeaders });
+      }
+      // Rate limit manual triggers: 10 per hour per IP
+      const clientIp = getClientIp(req);
+      const rl = await checkRateLimit(supabase, `manual-run:${clientIp}`, 10, 3600);
+      if (!rl.allowed) return rateLimitResponse();
+    }
 
     let workflows: any[] = [];
     if (manualWorkflowId) {
@@ -384,7 +397,7 @@ serve(async (req) => {
       let runStatus = "failed";
 
       const triggerConfig = workflow.trigger_config || {};
-      const dataSourceConfig = workflow.data_source_config || {};
+      const dataSourceConfig = sanitizeDataSourceConfig(workflow.data_source_config || {});
       const agentConfig = workflow.agent_config || {};
       const actionConfig = workflow.action_config || {};
 

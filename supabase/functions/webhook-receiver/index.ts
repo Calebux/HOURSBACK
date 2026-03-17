@@ -2,6 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import Anthropic from "npm:@anthropic-ai/sdk";
+import { sanitizeText, isValidUUID, getClientIp, checkRateLimit, rateLimitResponse } from "../_shared/security.ts";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
@@ -97,15 +98,28 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Missing workflow_id query parameter." }), { status: 400, headers: corsHeaders });
     }
 
-    let payloadText = "";
-    if (req.headers.get("content-type")?.includes("application/json")) {
-      const payload = await req.json();
-      payloadText = JSON.stringify(payload, null, 2);
-    } else {
-      payloadText = await req.text();
+    // Validate workflow_id format to prevent injection
+    if (!isValidUUID(workflowId)) {
+      return new Response(JSON.stringify({ error: "Invalid workflow_id format." }), { status: 400, headers: corsHeaders });
     }
 
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
+
+    // Rate limit: 60 requests per minute per IP
+    const clientIp = getClientIp(req);
+    const rl = await checkRateLimit(supabase, `webhook:${clientIp}`, 60, 60);
+    if (!rl.allowed) return rateLimitResponse();
+
+    // Read and sanitize payload — cap at 50KB to prevent context stuffing
+    const MAX_PAYLOAD = 50_000;
+    let rawPayload = "";
+    if (req.headers.get("content-type")?.includes("application/json")) {
+      const payload = await req.json();
+      rawPayload = JSON.stringify(payload, null, 2);
+    } else {
+      rawPayload = await req.text();
+    }
+    const payloadText = sanitizeText(rawPayload, MAX_PAYLOAD);
     const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
 
     // 1. Fetch the workflow

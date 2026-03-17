@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from "jsr:@supabase/supabase-js@2"
+import { sanitizeText, checkRateLimit, rateLimitResponse } from "../_shared/security.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,13 +14,19 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { prompt, provider = 'openai' } = await req.json()
+    const body = await req.json()
+    const rawPrompt = body.prompt
+    const provider: string = typeof body.provider === 'string' ? body.provider : 'openai'
 
-    if (!prompt) {
+    if (!rawPrompt) {
       return new Response(JSON.stringify({ error: 'Prompt is required' }), {
+        status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
+
+    // Sanitize and truncate prompt — prevents context stuffing attacks
+    const prompt = sanitizeText(rawPrompt, 2000)
 
     // 1. Authenticate the user via their JWT
     const authHeader = req.headers.get('Authorization')
@@ -39,6 +46,7 @@ Deno.serve(async (req) => {
     const { data: { user }, error: userError } = await anonClient.auth.getUser()
     if (userError || !user) {
       return new Response(JSON.stringify({ error: 'Unauthorized: ' + (userError?.message || 'invalid token') }), {
+        status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
@@ -48,6 +56,10 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
+
+    // Rate limit: 30 requests per hour per user (separate from copilot_runs quota)
+    const rl = await checkRateLimit(serviceClient, `copilot:${user.id}`, 30, 3600)
+    if (!rl.allowed) return rateLimitResponse()
 
     // Fetch or create profile
     let { data: profile, error: profileError } = await serviceClient

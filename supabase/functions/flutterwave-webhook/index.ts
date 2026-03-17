@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from "jsr:@supabase/supabase-js@2"
+import { getClientIp, checkRateLimit, rateLimitResponse } from "../_shared/security.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -197,6 +198,16 @@ Deno.serve(async (req) => {
       return new Response('Invalid signature', { status: 401 })
     }
 
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
+
+    // Rate limit webhook endpoint: 30 per minute per IP
+    const clientIp = getClientIp(req)
+    const rl = await checkRateLimit(supabase, `flw-webhook:${clientIp}`, 30, 60)
+    if (!rl.allowed) return rateLimitResponse()
+
     const payload = await req.json()
 
     // Only process successful payments from Flutterwave
@@ -206,18 +217,24 @@ Deno.serve(async (req) => {
       const customerEmail = data.customer?.email
       const amount = data.amount?.toString() ?? '0'
       const currency = data.currency ?? ''
-      const txRef = data.tx_ref ?? data.flw_ref ?? 'N/A'
+      const txRef: string = data.tx_ref ?? data.flw_ref ?? 'N/A'
 
       if (!userId || userId === 'guest') {
         console.warn('Webhook payload missing explicit user_id in meta. Cannot upgrade user.')
         return new Response('Ignored: Missing Valid user_id', { status: 200 })
       }
 
-      // Initialize Supabase with SERVICE ROLE to bypass RLS and update DB directly
-      const supabase = createClient(
-        Deno.env.get('SUPABASE_URL') ?? '',
-        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-      )
+      // Idempotency: reject duplicate transactions
+      const { data: existing } = await supabase
+        .from('processed_payments')
+        .select('tx_ref')
+        .eq('tx_ref', txRef)
+        .maybeSingle()
+
+      if (existing) {
+        console.warn(`Duplicate webhook for tx_ref ${txRef} — already processed. Ignoring.`)
+        return new Response('Already processed', { status: 200 })
+      }
 
       const expiresAt = new Date()
       expiresAt.setDate(expiresAt.getDate() + 30)
@@ -235,6 +252,9 @@ Deno.serve(async (req) => {
         console.error('Failed to upgrade user:', error)
         throw new Error('Database update failed')
       }
+
+      // Record this transaction so replays are ignored
+      await supabase.from('processed_payments').insert({ tx_ref: txRef, user_id: userId })
 
       console.log(`Successfully upgraded user ${userId} to Pro plan via Flutterwave webhook. Expires: ${expiresAt.toISOString()}`)
 
