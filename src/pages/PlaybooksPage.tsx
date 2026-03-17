@@ -23,37 +23,24 @@ import { getCategoryColor, type Playbook } from '../data/playbooks';
 import { fetchPlaybooks } from '../lib/api';
 import type { OnboardingData } from '../components/OnboardingModal';
 
-const PROFESSION_CATEGORIES: Record<string, string[]> = {
-  entrepreneur: ['Marketing', 'Business Development', 'Operations', 'Finance', 'Risk & Strategy'],
-  freelancer: ['Marketing', 'Sales Ops', 'Operations'],
-  marketing: ['Marketing', 'Business Development'],
-  finance: ['Finance', 'Business Development'],
-  sales: ['Sales Ops', 'Business Development'],
-  creator: ['Marketing'],
-  fitness: ['Fitness & Wellness'],
-  student: ['Operations'],
-  developer: ['Operations', 'Product'],
-  other: [],
-};
-
-const GOAL_CATEGORIES: Record<string, string[]> = {
-  automate: [],
-  bookkeeping: ['Finance'],
-  marketing_content: ['Marketing'],
-  sales_bd: ['Sales Ops', 'Business Development'],
-  learn_ai: [],
-  fitness_health: ['Fitness & Wellness'],
-  coding: ['Product'],
-  productivity: ['Operations'],
+const INDUSTRY_CATEGORIES: Record<string, string[]> = {
+  'E-commerce / Retail': ['Marketing', 'Sales Ops', 'Operations', 'Finance'],
+  'Finance / Accounting': ['Finance', 'Risk & Strategy', 'Operations'],
+  'Marketing / Agency': ['Marketing', 'Business Development', 'Sales Ops'],
+  'SaaS / Software': ['Product', 'Operations', 'Business Development'],
+  'Consulting / Services': ['Business Development', 'Operations', 'Sales Ops'],
+  'Manufacturing / Distribution': ['Operations', 'Finance', 'Risk & Strategy'],
+  'Content / Creator': ['Marketing'],
+  'Real Estate': ['Sales Ops', 'Finance', 'Business Development'],
+  'Healthcare': ['Operations', 'Risk & Strategy'],
+  'Other': [],
 };
 
 function getOnboardingScore(p: Playbook, onboarding: OnboardingData): number {
-  const profCats = PROFESSION_CATEGORIES[onboarding.profession] ?? [];
-  const goalCats = onboarding.goals.flatMap(g => GOAL_CATEGORIES[g] ?? []);
+  const industryCats = INDUSTRY_CATEGORIES[onboarding.industry] ?? [];
   let score = 0;
-  if (profCats.includes(p.category)) score += 2;
-  if (goalCats.includes(p.category)) score += 1;
-  if (onboarding.goals.includes('automate') && p.agentAutomation) score += 1;
+  if (industryCats.includes(p.category)) score += 2;
+  if (onboarding.metrics?.some(m => m.toLowerCase().includes('revenue') || m.toLowerCase().includes('profit')) && p.category === 'Finance') score += 1;
   return score;
 }
 
@@ -98,11 +85,11 @@ export default function PlaybooksPage() {
   useEffect(() => {
     if (!user) return;
     const readOnboarding = () => {
-      const raw = localStorage.getItem(`hb_onboarding_${user.id}`);
+      const raw = localStorage.getItem(`hb_profile_${user.id}`);
       if (!raw) return;
       try {
         const parsed = JSON.parse(raw) as OnboardingData;
-        if (parsed.profession && parsed.goals?.length) {
+        if (parsed.industry) {
           setOnboarding(parsed);
         }
       } catch {

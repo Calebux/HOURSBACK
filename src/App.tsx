@@ -19,6 +19,11 @@ const CrashCoursePage    = lazy(() => import('./pages/CrashCoursePage'));
 const PrivacyPage        = lazy(() => import('./pages/PrivacyPage'));
 const TermsPage          = lazy(() => import('./pages/TermsPage'));
 const NotFoundPage       = lazy(() => import('./pages/NotFoundPage'));
+const TrustPage          = lazy(() => import('./pages/TrustPage'));
+const QuizPage           = lazy(() => import('./pages/QuizPage'));
+const ComparisonPage     = lazy(() => import('./pages/ComparisonPage'));
+const CaseStudiesPage    = lazy(() => import('./pages/CaseStudiesPage'));
+const HowItLearnsPage    = lazy(() => import('./pages/HowItLearnsPage'));
 
 function PageLoader() {
   return (
@@ -35,7 +40,7 @@ function AppWithOnboarding() {
 
   useEffect(() => {
     if (!user) return;
-    const key = `hb_onboarding_${user.id}`;
+    const key = `hb_profile_${user.id}`;
     const done = localStorage.getItem(key);
     if (!done) {
       const t = setTimeout(() => setShowOnboarding(true), 800);
@@ -50,7 +55,7 @@ function AppWithOnboarding() {
 
   const handleOnboardingDismiss = () => {
     if (user) {
-      localStorage.setItem(`hb_onboarding_${user.id}`, JSON.stringify({ dismissed: true, completedAt: new Date().toISOString() }));
+      localStorage.setItem(`hb_profile_${user.id}`, JSON.stringify({ dismissed: true, completedAt: new Date().toISOString() }));
     }
     setShowOnboarding(false);
   };
@@ -71,6 +76,11 @@ function AppWithOnboarding() {
           <Route path="/account" element={<AccountPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/terms" element={<TermsPage />} />
+          <Route path="/trust" element={<TrustPage />} />
+          <Route path="/quiz" element={<QuizPage />} />
+          <Route path="/vs-:slug" element={<ComparisonPage />} />
+          <Route path="/case-studies" element={<CaseStudiesPage />} />
+          <Route path="/how-it-learns" element={<HowItLearnsPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>

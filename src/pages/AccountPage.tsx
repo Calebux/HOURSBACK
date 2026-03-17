@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { Bot, FileText, User, LogOut, Crown, CheckCircle2, Clock, RefreshCw } from 'lucide-react';
+import { updateProfile } from '../lib/api';
+import { Bot, FileText, User, LogOut, Crown, CheckCircle2, Clock, RefreshCw, Building2, Pencil, X, Check } from 'lucide-react';
 import { MobileNav } from '../components/MobileNav';
 import { ProUpgradeButton } from '../components/ProUpgradeButton';
 import { toast } from 'sonner';
+import type { BusinessProfile } from '../components/OnboardingModal';
 
 interface Profile {
   subscription_status: string;
@@ -28,6 +30,9 @@ export default function AccountPage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [businessProfile, setBusinessProfile] = useState<BusinessProfile | null>(null);
+  const [editingChallenge, setEditingChallenge] = useState(false);
+  const [challengeDraft, setChallengeDraft] = useState('');
 
   useEffect(() => {
     if (!user) { navigate('/'); return; }
@@ -40,7 +45,22 @@ export default function AccountPage() {
         if (data) setProfile(data);
         setLoading(false);
       });
+    // Load business profile from localStorage
+    const stored = localStorage.getItem(`hb_profile_${user.id}`);
+    if (stored) {
+      try { setBusinessProfile(JSON.parse(stored)); } catch {}
+    }
   }, [user, navigate]);
+
+  const saveChallenge = async () => {
+    if (!user || !businessProfile) return;
+    const updated = { ...businessProfile, challenge: challengeDraft };
+    localStorage.setItem(`hb_profile_${user.id}`, JSON.stringify(updated));
+    await updateProfile(user.id, { business_profile: updated });
+    setBusinessProfile(updated);
+    setEditingChallenge(false);
+    toast.success('Business profile updated');
+  };
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -149,6 +169,68 @@ export default function AccountPage() {
             {refreshing ? 'Checking...' : 'Refresh subscription status'}
           </button>
         </div>
+
+        {/* Business Profile */}
+        {businessProfile && businessProfile.businessName && (
+          <div className="bg-white rounded-2xl border border-brand-dark/10 shadow-sm p-6 mb-4">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-slate-400" />
+                <span className="text-sm font-semibold text-slate-700">Business Profile</span>
+              </div>
+              <span className="text-xs text-slate-400">Used by AI in every workflow</span>
+            </div>
+
+            <div className="bg-brand-dark rounded-xl p-4 text-white text-xs leading-relaxed mb-4">
+              <p className="text-white/40 uppercase tracking-widest text-[10px] font-semibold mb-2">AI context</p>
+              <p className="text-white/70">
+                <span className="text-white font-semibold">{businessProfile.businessName}</span> operates in{' '}
+                <span className="text-white font-semibold">{businessProfile.industry}</span>.
+                {businessProfile.products && <> Products/services: <span className="text-white">{businessProfile.products}</span>.</>}
+                {businessProfile.metrics?.length > 0 && <> Tracks: <span className="text-white">{businessProfile.metrics.join(', ')}</span>.</>}
+                {businessProfile.competitors && <> Competitors: <span className="text-white">{businessProfile.competitors}</span>.</>}
+                {businessProfile.challenge && <> Current challenge: <span className="text-white">{businessProfile.challenge}</span>.</>}
+                {' '}Currency: <span className="text-white">{businessProfile.currency}</span>.
+              </p>
+            </div>
+
+            {/* Editable challenge field */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Current challenge</label>
+                {!editingChallenge && (
+                  <button
+                    onClick={() => { setChallengeDraft(businessProfile.challenge || ''); setEditingChallenge(true); }}
+                    className="flex items-center gap-1 text-xs text-brand-blue hover:underline"
+                  >
+                    <Pencil className="w-3 h-3" /> Edit
+                  </button>
+                )}
+              </div>
+              {editingChallenge ? (
+                <div className="space-y-2">
+                  <textarea
+                    value={challengeDraft}
+                    onChange={e => setChallengeDraft(e.target.value)}
+                    rows={3}
+                    className="w-full p-3 border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue outline-none text-sm resize-none"
+                    autoFocus
+                  />
+                  <div className="flex gap-2">
+                    <button onClick={saveChallenge} className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-dark text-white rounded-full text-xs font-medium">
+                      <Check className="w-3 h-3" /> Save
+                    </button>
+                    <button onClick={() => setEditingChallenge(false)} className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 text-slate-500 rounded-full text-xs font-medium">
+                      <X className="w-3 h-3" /> Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-slate-600">{businessProfile.challenge || <span className="text-slate-400 italic">Not set</span>}</p>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Quick links */}
         <div className="bg-white rounded-2xl border border-brand-dark/10 shadow-sm divide-y divide-slate-100 mb-4">
