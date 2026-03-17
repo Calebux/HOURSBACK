@@ -153,11 +153,26 @@ Frame your findings in context of this specific business. Mention ${bp.businessN
       const aiPrompt = agentConfig.prompt || "Analyze the following incoming webhook data.";
       const model = agentConfig.model || "claude-sonnet-4-6";
 
+      const triggerConfig = workflow.trigger_config || {};
+      const webhookAlerts: Array<{ metric: string; condition: string; value: string }> = triggerConfig.alerts || [];
+      const alertInstructions = webhookAlerts.length > 0 ? `## Decision Triggers — EVALUATE FIRST
+The user has set the following alert conditions. Check each one against the incoming data:
+${webhookAlerts.map((a, i) => `${i + 1}. If **${a.metric}** ${a.condition.replace(/_/g, ' ')} **${a.value}** → flag as TRIGGERED`).join('\n')}
+
+If ANY condition is triggered, add this section at the very top of your report (before everything else):
+
+## 🚨 Alert Triggered
+[List each triggered condition. State the actual value found vs the threshold.]
+
+If NO conditions are triggered, omit the alerts section entirely.
+
+` : '';
+
       const analysisPrompt = `You are an AI automated workflow agent.
 Workflow Name: "${workflow.name}"
 Task/Prompt: "${aiPrompt}"
 
-${businessContext}Incoming Webhook Data:
+${alertInstructions}${businessContext}Incoming Webhook Data:
 <data>
 ${payloadText}
 </data>

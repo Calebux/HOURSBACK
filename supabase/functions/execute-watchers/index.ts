@@ -448,13 +448,29 @@ Always frame your findings in the context of this specific business. Mention ${b
           triggeredCount++;
           runStatus = "success";
 
+          // Build alert instructions if decision triggers are set
+          const alerts: Array<{ metric: string; condition: string; value: string }> = triggerConfig.alerts || [];
+          const alertInstructions = alerts.length > 0 ? `
+## Decision Triggers — EVALUATE FIRST
+The user has set the following alert conditions. Check each one against the current data:
+${alerts.map((a, i) => `${i + 1}. If **${a.metric}** ${a.condition.replace(/_/g, ' ')} **${a.value}** → flag as TRIGGERED`).join('\n')}
+
+If ANY condition is triggered, you MUST add this section at the very top of your report (before Executive Summary):
+
+## 🚨 Alert Triggered
+[List each triggered condition clearly. State the actual value found vs the threshold. Be specific.]
+
+If NO conditions are triggered, do NOT include an alerts section.
+
+` : '';
+
           const analysisPrompt = `You are an expert AI business analyst running an automated workflow.
 
 Workflow: "${workflow.name}"
 Run Date: ${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
 Task: "${agentConfig.prompt || "Analyze the data and provide business insights."}"
 
-${businessContext}${hasMemory ? `## Memory: Previous Run (${lastRunDate})
+${alertInstructions}${businessContext}${hasMemory ? `## Memory: Previous Run (${lastRunDate})
 The following is what was reported in the last run. Use this to identify what has CHANGED, what is NEW, and what trends are developing:
 <previous_run>
 ${lastRun!.generated_output!.substring(0, 2000)}
