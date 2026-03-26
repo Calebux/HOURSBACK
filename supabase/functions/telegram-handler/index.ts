@@ -208,6 +208,28 @@ async function sendMessage(botToken: string, chatId: number, text: string) {
   }
 }
 
+async function sendMessageWithFeedback(botToken: string, chatId: number, text: string, runId: string) {
+  const chunks = text.match(/[\s\S]{1,4000}/g) || [text];
+  // Send all chunks; attach feedback keyboard to the last one
+  for (let i = 0; i < chunks.length; i++) {
+    const isLast = i === chunks.length - 1;
+    const body: Record<string, unknown> = { chat_id: chatId, text: chunks[i], parse_mode: "Markdown" };
+    if (isLast) {
+      body.reply_markup = {
+        inline_keyboard: [[
+          { text: "✅ Helpful", callback_data: `feedback:helpful:${runId}` },
+          { text: "❌ Not helpful", callback_data: `feedback:not_helpful:${runId}` },
+        ]],
+      };
+    }
+    await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  }
+}
+
 function matchWorkflow(text: string): string | null {
   const lower = text.toLowerCase().trim();
   for (const [key, wf] of Object.entries(WORKFLOWS)) {
@@ -319,6 +341,43 @@ serve(async (req) => {
     update = await req.json();
   } catch {
     return new Response("Bad request", { status: 400 });
+  }
+
+  // ── Feedback callback (inline button press) ──────────────────────────────
+  const callbackQuery = update?.callback_query;
+  if (callbackQuery) {
+    const cbChatId: number = callbackQuery.message?.chat?.id;
+    const callbackId: string = callbackQuery.id;
+    const data: string = callbackQuery.data || "";
+
+    if (data.startsWith("feedback:")) {
+      const [, feedbackValue, runId] = data.split(":");
+      if (runId && (feedbackValue === "helpful" || feedbackValue === "not_helpful")) {
+        await supabase.from("telegram_runs").update({ feedback: feedbackValue }).eq("id", runId);
+      }
+      // Acknowledge the callback so the loading spinner stops
+      await fetch(`https://api.telegram.org/bot${botToken}/answerCallbackQuery`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          callback_query_id: callbackId,
+          text: feedbackValue === "helpful" ? "Thanks for the feedback! 👍" : "Got it — we'll improve. 👎",
+        }),
+      });
+      // Remove the inline keyboard so it can't be clicked again
+      if (cbChatId && callbackQuery.message?.message_id) {
+        await fetch(`https://api.telegram.org/bot${botToken}/editMessageReplyMarkup`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chat_id: cbChatId,
+            message_id: callbackQuery.message.message_id,
+            reply_markup: { inline_keyboard: [] },
+          }),
+        });
+      }
+    }
+    return new Response("OK");
   }
 
   const message = update?.message;
@@ -472,35 +531,45 @@ serve(async (req) => {
     } else {
       await sendMessage(botToken, chatId, `⏳ Running *${wf.name}*... give me a moment.`);
 
-      let runStatus: "success" | "error" = "success";
       let runResult = "";
       let runError = "";
+      let runId = "";
 
       try {
         runResult = await runWorkflow(session.workflow_key, updatedInputs, businessContext);
-        await sendMessage(botToken, chatId, `✅ *${wf.name} Complete*\n\n${runResult}`);
+
+        // Insert run first to get ID for feedback buttons
+        const { data: runRow } = await supabase.from("telegram_runs").insert({
+          user_id: userId,
+          chat_id: chatId,
+          workflow_key: session.workflow_key,
+          workflow_name: wf.name,
+          triggered_by: firstName,
+          role: userRole,
+          status: "success",
+          result: runResult,
+        }).select("id").single();
+
+        runId = runRow?.id ?? "";
+        await sendMessageWithFeedback(botToken, chatId, `✅ *${wf.name} Complete*\n\n${runResult}`, runId);
       } catch (err: any) {
         console.error("Workflow error:", err);
-        runStatus = "error";
         runError = err.message || "Unknown error";
         await sendMessage(botToken, chatId, "❌ Something went wrong. Please try again.");
+        await supabase.from("telegram_runs").insert({
+          user_id: userId,
+          chat_id: chatId,
+          workflow_key: session.workflow_key,
+          workflow_name: wf.name,
+          triggered_by: firstName,
+          role: userRole,
+          status: "error",
+          error_message: runError,
+        });
       }
 
-      // Log the run
-      await supabase.from("telegram_runs").insert({
-        user_id: userId,
-        chat_id: chatId,
-        workflow_key: session.workflow_key,
-        workflow_name: wf.name,
-        triggered_by: firstName,
-        role: userRole,
-        status: runStatus,
-        result: runResult || null,
-        error_message: runError || null,
-      });
-
       // Notify owner via email if run was successful
-      if (runStatus === "success") {
+      if (!runError) {
         const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
         const { data: ownerProfile } = await supabase
           .from("profiles")

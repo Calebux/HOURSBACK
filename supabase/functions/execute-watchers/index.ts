@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import Anthropic from "npm:@anthropic-ai/sdk";
 import * as XLSX from "npm:xlsx";
-import { sanitizeDataSourceConfig, getClientIp, checkRateLimit, rateLimitResponse } from "../_shared/security.ts";
+import { sanitizeDataSourceConfig, getClientIp, checkRateLimit, rateLimitResponse, fetchWithTimeout } from "../_shared/security.ts";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
@@ -187,25 +187,25 @@ async function fetchData(sourceType: string, config: any, supabaseClient?: any):
     try {
       let csvUrl = config.url;
       if (csvUrl.includes("/edit")) csvUrl = csvUrl.replace(/\/edit.*$/, "/export?format=csv");
-      const res = await fetch(csvUrl);
+      const res = await fetchWithTimeout(csvUrl, {}, 15_000);
       if (res.ok) return (await res.text()).substring(0, 4000);
     } catch (e) { console.error("Sheet fetch error", e); }
   }
 
   else if (sourceType === "api" && config.url) {
     try {
-      const res = await fetch(config.url);
+      const res = await fetchWithTimeout(config.url, {}, 15_000);
       if (res.ok) return (await res.text()).substring(0, 4000);
     } catch (e) { console.error("API fetch error", e); }
   }
 
   else if (sourceType === "website" && config.url && FIRECRAWL_API_KEY) {
     try {
-      const res = await fetch("https://api.firecrawl.dev/v1/scrape", {
+      const res = await fetchWithTimeout("https://api.firecrawl.dev/v1/scrape", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${FIRECRAWL_API_KEY}` },
         body: JSON.stringify({ url: config.url, formats: ["markdown"] }),
-      });
+      }, 20_000);
       const json = await res.json();
       if (json.success && json.data?.markdown) return json.data.markdown.substring(0, 4000);
     } catch (e) { console.error("Firecrawl error", e); }
@@ -219,15 +219,15 @@ async function fetchData(sourceType: string, config: any, supabaseClient?: any):
       const url = rawUrl.trim();
       try {
         if (FIRECRAWL_API_KEY) {
-          const res = await fetch("https://api.firecrawl.dev/v1/scrape", {
+          const res = await fetchWithTimeout("https://api.firecrawl.dev/v1/scrape", {
             method: "POST",
             headers: { "Content-Type": "application/json", "Authorization": `Bearer ${FIRECRAWL_API_KEY}` },
             body: JSON.stringify({ url, formats: ["markdown"] }),
-          });
+          }, 20_000);
           const json = await res.json();
           if (json.success && json.data?.markdown) results.push(`## ${url}\n${json.data.markdown.substring(0, 1500)}`);
         } else {
-          const res = await fetch(url);
+          const res = await fetchWithTimeout(url, {}, 15_000);
           if (res.ok) results.push(`## ${url}\n${(await res.text()).substring(0, 1500)}`);
         }
       } catch (e) { console.error("website_list fetch error", url, e); }
@@ -238,7 +238,7 @@ async function fetchData(sourceType: string, config: any, supabaseClient?: any):
   else if (sourceType === "news_search" && config.query) {
     try {
       const q = encodeURIComponent(config.query);
-      const res = await fetch(`https://news.google.com/rss/search?q=${q}&hl=en-US&gl=US&ceid=US:en`, { headers: { "User-Agent": "Mozilla/5.0" } });
+      const res = await fetchWithTimeout(`https://news.google.com/rss/search?q=${q}&hl=en-US&gl=US&ceid=US:en`, { headers: { "User-Agent": "Mozilla/5.0" } }, 10_000);
       if (res.ok) return parseNewsRss(await res.text(), config.query, 15);
     } catch (e) { console.error("news_search error", e); }
   }
@@ -246,7 +246,7 @@ async function fetchData(sourceType: string, config: any, supabaseClient?: any):
   else if (sourceType === "brand_monitor" && config.query) {
     try {
       const q = encodeURIComponent(config.query);
-      const redditRes = await fetch(`https://www.reddit.com/search.json?q=${q}&sort=new&limit=20&t=week`, { headers: { "User-Agent": "HoursbackWorkflows/1.0" } });
+      const redditRes = await fetchWithTimeout(`https://www.reddit.com/search.json?q=${q}&sort=new&limit=20&t=week`, { headers: { "User-Agent": "HoursbackWorkflows/1.0" } }, 10_000);
       let redditSection = "No Reddit mentions found.";
       if (redditRes.ok) {
         const posts = ((await redditRes.json()).data?.children || []).slice(0, 10);
@@ -254,7 +254,7 @@ async function fetchData(sourceType: string, config: any, supabaseClient?: any):
           `- **[r/${p.data.subreddit}]** ${p.data.title} (Score: ${p.data.score})\n  ${(p.data.selftext || "Link post").substring(0, 150)}`
         ).join("\n\n");
       }
-      const newsRes = await fetch(`https://news.google.com/rss/search?q=${q}&hl=en-US&gl=US&ceid=US:en`, { headers: { "User-Agent": "Mozilla/5.0" } });
+      const newsRes = await fetchWithTimeout(`https://news.google.com/rss/search?q=${q}&hl=en-US&gl=US&ceid=US:en`, { headers: { "User-Agent": "Mozilla/5.0" } }, 10_000);
       const newsSection = newsRes.ok ? parseNewsRss(await newsRes.text(), config.query, 8) : "No news mentions found.";
       return `## Reddit Mentions (past week)\n${redditSection}\n\n## News Mentions\n${newsSection}`;
     } catch (e) { console.error("brand_monitor error", e); }
@@ -263,7 +263,7 @@ async function fetchData(sourceType: string, config: any, supabaseClient?: any):
   else if (sourceType === "regulatory_monitor" && config.query) {
     try {
       const q = encodeURIComponent(`${config.query} regulation law compliance rule`);
-      const res = await fetch(`https://news.google.com/rss/search?q=${q}&hl=en-US&gl=US&ceid=US:en`, { headers: { "User-Agent": "Mozilla/5.0" } });
+      const res = await fetchWithTimeout(`https://news.google.com/rss/search?q=${q}&hl=en-US&gl=US&ceid=US:en`, { headers: { "User-Agent": "Mozilla/5.0" } }, 10_000);
       if (res.ok) return parseNewsRss(await res.text(), config.query, 20);
     } catch (e) { console.error("regulatory_monitor error", e); }
   }
@@ -271,11 +271,11 @@ async function fetchData(sourceType: string, config: any, supabaseClient?: any):
   else if (sourceType === "youtube_trends" && config.query) {
     if (!APIFY_API_KEY) return "Apify API key not configured.";
     try {
-      // Use Google Search Scraper to find trending YouTube videos in the niche
       const query = `site:youtube.com ${config.query} trending`;
-      const runRes = await fetch(
+      const runRes = await fetchWithTimeout(
         `https://api.apify.com/v2/acts/apify~google-search-scraper/run-sync-get-dataset-items?token=${APIFY_API_KEY}`,
-        { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ queries: query, maxPagesPerQuery: 1, resultsPerPage: 10 }) }
+        { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ queries: query, maxPagesPerQuery: 1, resultsPerPage: 10 }) },
+        45_000
       );
       let videoSection = "No YouTube results found.";
       if (runRes.ok) {
@@ -285,10 +285,10 @@ async function fetchData(sourceType: string, config: any, supabaseClient?: any):
           `- **${r.title}**\n  ${r.url}\n  ${(r.description || "").substring(0, 200)}`
         ).join("\n\n");
       }
-      // Also pull Reddit discussions about the niche for audience insight
-      const redditRes = await fetch(
+      const redditRes = await fetchWithTimeout(
         `https://www.reddit.com/search.json?q=${encodeURIComponent(config.query + " youtube")}&sort=top&t=month&limit=10`,
-        { headers: { "User-Agent": "HoursbackWorkflows/1.0" } }
+        { headers: { "User-Agent": "HoursbackWorkflows/1.0" } },
+        10_000
       );
       let redditSection = "";
       if (redditRes.ok) {
@@ -308,10 +308,9 @@ async function fetchData(sourceType: string, config: any, supabaseClient?: any):
   else if (sourceType === "forex") {
     try {
       const currencies = config.currencies || ["USD", "EUR", "GBP"];
-      const res = await fetch("https://open.er-api.com/v6/latest/NGN");
+      const res = await fetchWithTimeout("https://open.er-api.com/v6/latest/NGN", {}, 10_000);
       const json = await res.json();
       if (!json.rates) return "Could not fetch exchange rates.";
-      // Rates are NGN per 1 unit of base — invert to get units per NGN
       const lines = currencies.map((cur: string) => {
         const rateNGNperFX = json.rates[cur] ? (1 / json.rates[cur]).toFixed(2) : "N/A";
         return `- ${cur}/NGN: ₦${rateNGNperFX}`;
@@ -326,9 +325,10 @@ async function fetchData(sourceType: string, config: any, supabaseClient?: any):
     try {
       const queries = config.query.split("\n").filter(Boolean).slice(0, 5)
         .map((c: string) => `${c.trim()} hiring OR funding OR expansion OR "series" OR "new office"`).join("\n");
-      const runRes = await fetch(
+      const runRes = await fetchWithTimeout(
         `https://api.apify.com/v2/acts/apify~google-search-scraper/run-sync-get-dataset-items?token=${APIFY_API_KEY}`,
-        { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ queries, maxPagesPerQuery: 1, resultsPerPage: 5 }) }
+        { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ queries, maxPagesPerQuery: 1, resultsPerPage: 5 }) },
+        45_000
       );
       if (runRes.ok) {
         const results = await runRes.json();

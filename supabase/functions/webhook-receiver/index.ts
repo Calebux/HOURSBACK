@@ -2,7 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import Anthropic from "npm:@anthropic-ai/sdk";
-import { sanitizeText, isValidUUID, getClientIp, checkRateLimit, rateLimitResponse } from "../_shared/security.ts";
+import { sanitizeText, isValidUUID, getClientIp, checkRateLimit, rateLimitResponse, fetchWithTimeout } from "../_shared/security.ts";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
@@ -139,6 +139,21 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Invalid webhook secret." }), { status: 401, headers: corsHeaders });
     }
 
+    // Pro workflow check — verify user has an active Pro subscription
+    if (workflow.is_pro) {
+      const { data: profileRow } = await supabase
+        .from("profiles")
+        .select("subscription_status")
+        .eq("id", workflow.user_id)
+        .maybeSingle();
+      if (profileRow?.subscription_status !== "pro") {
+        return new Response(
+          JSON.stringify({ error: "This workflow requires a Pro subscription." }),
+          { status: 403, headers: corsHeaders }
+        );
+      }
+    }
+
     if (workflow.status !== "active") {
       return new Response(JSON.stringify({ message: "Workflow is paused." }), { status: 200, headers: corsHeaders });
     }
@@ -225,7 +240,7 @@ Perform the task described in your prompt using the data provided. Respond with 
   </div>
 </div>`;
 
-          const res = await fetch("https://api.resend.com/emails", {
+          const res = await fetchWithTimeout("https://api.resend.com/emails", {
             method: "POST",
             headers: { "Authorization": `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -234,7 +249,7 @@ Perform the task described in your prompt using the data provided. Respond with 
               subject: `[Workflow Result] ${workflow.name}`,
               html: htmlContent,
             }),
-          });
+          }, 10_000);
           if (!res.ok) console.error("[Webhook] Email send failed", await res.text());
         }
       }

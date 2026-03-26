@@ -34,7 +34,7 @@ SELECT cron.schedule(
   $$
   SELECT net.http_post(
     url     := 'https://tsooqmbrxquybqcuqcby.supabase.co/functions/v1/execute-watchers',
-    headers := '{"Content-Type":"application/json","Authorization":"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzb29xbWJyeHF1eWJxY3VxY2J5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTg3MDE2NCwiZXhwIjoyMDg3NDQ2MTY0fQ.aDn6JIp5kytR8Hh4_rnlW32O7TSsNl4_frW5vHG5QgY"}'::jsonb,
+    headers := '{"Content-Type":"application/json","Authorization":"Bearer <SERVICE_ROLE_KEY_REDACTED>"}'::jsonb,
     body    := '{"trigger":"cron"}'::jsonb
   );
   $$

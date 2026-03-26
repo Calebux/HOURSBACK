@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import Anthropic from "npm:@anthropic-ai/sdk";
-import { sanitizeUrl, getClientIp, checkRateLimit, rateLimitResponse } from "../_shared/security.ts";
+import { sanitizeUrl, getClientIp, checkRateLimit, rateLimitResponse, fetchWithTimeout } from "../_shared/security.ts";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
@@ -384,7 +384,7 @@ async function resolveVariables(variables: Record<string, string>): Promise<Reco
         const idMatch = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
         if (!idMatch) throw new Error('Invalid Google Sheets URL');
         const csvUrl = `https://docs.google.com/spreadsheets/d/${idMatch[1]}/export?format=csv`;
-        const res = await fetch(csvUrl);
+        const res = await fetchWithTimeout(csvUrl, {}, 15_000);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const text = await res.text();
         const lines = text.split(/\r?\n/).filter(l => l.trim());
@@ -488,7 +488,7 @@ async function scrapeCreatorsFromApify(
 ): Promise<string> {
   const hashtags = [niche, `${niche}creator`, `${niche}tok`].map(h => h.replace(/\s/g, ''));
 
-  const res = await fetch(
+  const res = await fetchWithTimeout(
     `https://api.apify.com/v2/acts/clockworks~free-tiktok-scraper/run-sync-get-dataset-items?token=${APIFY_API_KEY}&timeout=60`,
     {
       method: 'POST',
@@ -498,7 +498,8 @@ async function scrapeCreatorsFromApify(
         resultsPerPage: 60,
         maxProfilesPerQuery: 30,
       }),
-    }
+    },
+    45_000
   );
 
   const items = await res.json();
@@ -678,7 +679,7 @@ async function executeSchedule(schedule: any, supabaseAdmin: any): Promise<void>
   let generatedContent: string;
 
   if (INFOGRAPHIC_SLUGS.has(playbookSlug) && OPENAI_API_KEY) {
-    const oaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+    const oaiRes = await fetchWithTimeout("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${OPENAI_API_KEY}`,
@@ -695,7 +696,7 @@ async function executeSchedule(schedule: any, supabaseAdmin: any): Promise<void>
           { role: "user", content: compiledPrompt },
         ],
       }),
-    });
+    }, 30_000);
     const oaiData = await oaiRes.json();
     if (!oaiRes.ok) throw new Error(`OpenAI error: ${JSON.stringify(oaiData)}`);
     generatedContent = oaiData.choices[0].message.content;
@@ -860,7 +861,7 @@ async function executeSchedule(schedule: any, supabaseAdmin: any): Promise<void>
 </html>
   `;
 
-  const resendRes = await fetch("https://api.resend.com/emails", {
+  const resendRes = await fetchWithTimeout("https://api.resend.com/emails", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -872,7 +873,7 @@ async function executeSchedule(schedule: any, supabaseAdmin: any): Promise<void>
       subject: `${emailSubjectPrefix} ${playbookData?.title || playbookSlug}`,
       html: emailHtml,
     }),
-  });
+  }, 10_000);
 
   if (!resendRes.ok) {
     const errText = await resendRes.text();

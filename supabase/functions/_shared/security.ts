@@ -3,6 +3,37 @@
  * Import with: import { ... } from "../_shared/security.ts"
  */
 
+/**
+ * fetch() with an AbortController timeout.
+ * Throws DOMException with name "AbortError" if the timeout fires.
+ * Default: 15 seconds for standard endpoints, pass 45_000 for Apify/slow scrapers.
+ */
+export async function fetchWithTimeout(
+  url: string,
+  options: RequestInit = {},
+  timeoutMs = 15_000
+): Promise<Response> {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(id);
+  }
+}
+
+/** Dynamic CORS headers — only allows the app's production origins. */
+export function getCorsHeaders(req: Request): Record<string, string> {
+  const origin = req.headers.get("origin") ?? "";
+  const allowed = ["https://www.hoursback.xyz", "https://hoursback.xyz"];
+  const allowedOrigin = allowed.includes(origin) ? origin : "https://www.hoursback.xyz";
+  return {
+    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Vary": "Origin",
+  };
+}
+
 /** Strip control characters and truncate to maxLength. */
 export function sanitizeText(input: unknown, maxLength = 5000): string {
   if (typeof input !== "string") return "";

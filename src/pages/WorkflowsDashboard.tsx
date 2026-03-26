@@ -10,7 +10,7 @@ import {
   Play, Plus, Clock, CheckCircle2, XCircle, Bot,
   Trash2, Copy, CheckCheck, Pencil, X, Link2, FileText,
   Loader2, MoreVertical, Pause, TrendingUp, Activity,
-  ChevronDown, ChevronUp, ExternalLink, Send, Download
+  ChevronDown, ChevronUp, ExternalLink, Send, Download, Crown
 } from 'lucide-react';
 import { MobileNav } from '../components/MobileNav';
 
@@ -99,6 +99,7 @@ export default function WorkflowsDashboard() {
   const [runs, setRuns] = useState<WorkflowRun[]>([]);
   const [telegramRuns, setTelegramRuns] = useState<TelegramRun[]>([]);
   const [telegramConnected, setTelegramConnected] = useState<boolean | null>(null);
+  const [telegramMonthCount, setTelegramMonthCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [runningId, setRunningId] = useState<string | null>(null);
@@ -116,16 +117,20 @@ export default function WorkflowsDashboard() {
     refreshPro();
     async function loadData() {
       try {
-        const [{ data: wData }, { data: rData }, { data: tgData }, tgStatus] = await Promise.all([
+        const monthStart = new Date();
+        monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
+        const [{ data: wData }, { data: rData }, { data: tgData }, { data: botData }, { count: monthCnt }] = await Promise.all([
           supabase.from('workflows').select('*').eq('user_id', user!.id).order('created_at', { ascending: false }),
           supabase.from('workflow_runs').select('*').eq('user_id', user!.id).order('created_at', { ascending: false }).limit(50),
-          supabase.from('telegram_runs').select('id, workflow_key, workflow_name, triggered_by, role, status, result, created_at').eq('user_id', user!.id).order('created_at', { ascending: false }).limit(100),
-          supabase.functions.invoke('telegram-setup', { body: { action: 'status' } }),
+          supabase.from('telegram_runs').select('id, workflow_key, workflow_name, triggered_by, role, status, result, created_at').eq('user_id', user!.id).order('created_at', { ascending: false }).limit(10),
+          supabase.from('telegram_bots').select('bot_username').eq('user_id', user!.id).maybeSingle(),
+          supabase.from('telegram_runs').select('id', { count: 'exact', head: true }).eq('user_id', user!.id).gte('created_at', monthStart.toISOString()),
         ]);
         if (wData) setWorkflows(wData);
         if (rData) setRuns(rData);
         if (tgData) setTelegramRuns(tgData);
-        setTelegramConnected(!!tgStatus.data?.connected);
+        setTelegramConnected(!!botData?.bot_username);
+        setTelegramMonthCount(monthCnt ?? 0);
       } catch (err) {
         console.error('Error loading workflows', err);
       } finally {
@@ -640,21 +645,34 @@ export default function WorkflowsDashboard() {
 
             {/* Telegram Activity */}
             <div>
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <Send className="w-4 h-4 text-sky-500" />
                   <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Telegram Activity</h2>
                 </div>
-                {telegramRuns.length > 0 && (
-                  <button
-                    onClick={() => downloadCSV(telegramRuns)}
-                    className="flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-brand-dark transition-colors"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    CSV
-                  </button>
-                )}
+                <Link to="/telegram" className="text-xs text-sky-600 hover:underline font-medium">
+                  View all →
+                </Link>
               </div>
+              {/* Free-tier usage bar */}
+              {!isPro && telegramConnected && (
+                <div className="mb-3 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-slate-400">{telegramMonthCount}/50 runs this month</p>
+                    {telegramMonthCount >= 50 && (
+                      <ProUpgradeButton className="text-xs font-semibold text-purple-600 hover:text-purple-700 flex items-center gap-1">
+                        <Crown className="w-3 h-3" /> Upgrade
+                      </ProUpgradeButton>
+                    )}
+                  </div>
+                  <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full ${telegramMonthCount >= 50 ? 'bg-red-400' : telegramMonthCount >= 35 ? 'bg-amber-400' : 'bg-sky-400'}`}
+                      style={{ width: `${Math.min(100, Math.round((telegramMonthCount / 50) * 100))}%` }}
+                    />
+                  </div>
+                </div>
+              )}
               <div className="bg-white rounded-2xl border border-brand-dark/10 overflow-hidden">
                 {telegramRuns.length === 0 ? (
                   <div className="p-5 text-center space-y-2">

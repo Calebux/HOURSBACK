@@ -75,7 +75,7 @@ serve(async (req) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           url: webhookUrl,
-          allowed_updates: ["message"],
+          allowed_updates: ["message", "callback_query"],
           drop_pending_updates: true,
         }),
       });
@@ -136,9 +136,14 @@ serve(async (req) => {
     if (action === "status") {
       const { data } = await supabase
         .from("telegram_bots")
-        .select("bot_username, bot_name, webhook_registered, manager_token, staff_token, handover_watcher_enabled, shift_end_time, created_at")
+        .select("bot_username, bot_name, webhook_registered, manager_token, staff_token, created_at, handover_watcher_enabled, shift_end_time")
         .eq("user_id", user.id)
-        .single();
+        .single()
+        .then(r => r.error ? supabase
+          .from("telegram_bots")
+          .select("bot_username, bot_name, webhook_registered, manager_token, staff_token, created_at")
+          .eq("user_id", user.id)
+          .single() : r);
 
       return new Response(JSON.stringify({ connected: !!data, ...data }), { headers: corsHeaders });
     }
