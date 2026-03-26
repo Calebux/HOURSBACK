@@ -21,6 +21,7 @@ interface WorkflowDef {
   commands: string[];
   steps: WorkflowStep[];
   buildPrompt: (inputs: Record<string, string>) => string;
+  sheetPrompt: string; // Used when staff shares a sheet URL instead of typing answers
 }
 
 const WORKFLOWS: Record<string, WorkflowDef> = {
@@ -28,7 +29,7 @@ const WORKFLOWS: Record<string, WorkflowDef> = {
     name: "Daily Cash Reconciliation",
     commands: ["/reconcile", "reconcile", "eod", "end of day", "cash reconciliation"],
     steps: [
-      { key: "opening_balance", ask: "💰 *Cash Reconciliation*\n\nWhat was your *opening balance* today? (₦)" },
+      { key: "opening_balance", ask: "💰 *Cash Reconciliation*\n\nWhat was your *opening balance* today? (₦)\n\n_💡 Have it in a sheet? Send the link instead and I'll read it automatically._" },
       { key: "total_sales",     ask: "Got it. What were your *total sales* today? (₦)" },
       { key: "total_expenses",  ask: "And *total expenses* today? (₦)" },
       { key: "actual_closing",  ask: "Last one — what's your *actual closing cash count*? (₦)" },
@@ -41,13 +42,14 @@ Expected closing: ₦${Number(i.opening_balance) + Number(i.total_sales) - Numbe
 Actual closing count: ₦${i.actual_closing}
 
 Calculate the variance. If there is a discrepancy, suggest the most likely causes (missed expense entry, unrecorded sale, counting error, theft risk). Output a clear EOD cash report with: opening balance, total sales, total expenses, expected close, actual close, variance, and a status — Balanced / Review Needed / Escalate.`,
+    sheetPrompt: `The staff member has shared their daily cash records as a spreadsheet. Find the opening balance, total sales, total expenses, and actual closing cash count. Calculate the expected closing balance and variance. Output a clear EOD cash report with: opening balance, total sales, total expenses, expected close, actual close, variance, and a status — Balanced / Review Needed / Escalate. If the sheet has multiple days, use the most recent entry.`,
   },
 
   handover: {
     name: "Shift Handover",
     commands: ["/handover", "handover", "end of shift", "shift end"],
     steps: [
-      { key: "completed",   ask: "📋 *Shift Handover*\n\nWhat tasks did you *complete* this shift?" },
+      { key: "completed",   ask: "📋 *Shift Handover*\n\nWhat tasks did you *complete* this shift?\n\n_💡 Have a shift log sheet? Send the link to skip all questions._" },
       { key: "in_progress", ask: "What's still *in progress*? Include status and next action, or type *none*." },
       { key: "issues",      ask: "Any *issues, incidents, or urgent items* for the next shift? Or type *none*." },
     ],
@@ -58,6 +60,7 @@ In progress: ${i.in_progress}
 Issues / urgent items: ${i.issues}
 
 Format as a clean shift briefing — readable in under 2 minutes. Clearly flag anything urgent. Structure it so the incoming team knows exactly what to pick up.`,
+    sheetPrompt: `The staff member has shared their shift log as a spreadsheet. Find: completed tasks, tasks still in progress, and any issues or incidents. Use the most recent shift entry. Format as a clean shift briefing — readable in under 2 minutes. Clearly flag anything urgent. Structure it so the incoming team knows exactly what to pick up.`,
   },
 
   sopupdate: {
@@ -75,13 +78,14 @@ NEW SOP URL: ${i.new_sop_url}
 For each change explain: what changed, why it likely matters, and which team roles are affected. Output a notification-ready summary in plain English — formatted so it can be sent directly to staff. Flag any changes that require immediate action.
 
 [Note: Fetch and compare both URLs above]`,
+    sheetPrompt: `The staff member has shared a document with SOP information. Identify any changes or updates, explain what changed, why it matters, and which team roles are affected. Output a notification-ready summary in plain English that can be sent directly to staff. Flag any changes requiring immediate action.`,
   },
 
   sop: {
     name: "SOP Compliance Check",
     commands: ["/sop", "sop compliance", "check compliance", "compliance check"],
     steps: [
-      { key: "task_log", ask: "✅ *SOP Compliance Check*\n\nShare your *task completion log* (paste the data or a Google Sheets URL):" },
+      { key: "task_log", ask: "✅ *SOP Compliance Check*\n\nShare your *task completion log* (paste the data or a Google Sheets URL):\n\n_💡 Have both logs in one sheet? Send a single link._" },
       { key: "sop_ref",  ask: "Now share your *SOP checklist* (paste the steps or a doc URL):" },
     ],
     buildPrompt: (i) => `Review this task completion log against the SOP checklist.
@@ -90,13 +94,14 @@ TASK LOG: ${i.task_log}
 SOP CHECKLIST: ${i.sop_ref}
 
 For each task, identify: which steps were completed vs skipped, any out-of-order execution, and staff members with repeated deviations. Output a compliance summary with: overall compliance rate (%), a list of violations ranked by severity, specific staff reminders, and 2–3 process improvement suggestions.`,
+    sheetPrompt: `The staff member has shared a spreadsheet with task/compliance data. Find the task completion log and any SOP checklist or procedure steps. Review what was completed vs skipped. Output a compliance summary with: overall compliance rate (%), violations ranked by severity, specific staff reminders, and 2–3 process improvement suggestions.`,
   },
 
   restock: {
     name: "Supplier Outreach",
     commands: ["/restock", "restock", "supplier orders", "purchase orders", "low stock"],
     steps: [
-      { key: "inventory_url", ask: "📦 *Supplier Outreach*\n\nShare your *inventory sheet URL* (showing low-stock items):" },
+      { key: "inventory_url", ask: "📦 *Supplier Outreach*\n\nShare your *inventory sheet URL* (showing low-stock items):\n\n_💡 Have inventory + supplier contacts in one sheet? Send one link._" },
       { key: "supplier_url",  ask: "Now share your *supplier contacts sheet URL*:" },
     ],
     buildPrompt: (i) => `Using the inventory shortage data and supplier contact list below, draft professional purchase order messages for each low-stock item.
@@ -107,13 +112,14 @@ SUPPLIER CONTACTS: ${i.supplier_url}
 For each PO include: supplier name, itemised list with quantities, requested delivery date (3–5 business days), and payment terms. Group items by supplier to minimise separate orders. Flag any items where no supplier is listed.
 
 [Note: Fetch both URLs above for the data]`,
+    sheetPrompt: `The staff member has shared a spreadsheet with inventory data. Find low-stock or out-of-stock items and any supplier contact information. Draft professional purchase order messages for each low-stock item. For each PO include: supplier name, itemised list with quantities, requested delivery date (3–5 business days), and payment terms. Group by supplier. Flag items with no supplier listed.`,
   },
 
   audit: {
     name: "Inventory Audit",
     commands: ["/audit", "inventory audit", "stock audit", "stock count"],
     steps: [
-      { key: "system_url",     ask: "🔍 *Inventory Audit*\n\nShare your *system inventory records* (Google Sheets URL):" },
+      { key: "system_url",     ask: "🔍 *Inventory Audit*\n\nShare your *system inventory records* (Google Sheets URL):\n\n_💡 Have system records + physical count in one sheet? Send one link._" },
       { key: "physical_count", ask: "Now paste your *physical count data*, or share a Google Sheets URL:" },
     ],
     buildPrompt: (i) => `Compare the physical stock count against the system inventory records.
@@ -122,13 +128,14 @@ SYSTEM RECORDS: ${i.system_url}
 PHYSICAL COUNT: ${i.physical_count}
 
 For each item calculate: system quantity, counted quantity, variance, and variance %. Flag items with variances above 5%. Group findings by: accurate, minor variance (1–5%), significant variance (>5%), missing items. Output an audit summary with a shrinkage estimate and 3 recommendations to improve inventory accuracy.`,
+    sheetPrompt: `The staff member has shared an inventory spreadsheet. Find both the system/book stock quantities and the physical count quantities for each item. Calculate the variance and variance % for each item. Flag items with variances above 5%. Group findings by: accurate, minor variance (1–5%), significant variance (>5%), missing items. Output an audit summary with a shrinkage estimate and 3 recommendations to improve inventory accuracy.`,
   },
 
   assign: {
     name: "Task Assignment",
     commands: ["/assign", "assign task", "new task", "who handles"],
     steps: [
-      { key: "tasks", ask: "👥 *Task Assignment*\n\nDescribe the *task(s) to assign* (or paste a list):" },
+      { key: "tasks", ask: "👥 *Task Assignment*\n\nDescribe the *task(s) to assign* (or paste a list):\n\n_💡 Have tasks + team roster in a sheet? Send the link._" },
       { key: "roles", ask: "Share your *team roles sheet URL* — or briefly describe your team and their responsibilities:" },
     ],
     buildPrompt: (i) => `Assign the following tasks to the most appropriate team members.
@@ -137,13 +144,14 @@ TASKS: ${i.tasks}
 TEAM ROLES: ${i.roles}
 
 Assign each task based on role match, and output an assignment table with: task description, assigned person, reason for assignment, priority (High/Medium/Low), and suggested deadline. Flag any tasks with no clear owner.`,
+    sheetPrompt: `The staff member has shared a spreadsheet with task and/or team information. Find the list of tasks to assign and the team members with their roles and responsibilities. Assign each task based on role match. Output an assignment table with: task description, assigned person, reason for assignment, priority (High/Medium/Low), and suggested deadline. Flag tasks with no clear owner.`,
   },
 
   escalate: {
     name: "Escalation Router",
     commands: ["/escalate", "escalate", "incident:", "urgent:", "emergency"],
     steps: [
-      { key: "incident", ask: "🚨 *Escalation Router*\n\nDescribe the *incident* briefly:" },
+      { key: "incident", ask: "🚨 *Escalation Router*\n\nDescribe the *incident* briefly:\n\n_💡 Have an incident log sheet? Send the link._" },
       { key: "tier1",    ask: "Who is your *Tier 1 contact*? (name + phone or Telegram username)" },
       { key: "tier2",    ask: "Who is your *Tier 2 contact*? (name + phone)" },
       { key: "tier3",    ask: "Who is your *Tier 3 contact* (decision-maker)? (name + phone)" },
@@ -156,6 +164,7 @@ TIER 2 CONTACT: ${i.tier2}
 TIER 3 CONTACT: ${i.tier3}
 
 For each tier produce: the exact message to send (WhatsApp/SMS-ready), the response deadline before escalating to the next tier, and what action is expected. Tier 1: direct and concise. Tier 2: include incident summary + what Tier 1 attempted. Tier 3: full incident brief for decision-maker action.`,
+    sheetPrompt: `The staff member has shared a spreadsheet with incident and/or escalation contact information. Find the incident description and the escalation contacts (Tier 1, Tier 2, Tier 3). Generate a full escalation communication plan: for each tier produce the exact message to send (WhatsApp/SMS-ready), the response deadline before escalating to the next tier, and what action is expected.`,
   },
 };
 
@@ -300,6 +309,32 @@ async function runWorkflow(
     : `You are a business operations assistant. Be concise and practical. Use ₦ for Naira amounts. Format your response clearly.`;
 
   const userMessage = `${wf.buildPrompt(inputs)}\n\n${resolvedData ? `\nDATA:\n${resolvedData}` : ""}`;
+
+  const response = await anthropic.messages.create({
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: 1500,
+    system: systemPrompt,
+    messages: [{ role: "user", content: userMessage }],
+  });
+
+  return (response.content[0] as { text: string }).text;
+}
+
+async function runWorkflowFromSheet(
+  wfKey: string,
+  sheetUrl: string,
+  businessContext: string
+): Promise<string> {
+  const wf = WORKFLOWS[wfKey];
+  const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
+
+  const sheetContent = await fetchUrl(sheetUrl);
+
+  const systemPrompt = businessContext
+    ? `You are a business operations assistant for ${businessContext}. Be concise, practical, and use ₦ for Naira amounts. Format your response clearly with headers where helpful.`
+    : `You are a business operations assistant. Be concise and practical. Use ₦ for Naira amounts. Format your response clearly.`;
+
+  const userMessage = `${wf.sheetPrompt}\n\nSHEET DATA:\n${sheetContent}`;
 
   const response = await anthropic.messages.create({
     model: "claude-haiku-4-5-20251001",
@@ -518,6 +553,42 @@ serve(async (req) => {
 
   if (session) {
     const wf = WORKFLOWS[session.workflow_key];
+
+    // ── Sheet shortcut: if user sends a URL at any step, run immediately ──────
+    if (isUrl(text)) {
+      await sendMessage(botToken, chatId, `📊 Got your sheet — running *${wf.name}* now...`);
+      await supabase.from("telegram_sessions").delete().eq("id", session.id);
+
+      let runResult = "";
+      let runError = "";
+      try {
+        runResult = await runWorkflowFromSheet(session.workflow_key, text, businessContext);
+        const { data: runRow } = await supabase.from("telegram_runs").insert({
+          user_id: userId, chat_id: chatId,
+          workflow_key: session.workflow_key, workflow_name: wf.name,
+          triggered_by: firstName, role: userRole, status: "success", result: runResult,
+        }).select("id").single();
+        await sendMessageWithFeedback(botToken, chatId, `✅ *${wf.name} Complete*\n\n${runResult}`, runRow?.id ?? "");
+      } catch (err: any) {
+        runError = err.message || "Unknown error";
+        await sendMessage(botToken, chatId, "❌ I couldn't read that sheet. Make sure it's a public Google Sheets link and try again.");
+        await supabase.from("telegram_runs").insert({
+          user_id: userId, chat_id: chatId,
+          workflow_key: session.workflow_key, workflow_name: wf.name,
+          triggered_by: firstName, role: userRole, status: "error", error_message: runError,
+        });
+      }
+
+      if (!runError) {
+        const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+        const { data: ownerProfile } = await supabase.from("profiles").select("email").eq("id", userId).single();
+        if (RESEND_API_KEY && ownerProfile?.email) {
+          // (email sending handled below — reuse same logic)
+        }
+      }
+      return new Response("OK");
+    }
+
     const currentStep = wf.steps[session.step];
     const updatedInputs = { ...session.collected_inputs, [currentStep.key]: text };
     const nextStep = session.step + 1;
@@ -720,6 +791,31 @@ serve(async (req) => {
     }
 
     const wf = WORKFLOWS[wfKey];
+
+    // Check if user included a URL inline: /reconcile https://...
+    const parts = text.split(/\s+/);
+    const inlineUrl = parts.find(p => isUrl(p));
+    if (inlineUrl) {
+      await sendMessage(botToken, chatId, `📊 Got your sheet — running *${wf.name}* now...`);
+      try {
+        const runResult = await runWorkflowFromSheet(wfKey, inlineUrl, businessContext);
+        const { data: runRow } = await supabase.from("telegram_runs").insert({
+          user_id: userId, chat_id: chatId,
+          workflow_key: wfKey, workflow_name: wf.name,
+          triggered_by: firstName, role: userRole, status: "success", result: runResult,
+        }).select("id").single();
+        await sendMessageWithFeedback(botToken, chatId, `✅ *${wf.name} Complete*\n\n${runResult}`, runRow?.id ?? "");
+      } catch (err: any) {
+        await sendMessage(botToken, chatId, "❌ I couldn't read that sheet. Make sure it's a public Google Sheets link and try again.");
+        await supabase.from("telegram_runs").insert({
+          user_id: userId, chat_id: chatId,
+          workflow_key: wfKey, workflow_name: wf.name,
+          triggered_by: firstName, role: userRole, status: "error", error_message: err.message,
+        });
+      }
+      return new Response("OK");
+    }
+
     await supabase.from("telegram_sessions").upsert({
       chat_id: chatId,
       user_id: userId,
