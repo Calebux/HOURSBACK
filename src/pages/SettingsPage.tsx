@@ -79,28 +79,6 @@ export default function SettingsPage() {
         loadData();
     }, [user, navigate]);
 
-    const handleConnectTelegram = async () => {
-        if (!telegramToken.trim()) return;
-        setIsConnectingTelegram(true);
-        try {
-            const res = await supabase.functions.invoke('telegram-setup', {
-                body: { action: 'connect', token: telegramToken.trim() },
-            });
-            if (res.error || res.data?.error) throw new Error(res.data?.error || 'Connection failed');
-            setTelegramConnected(true);
-            setTelegramBotUsername(res.data.bot_username);
-            setTelegramBotName(res.data.bot_name);
-            setManagerToken(res.data.manager_token || '');
-            setStaffToken(res.data.staff_token || '');
-            setTelegramToken('');
-            toast.success(`Connected! @${res.data.bot_username} is ready.`);
-        } catch (err: any) {
-            toast.error(err.message || 'Failed to connect bot');
-        } finally {
-            setIsConnectingTelegram(false);
-        }
-    };
-
     const handleDisconnectTelegram = async () => {
         setIsDisconnectingTelegram(true);
         try {
