@@ -509,14 +509,123 @@ serve(async (req) => {
           .single();
 
         if (RESEND_API_KEY && ownerProfile?.email) {
+          const now = new Date().toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" });
+          // Convert basic markdown to HTML for email body
+          const contentHtml = runResult
+            .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+            .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+            .replace(/\*(.+?)\*/g, "<em>$1</em>")
+            .replace(/^#{1,3} (.+)$/gm, "<h3 style=\"margin:16px 0 6px;font-size:14px;font-weight:700;color:#0F1012;\">$1</h3>")
+            .replace(/^[-•] (.+)$/gm, "<li style=\"margin:4px 0;\">$1</li>")
+            .replace(/(<li[\s\S]*?<\/li>)/g, "<ul style=\"margin:8px 0 8px 16px;padding:0;\">$1</ul>")
+            .replace(/\n{2,}/g, "</p><p style=\"margin:10px 0;\">")
+            .replace(/\n/g, "<br>")
+            .replace(/^/, "<p style=\"margin:0 0 10px;\">")
+            .replace(/$/, "</p>");
+
+          const roleBadgeColor = connection.role === "manager" ? "#7c3aed" : "#0284c7";
+          const roleBg = connection.role === "manager" ? "#f5f3ff" : "#e0f2fe";
+
+          const emailHtml = `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background-color:#F0F2F5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#F0F2F5;padding:32px 16px 48px;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+
+        <!-- Header -->
+        <tr>
+          <td style="background:#0F1012;border-radius:20px 20px 0 0;padding:24px 36px;">
+            <table width="100%" cellpadding="0" cellspacing="0"><tr>
+              <td style="vertical-align:middle;">
+                <table cellpadding="0" cellspacing="0"><tr>
+                  <td style="vertical-align:middle;padding-right:10px;">
+                    <div style="width:32px;height:32px;background:linear-gradient(135deg,#4285F4,#6366f1);border-radius:8px;"></div>
+                  </td>
+                  <td style="vertical-align:middle;">
+                    <span style="color:#ffffff;font-size:17px;font-weight:700;letter-spacing:-0.4px;">hoursback</span>
+                  </td>
+                </tr></table>
+              </td>
+              <td align="right" style="vertical-align:middle;">
+                <span style="background:rgba(66,133,244,0.2);color:#93bbfc;font-size:10px;font-weight:700;padding:5px 12px;border-radius:20px;letter-spacing:1px;text-transform:uppercase;border:1px solid rgba(66,133,244,0.3);">
+                  TELEGRAM BOT
+                </span>
+              </td>
+            </tr></table>
+          </td>
+        </tr>
+
+        <!-- Gradient accent -->
+        <tr><td style="height:3px;background:linear-gradient(90deg,#4285F4,#6366f1,#DA7756);"></td></tr>
+
+        <!-- Title block -->
+        <tr>
+          <td style="background:#ffffff;padding:28px 36px 20px;">
+            <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#4285F4;letter-spacing:1.5px;text-transform:uppercase;">Workflow Complete</p>
+            <h1 style="margin:0 0 12px;font-size:22px;font-weight:800;color:#0F1012;line-height:1.25;letter-spacing:-0.4px;">${wf.name}</h1>
+            <table cellpadding="0" cellspacing="0"><tr>
+              <td style="padding-right:8px;">
+                <span style="font-size:12px;font-weight:600;color:${roleBadgeColor};background:${roleBg};padding:3px 10px;border-radius:20px;">${connection.role}</span>
+              </td>
+              <td>
+                <span style="font-size:12px;color:#6b7280;">Run by <strong>${firstName}</strong> · ${now}</span>
+              </td>
+            </tr></table>
+          </td>
+        </tr>
+
+        <!-- Divider -->
+        <tr><td style="background:#ffffff;padding:0 36px;"><div style="height:1px;background:#f3f4f6;"></div></td></tr>
+
+        <!-- Content -->
+        <tr>
+          <td style="background:#ffffff;padding:28px 36px 32px;">
+            <div style="background:#FAFAFA;border:1px solid #e5e7eb;border-radius:12px;padding:24px 28px;font-size:14px;line-height:1.85;color:#111827;">
+              ${contentHtml}
+            </div>
+          </td>
+        </tr>
+
+        <!-- CTA -->
+        <tr>
+          <td style="background:#ffffff;padding:4px 36px 32px;text-align:center;">
+            <a href="https://www.hoursback.xyz/dashboard"
+               style="display:inline-block;background:#0F1012;color:#ffffff;font-size:13px;font-weight:700;padding:13px 28px;border-radius:999px;text-decoration:none;letter-spacing:0.2px;">
+              View in Dashboard →
+            </a>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="background:#F0F2F5;border-top:1px solid #e5e7eb;border-radius:0 0 20px 20px;padding:20px 36px;text-align:center;">
+            <p style="margin:0 0 4px;font-size:11px;color:#9ca3af;">
+              Sent by <strong style="color:#374151;">Hoursback Telegram Bot</strong> · Your team runs workflows while you manage
+            </p>
+            <p style="margin:0;font-size:11px;">
+              <a href="https://www.hoursback.xyz/settings" style="color:#4285F4;text-decoration:none;">Bot settings</a>
+              &nbsp;·&nbsp;
+              <a href="https://www.hoursback.xyz" style="color:#4285F4;text-decoration:none;">hoursback.xyz</a>
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
           await fetch("https://api.resend.com/emails", {
             method: "POST",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${RESEND_API_KEY}` },
             body: JSON.stringify({
               from: "Hoursback <noreply@hoursback.xyz>",
               to: ownerProfile.email,
-              subject: `📋 ${wf.name} — ${firstName} just ran a workflow`,
-              text: `${firstName} ran /${session.workflow_key} via Telegram.\n\n${runResult}`,
+              subject: `${wf.name} — ${firstName} just ran /${session.workflow_key}`,
+              html: emailHtml,
             }),
           });
         }

@@ -10,7 +10,7 @@ import {
   Play, Plus, Clock, CheckCircle2, XCircle, Bot,
   Trash2, Copy, CheckCheck, Pencil, X, Link2, FileText,
   Loader2, MoreVertical, Pause, TrendingUp, Activity,
-  ChevronDown, ChevronUp, ExternalLink, Send
+  ChevronDown, ChevronUp, ExternalLink, Send, Download
 } from 'lucide-react';
 import { MobileNav } from '../components/MobileNav';
 
@@ -36,10 +36,12 @@ interface WorkflowRun {
 
 interface TelegramRun {
   id: string;
+  workflow_key: string;
   workflow_name: string;
   triggered_by: string | null;
   role: string;
   status: 'success' | 'error';
+  result: string | null;
   created_at: string;
 }
 
@@ -52,6 +54,32 @@ function timeAgo(dateStr: string): string {
   if (hours > 0) return `${hours}h ago`;
   if (mins > 0) return `${mins}m ago`;
   return 'just now';
+}
+
+function downloadCSV(runs: TelegramRun[]) {
+  const header = ['Date', 'Time', 'Workflow', 'Command', 'Triggered By', 'Role', 'Status', 'Result'];
+  const escape = (v: string | null | undefined) => `"${(v ?? '').replace(/"/g, '""').replace(/\n/g, ' ')}"`;
+  const rows = runs.map(r => {
+    const d = new Date(r.created_at);
+    return [
+      escape(d.toLocaleDateString('en-GB')),
+      escape(d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })),
+      escape(r.workflow_name),
+      escape(r.workflow_key ? `/${r.workflow_key}` : ''),
+      escape(r.triggered_by),
+      escape(r.role),
+      escape(r.status),
+      escape(r.result),
+    ].join(',');
+  });
+  const csv = [header.join(','), ...rows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `hoursback-telegram-runs-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 function SuccessRateBadge({ rate, total }: { rate: number | null; total: number }) {
@@ -91,7 +119,7 @@ export default function WorkflowsDashboard() {
         const [{ data: wData }, { data: rData }, { data: tgData }, tgStatus] = await Promise.all([
           supabase.from('workflows').select('*').eq('user_id', user!.id).order('created_at', { ascending: false }),
           supabase.from('workflow_runs').select('*').eq('user_id', user!.id).order('created_at', { ascending: false }).limit(50),
-          supabase.from('telegram_runs').select('id, workflow_name, triggered_by, role, status, created_at').eq('user_id', user!.id).order('created_at', { ascending: false }).limit(30),
+          supabase.from('telegram_runs').select('id, workflow_key, workflow_name, triggered_by, role, status, result, created_at').eq('user_id', user!.id).order('created_at', { ascending: false }).limit(100),
           supabase.functions.invoke('telegram-setup', { body: { action: 'status' } }),
         ]);
         if (wData) setWorkflows(wData);
@@ -612,9 +640,20 @@ export default function WorkflowsDashboard() {
 
             {/* Telegram Activity */}
             <div>
-              <div className="flex items-center gap-2 mb-4">
-                <Send className="w-4 h-4 text-sky-500" />
-                <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Telegram Activity</h2>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Send className="w-4 h-4 text-sky-500" />
+                  <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Telegram Activity</h2>
+                </div>
+                {telegramRuns.length > 0 && (
+                  <button
+                    onClick={() => downloadCSV(telegramRuns)}
+                    className="flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-brand-dark transition-colors"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    CSV
+                  </button>
+                )}
               </div>
               <div className="bg-white rounded-2xl border border-brand-dark/10 overflow-hidden">
                 {telegramRuns.length === 0 ? (
