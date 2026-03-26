@@ -22,7 +22,6 @@ export default function SettingsPage() {
     const [password, setPassword] = useState('');
 
     // Telegram state
-    const [telegramToken, setTelegramToken] = useState('');
     const [telegramBotUsername, setTelegramBotUsername] = useState('');
     const [telegramBotName, setTelegramBotName] = useState('');
     const [telegramConnected, setTelegramConnected] = useState(false);
@@ -475,7 +474,6 @@ export default function SettingsPage() {
             onClose={() => setShowTelegramGuide(false)}
             isConnecting={isConnectingTelegram}
             onConnect={async (token) => {
-                setTelegramToken(token);
                 setIsConnectingTelegram(true);
                 try {
                     const res = await supabase.functions.invoke('telegram-setup', {
@@ -487,7 +485,6 @@ export default function SettingsPage() {
                     setTelegramBotName(res.data.bot_name);
                     setManagerToken(res.data.manager_token || '');
                     setStaffToken(res.data.staff_token || '');
-                    setTelegramToken('');
                     setShowTelegramGuide(false);
                     toast.success(`Connected! @${res.data.bot_username} is ready.`);
                 } catch (err: any) {
