@@ -1304,7 +1304,7 @@ function TelegramBotSection() {
 
             <div className="space-y-3 mb-10">
               {[
-                'Your bot, your brand — staff trust it because it's yours',
+                "Your bot, your brand — staff trust it because it's yours",
                 'Role-based access — managers see everything, staff see what they need',
                 'Works on any phone with Telegram — no extra apps',
                 'You get notified every time a workflow runs',
