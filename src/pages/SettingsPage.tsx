@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Save, Settings, Shield, Link as LinkIcon, ExternalLink } from 'lucide-react';
+import { ChevronLeft, Save, Settings, Shield, Link as LinkIcon, ExternalLink, Send, CheckCircle, Copy, Unlink } from 'lucide-react';
+import { TelegramSetupGuide } from '../components/TelegramSetupGuide';
 import { useAuth } from '../contexts/AuthContext';
 import { getProfile, updateProfile } from '../lib/api';
 import { supabase } from '../lib/supabase';
@@ -20,6 +21,21 @@ export default function SettingsPage() {
     const [zapierWebhook, setZapierWebhook] = useState('');
     const [password, setPassword] = useState('');
 
+    // Telegram state
+    const [telegramToken, setTelegramToken] = useState('');
+    const [telegramBotUsername, setTelegramBotUsername] = useState('');
+    const [telegramBotName, setTelegramBotName] = useState('');
+    const [telegramConnected, setTelegramConnected] = useState(false);
+    const [managerToken, setManagerToken] = useState('');
+    const [staffToken, setStaffToken] = useState('');
+    const [isConnectingTelegram, setIsConnectingTelegram] = useState(false);
+    const [isDisconnectingTelegram, setIsDisconnectingTelegram] = useState(false);
+    const [copiedLink, setCopiedLink] = useState<'manager' | 'staff' | null>(null);
+    const [showTelegramGuide, setShowTelegramGuide] = useState(false);
+    const [handoverWatcherEnabled, setHandoverWatcherEnabled] = useState(false);
+    const [shiftEndTime, setShiftEndTime] = useState('18:00');
+    const [isSavingWatcher, setIsSavingWatcher] = useState(false);
+
     useEffect(() => {
         if (!user) {
             navigate('/');
@@ -34,6 +50,24 @@ export default function SettingsPage() {
                     setMakeWebhook(profile.make_webhook_url || '');
                     setZapierWebhook(profile.zapier_webhook_url || '');
                 }
+
+                // Load Telegram bot status
+                const { data: session } = await supabase.auth.getSession();
+                const token = session?.session?.access_token;
+                if (token) {
+                    const res = await supabase.functions.invoke('telegram-setup', {
+                        body: { action: 'status' },
+                    });
+                    if (res.data?.connected) {
+                        setTelegramConnected(true);
+                        setTelegramBotUsername(res.data.bot_username || '');
+                        setTelegramBotName(res.data.bot_name || '');
+                        setManagerToken(res.data.manager_token || '');
+                        setStaffToken(res.data.staff_token || '');
+                        setHandoverWatcherEnabled(res.data.handover_watcher_enabled ?? false);
+                        setShiftEndTime(res.data.shift_end_time || '18:00');
+                    }
+                }
             } catch (err) {
                 console.error('Error loading profile:', err);
                 toast.error('Failed to load settings');
@@ -44,6 +78,67 @@ export default function SettingsPage() {
 
         loadData();
     }, [user, navigate]);
+
+    const handleConnectTelegram = async () => {
+        if (!telegramToken.trim()) return;
+        setIsConnectingTelegram(true);
+        try {
+            const res = await supabase.functions.invoke('telegram-setup', {
+                body: { action: 'connect', token: telegramToken.trim() },
+            });
+            if (res.error || res.data?.error) throw new Error(res.data?.error || 'Connection failed');
+            setTelegramConnected(true);
+            setTelegramBotUsername(res.data.bot_username);
+            setTelegramBotName(res.data.bot_name);
+            setManagerToken(res.data.manager_token || '');
+            setStaffToken(res.data.staff_token || '');
+            setTelegramToken('');
+            toast.success(`Connected! @${res.data.bot_username} is ready.`);
+        } catch (err: any) {
+            toast.error(err.message || 'Failed to connect bot');
+        } finally {
+            setIsConnectingTelegram(false);
+        }
+    };
+
+    const handleDisconnectTelegram = async () => {
+        setIsDisconnectingTelegram(true);
+        try {
+            await supabase.functions.invoke('telegram-setup', { body: { action: 'disconnect' } });
+            setTelegramConnected(false);
+            setTelegramBotUsername('');
+            setTelegramBotName('');
+            setManagerToken('');
+            setStaffToken('');
+            toast.success('Telegram bot disconnected.');
+        } catch (err: any) {
+            toast.error(err.message || 'Failed to disconnect');
+        } finally {
+            setIsDisconnectingTelegram(false);
+        }
+    };
+
+    const handleCopyLink = (type: 'manager' | 'staff') => {
+        const token = type === 'manager' ? managerToken : staffToken;
+        if (!telegramBotUsername || !token) return;
+        navigator.clipboard.writeText(`https://t.me/${telegramBotUsername}?start=${token}`);
+        setCopiedLink(type);
+        setTimeout(() => setCopiedLink(null), 2000);
+    };
+
+    const handleSaveWatcher = async () => {
+        setIsSavingWatcher(true);
+        try {
+            await supabase.functions.invoke('telegram-setup', {
+                body: { action: 'update_watcher', handover_watcher_enabled: handoverWatcherEnabled, shift_end_time: shiftEndTime },
+            });
+            toast.success('Watcher settings saved.');
+        } catch (err: any) {
+            toast.error(err.message || 'Failed to save watcher settings');
+        } finally {
+            setIsSavingWatcher(false);
+        }
+    };
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -216,6 +311,167 @@ export default function SettingsPage() {
                             </div>
                         </section>
 
+                        <hr className="border-slate-100" />
+
+                        {/* Telegram Bot */}
+                        <section className="space-y-4">
+                            <div>
+                                <h2 className="text-xl font-semibold flex items-center gap-2">
+                                    <Send className="w-5 h-5 text-slate-400" />
+                                    Telegram Bot
+                                </h2>
+                                <p className="text-sm text-brand-dark/70 mt-1">
+                                    Give your team a private Telegram bot they own — for cash reconciliation, shift handovers, escalations, and more. 24/7, no app needed.
+                                </p>
+                            </div>
+
+                            {telegramConnected ? (
+                                /* ── Connected state ── */
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-xl px-4 py-3">
+                                        <CheckCircle className="w-5 h-5 text-green-600 shrink-0" />
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-medium text-green-900 text-sm">{telegramBotName} connected</p>
+                                            <p className="text-green-700 text-xs">@{telegramBotUsername} · Webhook active · 24/7</p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={handleDisconnectTelegram}
+                                            disabled={isDisconnectingTelegram}
+                                            className="shrink-0 text-xs text-red-600 hover:text-red-700 flex items-center gap-1 font-medium"
+                                        >
+                                            <Unlink className="w-3.5 h-3.5" />
+                                            {isDisconnectingTelegram ? 'Disconnecting...' : 'Disconnect'}
+                                        </button>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        <p className="text-sm font-medium text-brand-dark/70">Invite links — share with your team</p>
+
+                                        {/* Manager link */}
+                                        <div>
+                                            <div className="flex items-center gap-1.5 mb-1">
+                                                <span className="text-xs font-semibold text-purple-700 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-full">Manager</span>
+                                                <span className="text-xs text-brand-dark/50">Full access (reconcile, handover, assign, escalate, sop, restock, audit)</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <div className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600 font-mono truncate">
+                                                    t.me/{telegramBotUsername}?start={managerToken}
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleCopyLink('manager')}
+                                                    className="shrink-0 flex items-center gap-1.5 px-3 py-2 bg-brand-dark text-white text-sm rounded-lg hover:bg-brand-dark/90 transition-colors"
+                                                >
+                                                    {copiedLink === 'manager' ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                                                    {copiedLink === 'manager' ? 'Copied!' : 'Copy'}
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Staff link */}
+                                        <div>
+                                            <div className="flex items-center gap-1.5 mb-1">
+                                                <span className="text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">Staff</span>
+                                                <span className="text-xs text-brand-dark/50">Limited access (reconcile, handover only)</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <div className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600 font-mono truncate">
+                                                    t.me/{telegramBotUsername}?start={staffToken}
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleCopyLink('staff')}
+                                                    className="shrink-0 flex items-center gap-1.5 px-3 py-2 bg-brand-dark text-white text-sm rounded-lg hover:bg-brand-dark/90 transition-colors"
+                                                >
+                                                    {copiedLink === 'staff' ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                                                    {copiedLink === 'staff' ? 'Copied!' : 'Copy'}
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <p className="text-xs text-brand-dark/50">Team members tap their link to activate the bot with the right role. Share manager links only with trusted leads.</p>
+                                    </div>
+
+                                    {/* Handover watcher */}
+                                    <div className="border border-slate-200 rounded-xl p-4 space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <p className="text-sm font-semibold text-brand-dark">Handover watcher</p>
+                                                <p className="text-xs text-brand-dark/50 mt-0.5">Ping staff who haven't submitted /handover by shift end</p>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setHandoverWatcherEnabled(!handoverWatcherEnabled)}
+                                                className={`relative w-10 h-6 rounded-full transition-colors shrink-0 ${handoverWatcherEnabled ? 'bg-brand-blue' : 'bg-slate-200'}`}
+                                            >
+                                                <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${handoverWatcherEnabled ? 'translate-x-5' : 'translate-x-1'}`} />
+                                            </button>
+                                        </div>
+                                        {handoverWatcherEnabled && (
+                                            <div className="flex items-center gap-3">
+                                                <label className="text-xs font-medium text-brand-dark/70 shrink-0">Shift ends at</label>
+                                                <input
+                                                    type="time"
+                                                    value={shiftEndTime}
+                                                    onChange={(e) => setShiftEndTime(e.target.value)}
+                                                    className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-brand-blue"
+                                                />
+                                                <span className="text-xs text-brand-dark/40">UTC</span>
+                                            </div>
+                                        )}
+                                        <button
+                                            type="button"
+                                            onClick={handleSaveWatcher}
+                                            disabled={isSavingWatcher}
+                                            className="text-xs font-medium text-brand-blue hover:underline disabled:opacity-50"
+                                        >
+                                            {isSavingWatcher ? 'Saving...' : 'Save watcher settings'}
+                                        </button>
+                                    </div>
+
+                                    <div className="bg-slate-50 rounded-xl p-4 space-y-1.5">
+                                        <p className="text-xs font-semibold text-brand-dark/60 uppercase tracking-wide">Available commands</p>
+                                        {[
+                                            ['/reconcile', 'Daily cash reconciliation'],
+                                            ['/handover', 'Shift handover log'],
+                                            ['/sop', 'SOP compliance check'],
+                                            ['/sopupdate', 'SOP update notifier'],
+                                            ['/restock', 'Supplier outreach'],
+                                            ['/audit', 'Inventory audit'],
+                                            ['/assign', 'Task assignment'],
+                                            ['/escalate', 'Escalation router'],
+                                        ].map(([cmd, desc]) => (
+                                            <div key={cmd} className="flex items-center gap-2 text-xs">
+                                                <span className="font-mono text-brand-blue w-24 shrink-0">{cmd}</span>
+                                                <span className="text-brand-dark/60">{desc}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : (
+                                /* ── Setup flow ── */
+                                <div className="space-y-4">
+                                    <div className="bg-slate-50 rounded-2xl p-5 text-center space-y-3">
+                                        <div className="text-4xl">🤖</div>
+                                        <p className="font-semibold text-brand-dark">No bot connected yet</p>
+                                        <p className="text-sm text-brand-dark/60">
+                                            Set up a private Telegram bot your team can message 24/7 — for reconciliations, handovers, escalations, and more.
+                                        </p>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowTelegramGuide(true)}
+                                            className="inline-flex items-center gap-2 px-6 py-2.5 bg-brand-dark text-white rounded-full text-sm font-semibold hover:bg-brand-dark/90 transition-colors"
+                                        >
+                                            <Send className="w-4 h-4" />
+                                            Set up my Telegram bot
+                                        </button>
+                                        <p className="text-xs text-brand-dark/40">Takes about 3 minutes · Step-by-step guide included</p>
+                                    </div>
+                                </div>
+                            )}
+                        </section>
+
                         <div className="pt-6">
                             <button
                                 type="submit"
@@ -236,6 +492,33 @@ export default function SettingsPage() {
                     </form>
                 </motion.div>
             </main>
+        <TelegramSetupGuide
+            isOpen={showTelegramGuide}
+            onClose={() => setShowTelegramGuide(false)}
+            isConnecting={isConnectingTelegram}
+            onConnect={async (token) => {
+                setTelegramToken(token);
+                setIsConnectingTelegram(true);
+                try {
+                    const res = await supabase.functions.invoke('telegram-setup', {
+                        body: { action: 'connect', token: token.trim() },
+                    });
+                    if (res.error || res.data?.error) throw new Error(res.data?.error || 'Connection failed');
+                    setTelegramConnected(true);
+                    setTelegramBotUsername(res.data.bot_username);
+                    setTelegramBotName(res.data.bot_name);
+                    setManagerToken(res.data.manager_token || '');
+                    setStaffToken(res.data.staff_token || '');
+                    setTelegramToken('');
+                    setShowTelegramGuide(false);
+                    toast.success(`Connected! @${res.data.bot_username} is ready.`);
+                } catch (err: any) {
+                    toast.error(err.message || 'Failed to connect bot');
+                } finally {
+                    setIsConnectingTelegram(false);
+                }
+            }}
+        />
         </div>
     );
 }

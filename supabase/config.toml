@@ -407,9 +407,16 @@ verify_jwt = false
 enabled = true
 verify_jwt = false
 import_map = "./functions/webhook-receiver/deno.json"
-# Uncomment to specify a custom file path to the entrypoint.
-# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
 entrypoint = "./functions/webhook-receiver/index.ts"
-# Specifies static files to be bundled with the function. Supports glob patterns.
-# For example, if you want to serve static HTML pages in your function:
-# static_files = [ "./functions/webhook-receiver/*.html" ]
+
+[functions.telegram-handler]
+enabled = true
+verify_jwt = false
+
+[functions.telegram-setup]
+enabled = true
+verify_jwt = false
+
+[functions.telegram-handover-watcher]
+enabled = true
+verify_jwt = false

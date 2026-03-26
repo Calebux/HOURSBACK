@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 import { launchCatalog, getCategoryColor } from '../data/playbooks';
 import { toast } from 'sonner';
 import posthog from 'posthog-js';
-import { ArrowLeft, ChevronRight, Copy, CheckCheck, ExternalLink, Upload, FileSpreadsheet, Clock, Lock, Bell, Plus, X, ChevronDown } from 'lucide-react';
+import { ArrowLeft, ChevronRight, Copy, CheckCheck, ExternalLink, Upload, FileSpreadsheet, Clock, Lock, Bell, Plus, X, ChevronDown, Send } from 'lucide-react';
 
 interface WorkflowInput {
   label: string;
@@ -41,6 +41,27 @@ const workflowDescriptions: Record<string, string> = {
   'wkflow-33': 'Compares your actual weekly sales in Naira against your targets, highlights the biggest gaps, names the under-performing products or channels, and tells you exactly what to do this week to close the gap before month end.',
   'wkflow-34': 'Reads your WhatsApp lead log from Google Sheets, groups leads by temperature (hot, warm, cold), and generates ready-to-paste WhatsApp follow-up messages for each group — so no lead gets forgotten and your follow-up is consistent every week.',
   'wkflow-35': 'Analyses your customer order history to predict who is due for a reorder, who is overdue, and who is slipping away — with the likelihood score, last order date, and a specific outreach recommendation for each customer sorted by revenue at risk.',
+  // Telegram-only workflows
+  'wkflow-40': 'Staff type /sop in Telegram and describe what they\'re about to do — the bot checks it against your SOPs and tells them immediately if they\'re following the correct procedure. No more "I didn\'t know" moments.',
+  'wkflow-42': 'When you update a procedure, broadcast the change to your whole team via Telegram instantly. Staff confirm they\'ve read it — so you have a record and no-one can say they weren\'t told.',
+  'wkflow-44': 'Staff type /reconcile at end of shift, enter their opening float, cash received, and expenses — the bot calculates the variance and logs the result. Managers get notified of any discrepancy immediately.',
+  'wkflow-47': 'Managers type /restock in Telegram and describe what\'s running low — the bot drafts a reorder message to the supplier, including product details and suggested quantity, ready to copy and send.',
+  'wkflow-48': 'Managers type /audit to start an inventory check — the bot guides them through each product category step by step, collects counts, and produces a discrepancy report at the end.',
+  'wkflow-49': 'Managers type /assign and describe a task — the bot asks who it\'s for, when it\'s due, and any notes. Creates a clear assignment record that both the manager and staff member can refer back to.',
+  'wkflow-51': 'Staff type /handover at the end of their shift — the bot asks what was completed, what\'s pending, any issues, and who to follow up with. Structured logs every time, no format to remember.',
+  'wkflow-53': 'Staff or managers type /escalate and describe the issue — the bot asks the right questions to assess urgency, then routes it to the right person with a summary. Nothing falls through the cracks.',
+  // SOP
+  'wkflow-41': 'Turns your SOP or procedures document into a structured onboarding guide for new hires — with Day 1 essentials, Week 1 tasks, key contacts, and a self-check quiz — so every new starter gets the same quality introduction.',
+  // Cash & Expenses
+  'wkflow-43': 'Reads your pasted receipts or expense notes, categorises each item automatically, and outputs a clean table with subtotals per category and a grand total — ready to paste straight into your accounts sheet.',
+  'wkflow-45': 'Reads your budget vs actual spending sheet and generates a traffic-light dashboard — showing which categories are over budget, at risk, or on track — with specific actions to cut overspend this week.',
+  // Inventory
+  'wkflow-46': 'Reads your inventory sheet, compares stock levels against reorder points, and delivers a prioritised reorder list — flagging critical shortfalls, upcoming risks, and overstocked products — so you never run out unexpectedly.',
+  // Staff
+  'wkflow-50': 'Reads your task list, spots every overdue item by owner, and writes personalised nudge messages grouped by urgency — so nothing slips through the cracks without a follow-up.',
+  // Crisis
+  'wkflow-52': 'Reads your pasted error logs, complaints, or operational notes and classifies every incident by severity (P1–P4) — giving you a clear action dashboard with immediate steps for critical issues.',
+  'wkflow-54': 'Takes your incident notes and resolution summary and produces a professional post-mortem — with root cause analysis, business impact, response timeline, lessons learned, and 5 prevention actions with clear owners.',
 };
 
 const dataSourceHelp: Record<string, string> = {
@@ -68,6 +89,27 @@ const dataSourceHelp: Record<string, string> = {
   'wkflow-33': 'Your sheet should have columns for product/service name, actual sales this week (₦), and target (₦). Add a notes column for context if you have it.',
   'wkflow-34': 'Export your WhatsApp leads to a Google Sheet with columns: name, phone, lead source, last contact date, status (New/Interested/Negotiating/Cold), and any notes.',
   'wkflow-35': 'Your sheet should have columns: customer name, product ordered, order date, and order value (₦). More order history = more accurate predictions.',
+  // Telegram-optional workflows
+  'wkflow-40': 'Paste both your task log and SOP checklist directly. The more detail you include, the more accurate the compliance check.',
+  'wkflow-42': 'Share published Google Docs URLs for both versions. Go to File → Share → Publish to web in each doc.',
+  'wkflow-44': 'Enter the exact Naira amounts for each field. The agent will calculate variance and flag discrepancies.',
+  'wkflow-47': 'Both sheets need "Anyone with link can view" sharing. Inventory sheet needs: item, qty, reorder point. Supplier sheet needs: item, supplier name, contact.',
+  'wkflow-48': 'System records sheet needs: item, quantity. Physical count can be pasted directly as a list or as a sheet URL.',
+  'wkflow-49': 'Describe tasks clearly with any deadlines. Team roles can be pasted as a list (Name: Role) or as a Google Sheets URL.',
+  'wkflow-51': 'Be specific about in-progress items — include who owns them and the next action needed for handover to work smoothly.',
+  'wkflow-53': 'Include real phone numbers or Telegram handles for each contact tier. The more context in the incident description, the better the escalation messages.',
+  // SOP
+  'wkflow-41': 'Go to File → Share → Publish to web in Google Docs, then paste the published URL here. Or share a Google Sheets URL set to "Anyone with link can view".',
+  // Cash & Expenses
+  'wkflow-43': 'Paste your receipts or expense list directly — vendor name, amount, and date for each item. No specific format required; the agent will extract and clean the data.',
+  'wkflow-45': 'Your sheet needs columns for: category, budgeted amount (₦), and actual spend to date (₦). Set sharing to "Anyone with link can view".',
+  // Inventory
+  'wkflow-46': 'Your sheet needs columns for: item name, current quantity, reorder point, and max stock level. Add a unit price column to get an estimated reorder cost.',
+  // Staff
+  'wkflow-50': 'Your sheet needs columns for: task name, assigned to, due date, and status. Add a notes column for context on blocked tasks.',
+  // Crisis
+  'wkflow-52': 'Paste your error logs, complaints, or incident notes. Include timestamps and short descriptions. The more context you give, the more accurate the severity classification.',
+  'wkflow-54': 'Paste a timeline of what happened, when, what was done, and how it was resolved. Include timestamps where possible — more detail means a more specific report.',
 };
 
 const workflowInputs: Record<string, WorkflowInput> = {
@@ -97,6 +139,39 @@ const workflowInputs: Record<string, WorkflowInput> = {
   'wkflow-33': { label: 'Google Sheets URL (sales vs target data)', placeholder: 'https://docs.google.com/spreadsheets/d/...', type: 'url' },
   'wkflow-34': { label: 'Google Sheets URL (WhatsApp leads log)', placeholder: 'https://docs.google.com/spreadsheets/d/...', type: 'url' },
   'wkflow-35': { label: 'Google Sheets URL (customer order history)', placeholder: 'https://docs.google.com/spreadsheets/d/...', type: 'url' },
+  // Telegram-optional workflows — also deployable as scheduled email reports
+  'wkflow-40': { label: 'Task completion log + SOP checklist', placeholder: 'Paste your task log AND your SOP checklist steps below — separate them clearly.\n\nTASK LOG:\n[paste here]\n\nSOP CHECKLIST:\n[paste steps here]', type: 'textarea' },
+  'wkflow-42': { label: 'Old SOP URL + New SOP URL', placeholder: 'OLD SOP URL: https://docs.google.com/...\nNEW SOP URL: https://docs.google.com/...', type: 'textarea' },
+  'wkflow-44': { label: 'End-of-day cash data', placeholder: 'Opening balance: ₦\nTotal sales: ₦\nTotal expenses: ₦\nActual closing count: ₦', type: 'textarea' },
+  'wkflow-47': { label: 'Inventory sheet URL + Supplier contacts URL', placeholder: 'INVENTORY URL: https://docs.google.com/...\nSUPPLIER CONTACTS URL: https://docs.google.com/...', type: 'textarea' },
+  'wkflow-48': { label: 'System records URL + Physical count data', placeholder: 'SYSTEM RECORDS URL: https://docs.google.com/...\nPHYSICAL COUNT: (paste count data or URL)', type: 'textarea' },
+  'wkflow-49': { label: 'Task list + Team roles', placeholder: 'TASKS:\n- Task 1\n- Task 2\n\nTEAM ROLES:\n- Amaka: Cashier\n- Tunde: Stockkeeper\n(or paste a Google Sheets URL)', type: 'textarea' },
+  'wkflow-51': { label: 'Shift summary', placeholder: 'COMPLETED:\n- [what was done]\n\nIN PROGRESS:\n- [what\'s still ongoing]\n\nISSUES:\n- [any incidents or urgent items]', type: 'textarea' },
+  'wkflow-53': { label: 'Incident + Escalation contacts', placeholder: 'INCIDENT: [brief description]\n\nTIER 1: Name — phone/Telegram\nTIER 2: Name — phone\nTIER 3: Name — phone (decision-maker)', type: 'textarea' },
+  // SOP
+  'wkflow-41': { label: 'SOP or procedures document URL', placeholder: 'https://docs.google.com/document/d/.../pub  (published to web)', type: 'url' },
+  // Cash & Expenses
+  'wkflow-43': { label: 'Paste your receipts or expense descriptions', placeholder: 'e.g.\nSpar Market — ₦12,500 — 24 Mar\nDHL delivery — ₦8,000 — 25 Mar\nElectricity bill — ₦45,000 — 26 Mar\nFuel — ₦6,200 — 26 Mar', type: 'textarea' },
+  'wkflow-45': { label: 'Google Sheets URL (budget vs actual spending)', placeholder: 'https://docs.google.com/spreadsheets/d/...', type: 'url' },
+  // Inventory
+  'wkflow-46': { label: 'Google Sheets URL (inventory data)', placeholder: 'https://docs.google.com/spreadsheets/d/...', type: 'url' },
+  // Staff
+  'wkflow-50': { label: 'Google Sheets URL (task list with owners)', placeholder: 'https://docs.google.com/spreadsheets/d/...', type: 'url' },
+  // Crisis
+  'wkflow-52': { label: 'Paste your logs, errors, or complaints', placeholder: 'e.g.\n[09:42] Payment gateway timeout — 3 customers affected\n[10:15] Broken display fridge reported by staff\n[11:00] 2 complaints about late delivery\n[12:30] Generator alarm triggered', type: 'textarea' },
+  'wkflow-54': { label: 'Paste incident timeline and resolution notes', placeholder: 'e.g.\n13:00 — Customer orders stopped processing\n13:15 — IT team alerted\n13:45 — Root cause found: database timeout\n14:30 — Fix deployed, orders resuming\n15:00 — All systems normal\n\nResolution: Increased DB connection pool size.', type: 'textarea' },
+};
+
+// Workflows delivered via Telegram bot conversation (not the standard deploy pipeline)
+const TELEGRAM_WORKFLOWS: Record<string, { command: string; role: 'staff' | 'manager' | 'both'; description: string }> = {
+  'wkflow-40': { command: '/sop',       role: 'manager', description: 'Staff describe what they\'re about to do — bot checks it against your SOPs.' },
+  'wkflow-42': { command: '/sopupdate', role: 'manager', description: 'Broadcast procedure changes to your team and collect confirmations.' },
+  'wkflow-44': { command: '/reconcile', role: 'both',    description: 'Staff enter their float, cash received, and expenses — bot logs variance.' },
+  'wkflow-47': { command: '/restock',   role: 'manager', description: 'Describe what\'s low — bot drafts a supplier reorder message.' },
+  'wkflow-48': { command: '/audit',     role: 'manager', description: 'Step-by-step inventory count guided by the bot.' },
+  'wkflow-49': { command: '/assign',    role: 'manager', description: 'Create a task assignment with owner, deadline, and notes.' },
+  'wkflow-51': { command: '/handover',  role: 'both',    description: 'Structured end-of-shift log — completed tasks, pending items, issues.' },
+  'wkflow-53': { command: '/escalate',  role: 'both',    description: 'Assess urgency and route issues to the right person.' },
 };
 
 function detectSourceType(url: string): 'google_sheets' | 'website' | 'api' {
@@ -131,6 +206,27 @@ function getDataSourceConfig(workflowId: string, dataSource: string): Record<str
     case 'wkflow-33': return { type: 'google_sheets', url: dataSource };
     case 'wkflow-34': return { type: 'google_sheets', url: dataSource };
     case 'wkflow-35': return { type: 'google_sheets', url: dataSource };
+    // Telegram-optional workflows
+    case 'wkflow-40': return { type: 'text_prompt', text: dataSource };
+    case 'wkflow-42': return { type: 'text_prompt', text: dataSource };
+    case 'wkflow-44': return { type: 'text_prompt', text: dataSource };
+    case 'wkflow-47': return { type: 'text_prompt', text: dataSource };
+    case 'wkflow-48': return { type: 'text_prompt', text: dataSource };
+    case 'wkflow-49': return { type: 'text_prompt', text: dataSource };
+    case 'wkflow-51': return { type: 'text_prompt', text: dataSource };
+    case 'wkflow-53': return { type: 'text_prompt', text: dataSource };
+    // SOP
+    case 'wkflow-41': return { type: 'website', url: dataSource };
+    // Cash & Expenses
+    case 'wkflow-43': return { type: 'text_prompt', text: dataSource };
+    case 'wkflow-45': return { type: 'google_sheets', url: dataSource };
+    // Inventory
+    case 'wkflow-46': return { type: 'google_sheets', url: dataSource };
+    // Staff
+    case 'wkflow-50': return { type: 'google_sheets', url: dataSource };
+    // Crisis
+    case 'wkflow-52': return { type: 'text_prompt', text: dataSource };
+    case 'wkflow-54': return { type: 'text_prompt', text: dataSource };
     default:
       return { type: detectSourceType(dataSource), url: dataSource };
   }
@@ -155,6 +251,7 @@ export default function WorkflowBuilder() {
   const [isDeploying, setIsDeploying] = useState(false);
   const [deployedWebhookUrl, setDeployedWebhookUrl] = useState('');
   const [copied, setCopied] = useState(false);
+  const [telegramDeployId, setTelegramDeployId] = useState<string | null>(null);
   const { isPro: hasPro } = useAuth();
   const [dataSourceMode, setDataSourceMode] = useState<'url' | 'excel'>('url');
   const [xlsxPath, setXlsxPath] = useState('');
@@ -298,7 +395,7 @@ export default function WorkflowBuilder() {
 
             {/* Category filter */}
             <div className="flex gap-2 flex-wrap">
-              {['All', 'Finance', 'Sales', 'Marketing', 'Operations', 'Research', 'Creator', 'Executive', 'Legal/Compliance'].map(cat => (
+              {['All', 'Finance', 'Sales', 'Marketing', 'Operations', 'HR/People', 'Research', 'Creator', 'Executive', 'Legal/Compliance'].map(cat => (
                 <button
                   key={cat}
                   onClick={() => setActiveCategory(cat)}
@@ -322,12 +419,21 @@ export default function WorkflowBuilder() {
                     key={p.id}
                     onClick={() => {
                       setSelectedWorkflow(p.id);
-                      if (!locked) setStep(2);
+                      if (!locked) {
+                        if (TELEGRAM_WORKFLOWS[p.id]) {
+                          setTelegramDeployId(p.id);
+                        } else {
+                          setTelegramDeployId(null);
+                          setStep(2);
+                        }
+                      }
                     }}
                     className={`flex flex-col rounded-2xl border-2 overflow-hidden transition-all cursor-pointer ${
                       locked
                         ? 'border-slate-200 bg-slate-50/50 opacity-80 hover:opacity-100'
-                        : 'border-slate-200 bg-white hover:border-brand-blue/50 hover:shadow-md'
+                        : TELEGRAM_WORKFLOWS[p.id]
+                          ? 'border-slate-200 bg-white hover:border-blue-400/50 hover:shadow-md'
+                          : 'border-slate-200 bg-white hover:border-brand-blue/50 hover:shadow-md'
                     }`}
                   >
                     {/* Color accent bar */}
@@ -347,11 +453,18 @@ export default function WorkflowBuilder() {
                               {locked && <Lock className="w-3 h-3" />} Pro
                             </span>
                           )}
+                          {TELEGRAM_WORKFLOWS[p.id] && !locked && (
+                            <span className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-md bg-sky-50 text-sky-600 border border-sky-200">
+                              <Send className="w-2.5 h-2.5" /> Telegram
+                            </span>
+                          )}
                         </div>
                         <div className="shrink-0">
                           {locked
                             ? <Lock className="w-3.5 h-3.5 text-slate-300" />
-                            : <ChevronRight className="w-4 h-4 text-slate-300" />
+                            : TELEGRAM_WORKFLOWS[p.id]
+                              ? <Send className="w-4 h-4 text-sky-400" />
+                              : <ChevronRight className="w-4 h-4 text-slate-300" />
                           }
                         </div>
                       </div>
@@ -384,6 +497,68 @@ export default function WorkflowBuilder() {
                 </a>
               </div>
             )}
+
+            {/* Telegram deploy panel */}
+            {telegramDeployId && TELEGRAM_WORKFLOWS[telegramDeployId] && (() => {
+              const tg = TELEGRAM_WORKFLOWS[telegramDeployId];
+              const sel = launchCatalog.find(p => p.id === telegramDeployId);
+              return (
+                <div className="bg-sky-50 border border-sky-200 rounded-2xl p-5 space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 bg-sky-100 rounded-xl flex items-center justify-center shrink-0">
+                      <Send className="w-5 h-5 text-sky-600" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-sky-900 text-sm">{sel?.title} runs on your Telegram bot</p>
+                      <p className="text-sky-700 text-xs mt-0.5">{tg.description}</p>
+                    </div>
+                    <button onClick={() => setTelegramDeployId(null)} className="ml-auto text-sky-400 hover:text-sky-600 shrink-0">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="bg-white/60 rounded-xl p-3 flex items-center gap-3">
+                    <span className="font-mono text-sm font-bold text-sky-700 bg-sky-100 px-3 py-1 rounded-lg">{tg.command}</span>
+                    <span className="text-xs text-sky-800">
+                      Available to:{' '}
+                      <span className="font-medium">
+                        {tg.role === 'both' ? 'Managers & Staff' : tg.role === 'manager' ? 'Managers only' : 'Staff'}
+                      </span>
+                    </span>
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold text-sky-700 uppercase tracking-wide">How to use</p>
+                    <ol className="space-y-1.5 text-xs text-sky-800">
+                      <li className="flex items-start gap-2"><span className="bg-sky-200 text-sky-700 w-4 h-4 rounded-full flex items-center justify-center shrink-0 font-bold">1</span>Connect your Telegram bot in <a href="/settings" className="underline font-medium">Settings → Telegram</a> if you haven't yet.</li>
+                      <li className="flex items-start gap-2"><span className="bg-sky-200 text-sky-700 w-4 h-4 rounded-full flex items-center justify-center shrink-0 font-bold">2</span>Share the {tg.role === 'manager' ? 'Manager' : tg.role === 'staff' ? 'Staff' : 'Manager or Staff'} invite link with your team.</li>
+                      <li className="flex items-start gap-2"><span className="bg-sky-200 text-sky-700 w-4 h-4 rounded-full flex items-center justify-center shrink-0 font-bold">3</span>Anyone on the team can type <span className="font-mono font-bold">{tg.command}</span> to start this workflow instantly.</li>
+                    </ol>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <a
+                      href="/settings#telegram"
+                      className="flex-1 text-center py-2 bg-sky-600 text-white rounded-xl text-sm font-semibold hover:bg-sky-700 transition-colors"
+                    >
+                      Go to Settings
+                    </a>
+                    <button
+                      onClick={() => setTelegramDeployId(null)}
+                      className="px-4 py-2 bg-white border border-sky-200 text-sky-700 rounded-xl text-sm font-medium hover:bg-sky-50 transition-colors"
+                    >
+                      Got it
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => { setTelegramDeployId(null); setStep(2); }}
+                    className="w-full text-center text-xs text-slate-400 hover:text-slate-600 py-1 transition-colors"
+                  >
+                    Or deploy as a scheduled email report instead →
+                  </button>
+                </div>
+              );
+            })()}
           </div>
         )}
 

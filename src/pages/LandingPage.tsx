@@ -284,6 +284,7 @@ export default function LandingPage() {
       <WhyHoursbackSection />
       <ROICalculator />
       <BouncyCardsFeatures />
+      <TelegramBotSection />
       <SocialProofSection />
       <PricingSection onAuthRequired={() => { setAuthView('signup'); setAuthModalOpen(true); }} />
       <EnterpriseSection />
@@ -1263,6 +1264,151 @@ function CTASection() {
       </div>
 
       <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} defaultView={authView} />
+    </section>
+  );
+}
+
+function TelegramBotSection() {
+  const commands = [
+    { cmd: '/reconcile', icon: '💰', desc: 'Daily cash reconciliation', role: 'staff' },
+    { cmd: '/handover',  icon: '📋', desc: 'Shift handover log',        role: 'staff' },
+    { cmd: '/restock',   icon: '📦', desc: 'Supplier outreach',          role: 'manager' },
+    { cmd: '/audit',     icon: '🔍', desc: 'Inventory audit',            role: 'manager' },
+    { cmd: '/assign',    icon: '👥', desc: 'Task assignment',             role: 'manager' },
+    { cmd: '/escalate',  icon: '🚨', desc: 'Escalation router',          role: 'manager' },
+  ];
+
+  return (
+    <section className="py-24 bg-brand-dark text-white overflow-hidden relative">
+      {/* Grid background */}
+      <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'linear-gradient(white 1px, transparent 1px), linear-gradient(90deg, white 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+
+      <div className="container mx-auto px-6 max-w-6xl relative">
+        <div className="grid md:grid-cols-2 gap-16 items-center">
+
+          {/* Left: copy */}
+          <div>
+            <span className="inline-flex items-center gap-2 text-xs font-semibold bg-sky-500/20 text-sky-300 border border-sky-500/30 px-3 py-1.5 rounded-full mb-6">
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.96 6.504-1.356 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+              New — Telegram Bot
+            </span>
+
+            <h2 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
+              Your team runs<br />workflows on<br />
+              <span className="text-sky-400">Telegram. 24/7.</span>
+            </h2>
+
+            <p className="text-white/70 text-lg mb-8 leading-relaxed">
+              Connect your own private Telegram bot. Staff type a command, answer a few questions, and Hoursback's AI handles the rest — cash reconciliation, shift handovers, escalations, inventory audits. You get the result by email.
+            </p>
+
+            <div className="space-y-3 mb-10">
+              {[
+                'Your bot, your brand — staff trust it because it's yours',
+                'Role-based access — managers see everything, staff see what they need',
+                'Works on any phone with Telegram — no extra apps',
+                'You get notified every time a workflow runs',
+              ].map((point) => (
+                <div key={point} className="flex items-start gap-3">
+                  <div className="w-5 h-5 rounded-full bg-sky-500/20 border border-sky-500/40 flex items-center justify-center shrink-0 mt-0.5">
+                    <svg className="w-3 h-3 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                  </div>
+                  <p className="text-white/80 text-sm">{point}</p>
+                </div>
+              ))}
+            </div>
+
+            <a
+              href="/settings"
+              className="inline-flex items-center gap-2 bg-sky-500 hover:bg-sky-400 text-white font-semibold px-6 py-3 rounded-full transition-colors"
+            >
+              Set up your bot
+              <ChevronRight className="w-4 h-4" />
+            </a>
+          </div>
+
+          {/* Right: mock Telegram chat */}
+          <div className="flex justify-center">
+            <div className="w-full max-w-sm bg-[#17212B] rounded-3xl overflow-hidden shadow-2xl border border-white/10">
+              {/* Header */}
+              <div className="bg-[#232E3C] px-4 py-3 flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-sky-500 flex items-center justify-center text-xs font-bold">HB</div>
+                <div>
+                  <p className="text-white text-sm font-semibold leading-none">Hoursback Bot</p>
+                  <p className="text-white/50 text-xs mt-0.5">@YourBusinessBot</p>
+                </div>
+                <div className="ml-auto w-2 h-2 rounded-full bg-green-400" />
+              </div>
+
+              {/* Messages */}
+              <div className="px-3 py-4 space-y-3 min-h-[360px]">
+                {/* Bot welcome */}
+                <div className="flex gap-2">
+                  <div className="w-6 h-6 rounded-full bg-sky-500 flex items-center justify-center text-[10px] font-bold shrink-0 mt-1">HB</div>
+                  <div className="bg-[#232E3C] rounded-2xl rounded-tl-sm px-3 py-2 max-w-[80%]">
+                    <p className="text-white text-xs">👋 Hello! I'm your business operations bot. What would you like to do?</p>
+                    <p className="text-white/30 text-[10px] mt-1 text-right">09:01</p>
+                  </div>
+                </div>
+
+                {/* User */}
+                <div className="flex justify-end">
+                  <div className="bg-sky-600 rounded-2xl rounded-tr-sm px-3 py-2 max-w-[80%]">
+                    <p className="text-white text-xs">/reconcile</p>
+                    <p className="text-white/50 text-[10px] mt-1 text-right">09:02 ✓✓</p>
+                  </div>
+                </div>
+
+                {/* Bot step 1 */}
+                <div className="flex gap-2">
+                  <div className="w-6 h-6 rounded-full bg-sky-500 flex items-center justify-center text-[10px] font-bold shrink-0 mt-1">HB</div>
+                  <div className="bg-[#232E3C] rounded-2xl rounded-tl-sm px-3 py-2 max-w-[80%]">
+                    <p className="text-white text-xs">💰 *Cash Reconciliation*{"\n\n"}What was your opening balance today? (₦)</p>
+                    <p className="text-white/30 text-[10px] mt-1 text-right">09:02</p>
+                  </div>
+                </div>
+
+                {/* User answer */}
+                <div className="flex justify-end">
+                  <div className="bg-sky-600 rounded-2xl rounded-tr-sm px-3 py-2 max-w-[80%]">
+                    <p className="text-white text-xs">₦150,000</p>
+                    <p className="text-white/50 text-[10px] mt-1 text-right">09:03 ✓✓</p>
+                  </div>
+                </div>
+
+                {/* Bot result */}
+                <div className="flex gap-2">
+                  <div className="w-6 h-6 rounded-full bg-sky-500 flex items-center justify-center text-[10px] font-bold shrink-0 mt-1">HB</div>
+                  <div className="bg-[#232E3C] rounded-2xl rounded-tl-sm px-3 py-2 max-w-[80%]">
+                    <p className="text-white text-xs">✅ *Reconciliation Complete*{"\n\n"}Variance: ₦0 — Balanced 🟢{"\n"}Report emailed to owner.</p>
+                    <p className="text-white/30 text-[10px] mt-1 text-right">09:04</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Commands */}
+              <div className="bg-[#232E3C] px-3 py-3 border-t border-white/10">
+                <p className="text-white/30 text-[10px] uppercase tracking-wide font-semibold mb-2">Available commands</p>
+                <div className="grid grid-cols-2 gap-1">
+                  {commands.map(({ cmd, icon, desc, role }) => (
+                    <div key={cmd} className="flex items-center gap-1.5 bg-[#17212B] rounded-lg px-2 py-1.5">
+                      <span className="text-xs">{icon}</span>
+                      <div className="min-w-0">
+                        <p className="text-sky-400 text-[10px] font-mono font-bold truncate">{cmd}</p>
+                        <p className="text-white/40 text-[9px] truncate">{desc}</p>
+                      </div>
+                      <span className={`ml-auto text-[8px] font-semibold px-1 py-0.5 rounded shrink-0 ${role === 'manager' ? 'bg-purple-500/20 text-purple-300' : 'bg-sky-500/20 text-sky-300'}`}>
+                        {role}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
     </section>
   );
 }
