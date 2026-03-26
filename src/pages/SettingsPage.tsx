@@ -95,10 +95,21 @@ export default function SettingsPage() {
         }
     };
 
-    const handleCopyLink = (type: 'manager' | 'staff') => {
+    const handleCopyLink = async (type: 'manager' | 'staff') => {
         const token = type === 'manager' ? managerToken : staffToken;
         if (!telegramBotUsername || !token) return;
-        navigator.clipboard.writeText(`https://t.me/${telegramBotUsername}?start=${token}`);
+        const link = `https://t.me/${telegramBotUsername}?start=${token}`;
+        try {
+            await navigator.clipboard.writeText(link);
+        } catch {
+            // Fallback for browsers that block clipboard API
+            const el = document.createElement('textarea');
+            el.value = link;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+        }
         setCopiedLink(type);
         setTimeout(() => setCopiedLink(null), 2000);
     };
@@ -329,12 +340,17 @@ export default function SettingsPage() {
                                         <div>
                                             <div className="flex items-center gap-1.5 mb-1">
                                                 <span className="text-xs font-semibold text-purple-700 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-full">Manager</span>
-                                                <span className="text-xs text-brand-dark/50">Full access (reconcile, handover, assign, escalate, sop, restock, audit)</span>
+                                                <span className="text-xs text-brand-dark/50">Full access — assign to trusted leads</span>
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                <div className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600 font-mono truncate">
+                                                <a
+                                                    href={`https://t.me/${telegramBotUsername}?start=${managerToken}`}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-brand-blue font-mono truncate hover:underline"
+                                                >
                                                     t.me/{telegramBotUsername}?start={managerToken}
-                                                </div>
+                                                </a>
                                                 <button
                                                     type="button"
                                                     onClick={() => handleCopyLink('manager')}
@@ -350,12 +366,17 @@ export default function SettingsPage() {
                                         <div>
                                             <div className="flex items-center gap-1.5 mb-1">
                                                 <span className="text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">Staff</span>
-                                                <span className="text-xs text-brand-dark/50">Limited access (reconcile, handover only)</span>
+                                                <span className="text-xs text-brand-dark/50">Limited access — share with all team members</span>
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                <div className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600 font-mono truncate">
+                                                <a
+                                                    href={`https://t.me/${telegramBotUsername}?start=${staffToken}`}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-brand-blue font-mono truncate hover:underline"
+                                                >
                                                     t.me/{telegramBotUsername}?start={staffToken}
-                                                </div>
+                                                </a>
                                                 <button
                                                     type="button"
                                                     onClick={() => handleCopyLink('staff')}
