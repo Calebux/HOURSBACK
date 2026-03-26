@@ -50,22 +50,21 @@ export default function SettingsPage() {
                     setZapierWebhook(profile.zapier_webhook_url || '');
                 }
 
-                // Load Telegram bot status
-                const { data: session } = await supabase.auth.getSession();
-                const token = session?.session?.access_token;
-                if (token) {
-                    const res = await supabase.functions.invoke('telegram-setup', {
-                        body: { action: 'status' },
-                    });
-                    if (res.data?.connected) {
-                        setTelegramConnected(true);
-                        setTelegramBotUsername(res.data.bot_username || '');
-                        setTelegramBotName(res.data.bot_name || '');
-                        setManagerToken(res.data.manager_token || '');
-                        setStaffToken(res.data.staff_token || '');
-                        setHandoverWatcherEnabled(res.data.handover_watcher_enabled ?? false);
-                        setShiftEndTime(res.data.shift_end_time || '18:00');
-                    }
+                // Load Telegram bot status — query directly so we're not dependent on edge function
+                const { data: botData } = await supabase
+                    .from('telegram_bots')
+                    .select('bot_username, bot_name, webhook_registered, manager_token, staff_token, handover_watcher_enabled, shift_end_time')
+                    .eq('user_id', user.id)
+                    .maybeSingle();
+
+                if (botData?.bot_username) {
+                    setTelegramConnected(true);
+                    setTelegramBotUsername(botData.bot_username);
+                    setTelegramBotName(botData.bot_name || '');
+                    setManagerToken(botData.manager_token || '');
+                    setStaffToken(botData.staff_token || '');
+                    setHandoverWatcherEnabled(botData.handover_watcher_enabled ?? false);
+                    setShiftEndTime(botData.shift_end_time || '18:00');
                 }
             } catch (err) {
                 console.error('Error loading profile:', err);
