@@ -250,56 +250,6 @@ export default function SettingsPage() {
 
                         <hr className="border-slate-100" />
 
-                        {/* Webhook Integrations */}
-                        <section className="space-y-4">
-                            <div className="flex items-start justify-between">
-                                <div>
-                                    <h2 className="text-xl font-semibold flex items-center gap-2">
-                                        <LinkIcon className="w-5 h-5 text-slate-400" />
-                                        Webhook Integrations
-                                    </h2>
-                                    <p className="text-sm text-brand-dark/70 mt-1">
-                                        Connect your API automations. Playbooks will automatically route data to these Webhooks when you click "Run Agent".
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="space-y-4 pt-2">
-                                <div>
-                                    <label className="block text-sm font-medium text-brand-dark/70 mb-1 flex items-center justify-between">
-                                        Make.com Custom Webhook URL
-                                        <a href="https://make.com" target="_blank" rel="noreferrer" className="text-xs text-brand-blue flex items-center gap-1 hover:underline">
-                                            Get one <ExternalLink className="w-3 h-3" />
-                                        </a>
-                                    </label>
-                                    <input
-                                        type="url"
-                                        value={makeWebhook}
-                                        onChange={(e) => setMakeWebhook(e.target.value)}
-                                        className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-brand-blue"
-                                        placeholder="https://hook.us1.make.com/..."
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-brand-dark/70 mb-1 flex items-center justify-between">
-                                        Zapier Catch Hook URL
-                                        <a href="https://zapier.com" target="_blank" rel="noreferrer" className="text-xs text-brand-blue flex items-center gap-1 hover:underline">
-                                            Get one <ExternalLink className="w-3 h-3" />
-                                        </a>
-                                    </label>
-                                    <input
-                                        type="url"
-                                        value={zapierWebhook}
-                                        onChange={(e) => setZapierWebhook(e.target.value)}
-                                        className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-brand-blue"
-                                        placeholder="https://hooks.zapier.com/hooks/catch/..."
-                                    />
-                                </div>
-                            </div>
-                        </section>
-
-                        <hr className="border-slate-100" />
-
                         {/* Telegram Bot */}
                         <section className="space-y-4">
                             <div>
@@ -467,6 +417,56 @@ export default function SettingsPage() {
                                     </div>
                                 </div>
                             )}
+                        </section>
+
+                        <hr className="border-slate-100" />
+
+                        {/* Webhook Integrations */}
+                        <section className="space-y-4">
+                            <div className="flex items-start justify-between">
+                                <div>
+                                    <h2 className="text-xl font-semibold flex items-center gap-2">
+                                        <LinkIcon className="w-5 h-5 text-slate-400" />
+                                        Webhook Integrations
+                                    </h2>
+                                    <p className="text-sm text-brand-dark/70 mt-1">
+                                        Connect your API automations. Playbooks will automatically route data to these Webhooks when you click "Run Agent".
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4 pt-2">
+                                <div>
+                                    <label className="block text-sm font-medium text-brand-dark/70 mb-1 flex items-center justify-between">
+                                        Make.com Custom Webhook URL
+                                        <a href="https://make.com" target="_blank" rel="noreferrer" className="text-xs text-brand-blue flex items-center gap-1 hover:underline">
+                                            Get one <ExternalLink className="w-3 h-3" />
+                                        </a>
+                                    </label>
+                                    <input
+                                        type="url"
+                                        value={makeWebhook}
+                                        onChange={(e) => setMakeWebhook(e.target.value)}
+                                        className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-brand-blue"
+                                        placeholder="https://hook.us1.make.com/..."
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-brand-dark/70 mb-1 flex items-center justify-between">
+                                        Zapier Catch Hook URL
+                                        <a href="https://zapier.com" target="_blank" rel="noreferrer" className="text-xs text-brand-blue flex items-center gap-1 hover:underline">
+                                            Get one <ExternalLink className="w-3 h-3" />
+                                        </a>
+                                    </label>
+                                    <input
+                                        type="url"
+                                        value={zapierWebhook}
+                                        onChange={(e) => setZapierWebhook(e.target.value)}
+                                        className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-brand-blue"
+                                        placeholder="https://hooks.zapier.com/hooks/catch/..."
+                                    />
+                                </div>
+                            </div>
                         </section>
 
                         <div className="pt-6">

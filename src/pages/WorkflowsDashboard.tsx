@@ -10,7 +10,7 @@ import {
   Play, Plus, Clock, CheckCircle2, XCircle, Bot,
   Trash2, Copy, CheckCheck, Pencil, X, Link2, FileText,
   Loader2, MoreVertical, Pause, TrendingUp, Activity,
-  ChevronDown, ChevronUp, ExternalLink, Send, Download, Crown
+  ChevronDown, ChevronUp, ExternalLink, Send, Crown
 } from 'lucide-react';
 import { MobileNav } from '../components/MobileNav';
 
@@ -56,31 +56,6 @@ function timeAgo(dateStr: string): string {
   return 'just now';
 }
 
-function downloadCSV(runs: TelegramRun[]) {
-  const header = ['Date', 'Time', 'Workflow', 'Command', 'Triggered By', 'Role', 'Status', 'Result'];
-  const escape = (v: string | null | undefined) => `"${(v ?? '').replace(/"/g, '""').replace(/\n/g, ' ')}"`;
-  const rows = runs.map(r => {
-    const d = new Date(r.created_at);
-    return [
-      escape(d.toLocaleDateString('en-GB')),
-      escape(d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })),
-      escape(r.workflow_name),
-      escape(r.workflow_key ? `/${r.workflow_key}` : ''),
-      escape(r.triggered_by),
-      escape(r.role),
-      escape(r.status),
-      escape(r.result),
-    ].join(',');
-  });
-  const csv = [header.join(','), ...rows].join('\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `hoursback-telegram-runs-${new Date().toISOString().slice(0, 10)}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
 
 function SuccessRateBadge({ rate, total }: { rate: number | null; total: number }) {
   if (total === 0) return <span className="text-xs text-slate-400">No runs yet</span>;

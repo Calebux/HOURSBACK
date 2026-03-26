@@ -29,7 +29,8 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
     }
 
-    const { action, token } = await req.json();
+    const body = await req.json();
+    const { action, token, handover_watcher_enabled, shift_end_time } = body;
 
     // ── DISCONNECT ──────────────────────────────────────────────────────────
     if (action === "disconnect") {
@@ -150,7 +151,6 @@ serve(async (req) => {
 
     // ── UPDATE WATCHER SETTINGS ──────────────────────────────────────────────
     if (action === "update_watcher") {
-      const { handover_watcher_enabled, shift_end_time } = await req.json().catch(() => ({}));
       await supabase
         .from("telegram_bots")
         .update({
