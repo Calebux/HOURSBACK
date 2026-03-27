@@ -6,6 +6,7 @@ import { launchCatalog, getCategoryColor } from '../data/playbooks';
 import { toast } from 'sonner';
 import posthog from 'posthog-js';
 import { ArrowLeft, ChevronRight, Copy, CheckCheck, ExternalLink, Upload, FileSpreadsheet, Clock, Lock, Bell, Plus, X, ChevronDown, Send } from 'lucide-react';
+import { ProUpgradeButton } from '../components/ProUpgradeButton';
 
 interface WorkflowInput {
   label: string;
@@ -487,14 +488,11 @@ export default function WorkflowBuilder() {
               <div className="bg-purple-50 border border-purple-200 rounded-2xl p-4 flex items-center justify-between gap-4">
                 <div>
                   <p className="font-semibold text-purple-900 text-sm">This workflow requires Pro</p>
-                  <p className="text-purple-700 text-xs mt-0.5">Upgrade to unlock all {launchCatalog.filter(p => p.isPro).length} Pro workflows.</p>
+                  <p className="text-purple-700 text-xs mt-0.5">{workflow.subtitle}</p>
                 </div>
-                <a
-                  href="/#pricing"
-                  className="shrink-0 bg-purple-600 text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-purple-700 transition-colors"
-                >
+                <ProUpgradeButton className="shrink-0 bg-purple-600 text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-purple-700 transition-colors">
                   Upgrade to Pro
-                </a>
+                </ProUpgradeButton>
               </div>
             )}
 

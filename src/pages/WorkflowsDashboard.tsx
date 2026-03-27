@@ -10,7 +10,7 @@ import {
   Play, Plus, Clock, CheckCircle2, XCircle, Bot,
   Trash2, Copy, CheckCheck, Pencil, X, Link2, FileText,
   Loader2, MoreVertical, Pause, TrendingUp, Activity,
-  ChevronDown, ChevronUp, ExternalLink, Send, Crown
+  ChevronDown, ChevronUp, ExternalLink, Send, Crown, Lock
 } from 'lucide-react';
 import { MobileNav } from '../components/MobileNav';
 
@@ -382,16 +382,38 @@ export default function WorkflowsDashboard() {
           </Link>
         </div>
 
-        {/* Pro upgrade banner — general (shown when user has < 3 workflows) */}
+        {/* Pro teaser strip — shown when user has < 3 workflows */}
         {!isPro && workflows.length < 3 && (
-          <div className="mb-6 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <div>
-              <p className="font-semibold text-white text-sm">Unlock all 15 workflows with Pro</p>
-              <p className="text-white/70 text-xs mt-0.5">Cash flow, competitor tracking, YouTube trends, sales pipeline — $20/month.</p>
+          <div className="mb-6 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="font-semibold text-slate-900 text-sm">Unlock powerful Pro workflows</p>
+                <p className="text-slate-500 text-xs mt-0.5">$20/month · Cancel anytime</p>
+              </div>
+              <ProUpgradeButton className="shrink-0 bg-purple-600 text-white px-4 py-2 rounded-full text-sm font-semibold hover:bg-purple-700 transition-colors flex items-center gap-1.5 whitespace-nowrap">
+                Upgrade to Pro →
+              </ProUpgradeButton>
             </div>
-            <ProUpgradeButton className="shrink-0 bg-white text-purple-700 px-4 py-2 rounded-full text-sm font-semibold hover:bg-purple-50 transition-colors flex items-center gap-1.5 whitespace-nowrap">
-              Upgrade to Pro →
-            </ProUpgradeButton>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { id: 'wkflow-44', name: 'Daily Cash Reconciliation Bot', subtitle: 'Bot logs float, sales, expenses and calculates variance automatically' },
+                { id: 'wkflow-1', name: 'Weekly CEO Briefing', subtitle: 'Reads your business data and writes a weekly executive summary' },
+                { id: 'wkflow-53', name: 'Escalation Router', subtitle: 'Routes urgent issues to the right person automatically' },
+                { id: 'wkflow-2', name: 'Sales Pipeline Health', subtitle: 'Alerts you to stalled deals and changes in probability' },
+              ].map(wf => (
+                <Link key={wf.id} to="/workflows/new">
+                  <div className="bg-white border border-slate-200 rounded-xl p-3 hover:border-purple-300 hover:bg-purple-50/30 transition-all cursor-pointer">
+                    <div className="flex items-start gap-2">
+                      <Lock className="w-3.5 h-3.5 text-purple-400 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-xs font-semibold text-slate-800 leading-tight">{wf.name}</p>
+                        <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">{wf.subtitle}</p>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
           </div>
         )}
 

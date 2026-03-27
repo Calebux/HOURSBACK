@@ -509,6 +509,9 @@ export default function SettingsPage() {
             isOpen={showTelegramGuide}
             onClose={() => setShowTelegramGuide(false)}
             isConnecting={isConnectingTelegram}
+            connectedBotUsername={telegramBotUsername}
+            managerToken={managerToken}
+            staffToken={staffToken}
             onConnect={async (token) => {
                 setIsConnectingTelegram(true);
                 try {
@@ -521,10 +524,9 @@ export default function SettingsPage() {
                     setTelegramBotName(res.data.bot_name);
                     setManagerToken(res.data.manager_token || '');
                     setStaffToken(res.data.staff_token || '');
-                    setShowTelegramGuide(false);
-                    toast.success(`Connected! @${res.data.bot_username} is ready.`);
                 } catch (err: any) {
                     toast.error(err.message || 'Failed to connect bot');
+                    throw err;
                 } finally {
                     setIsConnectingTelegram(false);
                 }

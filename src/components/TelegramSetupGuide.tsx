@@ -6,6 +6,9 @@ interface Props {
   onClose: () => void;
   onConnect: (token: string) => Promise<void>;
   isConnecting: boolean;
+  connectedBotUsername?: string;
+  managerToken?: string;
+  staffToken?: string;
 }
 
 const STEPS = [
@@ -34,6 +37,22 @@ const STEPS = [
     title: 'Paste your token here',
     emoji: '✅',
   },
+  {
+    id: 'live',
+    title: 'Your bot is live — share with your team',
+    emoji: '🚀',
+  },
+];
+
+const BOT_COMMANDS = [
+  { command: '/reconcile', emoji: '💰', desc: 'Daily cash log and variance check' },
+  { command: '/handover', emoji: '📋', desc: 'End-of-shift log in seconds' },
+  { command: '/sop', emoji: '✅', desc: 'SOP compliance check before any task' },
+  { command: '/audit', emoji: '🔍', desc: 'Guided inventory count' },
+  { command: '/restock', emoji: '📦', desc: 'Drafts supplier reorder messages' },
+  { command: '/assign', emoji: '👥', desc: 'Assign tasks with owner and deadline' },
+  { command: '/escalate', emoji: '🚨', desc: 'Routes urgent issues to right person' },
+  { command: '/sopupdate', emoji: '📢', desc: 'Broadcast procedure changes to team' },
 ];
 
 // Simulated chat bubble components
@@ -70,10 +89,11 @@ function ChatMockup({ messages }: { messages: { type: 'bot' | 'user'; text: stri
   );
 }
 
-export function TelegramSetupGuide({ isOpen, onClose, onConnect, isConnecting }: Props) {
+export function TelegramSetupGuide({ isOpen, onClose, onConnect, isConnecting, connectedBotUsername, managerToken, staffToken }: Props) {
   const [step, setStep] = useState(0);
   const [token, setToken] = useState('');
   const [copiedCommand, setCopiedCommand] = useState(false);
+  const [copiedLink, setCopiedLink] = useState<'manager' | 'staff' | null>(null);
 
   if (!isOpen) return null;
 
@@ -83,8 +103,21 @@ export function TelegramSetupGuide({ isOpen, onClose, onConnect, isConnecting }:
     setTimeout(() => setCopiedCommand(false), 2000);
   };
 
+  const copyInviteLink = (role: 'manager' | 'staff') => {
+    const t = role === 'manager' ? managerToken : staffToken;
+    const link = `https://t.me/${connectedBotUsername}?start=${t}`;
+    navigator.clipboard.writeText(link);
+    setCopiedLink(role);
+    setTimeout(() => setCopiedLink(null), 2000);
+  };
+
   const handleConnect = async () => {
-    await onConnect(token);
+    try {
+      await onConnect(token);
+      setStep(5);
+    } catch {
+      // error toast shown by parent
+    }
   };
 
   const progress = ((step + 1) / STEPS.length) * 100;
@@ -303,6 +336,67 @@ export function TelegramSetupGuide({ isOpen, onClose, onConnect, isConnecting }:
               </p>
             </div>
           )}
+
+          {/* Step 5 — Bot is live */}
+          {step === 5 && (
+            <div className="space-y-5">
+              <div className="text-4xl text-center py-2">🚀</div>
+              <h2 className="text-2xl font-bold text-center">Your bot is live!</h2>
+
+              {/* Success banner */}
+              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-3 text-sm text-emerald-800 font-medium text-center">
+                ✅ Bot connected! Your team can now run AI workflows on Telegram
+              </div>
+
+              {/* Commands grid */}
+              <div>
+                <p className="text-sm font-semibold text-slate-700 mb-2">Commands your team can use:</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {BOT_COMMANDS.map(({ command, emoji, desc }) => (
+                    <div key={command} className="bg-slate-50 rounded-xl px-3 py-2.5 border border-slate-100">
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <span className="text-base leading-none">{emoji}</span>
+                        <code className="text-xs font-mono font-semibold text-slate-800">{command}</code>
+                      </div>
+                      <p className="text-[11px] text-slate-500 leading-snug">{desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Invite your team */}
+              {connectedBotUsername && (
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-2">Invite your team:</p>
+                  <div className="space-y-2">
+                    {[
+                      { role: 'manager' as const, label: 'Manager link', token: managerToken },
+                      { role: 'staff' as const, label: 'Staff link', token: staffToken },
+                    ].map(({ role, label, token: t }) => (
+                      <div key={role} className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-slate-700">{label}</p>
+                          <p className="text-[11px] text-slate-400 font-mono truncate">
+                            t.me/{connectedBotUsername}?start={t}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => copyInviteLink(role)}
+                          className="shrink-0 flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors"
+                        >
+                          {copiedLink === role
+                            ? <><CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> Copied!</>
+                            : <><Copy className="w-3.5 h-3.5" /> Copy</>
+                          }
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-slate-400 mt-2">Share the right link with each person — managers get extra commands</p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Footer nav */}
@@ -320,6 +414,18 @@ export function TelegramSetupGuide({ isOpen, onClose, onConnect, isConnecting }:
               className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-700 transition-colors"
             >
               {step === 0 ? "Let's start" : "Next step"} <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
+        {/* Step 5 footer — Done button only */}
+        {step === 5 && (
+          <div className="flex justify-end px-6 pb-6 pt-2 shrink-0">
+            <button
+              onClick={onClose}
+              className="px-6 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-700 transition-colors"
+            >
+              Done
             </button>
           </div>
         )}
