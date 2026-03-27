@@ -424,3 +424,7 @@ verify_jwt = false
 [functions.telegram-weekly-digest]
 enabled = true
 verify_jwt = false
+
+[functions.verify-data-source]
+enabled = true
+verify_jwt = true

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
+import { Database } from 'lucide-react';
 import { ChevronLeft, Save, Settings, Shield, Link as LinkIcon, ExternalLink, Send, CheckCircle, Copy, Unlink } from 'lucide-react';
 import { TelegramSetupGuide } from '../components/TelegramSetupGuide';
 import { useAuth } from '../contexts/AuthContext';
@@ -376,6 +377,21 @@ export default function SettingsPage() {
                                             {isSavingWatcher ? 'Saving...' : 'Save watcher settings'}
                                         </button>
                                     </div>
+
+                                    {/* Data Sources link */}
+                                    <Link
+                                        to="/data-sources"
+                                        className="flex items-center justify-between p-3 bg-brand-blue/5 border border-brand-blue/20 rounded-xl hover:bg-brand-blue/10 transition-colors"
+                                    >
+                                        <div className="flex items-center gap-2.5">
+                                            <Database className="w-4 h-4 text-brand-blue" />
+                                            <div>
+                                                <p className="text-sm font-semibold text-brand-dark">Data Sources</p>
+                                                <p className="text-xs text-brand-dark/50">Register sheets so staff skip manual entry</p>
+                                            </div>
+                                        </div>
+                                        <ChevronLeft className="w-4 h-4 text-slate-400 rotate-180" />
+                                    </Link>
 
                                     <div className="bg-slate-50 rounded-xl p-4 space-y-1.5">
                                         <p className="text-xs font-semibold text-brand-dark/60 uppercase tracking-wide">Available commands</p>

@@ -26,6 +26,7 @@ const CaseStudiesPage    = lazy(() => import('./pages/CaseStudiesPage'));
 const HowItLearnsPage    = lazy(() => import('./pages/HowItLearnsPage'));
 const SettingsPage       = lazy(() => import('./pages/SettingsPage'));
 const TelegramPage       = lazy(() => import('./pages/TelegramPage'));
+const DataSourcesPage    = lazy(() => import('./pages/DataSourcesPage'));
 
 function PageLoader() {
   return (
@@ -85,6 +86,7 @@ function AppWithOnboarding() {
           <Route path="/how-it-learns" element={<HowItLearnsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/telegram" element={<TelegramPage />} />
+          <Route path="/data-sources" element={<DataSourcesPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>

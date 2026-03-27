@@ -320,21 +320,39 @@ async function runWorkflow(
   return (response.content[0] as { text: string }).text;
 }
 
-async function runWorkflowFromSheet(
+// Required slots per workflow — empty means no auto-fetch supported
+const WORKFLOW_REQUIRED_SLOTS: Record<string, string[]> = {
+  reconcile: ["data"],
+  handover:  ["data"],
+  audit:     ["system_records", "physical_count"],
+  restock:   ["inventory", "suppliers"],
+  sop:       ["task_log", "sop_checklist"],
+  escalate:  ["contacts"],
+  assign:    ["team_roster"],
+  sopupdate: [], // always needs two fresh URLs
+};
+
+async function runWorkflowFromSources(
   wfKey: string,
-  sheetUrl: string,
+  sources: Array<{ slot: string; url: string; label: string }>,
   businessContext: string
 ): Promise<string> {
   const wf = WORKFLOWS[wfKey];
   const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
 
-  const sheetContent = await fetchUrl(sheetUrl);
+  // Fetch all sources in parallel
+  const fetchedParts = await Promise.all(
+    sources.map(async s => {
+      const content = await fetchUrl(s.url);
+      return `--- ${s.label.toUpperCase()} ---\n${content}`;
+    })
+  );
 
   const systemPrompt = businessContext
     ? `You are a business operations assistant for ${businessContext}. Be concise, practical, and use ₦ for Naira amounts. Format your response clearly with headers where helpful.`
     : `You are a business operations assistant. Be concise and practical. Use ₦ for Naira amounts. Format your response clearly.`;
 
-  const userMessage = `${wf.sheetPrompt}\n\nSHEET DATA:\n${sheetContent}`;
+  const userMessage = `${wf.sheetPrompt}\n\nDATA:\n${fetchedParts.join("\n\n")}`;
 
   const response = await anthropic.messages.create({
     model: "claude-haiku-4-5-20251001",
@@ -344,6 +362,15 @@ async function runWorkflowFromSheet(
   });
 
   return (response.content[0] as { text: string }).text;
+}
+
+// Single-URL shortcut (inline URL or mid-session URL)
+async function runWorkflowFromSheet(
+  wfKey: string,
+  sheetUrl: string,
+  businessContext: string
+): Promise<string> {
+  return runWorkflowFromSources(wfKey, [{ slot: "data", url: sheetUrl, label: "Sheet" }], businessContext);
 }
 
 // ── Main handler ─────────────────────────────────────────────────────────────
@@ -814,6 +841,66 @@ serve(async (req) => {
         });
       }
       return new Response("OK");
+    }
+
+    // ── Data Sources auto-run ─────────────────────────────────────────────
+    const requiredSlots = WORKFLOW_REQUIRED_SLOTS[wfKey] ?? [];
+    if (requiredSlots.length > 0) {
+      const slotKeys = requiredSlots.map(s => `${wfKey}:${s}`);
+      const { data: allSources } = await supabase
+        .from("data_sources")
+        .select("slot: workflow_slot, url, label, scope, staff_chat_id")
+        .eq("user_id", userId)
+        .in("workflow_slot", slotKeys);
+
+      if (allSources && allSources.length > 0) {
+        // Priority: staff source (matching chatId) > workspace source
+        const resolved: Array<{ slot: string; url: string; label: string }> = [];
+        for (const slotSuffix of requiredSlots) {
+          const fullSlot = `${wfKey}:${slotSuffix}`;
+          const staffSrc = allSources.find(
+            s => s.slot === fullSlot && s.scope === "staff" && s.staff_chat_id === chatId
+          );
+          const workspaceSrc = allSources.find(
+            s => s.slot === fullSlot && s.scope === "workspace"
+          );
+          const src = staffSrc || workspaceSrc;
+          if (src) resolved.push({ slot: slotSuffix, url: src.url, label: src.label });
+        }
+
+        const allCovered = requiredSlots.every(s => resolved.some(r => r.slot === s));
+        if (allCovered) {
+          await sendMessage(botToken, chatId,
+            `📊 Found your registered data sources — running *${wf.name}* now...`
+          );
+          try {
+            const runResult = await runWorkflowFromSources(wfKey, resolved, businessContext);
+            const { data: runRow } = await supabase.from("telegram_runs").insert({
+              user_id: userId, chat_id: chatId,
+              workflow_key: wfKey, workflow_name: wf.name,
+              triggered_by: firstName, role: userRole, status: "success", result: runResult,
+            }).select("id").single();
+            await sendMessageWithFeedback(
+              botToken, chatId, `✅ *${wf.name} Complete*\n\n${runResult}`, runRow?.id ?? ""
+            );
+            // Update last_used_at on the sources we used
+            await supabase.from("data_sources")
+              .update({ last_used_at: new Date().toISOString() })
+              .eq("user_id", userId)
+              .in("workflow_slot", slotKeys);
+          } catch (err: any) {
+            await sendMessage(botToken, chatId,
+              "❌ I couldn't read your registered data sources. Check they're still accessible, or send a URL directly."
+            );
+            await supabase.from("telegram_runs").insert({
+              user_id: userId, chat_id: chatId,
+              workflow_key: wfKey, workflow_name: wf.name,
+              triggered_by: firstName, role: userRole, status: "error", error_message: err.message,
+            });
+          }
+          return new Response("OK");
+        }
+      }
     }
 
     await supabase.from("telegram_sessions").upsert({
