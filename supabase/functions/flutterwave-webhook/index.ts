@@ -224,6 +224,14 @@ Deno.serve(async (req) => {
         return new Response('Ignored: Missing Valid user_id', { status: 200 })
       }
 
+      // Reject payments below the minimum Pro price (₦25,000 — buffer below ₦30,000)
+      const amountNum = parseFloat(data.amount ?? '0')
+      const amountCurrency = data.currency ?? ''
+      if (amountCurrency !== 'NGN' || amountNum < 25000) {
+        console.warn(`Rejected webhook: amount ${amountNum} ${amountCurrency} is below minimum for tx_ref ${txRef}`)
+        return new Response('Ignored: Amount below minimum', { status: 200 })
+      }
+
       // Idempotency: reject duplicate transactions
       const { data: existing } = await supabase
         .from('processed_payments')
