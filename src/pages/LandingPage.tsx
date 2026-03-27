@@ -180,7 +180,7 @@ export default function LandingPage() {
           </motion.h1>
 
           <motion.p variants={fadeInUp} className="text-base md:text-lg text-brand-dark/55 max-w-xl leading-relaxed">
-            Connect your data, set your schedule, and get clear AI-powered insights delivered straight to your inbox.
+            Set a schedule, let the AI do the work, and get clear insights delivered to your inbox — every week.
           </motion.p>
 
           <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -738,7 +738,7 @@ function WhoIsItForSection() {
             <p className="text-xs font-semibold text-brand-dark/40 uppercase tracking-widest">Why teams choose Hoursback</p>
             {[
               { label: 'No coding required', sub: 'Deploy workflows with a simple form. No engineers needed.' },
-              { label: 'Deploy in minutes', sub: 'Pick a workflow, connect your data, go live. Under 5 minutes.' },
+              { label: 'Deploy in minutes', sub: 'Add a data source, pick a workflow, go live. Under 5 minutes.' },
               { label: 'Works with your existing tools', sub: 'Google Sheets, websites, spreadsheets — use what you already have.' },
             ].map((item, i) => (
               <div key={i} className="flex gap-4 items-start">
@@ -783,13 +783,13 @@ function HowItWorksSection() {
   const steps = [
     {
       icon: <Clock className="w-6 h-6" />,
-      title: "Connect your data",
-      description: "Link your Google Sheets, website, or just type in what you want to track. No technical setup needed."
+      title: "Add a data source",
+      description: "Connect a Google Sheet, paste a website URL, or link a spreadsheet. Hoursback saves it as a data source — takes 30 seconds."
     },
     {
       icon: <Zap className="w-6 h-6" />,
       title: "Deploy a workflow",
-      description: "Pick from 15+ ready-made AI workflows. No code, no setup headaches. Live in under 5 minutes."
+      description: "Pick from 15+ ready-made AI workflows and attach your data source. Live in under 5 minutes."
     },
     {
       icon: <Mail className="w-6 h-6" />,
@@ -876,7 +876,7 @@ function PlaybookPreviewSection() {
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-semibold mb-6">Example Workflows</h2>
           <p className="text-xl text-brand-dark/70 max-w-2xl mx-auto font-normal">
-            Deploy one of these today. Each workflow monitors your data and sends clear insights — automatically.
+            Real examples. Pick one and be live in 5 minutes.
           </p>
         </div>
 
@@ -1229,7 +1229,7 @@ function CTASection() {
           Start getting hours back today
         </h2>
         <p className="text-xl text-brand-dark/70 mb-10 max-w-2xl mx-auto font-normal">
-          Deploy your first workflow free. No credit card required. Your business stays monitored while you focus on what actually matters.
+          Deploy your first workflow free. No credit card required. Be live in under 5 minutes.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -1307,7 +1307,7 @@ function TelegramBotSection() {
                 "Your bot, your brand — staff trust it because it's yours",
                 'Role-based access — managers see everything, staff see what they need',
                 'Works on any phone with Telegram — no extra apps',
-                'You get notified every time a workflow runs',
+                'Set up in 3 minutes — create a bot on BotFather, paste the token, done',
               ].map((point) => (
                 <div key={point} className="flex items-start gap-3">
                   <div className="w-5 h-5 rounded-full bg-sky-500/20 border border-sky-500/40 flex items-center justify-center shrink-0 mt-0.5">
