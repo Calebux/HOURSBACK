@@ -477,7 +477,7 @@ function SourceModal({ editing, staff, onClose, onSaved, userId }: {
     }
   }
 
-  const meta = workflowSlot ? slotMeta(workflowSlot) : null;
+  const _meta = workflowSlot ? slotMeta(workflowSlot) : null;
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4">
