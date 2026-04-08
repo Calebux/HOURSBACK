@@ -211,7 +211,7 @@ export default function WorkflowsDashboard() {
     const latestRun = justRan ? stats.latestOutput : null;
 
     return (
-      <div className="bg-white rounded-2xl border border-brand-dark/10 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+      <div className="bg-white rounded-2xl border border-brand-dark/10 shadow-sm hover:shadow-md transition-shadow">
         <div className="p-5">
           {/* Top row */}
           <div className="flex items-start justify-between gap-3">
@@ -308,7 +308,7 @@ export default function WorkflowsDashboard() {
 
         {/* Inline result after Run Now */}
         {justRan && latestRun && (
-          <div className="border-t border-slate-100 bg-slate-50/60">
+          <div className="border-t border-slate-100 bg-slate-50/60 rounded-b-2xl overflow-hidden">
             <div className="px-5 py-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 {latestRun.status === 'success'

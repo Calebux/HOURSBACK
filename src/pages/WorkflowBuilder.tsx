@@ -163,7 +163,7 @@ const workflowInputs: Record<string, WorkflowInput> = {
   // Crisis
   'wkflow-52': { label: 'Paste your logs, errors, or complaints', placeholder: 'e.g.\n[09:42] Payment gateway timeout — 3 customers affected\n[10:15] Broken display fridge reported by staff\n[11:00] 2 complaints about late delivery\n[12:30] Generator alarm triggered', type: 'textarea' },
   'wkflow-54': { label: 'Paste incident timeline and resolution notes', placeholder: 'e.g.\n13:00 — Customer orders stopped processing\n13:15 — IT team alerted\n13:45 — Root cause found: database timeout\n14:30 — Fix deployed, orders resuming\n15:00 — All systems normal\n\nResolution: Increased DB connection pool size.', type: 'textarea' },
-  'wkflow-55': { label: 'Upload your bank statement or income & expense sheet', placeholder: 'https://docs.google.com/spreadsheets/d/...', type: 'url' },
+  'wkflow-55': { label: 'Upload your bank statement (CSV/Excel) or paste a Google Sheets URL', placeholder: 'https://docs.google.com/spreadsheets/d/...\n\nOr upload your bank statement export. Your sheet needs 4 columns:\nDate | Description | Amount In (₦) | Amount Out (₦)', type: 'url' },
 };
 
 // Workflows delivered via Telegram bot conversation (not the standard deploy pipeline)
