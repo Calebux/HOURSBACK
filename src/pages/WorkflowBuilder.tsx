@@ -63,6 +63,7 @@ const workflowDescriptions: Record<string, string> = {
   // Crisis
   'wkflow-52': 'Reads your pasted error logs, complaints, or operational notes and classifies every incident by severity (P1–P4) — giving you a clear action dashboard with immediate steps for critical issues.',
   'wkflow-54': 'Takes your incident notes and resolution summary and produces a professional post-mortem — with root cause analysis, business impact, response timeline, lessons learned, and 5 prevention actions with clear owners.',
+  'wkflow-55': 'Upload your monthly bank statement or sales & expense sheet and get a complete 5-Line Income Statement — Revenue, COGS, Gross Profit, Operating Expenses, Net Profit — with plain-English interpretation and specific flags for theft risk, vendor price hikes, and pricing opportunities.',
 };
 
 const dataSourceHelp: Record<string, string> = {
@@ -111,6 +112,7 @@ const dataSourceHelp: Record<string, string> = {
   // Crisis
   'wkflow-52': 'Paste your error logs, complaints, or incident notes. Include timestamps and short descriptions. The more context you give, the more accurate the severity classification.',
   'wkflow-54': 'Paste a timeline of what happened, when, what was done, and how it was resolved. Include timestamps where possible — more detail means a more specific report.',
+  'wkflow-55': 'Download your bank statement as CSV or Excel from your banking app (most Nigerian banks support this). Alternatively, paste your data into Google Sheets with columns: Date, Description, Amount In (₦), Amount Out (₦). Do not include your account number or BVN in the file.',
 };
 
 const workflowInputs: Record<string, WorkflowInput> = {
@@ -161,6 +163,7 @@ const workflowInputs: Record<string, WorkflowInput> = {
   // Crisis
   'wkflow-52': { label: 'Paste your logs, errors, or complaints', placeholder: 'e.g.\n[09:42] Payment gateway timeout — 3 customers affected\n[10:15] Broken display fridge reported by staff\n[11:00] 2 complaints about late delivery\n[12:30] Generator alarm triggered', type: 'textarea' },
   'wkflow-54': { label: 'Paste incident timeline and resolution notes', placeholder: 'e.g.\n13:00 — Customer orders stopped processing\n13:15 — IT team alerted\n13:45 — Root cause found: database timeout\n14:30 — Fix deployed, orders resuming\n15:00 — All systems normal\n\nResolution: Increased DB connection pool size.', type: 'textarea' },
+  'wkflow-55': { label: 'Upload your bank statement or income & expense sheet', placeholder: 'https://docs.google.com/spreadsheets/d/...', type: 'url' },
 };
 
 // Workflows delivered via Telegram bot conversation (not the standard deploy pipeline)
@@ -228,6 +231,7 @@ function getDataSourceConfig(workflowId: string, dataSource: string): Record<str
     // Crisis
     case 'wkflow-52': return { type: 'text_prompt', text: dataSource };
     case 'wkflow-54': return { type: 'text_prompt', text: dataSource };
+    case 'wkflow-55': return { type: 'google_sheets', url: dataSource };
     default:
       return { type: detectSourceType(dataSource), url: dataSource };
   }
