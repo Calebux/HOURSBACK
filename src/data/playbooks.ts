@@ -61,6 +61,53 @@ export const launchCatalog: Playbook[] = [
     relatedPlaybooks: []
   },
   {
+    id: 'wkflow-70',
+    slug: 'virtual-cfo-weekly-report',
+    title: 'Virtual CFO Weekly Report',
+    subtitle: 'Reads your transactions, invoices, and budget every week and delivers a complete financial officer briefing — cash position, AR aging, budget health, anomalies, and a 4-week cash forecast.',
+    category: 'Finance',
+    difficulty: 'Intermediate',
+    timeToComplete: 0,
+    timeSaved: 300,
+    completionCount: 0,
+    rating: 5.0,
+    isPro: true,
+    tools: ['Google Sheets', 'Claude'],
+    beforeYouStart: [],
+    expectedOutcome: `Analyze all financial data provided (transactions, invoices, budget). Produce a complete Weekly CFO Report with every section below. Be specific with numbers — never write vague summaries.
+
+## 1. Cash Position This Week
+Calculate and show as a summary table:
+- Opening balance (balance at start of the week or earliest entry)
+- Total inflows (all income recorded this week)
+- Total outflows (all expenses recorded this week)
+- Net cash movement
+- Closing balance (current cash position)
+
+## 2. Accounts Receivable Aging
+List every unpaid invoice. Categorize by age:
+- Current (0–30 days): list with amounts
+- Overdue (31–60 days): list with amounts, days overdue, recommended follow-up action
+- Seriously Overdue (61–90 days): list with amounts, escalation action
+- Critical (90+ days): list with amounts, write-off risk assessment
+Show total AR outstanding in ₦. Name the highest-value overdue client and the exact message to send them today.
+
+## 3. Budget vs Actual
+For each expense category: budgeted amount (₦), actual spend (₦), variance (₦), % of budget used, and status — On Track / At Risk / Over Budget. Flag every category above 80% burn with weeks remaining in the month. Flag the 3 most overspent categories with a specific action to reduce each.
+
+## 4. Expense Anomalies
+Flag any transactions that are: significantly larger than usual for that category, missing a category, potential duplicates (same amount + vendor within 7 days), or have unusual timing. For each: date, amount, vendor, category, reason flagged, recommended action.
+
+## 5. 4-Week Cash Forecast
+Project the cash closing balance for each of the next 4 weeks based on: current closing balance, average weekly burn rate from transactions, and any known recurring expenses. Present as a table: Week | Projected Inflows | Projected Outflows | Projected Balance. Flag any week where cash may fall below ₦500,000 (or the lowest single-week balance in the data if no baseline exists). Give a runway estimate in weeks at current burn.
+
+## 6. This Week's 5 Financial Actions
+Give exactly 5 numbered, specific actions to take this week. Include names, amounts, and deadlines. Prioritize by financial impact. Examples of the specificity required: "Call [Client Name] today — ₦240,000 invoice is 45 days overdue", "Cut [Category] spend — you are 94% through budget with 11 days left in the month."`,
+    troubleshooting: [],
+    steps: [],
+    relatedPlaybooks: []
+  },
+  {
     id: 'wkflow-4',
     slug: 'monthly-financial-snapshot',
     title: 'Monthly Financial Snapshot',
@@ -140,7 +187,7 @@ export const launchCatalog: Playbook[] = [
     id: 'wkflow-8',
     slug: 'brand-mention-monitor',
     title: 'Brand Mention Monitor',
-    subtitle: 'Alerts you whenever your company is mentioned online in a negative context.',
+    subtitle: 'Searches Google and Google Maps for new reviews and online mentions of your business each week.',
     category: 'Marketing',
     difficulty: 'Intermediate',
     timeToComplete: 0,
@@ -148,9 +195,9 @@ export const launchCatalog: Playbook[] = [
     completionCount: 0,
     rating: 5.0,
     isPro: false,
-    tools: ['Web', 'Claude'],
+    tools: ['TinyFish', 'Claude'],
     beforeYouStart: [],
-    expectedOutcome: 'Real-time alerts for critical brand mentions.',
+    expectedOutcome: 'A weekly Brand Mention Report with: all new customer reviews (star rating + key quote), overall sentiment score, competitor comparisons customers made, any news or forum mentions, and 3 specific action items for the week.',
     troubleshooting: [],
     steps: [],
     relatedPlaybooks: []
@@ -189,6 +236,25 @@ export const launchCatalog: Playbook[] = [
     tools: ['Firecrawl', 'Claude'],
     beforeYouStart: [],
     expectedOutcome: 'Alerts when raw material or vendor pricing changes.',
+    troubleshooting: [],
+    steps: [],
+    relatedPlaybooks: []
+  },
+  {
+    id: 'wkflow-60',
+    slug: 'jiji-price-tracker',
+    title: 'Jiji Market Price Tracker',
+    subtitle: 'Searches Jiji.ng for current market prices on any product so you always know what buyers are paying.',
+    category: 'Operations',
+    difficulty: 'Beginner',
+    timeToComplete: 0,
+    timeSaved: 90,
+    completionCount: 0,
+    rating: 5.0,
+    isPro: false,
+    tools: ['TinyFish', 'Claude'],
+    beforeYouStart: [],
+    expectedOutcome: 'A weekly Market Price Report with: a full table of current Jiji listings (title, price, location, condition), price summary (lowest / highest / average), market insights (new vs used gap, location patterns, outliers), and a clear buy/restock recommendation.',
     troubleshooting: [],
     steps: [],
     relatedPlaybooks: []
@@ -379,6 +445,65 @@ export const launchCatalog: Playbook[] = [
     tools: ['Google Sheets', 'Claude'],
     beforeYouStart: [],
     expectedOutcome: "Analyze this customer activity data. Identify customers showing churn signals: declining usage, missed payments, support tickets, reduced logins, or stagnant accounts. For each at-risk customer give: a risk score (1–10), the reason for risk, and a recommended action (email re-engagement, discount offer, personal outreach, etc.). Prioritise by revenue at risk. Output as a clear action table.",
+    troubleshooting: [],
+    steps: [],
+    relatedPlaybooks: []
+  },
+
+  // ── 5-Line Financial Health Check ─────────────────────────────────────────
+  {
+    id: 'wkflow-55',
+    slug: 'five-line-profit-check',
+    title: '5-Line Profit Check',
+    subtitle: 'Upload your monthly sales and expense data and get a plain-English income statement with AI interpretation — no accounting knowledge required.',
+    category: 'Finance',
+    difficulty: 'Beginner',
+    timeToComplete: 0,
+    timeSaved: 180,
+    completionCount: 0,
+    rating: 5.0,
+    isPro: false,
+    tools: ['Google Sheets', 'Claude'],
+    beforeYouStart: [],
+    expectedOutcome: `You are a business financial advisor for a small business owner who has no accounting background. Analyze the data provided and produce a clean 5-Line Income Statement with a full plain-English interpretation.
+
+## Step 1: Build the 5-Line Model
+Calculate and display the following as a clear table (show amounts in ₦):
+
+| Line | Label | Amount (₦) |
+|------|-------|------------|
+| 1 | Total Revenue | [sum of all sales/income this period] |
+| 2 | Total Cost of Goods Sold (COGS) | [raw materials + direct production costs + transportation to make the sale] |
+| 3 | Gross Profit | [Revenue − COGS] |
+| 4 | Total Operating Expenses | [rent + salaries + utilities + all fixed costs] |
+| 5 | Net Profit | [Gross Profit − Operating Expenses] |
+
+Also show:
+- Gross Profit Margin: (Gross Profit ÷ Revenue × 100) as a %
+- Net Profit Margin: (Net Profit ÷ Revenue × 100) as a %
+
+## Step 2: Plain-English Interpretation
+Write a short paragraph (3–5 sentences) explaining what these numbers mean in simple language. No jargon. Assume the reader has never seen an income statement before.
+
+## Step 3: Flag These Critical Signals
+Check for the following and explain each one clearly if found:
+
+**🚨 Staff Theft Risk**
+If COGS is unusually high relative to revenue (gross margin below 30% for a product business, or a sudden drop vs prior period), flag it: "Your cost of goods is unusually high. This could mean staff are taking stock without recording it, or suppliers are overcharging you."
+
+**📈 Vendor Price Increase**
+If COGS increased month-over-month without a matching revenue increase, flag it: "Your input costs went up but your sales price didn't. Check whether your suppliers increased prices recently."
+
+**💰 Time to Raise Prices**
+If gross margin is healthy (above 50%) but net profit is thin (below 10%), flag it: "Your product pricing is good but your fixed costs are eating your profit. Consider a price increase of 5–10% to protect your margins."
+
+**✅ Business is Actually Doing Well**
+If net profit is positive and margins are stable, say this clearly: "Your business is profitable. Many owners worry because they don't see the numbers clearly — but this report shows you are in a healthy position."
+
+## Step 4: The 3 Most Important Actions This Month
+Give exactly 3 numbered, specific actions the owner should take based on these numbers. Be direct. Example: "1. Call your flour supplier — your COGS jumped 18% this month. Ask if they changed their prices."
+
+Keep the entire report readable in under 3 minutes. Write as if you are a trusted advisor, not a consultant writing a report.`,
     troubleshooting: [],
     steps: [],
     relatedPlaybooks: []
