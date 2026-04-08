@@ -58,7 +58,7 @@ export default function PlaybookEditorPage() {
 
         const checkAdminAndLoad = async () => {
             try {
-                let profile = await getProfile(user.id, user.email || '');
+                const profile = await getProfile(user.id, user.email || '');
 
                 // Set admin status based strictly on DB profile
                 setIsAdmin(!!profile?.is_admin);

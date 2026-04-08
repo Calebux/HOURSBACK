@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Mail, Lock, Loader2, AlertCircle, User as UserIcon } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { updateProfile } from '../lib/api';
+import { validatePassword } from '../lib/validation';
 import { toast } from 'sonner';
 
 interface AuthModalProps {
@@ -11,16 +12,8 @@ interface AuthModalProps {
     defaultView?: 'signin' | 'signup';
 }
 
-export const validatePassword = (password: string): string | null => {
-    if (password.length < 8) return "Password must be at least 8 characters long.";
-    if (!/[A-Z]/.test(password)) return "Password must contain at least one uppercase letter.";
-    if (!/[a-z]/.test(password)) return "Password must contain at least one lowercase letter.";
-    if (!/[0-9]/.test(password)) return "Password must contain at least one number.";
-    return null;
-};
-
 export function AuthModal({ isOpen, onClose, defaultView = 'signin' }: AuthModalProps) {
-    const [view, setView] = useState<'signin' | 'signup' | 'reset' | 'success'>(defaultView as any);
+    const [view, setView] = useState<'signin' | 'signup' | 'reset' | 'success'>(defaultView as 'signin' | 'signup' | 'reset' | 'success');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [fullName, setFullName] = useState('');
@@ -92,8 +85,8 @@ export function AuthModal({ isOpen, onClose, defaultView = 'signin' }: AuthModal
                 }
                 onClose();
             }
-        } catch (err: any) {
-            const errorMessage = err.message || '';
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : '';
             if (errorMessage.toLowerCase().includes('confirm') || errorMessage.toLowerCase().includes('check your email')) {
                 // If it's a confirmation error, show the success view instead of an error message
                 setView('success');

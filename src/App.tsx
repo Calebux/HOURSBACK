@@ -51,7 +51,7 @@ function AppWithOnboarding() {
     }
   }, [user]);
 
-  const handleOnboardingComplete = (_data: OnboardingData) => {
+  const handleOnboardingComplete = (_: OnboardingData) => {
     setShowOnboarding(false);
     navigate('/workflows/new');
   };

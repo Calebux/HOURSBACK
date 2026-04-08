@@ -78,18 +78,17 @@ export default function DataSourcesPage() {
 
   useEffect(() => {
     if (!user) { navigate('/'); return; }
+    async function load() {
+      const [{ data: s }, { data: st }] = await Promise.all([
+        supabase.from('data_sources').select('*').eq('user_id', user!.id).order('created_at', { ascending: false }),
+        supabase.from('telegram_connections').select('chat_id, first_name, username, role').eq('user_id', user!.id),
+      ]);
+      if (s) setSources(s);
+      if (st) setStaff(st as StaffMember[]);
+      setLoading(false);
+    }
     load();
   }, [user, navigate]);
-
-  async function load() {
-    const [{ data: s }, { data: st }] = await Promise.all([
-      supabase.from('data_sources').select('*').eq('user_id', user!.id).order('created_at', { ascending: false }),
-      supabase.from('telegram_connections').select('chat_id, first_name, username, role').eq('user_id', user!.id),
-    ]);
-    if (s) setSources(s);
-    if (st) setStaff(st as StaffMember[]);
-    setLoading(false);
-  }
 
   async function handleVerify(source: DataSource) {
     setVerifyingId(source.id);

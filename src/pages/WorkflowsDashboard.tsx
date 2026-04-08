@@ -113,7 +113,7 @@ export default function WorkflowsDashboard() {
       }
     }
     loadData();
-  }, [user, navigate]);
+  }, [user, navigate, refreshPro]);
 
   // Computed stats
   const activeWorkflows = workflows.filter(w => w.status === 'active');

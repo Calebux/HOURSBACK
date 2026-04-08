@@ -2,15 +2,6 @@ import { useState, useRef } from 'react';
 import { Upload, Link2, CheckCircle2, AlertCircle, X, Table } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
-// Variable names that trigger the CSV/spreadsheet upload UI
-const DATA_KEYWORDS = ['csv', 'data', 'sheet', 'spreadsheet', 'list', 'table', 'records',
-  'customers', 'transactions', 'entries', 'rows', 'contacts', 'leads', 'inventory', 'products', 'sales'];
-
-export function isCsvVariable(varName: string): boolean {
-  const lower = varName.toLowerCase();
-  return DATA_KEYWORDS.some(k => lower.includes(k));
-}
-
 // Convert 2D array to compact text Claude can reason about
 function rowsToText(rows: string[][]): string {
   if (rows.length === 0) return '';
@@ -60,10 +51,6 @@ function extractSheetId(url: string): string | null {
   return m ? m[1] : null;
 }
 
-// Detect if a stored value is a Google Sheets live URL (for autopilot display)
-export function isGoogleSheetsUrl(val: string): boolean {
-  return val.startsWith('https://docs.google.com/spreadsheets/');
-}
 
 interface Props {
   variableName: string;
@@ -217,11 +204,11 @@ export default function CsvDataInput({ value, onChange }: Props) {
         ) : tab === 'upload' ? (
           <div>
             <input ref={fileRef} type="file" accept={ACCEPTED} className="hidden"
-              onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} />
+              onChange={e => { if (e.target.files?.[0]) handleFile(e.target.files[0]); }} />
             <button
               onClick={() => fileRef.current?.click()}
               onDragOver={e => e.preventDefault()}
-              onDrop={e => { e.preventDefault(); e.dataTransfer.files[0] && handleFile(e.dataTransfer.files[0]); }}
+              onDrop={e => { e.preventDefault(); if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); }}
               disabled={status === 'loading'}
               className="w-full border-2 border-dashed border-brand-dark/15 rounded-xl py-6 flex flex-col items-center gap-2 text-brand-dark/50 hover:border-brand-blue/40 hover:text-brand-dark/70 transition-all cursor-pointer disabled:opacity-50"
             >

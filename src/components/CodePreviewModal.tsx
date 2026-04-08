@@ -35,7 +35,7 @@ export function CodePreviewModal({ isOpen, onClose, files, primaryFile = 'App.ts
             setIsCopied(true);
             toast.success('Code copied to clipboard!');
             setTimeout(() => setIsCopied(false), 2000);
-        } catch (err) {
+        } catch {
             toast.error('Failed to copy code');
         }
     };
@@ -258,7 +258,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                                             acc[`/${fileName.replace('/src/', '')}`] = { code: content };
                                         }
                                         return acc;
-                                    }, {} as Record<string, any>),
+                                    }, {} as Record<string, { code: string }>),
                                 }}
                                 customSetup={{
                                     dependencies: {

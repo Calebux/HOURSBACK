@@ -7,6 +7,7 @@ const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
 const APIFY_API_KEY = Deno.env.get("APIFY_API_KEY");
+const TINYFISH_API_KEY = Deno.env.get("TINYFISH_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
@@ -181,6 +182,7 @@ const INFOGRAPHIC_SLUGS = new Set([
   "weekly-ceo-briefing",
   "sales-pipeline-health",
   "accounts-receivable-aging",
+  "virtual-cfo-weekly-report",
 ]);
 
 type InfographData = {
@@ -534,6 +536,60 @@ async function scrapeCreatorsFromApify(
   ).join('\n\n');
 }
 
+// ---------------------------------------------------------------------------
+// TinyFish Web Agent — navigates and interacts with websites (search, click,
+// multi-step) unlike Firecrawl which only reads a known URL.
+// API: POST https://agent.tinyfish.ai/v1/automation/run-sse (SSE response)
+// ---------------------------------------------------------------------------
+async function runTinyFishAgent(url: string, goal: string): Promise<string> {
+  const res = await fetch('https://agent.tinyfish.ai/v1/automation/run-sse', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-API-Key': TINYFISH_API_KEY!,
+    },
+    body: JSON.stringify({ url, goal }),
+    signal: AbortSignal.timeout(90_000),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text().catch(() => '');
+    throw new Error(`TinyFish HTTP ${res.status}: ${errText.slice(0, 200)}`);
+  }
+
+  const raw = await res.text();
+
+  // Parse SSE blocks: each block is separated by double newline
+  const events = raw
+    .split(/\n\n+/)
+    .map(block => {
+      const dataLine = block.split('\n').find(l => l.startsWith('data: '));
+      if (!dataLine) return null;
+      try { return JSON.parse(dataLine.slice(6)); } catch { return null; }
+    })
+    .filter(Boolean);
+
+  // Prefer the COMPLETE event
+  const complete = events.find((e: any) =>
+    e?.type === 'COMPLETE' || e?.status === 'COMPLETE' || e?.event === 'complete'
+  ) as any;
+
+  if (complete) {
+    return complete.result ?? complete.output ?? complete.data ?? complete.content ?? JSON.stringify(complete);
+  }
+
+  // Fallback: last event with any content
+  for (let i = events.length - 1; i >= 0; i--) {
+    const e = events[i] as any;
+    const content = e?.result ?? e?.output ?? e?.data ?? e?.content;
+    if (content && typeof content === 'string' && content.trim()) return content;
+  }
+
+  // Last resort: return the raw SSE text trimmed to 6000 chars
+  if (raw.trim()) return raw.slice(0, 6000);
+  throw new Error('TinyFish returned no usable result');
+}
+
 async function executeSchedule(schedule: any, supabaseAdmin: any): Promise<void> {
   const playbookData = schedule.playbook_data;
   const playbookSlug = schedule.playbook_slug;
@@ -557,6 +613,49 @@ async function executeSchedule(schedule: any, supabaseAdmin: any): Promise<void>
     console.log(`[Autopilot] Scraping TikTok creators via Apify — niche: ${niche}, range: ${followerMin}–${followerMax}`);
     apifyCreatorData = await scrapeCreatorsFromApify(niche, followerMin, followerMax);
     console.log(`[Autopilot] Apify returned data for ${apifyCreatorData ? apifyCreatorData.split('\n\n').length : 0} creators`);
+  }
+
+  // ── Brand Mention Monitor — TinyFish pre-step ──
+  // Searches Google and Google Maps for brand mentions/reviews.
+  // Firecrawl cannot do this — it needs a URL, not a search.
+  let tinyFishData = '';
+  if (playbookSlug === 'brand-mention-monitor' && TINYFISH_API_KEY) {
+    const businessName = variables['business_name'] ?? variables['Business Name'] ?? 'the business';
+    const location = variables['location'] ?? variables['Location'] ?? 'Nigeria';
+    const goal = `Search Google for "${businessName}" reviews ${location}. `
+      + `Find their Google Maps listing and read the 5 most recent customer reviews — include star rating and key quote for each. `
+      + `Also check for any news articles or forum posts mentioning "${businessName}" in the past 7 days. `
+      + `Return: (1) a list of recent reviews with rating, reviewer name, and key quote; `
+      + `(2) overall sentiment — positive/mixed/negative with a score out of 10; `
+      + `(3) any news or forum mentions found with headline and source.`;
+    console.log(`[Autopilot] TinyFish brand monitor starting — business: "${businessName}"`);
+    try {
+      tinyFishData = await runTinyFishAgent('https://www.google.com', goal);
+      console.log(`[Autopilot] TinyFish brand monitor returned ${tinyFishData.length} chars`);
+    } catch (e: any) {
+      console.error('[Autopilot] TinyFish brand monitor failed:', e.message);
+      tinyFishData = `[TinyFish agent could not complete: ${e.message}]`;
+    }
+  }
+
+  // ── Jiji Price Tracker — TinyFish pre-step ──
+  // Searches Jiji.ng for current market prices by product + location.
+  // Firecrawl cannot search — TinyFish navigates and searches.
+  if (playbookSlug === 'jiji-price-tracker' && TINYFISH_API_KEY) {
+    const product = variables['product'] ?? variables['Product'] ?? 'product';
+    const location = variables['location'] ?? variables['Location'] ?? 'Lagos';
+    const goal = `Go to jiji.ng and search for "${product} ${location}". `
+      + `List the first 10 listings you find with: title, price (in Naira), seller location, and condition (new/used/foreign used). `
+      + `Note the cheapest, most expensive, and most common price point. `
+      + `Return the data as a structured table with columns: Title | Price (₦) | Location | Condition.`;
+    console.log(`[Autopilot] TinyFish Jiji tracker starting — product: "${product}", location: "${location}"`);
+    try {
+      tinyFishData = await runTinyFishAgent('https://jiji.ng', goal);
+      console.log(`[Autopilot] TinyFish Jiji tracker returned ${tinyFishData.length} chars`);
+    } catch (e: any) {
+      console.error('[Autopilot] TinyFish Jiji tracker failed:', e.message);
+      tinyFishData = `[TinyFish agent could not complete: ${e.message}]`;
+    }
   }
 
   // ── Daily-drip mode: count previous runs to determine today's item ──
@@ -614,7 +713,48 @@ async function executeSchedule(schedule: any, supabaseAdmin: any): Promise<void>
       ? `\n\n## LIVE CREATOR DATA (scraped from TikTok via Apify)\n${apifyCreatorData}\n\n`
       : '';
 
-    if (playbookSlug === 'tiktok-creator-outreach') {
+    // Inject TinyFish live data for brand monitor and Jiji price tracker
+    const tinyFishContext = tinyFishData
+      ? `\n\n## LIVE WEB DATA (collected by TinyFish web agent)\n${tinyFishData}\n\n`
+      : '';
+
+    if (playbookSlug === 'brand-mention-monitor' && tinyFishData) {
+      const businessName = variables['business_name'] ?? variables['Business Name'] ?? 'the business';
+      compiledPrompt = `You are a brand intelligence analyst.${tinyFishContext}`;
+      compiledPrompt += `Using the live web data collected above for "${businessName}", produce a weekly Brand Mention Report:\n\n`;
+      compiledPrompt += `## 1. Review Summary\n`;
+      compiledPrompt += `List each review found with: star rating, reviewer name (if available), date, and a 1-sentence summary of what they said.\n\n`;
+      compiledPrompt += `## 2. Sentiment Analysis\n`;
+      compiledPrompt += `Give an overall sentiment score (1–10), % positive / % neutral / % negative, and the top 2–3 recurring themes across all reviews.\n\n`;
+      compiledPrompt += `## 3. Competitor Mentions\n`;
+      compiledPrompt += `Note any competitor businesses mentioned in reviews or news. What are customers comparing "${businessName}" to?\n\n`;
+      compiledPrompt += `## 4. News & Forum Mentions\n`;
+      compiledPrompt += `List any news articles or forum posts found. Headline, source, and 1-sentence summary each.\n\n`;
+      compiledPrompt += `## 5. Action Items\n`;
+      compiledPrompt += `Give 3 specific, actionable things the business should do this week based on the feedback — be direct, no generic advice.\n\n`;
+      compiledPrompt += `\nCRITICAL RULES:\n`;
+      compiledPrompt += `- Do NOT use any emoji characters anywhere in your output.\n`;
+      compiledPrompt += `- Format all tables using standard Markdown | pipes |.\n`;
+      compiledPrompt += `- Deliver final polished content only — no preamble or commentary.\n`;
+    } else if (playbookSlug === 'jiji-price-tracker' && tinyFishData) {
+      const product = variables['product'] ?? variables['Product'] ?? 'the product';
+      const location = variables['location'] ?? variables['Location'] ?? 'Lagos';
+      compiledPrompt = `You are a market intelligence analyst.${tinyFishContext}`;
+      compiledPrompt += `Using the live Jiji.ng listings collected above for "${product}" in "${location}", produce a Market Price Report:\n\n`;
+      compiledPrompt += `## 1. Price Listings Table\n`;
+      compiledPrompt += `Format the listings as a clean Markdown table: | Title | Price (₦) | Location | Condition |\n\n`;
+      compiledPrompt += `## 2. Price Summary\n`;
+      compiledPrompt += `- Lowest price found\n- Highest price found\n- Average market price\n- Most common price range\n\n`;
+      compiledPrompt += `## 3. Market Insights\n`;
+      compiledPrompt += `What patterns do you see? (e.g. new vs used price gap, location price differences, suspicious outliers?)\n\n`;
+      compiledPrompt += `## 4. Buy/Restock Recommendation\n`;
+      compiledPrompt += `Based on current pricing, give a clear recommendation: is now a good time to buy or restock? Why?\n\n`;
+      compiledPrompt += `\nCRITICAL RULES:\n`;
+      compiledPrompt += `- Format all prices with ₦ symbol and comma separators (e.g. ₦45,000).\n`;
+      compiledPrompt += `- Do NOT use any emoji characters anywhere in your output.\n`;
+      compiledPrompt += `- Format all tables using standard Markdown | pipes |.\n`;
+      compiledPrompt += `- Deliver final polished content only — no preamble or commentary.\n`;
+    } else if (playbookSlug === 'tiktok-creator-outreach') {
       compiledPrompt = `You are an influencer marketing strategist.${systemContext}Using the live TikTok creator data above, produce:\n\n`;
       compiledPrompt += `1. A scored creator table (handle, followers, engagement rate, fit score 1–10, fit reason)\n`;
       compiledPrompt += `2. For each creator scoring 7+: a personalized outreach DM (max 120 words) that references their actual recent video content. The DM should feel human and specific, not templated.\n\n`;
@@ -670,7 +810,16 @@ async function executeSchedule(schedule: any, supabaseAdmin: any): Promise<void>
 
     // Analysis playbooks: ask Claude to append structured metric JSON
     if (INFOGRAPHIC_SLUGS.has(playbookSlug)) {
-      compiledPrompt += `\n\n---\nFINAL STEP — after finishing your full analysis, append EXACTLY this block at the very end. Raw JSON only. No markdown, no code fences, no extra text after INFOGRAPH_DATA_END.\n\nINFOGRAPH_DATA_START\n{"title":"${(playbookData?.title || playbookSlug).replace(/"/g, "'")}","kpis":[{"label":"Total Revenue","value":"₦48.75M","trend":"down","note":"-0.73% vs prior"},{"label":"Net Profit","value":"₦6.01M","trend":"down","note":"-18.7% vs prior"},{"label":"Gross Margin","value":"51.8%","trend":"down"},{"label":"Net Margin","value":"12.3%","trend":"down"},{"label":"EBITDA","value":"₦9.28M","trend":"down"}],"tables":[{"title":"P&L Summary","headers":["Line Item","Amount","vs Prior"],"rows":[["TOTAL REVENUE","₦48.75M","-0.73%"],["Cost of Goods","₦23.48M","+3.9%"],["GROSS PROFIT","₦25.27M","-4.7%"],["Total Opex","₦15.99M","+4.8%"],["EBITDA","₦9.28M","-2.1%"],["NET PROFIT","₦6.01M","-18.7%"]]}],"bars":[{"label":"Raw Materials","value":13.89,"max":16,"unit":"M"},{"label":"Salaries","value":8.73,"max":16,"unit":"M"},{"label":"Rent & Utils","value":2.65,"max":16,"unit":"M"},{"label":"Marketing","value":1.78,"max":16,"unit":"M"},{"label":"Logistics","value":1.38,"max":16,"unit":"M"}],"highlights":[{"type":"strength","text":"Gross margin at 51.8% — strong pricing power maintained"},{"type":"risk","text":"Net profit fell 18.7% as OPEX grew faster than revenue"},{"type":"action","text":"Reduce Raw Materials cost — it is 28.5% of revenue and rising"}]}\nINFOGRAPH_DATA_END\n\nIMPORTANT — replace every example value with REAL numbers from your analysis above:\n- kpis: exactly 4–5 headline figures. trend = "up", "down", or "neutral". note = short comparison like "-18% vs prior".\n- tables: ONE P&L summary, max 3 columns, max 8 rows. Rows starting with TOTAL/GROSS/NET/EBITDA/REVENUE will be bold.\n- bars: top 4–5 largest costs/expenses as plain numbers. max = largest value rounded up to nearest 5 or 10.\n- highlights: exactly 3 items — one strength, one risk, one action. Max 15 words each. Be specific with numbers.\n- Output the JSON as a single line with no line breaks inside it.`;
+      // CFO report gets cash-flow KPIs; all other finance playbooks get P&L KPIs
+      const exampleJson = playbookSlug === 'virtual-cfo-weekly-report'
+        ? `{"title":"${(playbookData?.title || playbookSlug).replace(/"/g, "'")} — Week of ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}","kpis":[{"label":"Cash Balance","value":"₦2.4M","trend":"up","note":"+₦180K vs last week"},{"label":"AR Outstanding","value":"₦840K","trend":"down","note":"3 invoices overdue"},{"label":"Budget Burn","value":"67%","trend":"neutral","note":"of monthly budget used"},{"label":"Cash Runway","value":"6 wks","trend":"neutral","note":"at current burn rate"}],"tables":[{"title":"Cash Flow Summary","headers":["Item","This Week"],"rows":[["Opening Balance","₦2.22M"],["Total Inflows","₦680K"],["Total Outflows","₦500K"],["Net Movement","₦180K"],["CLOSING BALANCE","₦2.4M"]]},{"title":"AR Aging","headers":["Status","Amount","# Invoices"],"rows":[["Current (0–30 days)","₦310K","4"],["Overdue (31–60 days)","₦380K","2"],["Critical (90+ days)","₦150K","1"],["TOTAL OUTSTANDING","₦840K","7"]]}],"bars":[{"label":"Salaries","value":210,"max":300,"unit":"K"},{"label":"Rent","value":120,"max":300,"unit":"K"},{"label":"Inventory","value":95,"max":300,"unit":"K"},{"label":"Marketing","value":45,"max":300,"unit":"K"},{"label":"Utilities","value":30,"max":300,"unit":"K"}],"highlights":[{"type":"strength","text":"Cash position improved by ₦180K — positive cash flow for 3rd consecutive week"},{"type":"risk","text":"₦150K invoice is 90+ days overdue — write-off risk if not collected this week"},{"type":"action","text":"Call Bolaji Stores today — ₦380K overdue 45 days, send final demand letter"}]}`
+        : `{"title":"${(playbookData?.title || playbookSlug).replace(/"/g, "'")}","kpis":[{"label":"Total Revenue","value":"₦48.75M","trend":"down","note":"-0.73% vs prior"},{"label":"Net Profit","value":"₦6.01M","trend":"down","note":"-18.7% vs prior"},{"label":"Gross Margin","value":"51.8%","trend":"down"},{"label":"Net Margin","value":"12.3%","trend":"down"},{"label":"EBITDA","value":"₦9.28M","trend":"down"}],"tables":[{"title":"P&L Summary","headers":["Line Item","Amount","vs Prior"],"rows":[["TOTAL REVENUE","₦48.75M","-0.73%"],["Cost of Goods","₦23.48M","+3.9%"],["GROSS PROFIT","₦25.27M","-4.7%"],["Total Opex","₦15.99M","+4.8%"],["EBITDA","₦9.28M","-2.1%"],["NET PROFIT","₦6.01M","-18.7%"]]}],"bars":[{"label":"Raw Materials","value":13.89,"max":16,"unit":"M"},{"label":"Salaries","value":8.73,"max":16,"unit":"M"},{"label":"Rent & Utils","value":2.65,"max":16,"unit":"M"},{"label":"Marketing","value":1.78,"max":16,"unit":"M"},{"label":"Logistics","value":1.38,"max":16,"unit":"M"}],"highlights":[{"type":"strength","text":"Gross margin at 51.8% — strong pricing power maintained"},{"type":"risk","text":"Net profit fell 18.7% as OPEX grew faster than revenue"},{"type":"action","text":"Reduce Raw Materials cost — it is 28.5% of revenue and rising"}]}`;
+
+      const cfoTableNote = playbookSlug === 'virtual-cfo-weekly-report'
+        ? `- tables: TWO tables — (1) Cash Flow Summary (opening/inflows/outflows/net/CLOSING BALANCE) and (2) AR Aging by bucket. Max 3 columns each.\n`
+        : `- tables: ONE P&L summary, max 3 columns, max 8 rows. Rows starting with TOTAL/GROSS/NET/EBITDA/REVENUE will be bold.\n`;
+
+      compiledPrompt += `\n\n---\nFINAL STEP — after finishing your full analysis, append EXACTLY this block at the very end. Raw JSON only. No markdown, no code fences, no extra text after INFOGRAPH_DATA_END.\n\nINFOGRAPH_DATA_START\n${exampleJson}\nINFOGRAPH_DATA_END\n\nIMPORTANT — replace every example value with REAL numbers from your analysis above:\n- kpis: exactly 4 headline figures. trend = "up", "down", or "neutral". note = short context like "+₦180K vs last week".\n${cfoTableNote}- bars: top 4–5 largest expense categories as plain numbers. max = largest value rounded up.\n- highlights: exactly 3 items — one strength, one risk, one action. Max 15 words each. Be specific with names and amounts.\n- Output the JSON as a single line with no line breaks inside it.`;
     }
     } // end standard playbook prompt (non-TikTok)
   }

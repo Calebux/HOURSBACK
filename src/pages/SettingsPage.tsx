@@ -7,7 +7,7 @@ import { TelegramSetupGuide } from '../components/TelegramSetupGuide';
 import { useAuth } from '../contexts/AuthContext';
 import { getProfile, updateProfile } from '../lib/api';
 import { supabase } from '../lib/supabase';
-import { validatePassword } from '../components/AuthModal';
+import { validatePassword } from '../lib/validation';
 import { toast } from 'sonner';
 
 export default function SettingsPage() {

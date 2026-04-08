@@ -14,7 +14,7 @@ export interface BusinessProfile {
   completedAt: string;
 }
 
-export interface OnboardingData extends BusinessProfile {}
+export type OnboardingData = BusinessProfile;
 
 interface OnboardingModalProps {
   userId: string;

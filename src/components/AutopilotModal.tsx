@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Calendar, Clock, Sparkles } from 'lucide-react';
-import { isCsvVariable } from './CsvDataInput';
+import { isCsvVariable } from '../lib/csv';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 
@@ -124,9 +124,9 @@ export default function AutopilotModal({ isOpen, onClose, playbook, variables, u
 
             toast.success(isEditMode ? 'Agent updated successfully!' : `Agent successfully assigned! It will run ${scheduleType} at ${time}.`);
             onClose();
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Failed to schedule agent:', err);
-            toast.error(err.message || 'Failed to schedule agent');
+            toast.error(err instanceof Error ? err.message : 'Failed to schedule agent');
         } finally {
             setIsScheduling(false);
         }

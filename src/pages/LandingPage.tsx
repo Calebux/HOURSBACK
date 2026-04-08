@@ -948,13 +948,14 @@ function PlaybookPreviewSection() {
 function PricingPlanCard({ plan, isAnnual, onAuthRequired }: { plan: any, isAnnual: boolean, onAuthRequired?: () => void }) {
   const { user } = useAuth();
   const isPro = localStorage.getItem('has_pro_access') === 'true';
+  const [txRef] = useState(() => `hb_tx_${Date.now()}_${Math.floor(Math.random() * 1000)}`);
 
-  let amountRaw = isAnnual ? (plan.annualPrice || 0) * 12 : (plan.monthlyPrice || 0);
+  const amountRaw = isAnnual ? (plan.annualPrice || 0) * 12 : (plan.monthlyPrice || 0);
   const amountNGN = Math.floor(amountRaw * 1500); // Flutterwave amount in NGN directly
 
   const config = useMemo(() => ({
     public_key: import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY,
-    tx_ref: `hb_tx_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+    tx_ref: txRef,
     amount: amountNGN,
     currency: 'NGN',
     payment_options: 'card,mobilemoney,ussd',
@@ -971,7 +972,7 @@ function PricingPlanCard({ plan, isAnnual, onAuthRequired }: { plan: any, isAnnu
       description: `Upgrade to ${plan.name} Plan`,
       logo: 'https://i.ibb.co/L5hY5M0/logo.png', // Fallback remote logo URL
     },
-  }), [amountNGN, user?.email, user?.id, user?.user_metadata?.name, plan.name]);
+  }), [amountNGN, user?.email, user?.id, user?.user_metadata?.name, plan.name, txRef]);
 
   const handleFlutterPayment = useFlutterwave(config);
 
