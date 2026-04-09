@@ -67,14 +67,14 @@ const workflowDescriptions: Record<string, string> = {
 };
 
 const sampleReportLines: Record<string, string[]> = {
-  'wkflow-1':  ['📊 Weekly Business Health — 7 Apr 2025', '● Revenue this week: ₦2.4M (+12% vs last week)', '● Top sales rep: Chidi O. — ₦680k', '● Action needed: 3 deals stalled >14 days'],
-  'wkflow-2':  ['🚨 Pipeline Health Alert — 7 Apr 2025', '● At-risk deals: 4 (₦1.1M combined value)', '● "Abuja Expansion" — no activity in 18 days', '● Recommended: call Nkechi today'],
-  'wkflow-5':  ['🔍 Competitor Update — 7 Apr 2025', '● Jumia dropped delivery fee on electronics', '● Konga added "Buy Now Pay Later" at checkout', '● Your opportunity: match free delivery threshold'],
-  'wkflow-7':  ['📰 Industry Digest — 7 Apr 2025', '● CBN raises MPR to 27.5% — impact on SME lending', '● Top story: Flutterwave launches offline POS product', '● This week\'s must-read: 3 links inside'],
-  'wkflow-14': ['💰 Cash Flow Summary — 7 Apr 2025', '● Net cash this week: ₦340k (↑ from ₦180k)', '● Biggest outflow: Rent ₦250k due Friday', '● Runway: ~6 weeks at current burn rate'],
-  'wkflow-55': ['📄 5-Line Income Statement — Mar 2025', '● Revenue: ₦4,200,000', '● COGS: ₦1,680,000 → Gross Profit: ₦2,520,000 (60%)', '● ⚠️ Vendor spike detected: packaging cost +22%'],
-  'wkflow-44': ['✅ Cash Reconciliation — Shift: 6 Apr 2025', '● Opening float: ₦50,000', '● Cash received: ₦184,500', '● Variance: ₦0 — No discrepancy found'],
-  'wkflow-31': ['💵 Weekly Cash Position — 7 Apr 2025', '● Net Naira cash: ₦1,240,000', '● Biggest cost driver: Salaries (38% of outflows)', '● Runway is healthy — 8 weeks remaining'],
+  'wkflow-1':  ['Weekly Business Health — 7 Apr 2025', '● Revenue this week: ₦2.4M (+12% vs last week)', '● Top sales rep: Chidi O. — ₦680k', '● Action needed: 3 deals stalled >14 days'],
+  'wkflow-2':  ['Pipeline Health Alert — 7 Apr 2025', '● At-risk deals: 4 (₦1.1M combined value)', '● "Abuja Expansion" — no activity in 18 days', '● Recommended: call Nkechi today'],
+  'wkflow-5':  ['Competitor Update — 7 Apr 2025', '● Jumia dropped delivery fee on electronics', '● Konga added "Buy Now Pay Later" at checkout', '● Your opportunity: match free delivery threshold'],
+  'wkflow-7':  ['Industry Digest — 7 Apr 2025', '● CBN raises MPR to 27.5% — impact on SME lending', '● Top story: Flutterwave launches offline POS product', '● This week\'s must-read: 3 links inside'],
+  'wkflow-14': ['Cash Flow Summary — 7 Apr 2025', '● Net cash this week: ₦340k (↑ from ₦180k)', '● Biggest outflow: Rent ₦250k due Friday', '● Runway: ~6 weeks at current burn rate'],
+  'wkflow-55': ['5-Line Income Statement — Mar 2025', '● Revenue: ₦4,200,000', '● COGS: ₦1,680,000 → Gross Profit: ₦2,520,000 (60%)', '● Signal: Vendor spike detected — packaging cost +22%'],
+  'wkflow-44': ['Cash Reconciliation — Shift: 6 Apr 2025', '● Opening float: ₦50,000', '● Cash received: ₦184,500', '● Variance: ₦0 — No discrepancy found'],
+  'wkflow-31': ['Weekly Cash Position — 7 Apr 2025', '● Net Naira cash: ₦1,240,000', '● Biggest cost driver: Salaries (38% of outflows)', '● Runway is healthy — 8 weeks remaining'],
 };
 
 const dataSourceHelp: Record<string, string> = {
@@ -809,7 +809,7 @@ export default function WorkflowBuilder() {
                           className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue outline-none"
                         />
                         <p className="text-xs text-slate-400 mt-1">
-                          🌍 {userTimezone} (UTC{utcOffset >= 0 ? `+${utcOffset}` : utcOffset})
+                          {userTimezone} (UTC{utcOffset >= 0 ? `+${utcOffset}` : utcOffset})
                         </p>
                       </div>
                       )}
@@ -1164,7 +1164,7 @@ export default function WorkflowBuilder() {
                         {schedule === 'once' && 'Runs one time immediately'}
                       </p>
                       {schedule !== 'once' && schedule !== 'hourly' && (
-                        <p className="text-xs text-slate-400 mt-0.5">🌍 {userTimezone}</p>
+                        <p className="text-xs text-slate-400 mt-0.5">{userTimezone}</p>
                       )}
                     </div>
                   </div>

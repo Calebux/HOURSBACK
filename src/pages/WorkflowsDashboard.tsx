@@ -482,7 +482,7 @@ export default function WorkflowsDashboard() {
                 {recent.reverse().map((r) => (
                   <div
                     key={r.id}
-                    title={`${r.status === 'success' ? '✓' : '✗'} ${timeAgo(r.created_at)}`}
+                    title={`${r.status === 'success' ? 'OK' : 'Failed'} ${timeAgo(r.created_at)}`}
                     className={`w-2 h-2 rounded-full ${r.status === 'success' ? 'bg-emerald-400' : 'bg-red-400'}`}
                   />
                 ))}

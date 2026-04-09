@@ -526,7 +526,7 @@ ${alerts.map((a, i) => `${i + 1}. If **${a.metric}** ${a.condition.replace(/_/g,
 
 If ANY condition is triggered, you MUST add this section at the very top of your report (before Executive Summary):
 
-## 🚨 Alert Triggered
+## ALERT TRIGGERED
 [List each triggered condition clearly. State the actual value found vs the threshold. Be specific.]
 
 If NO conditions are triggered, do NOT include an alerts section.
@@ -536,6 +536,7 @@ If NO conditions are triggered, do NOT include an alerts section.
           const analysisPrompt = `You are an expert AI business analyst running an automated workflow.
 
 FORMATTING RULES — READ FIRST, APPLY TO EVERYTHING:
+0. No emojis. Use plain text, numbers, and the section labels defined below. No emoji characters anywhere in your response.
 1. ALL tabular data must be output as a single-line HTML table. No Markdown tables. No pipe syntax (|col|). No exceptions — even if the task description below shows Markdown table examples, ignore those formatting examples and use HTML.
 2. Use this exact pattern, all on ONE LINE with no line breaks inside the HTML:
 <div style="overflow-x:auto;margin:16px 0;border-radius:8px;border:1px solid #e2e8f0;"><table style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;"><thead><tr><th style="border:1px solid #dddddd;padding:10px;background-color:#f5f5f5;text-align:left;">Header</th></tr></thead><tbody><tr><td style="border:1px solid #dddddd;padding:10px;text-align:left;">Value</td></tr></tbody></table></div>
@@ -561,14 +562,14 @@ Produce a sharp, executive-level report. Be specific — cite actual names, numb
 
 ${hasMemory ? "Since you have previous run data: explicitly call out what CHANGED since last time. Start findings with 'Up from...', 'Down from...', 'New since last run:', 'No change in...' where relevant." : ""}
 
-${lastFeedback === "too_vague" ? `## ⚠️ Feedback from last run: TOO VAGUE — You MUST fix this
+${lastFeedback === "too_vague" ? `## Feedback from last run: TOO VAGUE — You MUST fix this
 The user rated the previous report as too vague. This run you are REQUIRED to:
 - Use exact numbers, percentages, and figures from the data (never say "significant" — say "increased by 34%")
 - Name specific companies, products, people, or URLs mentioned in the data
 - Every bullet point must contain at least one concrete fact
 - Replace all generic phrases with specific ones` : ""}
 
-${lastFeedback === "not_helpful" ? `## ⚠️ Feedback from last run: NOT HELPFUL — You MUST fix this
+${lastFeedback === "not_helpful" ? `## Feedback from last run: NOT HELPFUL — You MUST fix this
 The user found the previous report unhelpful. This run you are REQUIRED to:
 - Lead with the single most important actionable insight in the Executive Summary
 - Every section must end with a concrete action the user can take today

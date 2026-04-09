@@ -255,7 +255,7 @@ export default function ReportsPage() {
                         </div>
                       </div>
                       <span className="text-xs text-slate-400 shrink-0 mt-1">
-                        {isExpanded ? 'Collapse ▲' : 'Read report ▼'}
+                        {isExpanded ? 'Collapse' : 'Read report'}
                       </span>
                     </div>
                   </button>
