@@ -13,6 +13,7 @@ import {
   ChevronDown, ChevronUp, ExternalLink, Send, Crown, Lock
 } from 'lucide-react';
 import { MobileNav } from '../components/MobileNav';
+import { UserAvatar } from '../components/UserAvatar';
 
 interface Workflow {
   id: string;
@@ -109,9 +110,7 @@ function FirstRunOnboarding({ user }: { user: any }) {
     <div className="max-w-2xl mx-auto py-6 space-y-10">
       {/* Greeting */}
       <div className="text-center space-y-3">
-        <div className="w-14 h-14 bg-brand-dark rounded-2xl flex items-center justify-center mx-auto text-white text-xl font-bold">
-          {(user?.email?.[0] || 'H').toUpperCase()}
-        </div>
+        <UserAvatar user={user} size="lg" className="mx-auto rounded-2xl" />
         <div>
           <h2 className="text-2xl font-bold">Welcome, {firstName}</h2>
           <p className="text-slate-500 text-sm mt-1.5 max-w-sm mx-auto">
@@ -554,8 +553,8 @@ export default function WorkflowsDashboard() {
             <Link to="/reports" className="hidden sm:flex items-center gap-1.5 text-sm font-medium text-brand-dark/60 hover:text-brand-dark transition-colors px-3 py-1.5">
               <FileText className="w-4 h-4" /> Reports
             </Link>
-            <Link to="/account" className="w-8 h-8 bg-slate-50 rounded-full flex items-center justify-center border border-slate-200 hover:border-brand-dark/30 transition-colors" title="Account">
-              <span className="text-sm font-medium">{user?.email?.[0]?.toUpperCase() || 'U'}</span>
+            <Link to="/account" title="Account">
+              <UserAvatar user={user} size="sm" />
             </Link>
           </div>
         </div>

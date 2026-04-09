@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { Bot, CheckCircle2, XCircle, Clock, Filter, FileText, Download, ThumbsUp, ThumbsDown, AlertCircle, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { ReportRenderer, computeConfidence } from '../components/ReportRenderer';
 import { MobileNav } from '../components/MobileNav';
+import { UserAvatar } from '../components/UserAvatar';
 import { toast } from 'sonner';
 import posthog from 'posthog-js';
 
@@ -130,8 +131,8 @@ export default function ReportsPage() {
               <FileText className="w-4 h-4" />
               Reports
             </Link>
-            <Link to="/account" className="w-8 h-8 bg-slate-50 rounded-full flex items-center justify-center border border-slate-200 hover:border-brand-dark/30 transition-colors" title="Account">
-              <span className="text-sm font-medium">{user?.email?.[0]?.toUpperCase() || 'U'}</span>
+            <Link to="/account" title="Account">
+              <UserAvatar user={user} size="sm" />
             </Link>
           </div>
         </div>

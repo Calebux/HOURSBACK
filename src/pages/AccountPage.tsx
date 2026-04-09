@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { updateProfile } from '../lib/api';
 import { Bot, FileText, User, LogOut, Crown, CheckCircle2, Clock, RefreshCw, Building2, Pencil, X, Check } from 'lucide-react';
 import { MobileNav } from '../components/MobileNav';
+import { UserAvatar } from '../components/UserAvatar';
 import { ProUpgradeButton } from '../components/ProUpgradeButton';
 import { toast } from 'sonner';
 import type { BusinessProfile } from '../components/OnboardingModal';
@@ -122,9 +123,7 @@ export default function AccountPage() {
         {/* Profile card */}
         <div className="bg-white rounded-2xl border border-brand-dark/10 shadow-sm p-6 mb-4">
           <div className="flex items-center gap-4 mb-6">
-            <div className="w-14 h-14 rounded-full bg-brand-dark flex items-center justify-center text-white text-xl font-bold shrink-0">
-              {user?.email?.[0]?.toUpperCase() || 'U'}
-            </div>
+            <UserAvatar user={user} size="lg" />
             <div>
               <p className="font-semibold text-lg leading-tight">{user?.email}</p>
               {memberSince && <p className="text-sm text-slate-400 mt-0.5">Member since {memberSince}</p>}

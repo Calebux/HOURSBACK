@@ -29,6 +29,7 @@ import { toast } from 'sonner';
 import { type Playbook, launchCatalog, getCategoryColor } from '../data/playbooks';
 import { getSavedPlaybooks, getPlaybookProgress, toggleSavedPlaybook, getProfile } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
+import { UserAvatar } from '../components/UserAvatar';
 import { supabase } from '../lib/supabase';
 
 const allPlaybooks = launchCatalog;
@@ -257,9 +258,7 @@ export default function WorkspacePage() {
             <Link to="/settings" className="p-2 text-slate-400 hover:text-brand-dark transition-colors rounded-full hover:bg-slate-100">
               <Settings className="w-5 h-5" />
             </Link>
-            <div className="w-8 h-8 bg-slate-50 rounded-full flex items-center justify-center border border-slate-200">
-              <span className="text-sm font-medium">{user?.email?.[0]?.toUpperCase() || 'U'}</span>
-            </div>
+            <UserAvatar user={user} size="sm" />
           </div>
         </div>
       </nav>
