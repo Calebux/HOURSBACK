@@ -81,6 +81,23 @@ function computeNextRun(schedule: string, time = "08:00", day = "monday", monthD
   return now.toISOString();
 }
 
+function renderMarkdownTableForEmail(block: string): string {
+  const rows = block.trim().split("\n").filter(r => r.trim());
+  if (rows.length < 2) return block;
+  const isSep = (r: string) => /^\|[\s\-:|]+\|$/.test(r.trim());
+  const parseCells = (row: string) => row.split("|").slice(1, -1).map(c => c.trim());
+  const headerCells = parseCells(rows[0])
+    .map(c => `<th style="border:1px solid #dddddd;padding:10px 12px;background-color:#f5f5f5;text-align:left;font-size:12px;font-weight:700;font-family:Arial,sans-serif;white-space:nowrap;">${c}</th>`)
+    .join("");
+  const bodyRows = rows.slice(1).filter(r => !isSep(r)).map((row, i) => {
+    const cells = parseCells(row)
+      .map((c, j) => `<td style="border:1px solid #dddddd;padding:10px 12px;text-align:left;font-size:13px;font-family:Arial,sans-serif;${i % 2 === 1 ? "background-color:#fafafa;" : ""}${j === 0 ? "font-weight:600;" : ""}">${c}</td>`)
+      .join("");
+    return `<tr>${cells}</tr>`;
+  }).join("");
+  return `<div style="overflow-x:auto;margin:16px 0;"><table style="width:100%;border-collapse:collapse;"><thead><tr>${headerCells}</tr></thead><tbody>${bodyRows}</tbody></table></div>`;
+}
+
 function markdownToHtml(md: string): string {
   if (!md) return "";
   const lines = md.split("\n");
@@ -175,8 +192,17 @@ function renderEmailHtml(md: string): string {
     return token;
   });
 
-  // Step 2: extract chart blocks
-  const mdWithTokens = mdNoHtmlBlocks.replace(/```chart\s*([\s\S]*?)(?:```|$)/g, (_, spec) => {
+  // Step 2: extract markdown pipe tables → render to HTML
+  const mdNoTables = mdNoHtmlBlocks.replace(/^(\|.+\|\n?){2,}/gm, (block) => {
+    const token = `HBTABLETOK${idx++}`;
+    const rendered = renderMarkdownTableForEmail(block);
+    tokenMap.set(`<p style="margin:8px 0;line-height:1.6;">${token}</p>`, rendered);
+    tokenMap.set(token, rendered);
+    return token;
+  });
+
+  // Step 3: extract chart blocks
+  const mdWithTokens = mdNoTables.replace(/```chart\s*([\s\S]*?)(?:```|$)/g, (_, spec) => {
     const token = `HBCHARTTOK${idx++}`;
     const url = buildQuickChartUrl(spec.trim());
     if (!url) return '';
@@ -188,10 +214,10 @@ function renderEmailHtml(md: string): string {
     return token;
   });
 
-  // Step 3: convert remaining markdown to HTML
+  // Step 4: convert remaining markdown to HTML
   let html = markdownToHtml(mdWithTokens);
 
-  // Step 4: re-inject all preserved HTML blocks
+  // Step 5: re-inject all preserved HTML blocks
   for (const [placeholder, content] of tokenMap.entries()) {
     html = html.replace(placeholder, content);
   }
