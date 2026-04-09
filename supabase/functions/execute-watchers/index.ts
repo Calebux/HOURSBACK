@@ -577,6 +577,8 @@ The user found the previous report unhelpful. This run you are REQUIRED to:
 
 ${lastFeedback === "helpful" ? "## Note: The previous report was rated helpful. Maintain the same level of specificity and depth." : ""}
 
+Do not include a report title, run number, or date header at the top of your response — the email template renders this automatically. Begin directly with the first section below.
+
 Structure your response exactly as:
 
 ## Executive Summary
@@ -646,11 +648,28 @@ Strict rules:
     <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;">
 
       <!-- Header -->
-      <tr><td style="background:#0f172a;border-radius:16px 16px 0 0;padding:24px 28px;">
-        <p style="margin:0;color:#94a3b8;font-size:11px;font-family:-apple-system,Helvetica,sans-serif;letter-spacing:1px;text-transform:uppercase;font-weight:600;">Hoursback · Automated Workflow</p>
-        <h1 style="margin:8px 0 4px;color:#ffffff;font-size:22px;font-family:-apple-system,Helvetica,sans-serif;font-weight:700;line-height:1.3;">${workflow.name}</h1>
-        <p style="margin:0;color:#64748b;font-size:13px;font-family:-apple-system,Helvetica,sans-serif;">${runDate}${memoryLine}</p>
+      <tr><td style="background:#0f172a;border-radius:16px 16px 0 0;padding:28px 32px 26px;">
+        <p style="margin:0 0 10px;color:#475569;font-size:10px;font-family:Arial,Helvetica,sans-serif;letter-spacing:2px;text-transform:uppercase;font-weight:700;">HOURSBACK &nbsp;·&nbsp; AUTOMATED REPORT</p>
+        <h1 style="margin:0 0 18px;color:#f8fafc;font-size:26px;font-family:Arial,Helvetica,sans-serif;font-weight:800;line-height:1.25;">${workflow.name}</h1>
+        <table cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+          <tr>
+            <td style="padding:0 8px 0 0;">
+              <span style="display:inline-block;background:rgba(255,255,255,0.10);color:#cbd5e1;font-size:12px;font-family:Arial,Helvetica,sans-serif;padding:5px 13px;border-radius:20px;white-space:nowrap;">${runDate}</span>
+            </td>
+            <td style="padding:0 8px 0 0;">
+              ${hasMemory
+                ? `<span style="display:inline-block;background:rgba(96,165,250,0.18);color:#93c5fd;font-size:12px;font-family:Arial,Helvetica,sans-serif;padding:5px 13px;border-radius:20px;white-space:nowrap;">&#8635;&nbsp; Compared to ${lastRunDate}</span>`
+                : `<span style="display:inline-block;background:rgba(52,211,153,0.18);color:#6ee7b7;font-size:12px;font-family:Arial,Helvetica,sans-serif;padding:5px 13px;border-radius:20px;white-space:nowrap;">&#9679;&nbsp; First run</span>`
+              }
+            </td>
+            ${bp?.businessName ? `<td style="padding:0;">
+              <span style="display:inline-block;background:rgba(255,255,255,0.07);color:#94a3b8;font-size:12px;font-family:Arial,Helvetica,sans-serif;padding:5px 13px;border-radius:20px;white-space:nowrap;">${bp.businessName}</span>
+            </td>` : ""}
+          </tr>
+        </table>
       </td></tr>
+      <!-- Accent bar -->
+      <tr><td style="background:linear-gradient(90deg,#3b82f6 0%,#6366f1 50%,#8b5cf6 100%);height:3px;font-size:0;line-height:0;">&nbsp;</td></tr>
 
       <!-- Body -->
       <tr><td style="background:#ffffff;padding:28px;font-family:-apple-system,Helvetica,sans-serif;font-size:15px;line-height:1.7;color:#1e293b;border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0;">
