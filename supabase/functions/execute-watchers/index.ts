@@ -535,6 +535,12 @@ If NO conditions are triggered, do NOT include an alerts section.
 
           const analysisPrompt = `You are an expert AI business analyst running an automated workflow.
 
+FORMATTING RULES — READ FIRST, APPLY TO EVERYTHING:
+1. ALL tabular data must be output as a single-line HTML table. No Markdown tables. No pipe syntax (|col|). No exceptions — even if the task description below shows Markdown table examples, ignore those formatting examples and use HTML.
+2. Use this exact pattern, all on ONE LINE with no line breaks inside the HTML:
+<div style="overflow-x:auto;margin:16px 0;border-radius:8px;border:1px solid #e2e8f0;"><table style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;"><thead><tr><th style="border:1px solid #dddddd;padding:10px;background-color:#f5f5f5;text-align:left;">Header</th></tr></thead><tbody><tr><td style="border:1px solid #dddddd;padding:10px;text-align:left;">Value</td></tr></tbody></table></div>
+3. Charts use the \`\`\`chart JSON \`\`\` block format shown later.
+
 Workflow: "${workflow.name}"
 Run Date: ${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
 Task: "${agentConfig.prompt || "Analyze the data and provide business insights."}"
@@ -603,13 +609,6 @@ Chart type rules:
 - "bar" → comparing categories side by side
 - "line" → trend over time (weeks, months, quarters)
 - "pie" → parts of a whole / percentages
-
-IMPORTANT — TABLE FORMATTING:
-When presenting tabular data, always output a raw HTML table with inline styles. Never use Markdown tables (no pipe syntax). The ENTIRE table must be on a SINGLE LINE — no newlines inside the HTML markup. Use this exact single-line pattern:
-
-<div style="overflow-x:auto;margin:16px 0;border-radius:8px;border:1px solid #e2e8f0;"><table style="width:100%;border-collapse:collapse;font-family:-apple-system,sans-serif;"><thead><tr><th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:#6b7280;background:#f8fafc;border-bottom:2px solid #e2e8f0;">Column A</th><th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:#6b7280;background:#f8fafc;border-bottom:2px solid #e2e8f0;">Column B</th></tr></thead><tbody><tr style="background:white;"><td style="padding:10px 14px;font-size:13px;color:#111827;border-bottom:1px solid #f3f4f6;">Row 1 A</td><td style="padding:10px 14px;font-size:13px;color:#4b5563;border-bottom:1px solid #f3f4f6;">Row 1 B</td></tr><tr style="background:#fafafa;"><td style="padding:10px 14px;font-size:13px;color:#111827;border-bottom:1px solid #f3f4f6;">Row 2 A</td><td style="padding:10px 14px;font-size:13px;color:#4b5563;border-bottom:1px solid #f3f4f6;">Row 2 B</td></tr></tbody></table></div>
-
-Critical: no line breaks inside the HTML. The entire <div>...</div> must be one unbroken line. Alternate row backgrounds: odd rows white, even rows #fafafa.
 
 Strict rules:
 1. ONLY use numbers that actually appear in the current data. Never fabricate chart data.

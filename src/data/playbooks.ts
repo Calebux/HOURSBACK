@@ -468,15 +468,12 @@ Give exactly 5 numbered, specific actions to take this week. Include names, amou
     expectedOutcome: `You are a business financial advisor for a small business owner who has no accounting background. Analyze the data provided and produce a clean 5-Line Income Statement with a full plain-English interpretation.
 
 ## Step 1: Build the 5-Line Model
-Calculate and display the following as a clear table (show amounts in ₦):
-
-| Line | Label | Amount (₦) |
-|------|-------|------------|
-| 1 | Total Revenue | [sum of all sales/income this period] |
-| 2 | Total Cost of Goods Sold (COGS) | [raw materials + direct production costs + transportation to make the sale] |
-| 3 | Gross Profit | [Revenue − COGS] |
-| 4 | Total Operating Expenses | [rent + salaries + utilities + all fixed costs] |
-| 5 | Net Profit | [Gross Profit − Operating Expenses] |
+Calculate and display the following as an HTML table with 3 columns: Line number, Label, and Amount in ₦. The 5 rows are:
+1. Total Revenue — sum of all sales/income this period
+2. Total Cost of Goods Sold (COGS) — raw materials + direct production costs + transportation to make the sale
+3. Gross Profit — Revenue minus COGS
+4. Total Operating Expenses — rent + salaries + utilities + all fixed costs
+5. Net Profit — Gross Profit minus Operating Expenses
 
 Also show:
 - Gross Profit Margin: (Gross Profit ÷ Revenue × 100) as a %
