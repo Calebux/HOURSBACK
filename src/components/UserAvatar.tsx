@@ -7,30 +7,27 @@ interface Props {
 }
 
 const sizeMap = {
-  sm: 'w-8 h-8 text-sm',
-  md: 'w-10 h-10 text-base',
-  lg: 'w-14 h-14 text-xl',
+  sm: 'w-8 h-8',
+  md: 'w-10 h-10',
+  lg: 'w-14 h-14',
 };
 
 export function UserAvatar({ user, size = 'sm', className = '' }: Props) {
-  const avatarUrl = user?.user_metadata?.avatar_url as string | undefined;
-  const initial = (user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || 'U')[0].toUpperCase();
-  const base = `${sizeMap[size]} rounded-full shrink-0 ${className}`;
+  const googleAvatar = user?.user_metadata?.avatar_url as string | undefined;
+  const name = user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || 'U';
+  const initial = name[0].toUpperCase();
 
-  if (avatarUrl) {
-    return (
-      <img
-        src={avatarUrl}
-        alt={initial}
-        referrerPolicy="no-referrer"
-        className={`${base} object-cover`}
-      />
-    );
-  }
+  // Use Google photo if available, otherwise generate one from the initial
+  const src = googleAvatar
+    ? googleAvatar
+    : `https://ui-avatars.com/api/?name=${encodeURIComponent(initial)}&background=202124&color=ffffff&bold=true&size=128`;
 
   return (
-    <div className={`${base} bg-brand-dark flex items-center justify-center text-white font-bold border border-slate-200`}>
-      {initial}
-    </div>
+    <img
+      src={src}
+      alt={initial}
+      referrerPolicy="no-referrer"
+      className={`${sizeMap[size]} rounded-full object-cover shrink-0 ${className}`}
+    />
   );
 }
