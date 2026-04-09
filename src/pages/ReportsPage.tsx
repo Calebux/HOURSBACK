@@ -120,8 +120,8 @@ export default function ReportsPage() {
             <img src="/logo.svg" alt="Hoursback" className="h-[36px] w-auto" />
           </Link>
           <div className="flex items-center gap-4">
-            <Link to="/workflows" className="hidden sm:flex text-sm font-medium text-brand-dark/60 hover:text-brand-dark transition-colors px-3 py-1.5">
-              Workflows
+            <Link to="/workflows/new" className="hidden sm:flex text-sm font-medium text-brand-dark/60 hover:text-brand-dark transition-colors px-3 py-1.5">
+              Browse
             </Link>
             <Link to="/workflows" className="hidden sm:flex items-center gap-1.5 text-sm font-medium text-brand-dark/60 hover:text-brand-dark transition-colors px-3 py-1.5">
               <Bot className="w-4 h-4" />
