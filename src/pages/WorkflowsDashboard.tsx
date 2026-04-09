@@ -467,7 +467,7 @@ export default function WorkflowsDashboard() {
             return (
               <div className="flex items-center gap-1.5 mt-3">
                 <span className="text-[10px] text-slate-400 mr-0.5">Last {recent.length} runs</span>
-                {recent.reverse().map((r, i) => (
+                {recent.reverse().map((r) => (
                   <div
                     key={r.id}
                     title={`${r.status === 'success' ? '✓' : '✗'} ${timeAgo(r.created_at)}`}

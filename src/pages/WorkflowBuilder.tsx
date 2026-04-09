@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { launchCatalog, getCategoryColor } from '../data/playbooks';
@@ -250,7 +250,7 @@ function getDataSourceConfig(workflowId: string, dataSource: string): Record<str
 
 export default function WorkflowBuilder() {
   const { user } = useAuth();
-  const navigate = useNavigate();
+
   const [searchParams] = useSearchParams();
 
   const preselectedId = searchParams.get('id') ?? '';

@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
   ArrowRight, CheckCircle2, Menu, X, Lightbulb,
-  Clock, Zap, Mail, Bot, CalendarClock,
+  Zap, Mail, Bot, CalendarClock,
   BarChart3, Users, PauseCircle, Sparkles
 } from 'lucide-react';
 import { AuthModal } from '../components/AuthModal';
