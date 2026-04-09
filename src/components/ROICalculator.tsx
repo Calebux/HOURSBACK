@@ -114,7 +114,7 @@ export function ROICalculator() {
 
                   <div className="flex items-center justify-between py-4 border-b border-white/10">
                     <span className="text-white/60 text-sm">Hoursback Pro cost</span>
-                    <span className="text-sm font-medium text-white/50">−$20/mo</span>
+                    <span className="text-sm font-medium text-white/50">−₦9,900/mo</span>
                   </div>
 
                   <div className="flex items-center justify-between pt-2">
@@ -136,7 +136,7 @@ export function ROICalculator() {
                   <TrendingUp className="w-3.5 h-3.5" />
                   <span>
                     You spend {hours * teamSize}h/week at ${rate}/hr = ${(hours * teamSize * rate).toLocaleString()}/week wasted.
-                    Hoursback Pro ($20/mo) turns that into ${netSavings.toLocaleString()}/mo in net savings.
+                    Hoursback Pro (₦9,900/mo) turns that into ${netSavings.toLocaleString()}/mo in net savings.
                   </span>
                 </div>
                 <Link to="/workflows/new">

@@ -66,6 +66,17 @@ const workflowDescriptions: Record<string, string> = {
   'wkflow-55': 'Upload your monthly bank statement or sales & expense sheet and get a complete 5-Line Income Statement — Revenue, COGS, Gross Profit, Operating Expenses, Net Profit — with plain-English interpretation and specific flags for theft risk, vendor price hikes, and pricing opportunities.',
 };
 
+const sampleReportLines: Record<string, string[]> = {
+  'wkflow-1':  ['📊 Weekly Business Health — 7 Apr 2025', '● Revenue this week: ₦2.4M (+12% vs last week)', '● Top sales rep: Chidi O. — ₦680k', '● Action needed: 3 deals stalled >14 days'],
+  'wkflow-2':  ['🚨 Pipeline Health Alert — 7 Apr 2025', '● At-risk deals: 4 (₦1.1M combined value)', '● "Abuja Expansion" — no activity in 18 days', '● Recommended: call Nkechi today'],
+  'wkflow-5':  ['🔍 Competitor Update — 7 Apr 2025', '● Jumia dropped delivery fee on electronics', '● Konga added "Buy Now Pay Later" at checkout', '● Your opportunity: match free delivery threshold'],
+  'wkflow-7':  ['📰 Industry Digest — 7 Apr 2025', '● CBN raises MPR to 27.5% — impact on SME lending', '● Top story: Flutterwave launches offline POS product', '● This week\'s must-read: 3 links inside'],
+  'wkflow-14': ['💰 Cash Flow Summary — 7 Apr 2025', '● Net cash this week: ₦340k (↑ from ₦180k)', '● Biggest outflow: Rent ₦250k due Friday', '● Runway: ~6 weeks at current burn rate'],
+  'wkflow-55': ['📄 5-Line Income Statement — Mar 2025', '● Revenue: ₦4,200,000', '● COGS: ₦1,680,000 → Gross Profit: ₦2,520,000 (60%)', '● ⚠️ Vendor spike detected: packaging cost +22%'],
+  'wkflow-44': ['✅ Cash Reconciliation — Shift: 6 Apr 2025', '● Opening float: ₦50,000', '● Cash received: ₦184,500', '● Variance: ₦0 — No discrepancy found'],
+  'wkflow-31': ['💵 Weekly Cash Position — 7 Apr 2025', '● Net Naira cash: ₦1,240,000', '● Biggest cost driver: Salaries (38% of outflows)', '● Runway is healthy — 8 weeks remaining'],
+};
+
 const dataSourceHelp: Record<string, string> = {
   'wkflow-1': 'Share your Google Sheet and set access to "Anyone with link can view".',
   'wkflow-4': 'Export your QuickBooks or Xero P&L to Google Sheets for best results.',
@@ -255,6 +266,7 @@ export default function WorkflowBuilder() {
   const [dataSource, setDataSource] = useState('');
   const [isDeploying, setIsDeploying] = useState(false);
   const [deployedWebhookUrl, setDeployedWebhookUrl] = useState('');
+  const [deployedWorkflowTitle, setDeployedWorkflowTitle] = useState('');
   const [copied, setCopied] = useState(false);
   const [telegramDeployId, setTelegramDeployId] = useState<string | null>(null);
   const { isPro: hasPro } = useAuth();
@@ -263,6 +275,7 @@ export default function WorkflowBuilder() {
   const [xlsxFileName, setXlsxFileName] = useState('');
   const [xlsxUploading, setXlsxUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [hoveredWorkflow, setHoveredWorkflow] = useState<string>('');
 
   // Decision triggers
   type Alert = { metric: string; condition: 'drops_by' | 'rises_by' | 'exceeds' | 'falls_below'; value: string };
@@ -351,10 +364,11 @@ export default function WorkflowBuilder() {
       if (triggerType === 'webhook' && newWorkflow) {
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
         setDeployedWebhookUrl(`${supabaseUrl}/functions/v1/webhook-receiver?workflow_id=${newWorkflow.id}&secret=${newWorkflow.webhook_secret}`);
+        setDeployedWorkflowTitle(workflow.title);
         setStep(4);
       } else {
-        toast.success('Workflow deployed!');
-        navigate('/workflows');
+        setDeployedWorkflowTitle(workflow.title);
+        setStep(4);
       }
     } catch (err: any) {
       toast.error(err.message || 'Failed to deploy workflow');
@@ -398,6 +412,37 @@ export default function WorkflowBuilder() {
               <p className="text-slate-600">Click any workflow to configure and deploy it automatically.</p>
             </div>
 
+            {/* Featured / Start here */}
+            <div className="space-y-3">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Start here — most popular</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {[
+                  { id: 'wkflow-55', title: '5-Line Profit Check',    category: 'Finance',   color: '#4285F4', desc: 'Upload your bank statement or paste your sales & expense sheet. Get a complete 5-Line Income Statement — Revenue, COGS, Gross Profit, Operating Expenses, Net Profit — with plain-English interpretation and flags for theft risk, vendor price hikes, and pricing opportunities you\'re leaving on the table.' },
+                  { id: 'wkflow-14', title: 'Weekly Cash Flow Report', category: 'Finance',   color: '#10b981', desc: 'Reads your Google Sheets income & expense data. Delivers a weekly cash position summary every Monday — so you always know your runway before the week starts.' },
+                  { id: 'wkflow-7',  title: 'Industry News Digest',   category: 'Research',  color: '#6366f1', desc: 'Monitors news in your niche every week and curates the trends you actually need to know — without spending hours reading through noise.' },
+                  { id: 'wkflow-5',  title: 'Competitor Monitor',     category: 'Marketing', color: '#f59e0b', desc: 'Watches competitor websites for price changes, new launches, and messaging shifts. Weekly alert so you\'re never caught off guard.' },
+                ].map(wf => (
+                    <div
+                      key={wf.id}
+                      onClick={() => { setSelectedWorkflow(wf.id); setTelegramDeployId(null); setStep(2); }}
+                      onMouseEnter={() => setHoveredWorkflow(wf.id)}
+                      className="bg-white border-2 border-slate-100 rounded-2xl p-4 cursor-pointer hover:border-brand-dark/20 hover:shadow-sm transition-all group"
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md" style={{ backgroundColor: `${wf.color}15`, color: wf.color }}>{wf.category}</span>
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-600 border border-emerald-100">Free</span>
+                      </div>
+                      <p className="font-bold text-sm text-brand-dark leading-snug mb-1">{wf.title}</p>
+                      <p className="text-xs text-slate-500 leading-relaxed line-clamp-3">{wf.desc}</p>
+                    </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="border-t border-slate-100 pt-2">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">All workflows</p>
+            </div>
+
             {/* Category filter */}
             <div className="flex gap-2 flex-wrap">
               {['All', 'Finance', 'Sales', 'Marketing', 'Operations', 'HR/People', 'Research', 'Creator', 'Executive', 'Legal/Compliance'].map(cat => (
@@ -415,152 +460,265 @@ export default function WorkflowBuilder() {
               ))}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {launchCatalog.filter(p => activeCategory === 'All' || p.category === activeCategory).map(p => {
-                const locked = p.isPro && !hasPro;
-                const color = getCategoryColor(p.category);
-                return (
-                  <div
-                    key={p.id}
-                    onClick={() => {
-                      setSelectedWorkflow(p.id);
-                      if (!locked) {
-                        if (TELEGRAM_WORKFLOWS[p.id]) {
-                          setTelegramDeployId(p.id);
-                        } else {
-                          setTelegramDeployId(null);
-                          setStep(2);
-                        }
-                      }
-                    }}
-                    className={`flex flex-col rounded-2xl border-2 overflow-hidden transition-all cursor-pointer ${
-                      locked
-                        ? 'border-slate-200 bg-slate-50/50 opacity-80 hover:opacity-100'
-                        : TELEGRAM_WORKFLOWS[p.id]
-                          ? 'border-slate-200 bg-white hover:border-blue-400/50 hover:shadow-md'
-                          : 'border-slate-200 bg-white hover:border-brand-blue/50 hover:shadow-md'
-                    }`}
-                  >
-                    {/* Color accent bar */}
-                    <div className="h-1 w-full shrink-0" style={{ backgroundColor: locked ? '#CBD5E1' : color }} />
+            {/* Split layout: grid on left, sticky detail panel on right */}
+            <div className="flex gap-6 items-start">
 
-                    <div className="flex flex-col flex-1 p-4">
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span
-                            className="text-[10px] font-semibold px-2 py-0.5 rounded-md"
-                            style={{ backgroundColor: `${locked ? '#64748B' : color}18`, color: locked ? '#64748B' : color }}
-                          >
-                            {p.category}
-                          </span>
-                          {p.isPro && (
-                            <span className={`flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-md ${locked ? 'bg-slate-100 text-slate-500' : 'bg-purple-100 text-purple-700'}`}>
-                              {locked && <Lock className="w-3 h-3" />} Pro
-                            </span>
-                          )}
-                          {TELEGRAM_WORKFLOWS[p.id] && !locked && (
-                            <span className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-md bg-sky-50 text-sky-600 border border-sky-200">
-                              <Send className="w-2.5 h-2.5" /> Telegram
-                            </span>
-                          )}
-                        </div>
-                        <div className="shrink-0">
-                          {locked
-                            ? <Lock className="w-3.5 h-3.5 text-slate-300" />
-                            : TELEGRAM_WORKFLOWS[p.id]
-                              ? <Send className="w-4 h-4 text-sky-400" />
-                              : <ChevronRight className="w-4 h-4 text-slate-300" />
+              {/* Left: workflow grid */}
+              <div
+                className="flex-1 min-w-0 space-y-4"
+                onMouseLeave={() => setHoveredWorkflow('')}
+              >
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {launchCatalog.filter(p => activeCategory === 'All' || p.category === activeCategory).map(p => {
+                    const locked = p.isPro && !hasPro;
+                    const color = getCategoryColor(p.category);
+                    const isSelected = selectedWorkflow === p.id;
+                    return (
+                      <div
+                        key={p.id}
+                        onMouseEnter={() => setHoveredWorkflow(p.id)}
+                        onClick={() => {
+                          setSelectedWorkflow(p.id);
+                          if (!locked) {
+                            if (TELEGRAM_WORKFLOWS[p.id]) {
+                              setTelegramDeployId(p.id);
+                            } else {
+                              setTelegramDeployId(null);
+                              setStep(2);
+                            }
                           }
+                        }}
+                        className={`flex flex-col rounded-2xl border-2 overflow-hidden transition-all cursor-pointer ${
+                          isSelected && !locked
+                            ? TELEGRAM_WORKFLOWS[p.id]
+                              ? 'border-sky-400 bg-white shadow-md'
+                              : 'border-brand-dark bg-white shadow-md'
+                            : locked
+                              ? 'border-slate-200 bg-slate-50/50 opacity-80 hover:opacity-100'
+                              : TELEGRAM_WORKFLOWS[p.id]
+                                ? 'border-slate-200 bg-white hover:border-sky-400/50 hover:shadow-md'
+                                : 'border-slate-200 bg-white hover:border-brand-blue/50 hover:shadow-md'
+                        }`}
+                      >
+                        {/* Color accent bar */}
+                        <div className="h-1 w-full shrink-0" style={{ backgroundColor: locked ? '#CBD5E1' : color }} />
+
+                        <div className="flex flex-col flex-1 p-4">
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span
+                                className="text-[10px] font-semibold px-2 py-0.5 rounded-md"
+                                style={{ backgroundColor: `${locked ? '#64748B' : color}18`, color: locked ? '#64748B' : color }}
+                              >
+                                {p.category}
+                              </span>
+                              {p.isPro && (
+                                <span className={`flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-md ${locked ? 'bg-slate-100 text-slate-500' : 'bg-purple-100 text-purple-700'}`}>
+                                  {locked && <Lock className="w-3 h-3" />} Pro
+                                </span>
+                              )}
+                              {TELEGRAM_WORKFLOWS[p.id] && !locked && (
+                                <span className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-md bg-sky-50 text-sky-600 border border-sky-200">
+                                  <Send className="w-2.5 h-2.5" /> Telegram
+                                </span>
+                              )}
+                            </div>
+                            <div className="shrink-0">
+                              {locked
+                                ? <Lock className="w-3.5 h-3.5 text-slate-300" />
+                                : TELEGRAM_WORKFLOWS[p.id]
+                                  ? <Send className="w-4 h-4 text-sky-400" />
+                                  : <ChevronRight className="w-4 h-4 text-slate-300" />
+                              }
+                            </div>
+                          </div>
+                          <h3 className="font-bold text-sm mb-1 leading-snug">{p.title}</h3>
+                          <p className="text-xs text-slate-500 leading-relaxed line-clamp-2 flex-1">
+                            {workflowDescriptions[p.id] || p.subtitle}
+                          </p>
+                          <div className="flex items-center gap-1 mt-3 text-xs text-slate-400">
+                            <Clock className="w-3 h-3" />
+                            Saves ~{p.timeSaved} min/week
+                          </div>
                         </div>
                       </div>
-                      <h3 className="font-bold text-sm mb-1 leading-snug">{p.title}</h3>
-                      <p className="text-xs text-slate-500 leading-relaxed line-clamp-2 flex-1">
-                        {workflowDescriptions[p.id] || p.subtitle}
-                      </p>
-                      <div className="flex items-center gap-1 mt-3 text-xs text-slate-400">
-                        <Clock className="w-3 h-3" />
-                        Saves ~{p.timeSaved} min/week
-                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Upgrade prompt when Pro workflow selected without Pro access */}
+                {selectedWorkflow && workflow?.isPro && !hasPro && (
+                  <div className="bg-purple-50 border border-purple-200 rounded-2xl p-4 flex items-center justify-between gap-4">
+                    <div>
+                      <p className="font-semibold text-purple-900 text-sm">This workflow requires Pro</p>
+                      <p className="text-purple-700 text-xs mt-0.5">{workflow.subtitle}</p>
                     </div>
+                    <ProUpgradeButton className="shrink-0 bg-purple-600 text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-purple-700 transition-colors">
+                      Upgrade to Pro
+                    </ProUpgradeButton>
+                  </div>
+                )}
+
+                {/* Telegram deploy panel */}
+                {telegramDeployId && TELEGRAM_WORKFLOWS[telegramDeployId] && (() => {
+                  const tg = TELEGRAM_WORKFLOWS[telegramDeployId];
+                  const sel = launchCatalog.find(p => p.id === telegramDeployId);
+                  return (
+                    <div className="bg-sky-50 border border-sky-200 rounded-2xl p-5 space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 bg-sky-100 rounded-xl flex items-center justify-center shrink-0">
+                          <Send className="w-5 h-5 text-sky-600" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-sky-900 text-sm">{sel?.title} runs on your Telegram bot</p>
+                          <p className="text-sky-700 text-xs mt-0.5">{tg.description}</p>
+                        </div>
+                        <button onClick={() => setTelegramDeployId(null)} className="ml-auto text-sky-400 hover:text-sky-600 shrink-0">
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      <div className="bg-white/60 rounded-xl p-3 flex items-center gap-3">
+                        <span className="font-mono text-sm font-bold text-sky-700 bg-sky-100 px-3 py-1 rounded-lg">{tg.command}</span>
+                        <span className="text-xs text-sky-800">
+                          Available to:{' '}
+                          <span className="font-medium">
+                            {tg.role === 'both' ? 'Managers & Staff' : tg.role === 'manager' ? 'Managers only' : 'Staff'}
+                          </span>
+                        </span>
+                      </div>
+
+                      <div className="space-y-2">
+                        <p className="text-xs font-semibold text-sky-700 uppercase tracking-wide">How to use</p>
+                        <ol className="space-y-1.5 text-xs text-sky-800">
+                          <li className="flex items-start gap-2"><span className="bg-sky-200 text-sky-700 w-4 h-4 rounded-full flex items-center justify-center shrink-0 font-bold">1</span>Connect your Telegram bot in <a href="/settings" className="underline font-medium">Settings → Telegram</a> if you haven't yet.</li>
+                          <li className="flex items-start gap-2"><span className="bg-sky-200 text-sky-700 w-4 h-4 rounded-full flex items-center justify-center shrink-0 font-bold">2</span>Share the {tg.role === 'manager' ? 'Manager' : tg.role === 'staff' ? 'Staff' : 'Manager or Staff'} invite link with your team.</li>
+                          <li className="flex items-start gap-2"><span className="bg-sky-200 text-sky-700 w-4 h-4 rounded-full flex items-center justify-center shrink-0 font-bold">3</span>Anyone on the team can type <span className="font-mono font-bold">{tg.command}</span> to start this workflow instantly.</li>
+                        </ol>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <a
+                          href="/settings#telegram"
+                          className="flex-1 text-center py-2 bg-sky-600 text-white rounded-xl text-sm font-semibold hover:bg-sky-700 transition-colors"
+                        >
+                          Go to Settings
+                        </a>
+                        <button
+                          onClick={() => setTelegramDeployId(null)}
+                          className="px-4 py-2 bg-white border border-sky-200 text-sky-700 rounded-xl text-sm font-medium hover:bg-sky-50 transition-colors"
+                        >
+                          Got it
+                        </button>
+                      </div>
+                      <button
+                        onClick={() => { setTelegramDeployId(null); setStep(2); }}
+                        className="w-full text-center text-xs text-slate-400 hover:text-slate-600 py-1 transition-colors"
+                      >
+                        Or deploy as a scheduled email report instead →
+                      </button>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Right: sticky detail panel */}
+              {(() => {
+                const previewId = hoveredWorkflow || selectedWorkflow;
+                const previewWf = previewId ? launchCatalog.find(p => p.id === previewId) : null;
+                const previewLocked = previewWf ? (previewWf.isPro && !hasPro) : false;
+                const previewColor = previewWf ? getCategoryColor(previewWf.category) : '#94a3b8';
+                const previewDesc = previewWf ? (workflowDescriptions[previewWf.id] || previewWf.subtitle) : '';
+                const previewTip = previewWf ? dataSourceHelp[previewWf.id] : '';
+                const isTelegramWf = previewWf ? !!TELEGRAM_WORKFLOWS[previewWf.id] : false;
+                return (
+                  <div className="hidden lg:flex flex-col w-80 xl:w-96 shrink-0 sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto">
+                    {previewWf ? (
+                      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                        <div className="h-1.5 w-full" style={{ backgroundColor: previewLocked ? '#CBD5E1' : previewColor }} />
+                        <div className="p-5 space-y-4">
+                          {/* Badges */}
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span
+                              className="text-[10px] font-semibold px-2 py-0.5 rounded-md"
+                              style={{ backgroundColor: `${previewColor}18`, color: previewColor }}
+                            >
+                              {previewWf.category}
+                            </span>
+                            {previewWf.isPro && (
+                              <span className={`flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-md ${previewLocked ? 'bg-slate-100 text-slate-500' : 'bg-purple-100 text-purple-700'}`}>
+                                {previewLocked && <Lock className="w-3 h-3" />} Pro
+                              </span>
+                            )}
+                            {isTelegramWf && !previewLocked && (
+                              <span className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-md bg-sky-50 text-sky-600 border border-sky-200">
+                                <Send className="w-2.5 h-2.5" /> Telegram
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Title */}
+                          <h2 className="text-lg font-bold leading-snug">{previewWf.title}</h2>
+
+                          {/* Full description */}
+                          <p className="text-sm text-slate-600 leading-relaxed">{previewDesc}</p>
+
+                          {/* What you'll need */}
+                          {previewTip && (
+                            <div className="bg-slate-50 rounded-xl p-3 space-y-1.5">
+                              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">What you'll need to connect</p>
+                              <p className="text-xs text-slate-600 leading-relaxed">{previewTip}</p>
+                            </div>
+                          )}
+
+                          {/* Time saved */}
+                          <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                            <Clock className="w-3.5 h-3.5" />
+                            <span>Saves ~{previewWf.timeSaved} min/week</span>
+                          </div>
+
+                          {/* CTA */}
+                          {previewLocked ? (
+                            <ProUpgradeButton className="w-full py-2.5 bg-purple-600 text-white rounded-xl text-sm font-semibold hover:bg-purple-700 transition-colors flex items-center justify-center gap-2">
+                              <Lock className="w-4 h-4" /> Upgrade to unlock
+                            </ProUpgradeButton>
+                          ) : isTelegramWf ? (
+                            <button
+                              onClick={() => {
+                                setSelectedWorkflow(previewWf.id);
+                                setTelegramDeployId(previewWf.id);
+                              }}
+                              className="w-full py-2.5 bg-sky-600 text-white rounded-xl text-sm font-semibold hover:bg-sky-700 transition-colors flex items-center justify-center gap-2"
+                            >
+                              <Send className="w-4 h-4" /> Set up on Telegram
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                setSelectedWorkflow(previewWf.id);
+                                setTelegramDeployId(null);
+                                setStep(2);
+                              }}
+                              className="w-full py-2.5 bg-brand-dark text-white rounded-xl text-sm font-semibold hover:bg-brand-dark/90 transition-colors flex items-center justify-center gap-2"
+                            >
+                              Set up this workflow <ChevronRight className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="bg-slate-50 rounded-2xl border border-dashed border-slate-200 p-8 flex flex-col items-center justify-center text-center space-y-2 min-h-[200px]">
+                        <div className="w-10 h-10 bg-white rounded-xl border border-slate-200 flex items-center justify-center">
+                          <Bell className="w-5 h-5 text-slate-300" />
+                        </div>
+                        <p className="text-sm font-medium text-slate-400">Hover a workflow</p>
+                        <p className="text-xs text-slate-400">to see what it does</p>
+                      </div>
+                    )}
                   </div>
                 );
-              })}
-            </div>
-
-            {/* Upgrade prompt when Pro workflow selected without Pro access */}
-            {selectedWorkflow && workflow?.isPro && !hasPro && (
-              <div className="bg-purple-50 border border-purple-200 rounded-2xl p-4 flex items-center justify-between gap-4">
-                <div>
-                  <p className="font-semibold text-purple-900 text-sm">This workflow requires Pro</p>
-                  <p className="text-purple-700 text-xs mt-0.5">{workflow.subtitle}</p>
-                </div>
-                <ProUpgradeButton className="shrink-0 bg-purple-600 text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-purple-700 transition-colors">
-                  Upgrade to Pro
-                </ProUpgradeButton>
-              </div>
-            )}
-
-            {/* Telegram deploy panel */}
-            {telegramDeployId && TELEGRAM_WORKFLOWS[telegramDeployId] && (() => {
-              const tg = TELEGRAM_WORKFLOWS[telegramDeployId];
-              const sel = launchCatalog.find(p => p.id === telegramDeployId);
-              return (
-                <div className="bg-sky-50 border border-sky-200 rounded-2xl p-5 space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-200">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 bg-sky-100 rounded-xl flex items-center justify-center shrink-0">
-                      <Send className="w-5 h-5 text-sky-600" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-sky-900 text-sm">{sel?.title} runs on your Telegram bot</p>
-                      <p className="text-sky-700 text-xs mt-0.5">{tg.description}</p>
-                    </div>
-                    <button onClick={() => setTelegramDeployId(null)} className="ml-auto text-sky-400 hover:text-sky-600 shrink-0">
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-
-                  <div className="bg-white/60 rounded-xl p-3 flex items-center gap-3">
-                    <span className="font-mono text-sm font-bold text-sky-700 bg-sky-100 px-3 py-1 rounded-lg">{tg.command}</span>
-                    <span className="text-xs text-sky-800">
-                      Available to:{' '}
-                      <span className="font-medium">
-                        {tg.role === 'both' ? 'Managers & Staff' : tg.role === 'manager' ? 'Managers only' : 'Staff'}
-                      </span>
-                    </span>
-                  </div>
-
-                  <div className="space-y-2">
-                    <p className="text-xs font-semibold text-sky-700 uppercase tracking-wide">How to use</p>
-                    <ol className="space-y-1.5 text-xs text-sky-800">
-                      <li className="flex items-start gap-2"><span className="bg-sky-200 text-sky-700 w-4 h-4 rounded-full flex items-center justify-center shrink-0 font-bold">1</span>Connect your Telegram bot in <a href="/settings" className="underline font-medium">Settings → Telegram</a> if you haven't yet.</li>
-                      <li className="flex items-start gap-2"><span className="bg-sky-200 text-sky-700 w-4 h-4 rounded-full flex items-center justify-center shrink-0 font-bold">2</span>Share the {tg.role === 'manager' ? 'Manager' : tg.role === 'staff' ? 'Staff' : 'Manager or Staff'} invite link with your team.</li>
-                      <li className="flex items-start gap-2"><span className="bg-sky-200 text-sky-700 w-4 h-4 rounded-full flex items-center justify-center shrink-0 font-bold">3</span>Anyone on the team can type <span className="font-mono font-bold">{tg.command}</span> to start this workflow instantly.</li>
-                    </ol>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <a
-                      href="/settings#telegram"
-                      className="flex-1 text-center py-2 bg-sky-600 text-white rounded-xl text-sm font-semibold hover:bg-sky-700 transition-colors"
-                    >
-                      Go to Settings
-                    </a>
-                    <button
-                      onClick={() => setTelegramDeployId(null)}
-                      className="px-4 py-2 bg-white border border-sky-200 text-sky-700 rounded-xl text-sm font-medium hover:bg-sky-50 transition-colors"
-                    >
-                      Got it
-                    </button>
-                  </div>
-                  <button
-                    onClick={() => { setTelegramDeployId(null); setStep(2); }}
-                    className="w-full text-center text-xs text-slate-400 hover:text-slate-600 py-1 transition-colors"
-                  >
-                    Or deploy as a scheduled email report instead →
-                  </button>
-                </div>
-              );
-            })()}
+              })()}
+            </div>{/* end split layout */}
           </div>
         )}
 
@@ -641,6 +799,41 @@ export default function WorkflowBuilder() {
                 </div>
               )}
             </div>
+
+            {/* Report preview */}
+            {(() => {
+              const lines = sampleReportLines[selectedWorkflow ?? ''];
+              if (!lines) return null;
+              return (
+                <div className="rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                  {/* Email header */}
+                  <div className="bg-slate-50 border-b border-slate-200 px-4 py-3 flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-brand-dark flex items-center justify-center shrink-0">
+                      <span className="text-white text-[10px] font-bold">HB</span>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-slate-700">Hoursback <span className="text-slate-400 font-normal">&lt;reports@hoursback.ai&gt;</span></p>
+                      <p className="text-[11px] text-slate-400 truncate">📬 {lines[0]}</p>
+                    </div>
+                    <span className="ml-auto text-[10px] text-slate-300 shrink-0">Preview</span>
+                  </div>
+                  {/* Body */}
+                  <div className="bg-white px-4 py-3 relative">
+                    <div className="space-y-1.5">
+                      {lines.slice(1).map((line, i) => (
+                        <p key={i} className="text-xs text-slate-600 font-mono leading-relaxed">{line}</p>
+                      ))}
+                      <p className="text-xs text-slate-300 font-mono">● ············ ···· ··· ···· ···</p>
+                    </div>
+                    {/* Fade overlay */}
+                    <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-white to-transparent pointer-events-none" />
+                  </div>
+                  <div className="bg-slate-50 border-t border-slate-100 px-4 py-2 text-center">
+                    <p className="text-[10px] text-slate-400">This is what you'll receive in your inbox after each run</p>
+                  </div>
+                </div>
+              );
+            })()}
 
             <div className="pt-6 flex justify-between border-t border-slate-200 items-center">
               <button onClick={() => setStep(1)} className="text-slate-500 hover:text-brand-dark px-4 py-2 font-medium">
@@ -892,46 +1085,83 @@ export default function WorkflowBuilder() {
           </div>
         )}
 
-        {/* Step 4: Webhook URL success screen */}
+        {/* Step 4: Success screen */}
         {step === 4 && (
-          <div className="max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-400">
+          <div className="max-w-lg mx-auto animate-in fade-in slide-in-from-bottom-4 duration-400">
             <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 text-center space-y-6">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-                <CheckCheck className="w-8 h-8 text-green-600" />
+              {/* Icon */}
+              <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto border-4 border-green-100">
+                <CheckCheck className="w-9 h-9 text-green-600" />
               </div>
+
+              {/* Headline */}
               <div>
-                <h1 className="text-2xl font-bold mb-2">Workflow deployed!</h1>
-                <p className="text-slate-500">Your webhook is live. Send a POST request to this URL to trigger the workflow.</p>
+                <h1 className="text-2xl font-bold mb-1">You're all set!</h1>
+                <p className="text-slate-500 text-sm">
+                  <span className="font-medium text-brand-dark">{deployedWorkflowTitle}</span> is now live
+                </p>
               </div>
 
-              <div className="text-left bg-slate-50 rounded-2xl border border-slate-200 p-4 space-y-3">
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Your Webhook URL</p>
-                <div className="flex items-center gap-2">
-                  <code className="flex-1 text-xs text-slate-700 break-all font-mono leading-relaxed">
-                    {deployedWebhookUrl}
-                  </code>
-                  <button
-                    onClick={handleCopy}
-                    className="shrink-0 p-2 rounded-lg hover:bg-slate-200 transition-colors"
-                    title="Copy URL"
-                  >
-                    {copied ? <CheckCheck className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4 text-slate-500" />}
-                  </button>
+              {/* Details */}
+              {deployedWebhookUrl ? (
+                <>
+                  <div className="text-left bg-slate-50 rounded-2xl border border-slate-200 p-4 space-y-3">
+                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Your Webhook URL</p>
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 text-xs text-slate-700 break-all font-mono leading-relaxed">
+                        {deployedWebhookUrl}
+                      </code>
+                      <button onClick={handleCopy} className="shrink-0 p-2 rounded-lg hover:bg-slate-200 transition-colors" title="Copy URL">
+                        {copied ? <CheckCheck className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4 text-slate-500" />}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="bg-blue-50 rounded-xl border border-blue-100 p-4 text-left text-sm text-blue-800">
+                    <p className="font-semibold mb-1">How to trigger it:</p>
+                    <p>Send a <code className="bg-blue-100 px-1 rounded">POST</code> request with your data as JSON. The AI agent analyzes the payload and emails you the results.</p>
+                  </div>
+                </>
+              ) : (
+                <div className="text-left bg-slate-50 rounded-2xl border border-slate-100 p-5 space-y-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-white border border-slate-200 rounded-full flex items-center justify-center shrink-0 mt-0.5">
+                      <span className="text-sm">🕐</span>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-0.5">Runs</p>
+                      <p className="text-sm font-medium text-brand-dark capitalize">
+                        {schedule === 'daily' && `Every day at ${runTime}`}
+                        {schedule === 'weekly' && `Every ${runDay} at ${runTime}`}
+                        {schedule === 'monthly' && `Monthly on the 1st at ${runTime}`}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-white border border-slate-200 rounded-full flex items-center justify-center shrink-0 mt-0.5">
+                      <span className="text-sm">📧</span>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-0.5">Results sent to</p>
+                      <p className="text-sm font-medium text-brand-dark">{notifyEmail}</p>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              <div className="bg-blue-50 rounded-xl border border-blue-100 p-4 text-left text-sm text-blue-800 space-y-1">
-                <p className="font-semibold">How to use:</p>
-                <p>Send a <code className="bg-blue-100 px-1 rounded">POST</code> request with your data as JSON. The AI agent will analyze the payload and email you the results.</p>
-              </div>
-
-              <div className="flex gap-3 justify-center pt-2">
+              {/* CTAs */}
+              <div className="flex flex-col gap-3 pt-2">
                 <Link to="/workflows">
-                  <button className="bg-brand-dark text-white px-6 py-2.5 rounded-full font-medium hover:bg-brand-dark/90 transition-colors flex items-center gap-2">
+                  <button className="w-full bg-brand-dark text-white px-6 py-3 rounded-full font-medium hover:bg-brand-dark/90 transition-colors flex items-center justify-center gap-2">
                     <ExternalLink className="w-4 h-4" />
                     View My Workflows
                   </button>
                 </Link>
+                <button
+                  onClick={() => { setStep(1); setSelectedWorkflow(''); setDeployedWebhookUrl(''); setDeployedWorkflowTitle(''); }}
+                  className="w-full text-slate-500 hover:text-brand-dark text-sm py-2 font-medium transition-colors"
+                >
+                  Deploy another workflow →
+                </button>
               </div>
             </div>
           </div>

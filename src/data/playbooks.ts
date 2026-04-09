@@ -977,8 +977,8 @@ export const pricingPlans = [
     ],
     cta: "Upgrade to Pro",
     popular: true,
-    monthlyPrice: 20,
-    annualPrice: 16,
+    monthlyPrice: 9900,
+    annualPrice: 7900,
   },
   {
     name: "Custom",

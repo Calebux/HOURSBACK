@@ -67,6 +67,108 @@ function SuccessRateBadge({ rate, total }: { rate: number | null; total: number 
   );
 }
 
+function FirstRunOnboarding({ user }: { user: any }) {
+  const firstName = (user?.user_metadata?.name || user?.email || '').split(/[\s@]/)[0] || 'there';
+
+  const starters = [
+    {
+      id: 'wkflow-55',
+      title: '5-Line Profit Check',
+      category: 'Finance',
+      color: '#4285F4',
+      desc: 'Upload your bank statement or paste your sales & expense sheet. Get a complete 5-Line Income Statement — Revenue, COGS, Gross Profit, Operating Expenses, Net Profit — with plain-English interpretation and specific flags for theft risk, vendor price hikes, and pricing opportunities you\'re leaving on the table.',
+      time: '2 min setup',
+    },
+    {
+      id: 'wkflow-14',
+      title: 'Weekly Cash Flow Report',
+      category: 'Finance',
+      color: '#10b981',
+      desc: 'Connects to your Google Sheets income & expense data. Delivers a weekly cash position summary every Monday morning — so you always know your runway before the week starts.',
+      time: '5 min setup',
+    },
+    {
+      id: 'wkflow-7',
+      title: 'Industry News Digest',
+      category: 'Research',
+      color: '#6366f1',
+      desc: 'Monitors news and publications in your niche every week. Curated digest of the trends you actually need to know — without spending hours reading through noise.',
+      time: '3 min setup',
+    },
+    {
+      id: 'wkflow-5',
+      title: 'Competitor Monitor',
+      category: 'Marketing',
+      color: '#f59e0b',
+      desc: 'Watches your competitors\' websites for price changes, new product launches, and messaging shifts. Weekly alert so you\'re never caught off guard.',
+      time: '3 min setup',
+    },
+  ];
+
+  return (
+    <div className="max-w-2xl mx-auto py-6 space-y-10">
+      {/* Greeting */}
+      <div className="text-center space-y-3">
+        <div className="w-14 h-14 bg-brand-dark rounded-2xl flex items-center justify-center mx-auto text-white text-xl font-bold">
+          {(user?.email?.[0] || 'H').toUpperCase()}
+        </div>
+        <div>
+          <h2 className="text-2xl font-bold">Welcome, {firstName}</h2>
+          <p className="text-slate-500 text-sm mt-1.5 max-w-sm mx-auto">
+            Pick a workflow to get started. Setup takes under 5 minutes — then it runs automatically on a schedule you choose.
+          </p>
+        </div>
+      </div>
+
+      {/* Starter workflows */}
+      <div className="space-y-3">
+        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Recommended starting points</p>
+        <div className="space-y-3">
+        {starters.map(wf => (
+          <Link key={wf.id} to={`/workflows/new?id=${wf.id}`}>
+            <div className="bg-white border-2 border-slate-100 rounded-2xl p-5 flex items-center gap-4 hover:border-brand-dark/20 hover:shadow-sm transition-all cursor-pointer group">
+              <div className="w-1 self-stretch rounded-full shrink-0" style={{ backgroundColor: wf.color }} />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md" style={{ backgroundColor: `${wf.color}15`, color: wf.color }}>{wf.category}</span>
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-600 border border-emerald-100">Free</span>
+                </div>
+                <p className="font-bold text-sm text-brand-dark leading-snug">{wf.title}</p>
+                <p className="text-xs text-slate-500 mt-1 leading-relaxed">{wf.desc}</p>
+              </div>
+              <div className="flex flex-col items-end gap-2 shrink-0">
+                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center group-hover:bg-brand-dark group-hover:text-white transition-all">
+                  <Plus className="w-4 h-4" />
+                </div>
+                <span className="text-[11px] text-slate-400">{wf.time}</span>
+              </div>
+            </div>
+          </Link>
+        ))}
+        </div>
+        <Link to="/workflows/new" className="flex items-center justify-center gap-1 text-sm text-slate-400 hover:text-brand-dark transition-colors py-2">
+          Browse all 50+ workflows →
+        </Link>
+      </div>
+
+      {/* How it works */}
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { n: '1', t: 'Connect your data', d: 'Paste a Google Sheets URL or website link. Takes 30 seconds.' },
+          { n: '2', t: 'Set a schedule', d: 'Daily, weekly, or monthly — runs automatically, no input needed.' },
+          { n: '3', t: 'Inbox insights', d: 'A plain-English report lands in your email every time it runs.' },
+        ].map(s => (
+          <div key={s.n} className="bg-white rounded-2xl p-4 border border-slate-100 text-center">
+            <div className="w-7 h-7 rounded-full bg-brand-dark text-white text-xs font-bold flex items-center justify-center mx-auto mb-2.5">{s.n}</div>
+            <p className="font-semibold text-xs text-brand-dark mb-1">{s.t}</p>
+            <p className="text-[11px] text-slate-400 leading-relaxed">{s.d}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function WorkflowsDashboard() {
   const { user, refreshPro, isPro } = useAuth();
   const navigate = useNavigate();
@@ -197,8 +299,82 @@ export default function WorkflowsDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-brand-light flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-dark" />
+      <div className="min-h-screen bg-brand-light text-brand-dark">
+        {/* Nav skeleton */}
+        <nav className="border-b border-brand-dark/10 bg-brand-light/80 backdrop-blur-md sticky top-0 z-50">
+          <div className="container mx-auto px-6 py-4 flex items-center justify-between">
+            <div className="h-9 w-36 bg-slate-200 rounded-lg animate-pulse" />
+            <div className="flex items-center gap-3">
+              <div className="h-7 w-20 bg-slate-200 rounded-full animate-pulse" />
+              <div className="h-7 w-24 bg-slate-200 rounded-full animate-pulse" />
+              <div className="w-8 h-8 bg-slate-200 rounded-full animate-pulse" />
+            </div>
+          </div>
+        </nav>
+
+        <div className="container mx-auto px-6 py-8 max-w-6xl">
+          {/* Header skeleton */}
+          <div className="flex items-center justify-between mb-8">
+            <div className="space-y-2">
+              <div className="h-8 w-44 bg-slate-200 rounded-lg animate-pulse" />
+              <div className="h-4 w-64 bg-slate-100 rounded animate-pulse" />
+            </div>
+            <div className="h-10 w-36 bg-slate-200 rounded-full animate-pulse" />
+          </div>
+
+          {/* Stats skeleton */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="bg-white rounded-2xl border border-brand-dark/10 p-4 flex items-center gap-3">
+                <div className="w-10 h-10 bg-slate-100 rounded-xl animate-pulse" />
+                <div className="space-y-2">
+                  <div className="h-6 w-12 bg-slate-200 rounded animate-pulse" />
+                  <div className="h-3 w-24 bg-slate-100 rounded animate-pulse" />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Workflow cards skeleton */}
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="md:col-span-2 space-y-4">
+              {[1, 2].map(i => (
+                <div key={i} className="bg-white rounded-2xl border border-slate-200 p-5">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="space-y-2">
+                      <div className="h-5 w-48 bg-slate-200 rounded animate-pulse" />
+                      <div className="h-3 w-32 bg-slate-100 rounded animate-pulse" />
+                    </div>
+                    <div className="h-6 w-16 bg-slate-100 rounded-full animate-pulse" />
+                  </div>
+                  <div className="flex gap-1.5 mt-4">
+                    {[1,2,3,4,5,6].map(j => (
+                      <div key={j} className="w-2 h-2 bg-slate-100 rounded-full animate-pulse" />
+                    ))}
+                  </div>
+                  <div className="flex gap-2 mt-4 pt-3 border-t border-slate-100">
+                    <div className="h-8 w-20 bg-slate-100 rounded-full animate-pulse" />
+                    <div className="h-8 w-16 bg-slate-100 rounded-full animate-pulse" />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="space-y-4">
+              <div className="bg-white rounded-2xl border border-slate-200 p-5 space-y-3">
+                <div className="h-5 w-28 bg-slate-200 rounded animate-pulse" />
+                {[1,2,3].map(i => (
+                  <div key={i} className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-slate-100 rounded-full animate-pulse shrink-0" />
+                    <div className="space-y-1.5 flex-1">
+                      <div className="h-3 w-full bg-slate-100 rounded animate-pulse" />
+                      <div className="h-3 w-2/3 bg-slate-100 rounded animate-pulse" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -284,6 +460,23 @@ export default function WorkflowsDashboard() {
             )}
             <SuccessRateBadge rate={stats.rate} total={stats.total} />
           </div>
+
+          {/* Mini run history dots */}
+          {stats.total > 0 && (() => {
+            const recent = runs.filter(r => r.workflow_id === workflow.id).slice(0, 8);
+            return (
+              <div className="flex items-center gap-1.5 mt-3">
+                <span className="text-[10px] text-slate-400 mr-0.5">Last {recent.length} runs</span>
+                {recent.reverse().map((r, i) => (
+                  <div
+                    key={r.id}
+                    title={`${r.status === 'success' ? '✓' : '✗'} ${timeAgo(r.created_at)}`}
+                    className={`w-2 h-2 rounded-full ${r.status === 'success' ? 'bg-emerald-400' : 'bg-red-400'}`}
+                  />
+                ))}
+              </div>
+            );
+          })()}
 
           {/* Next run */}
           {isScheduled && workflow.next_run && (
@@ -388,7 +581,7 @@ export default function WorkflowsDashboard() {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="font-semibold text-slate-900 text-sm">Unlock powerful Pro workflows</p>
-                <p className="text-slate-500 text-xs mt-0.5">$20/month · Cancel anytime</p>
+                <p className="text-slate-500 text-xs mt-0.5">₦9,900/month · Cancel anytime</p>
               </div>
               <ProUpgradeButton className="shrink-0 bg-purple-600 text-white px-4 py-2 rounded-full text-sm font-semibold hover:bg-purple-700 transition-colors flex items-center gap-1.5 whitespace-nowrap">
                 Upgrade to Pro →
@@ -497,88 +690,37 @@ export default function WorkflowsDashboard() {
           </div>
         )}
 
+        {workflows.length === 0 ? (
+          <FirstRunOnboarding user={user} />
+        ) : (
         <div className="grid md:grid-cols-3 gap-8">
           {/* Workflow cards */}
           <div className="md:col-span-2 space-y-8">
-            {workflows.length === 0 ? (
-              <div className="space-y-6">
-                {/* Hero empty state */}
-                <div className="bg-white rounded-3xl p-10 border border-brand-dark/10 text-center">
-                  <div className="w-16 h-16 bg-brand-dark rounded-2xl flex items-center justify-center mx-auto mb-5">
-                    <Bot className="w-8 h-8 text-white" />
-                  </div>
-                  <h3 className="text-xl font-bold mb-2">Deploy your first AI workflow</h3>
-                  <p className="text-brand-dark/60 max-w-md mx-auto mb-6">
-                    Pick a workflow, connect your data source, and Hoursback will monitor it automatically — delivering insights to your inbox on schedule.
-                  </p>
-                  <Link to="/workflows/new">
-                    <button className="bg-brand-dark text-white px-6 py-3 rounded-full font-medium hover:bg-brand-dark/90 transition-colors inline-flex items-center gap-2">
-                      <Plus className="w-4 h-4" /> Deploy Your First Workflow
-                    </button>
-                  </Link>
+            <>
+              {/* Active */}
+              {activeWorkflows.length > 0 && (
+                <div className="space-y-4">
+                  <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                    Active — {activeWorkflows.length}
+                  </h2>
+                  {activeWorkflows.map(wf => <WorkflowCard key={wf.id} workflow={wf} />)}
                 </div>
+              )}
 
-                {/* How it works */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-                  {[
-                    { step: '1', title: 'Choose a workflow', desc: 'Pick from 15 pre-built AI workflows for business intelligence.' },
-                    { step: '2', title: 'Connect your data', desc: 'Link a Google Sheet, website, or paste keywords — takes 30 seconds.' },
-                    { step: '3', title: 'Get automatic reports', desc: 'Hoursback runs on your schedule and emails you insights.' },
-                  ].map(({ step, title, desc }) => (
-                    <div key={step} className="bg-white rounded-2xl p-5 border border-brand-dark/10">
-                      <div className="w-8 h-8 rounded-full bg-brand-dark text-white text-sm font-bold flex items-center justify-center mb-3">{step}</div>
-                      <p className="font-semibold text-sm mb-1">{title}</p>
-                      <p className="text-xs text-slate-500 leading-relaxed">{desc}</p>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Popular starting workflows */}
-                <div className="bg-white rounded-2xl border border-brand-dark/10 p-5">
-                  <p className="text-sm font-semibold text-slate-500 mb-3">Popular starting workflows</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                    {[
-                      { id: 'wkflow-7', name: 'Industry News Digest', tag: 'Free', color: 'bg-indigo-50 text-indigo-700' },
-                      { id: 'wkflow-8', name: 'Brand Mention Monitor', tag: 'Free', color: 'bg-pink-50 text-pink-700' },
-                      { id: 'wkflow-14', name: 'Cash Flow Weekly', tag: 'Free', color: 'bg-emerald-50 text-emerald-700' },
-                    ].map(wf => (
-                      <Link key={wf.id} to={`/workflows/new?id=${wf.id}`}>
-                        <div className="flex items-center justify-between p-3 rounded-xl border border-slate-200 hover:border-brand-blue/40 hover:bg-blue-50/20 transition-all cursor-pointer">
-                          <span className="text-sm font-medium">{wf.name}</span>
-                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${wf.color}`}>{wf.tag}</span>
-                        </div>
-                      </Link>
-                    ))}
+              {/* Paused */}
+              {pausedWorkflows.length > 0 && (
+                <div className="space-y-4">
+                  <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-slate-300" />
+                    Paused — {pausedWorkflows.length}
+                  </h2>
+                  <div className="opacity-70">
+                    {pausedWorkflows.map(wf => <WorkflowCard key={wf.id} workflow={wf} />)}
                   </div>
                 </div>
-              </div>
-            ) : (
-              <>
-                {/* Active */}
-                {activeWorkflows.length > 0 && (
-                  <div className="space-y-4">
-                    <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                      Active — {activeWorkflows.length}
-                    </h2>
-                    {activeWorkflows.map(wf => <WorkflowCard key={wf.id} workflow={wf} />)}
-                  </div>
-                )}
-
-                {/* Paused */}
-                {pausedWorkflows.length > 0 && (
-                  <div className="space-y-4">
-                    <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-slate-300" />
-                      Paused — {pausedWorkflows.length}
-                    </h2>
-                    <div className="opacity-70">
-                      {pausedWorkflows.map(wf => <WorkflowCard key={wf.id} workflow={wf} />)}
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
+              )}
+            </>
           </div>
 
           {/* Recent runs + Telegram Activity */}
@@ -709,6 +851,7 @@ export default function WorkflowsDashboard() {
             </div>
           </div>
         </div>
+        )}{/* end workflows.length > 0 */}
       </div>
 
       <MobileNav />

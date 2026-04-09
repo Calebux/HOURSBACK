@@ -18,7 +18,7 @@ export function ProUpgradeButton({ className, children }: Props) {
   const config = useMemo(() => ({
     public_key: import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY,
     tx_ref: txRef,
-    amount: Math.floor(20 * 1500),
+    amount: 9900,
     currency: 'NGN',
     payment_options: 'card,mobilemoney,ussd',
     customer: {
@@ -29,7 +29,7 @@ export function ProUpgradeButton({ className, children }: Props) {
     meta: { user_id: user?.id || '' },
     customizations: {
       title: 'Hoursback Pro',
-      description: 'Unlock all workflows — $20/month',
+      description: 'Unlock all workflows — ₦9,900/month',
       logo: 'https://i.ibb.co/L5hY5M0/logo.png',
     },
   }), [user, txRef]);

@@ -34,7 +34,7 @@ const configs: Record<ComparisonKey, ComparisonConfig> = {
       { label: 'Email report delivery', hoursback: true, them: 'partial' },
       { label: 'Anomaly detection in data', hoursback: true, them: false },
       { label: 'Free tier available', hoursback: true, them: true },
-      { label: 'Price for advanced automations', hoursback: '$20/mo', them: '$49–$69/mo' } as any,
+      { label: 'Price for advanced automations', hoursback: '₦9,900/mo', them: '$49–$69/mo' } as any,
     ],
     hoursbackWhen: [
       'You want AI to analyse your data and explain what changed',
@@ -97,7 +97,7 @@ const configs: Record<ComparisonKey, ComparisonConfig> = {
       { label: 'Catches anomalies automatically', hoursback: true, them: false },
       { label: 'Zero marginal cost per extra report', hoursback: true, them: false },
       { label: 'Requires hiring someone', hoursback: false, them: 'partial' },
-      { label: 'Monthly cost (team of 2, $50/hr rate)', hoursback: '$20', them: '$2,580+' } as any,
+      { label: 'Monthly cost (team of 2, $50/hr rate)', hoursback: '₦9,900', them: '$2,580+' } as any,
     ],
     hoursbackWhen: [
       'You repeat the same report task every week or month',

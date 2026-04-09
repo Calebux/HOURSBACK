@@ -75,6 +75,7 @@ function AppWithOnboarding() {
           <Route path="/workspace" element={<Navigate to="/workflows" replace />} />
           <Route path="/workflows" element={<WorkflowsDashboard />} />
           <Route path="/workflows/new" element={<WorkflowBuilder />} />
+          <Route path="/browse" element={<Navigate to="/workflows/new" replace />} />
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/account" element={<AccountPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
