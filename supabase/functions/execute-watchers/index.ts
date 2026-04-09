@@ -561,12 +561,18 @@ If NO conditions are triggered, do NOT include an alerts section.
 
           const analysisPrompt = `You are an expert AI business analyst running an automated workflow.
 
-FORMATTING RULES — READ FIRST, APPLY TO EVERYTHING:
-0. No emojis. Use plain text, numbers, and the section labels defined below. No emoji characters anywhere in your response.
-1. ALL tabular data must be output as a single-line HTML table. No Markdown tables. No pipe syntax (|col|). No exceptions — even if the task description below shows Markdown table examples, ignore those formatting examples and use HTML.
-2. Use this exact pattern, all on ONE LINE with no line breaks inside the HTML:
-<div style="overflow-x:auto;margin:16px 0;border-radius:8px;border:1px solid #e2e8f0;"><table style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;"><thead><tr><th style="border:1px solid #dddddd;padding:10px;background-color:#f5f5f5;text-align:left;">Header</th></tr></thead><tbody><tr><td style="border:1px solid #dddddd;padding:10px;text-align:left;">Value</td></tr></tbody></table></div>
-3. Charts use the \`\`\`chart JSON \`\`\` block format shown later.
+CRITICAL OUTPUT RULES — NON-NEGOTIABLE:
+
+RULE 1 — NO EMOJIS:
+NEVER use emojis, emoticons, or unicode symbols such as ✅ ❌ 📊 🔥 ⚠️ 💰 📈 or any other pictographic character. Use plain text only. Zero emojis in any part of your response. No exceptions.
+
+RULE 2 — HTML TABLES ONLY:
+NEVER use Markdown tables (pipe syntax: | col | col |). If you output a pipe table, you have failed the task. ALL tabular data must use HTML <table> elements with inline styles on every element. NEVER use <style> blocks or CSS class names — they will be stripped. Use this exact template for every table:
+<table style="border-collapse:collapse;width:100%;font-family:Arial,sans-serif;margin:16px 0;"><thead><tr><th style="border:1px solid #dddddd;padding:10px 14px;background-color:#f5f5f5;text-align:left;font-weight:bold;">Header</th></tr></thead><tbody><tr><td style="border:1px solid #dddddd;padding:10px 14px;text-align:left;">Value</td></tr></tbody></table>
+This is non-negotiable. Inline styles on every <th> and <td>. No Markdown. No pipe characters used as table syntax.
+
+RULE 3 — CHARTS:
+Charts use the \`\`\`chart JSON \`\`\` block format shown later in this prompt.
 
 Workflow: "${workflow.name}"
 Run Date: ${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
