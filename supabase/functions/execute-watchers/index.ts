@@ -163,27 +163,37 @@ function buildQuickChartUrl(spec: string): string | null {
 
 // Converts markdown to email HTML, rendering ```chart blocks as <img> tags
 function renderEmailHtml(md: string): string {
-  // Step 1: extract chart blocks and replace with placeholder tokens
-  const chartHtmlMap = new Map<string, string>();
+  const tokenMap = new Map<string, string>();
   let idx = 0;
-  const mdWithTokens = md.replace(/```chart\s*([\s\S]*?)(?:```|$)/g, (_, spec) => {
+
+  // Step 1: extract multi-line HTML block elements before line-by-line processing
+  // (handles cases where LLM outputs <div><table>...</table></div> across multiple lines)
+  const mdNoHtmlBlocks = md.replace(/<(div|table)\b[\s\S]*?<\/\1>/gi, (match) => {
+    const token = `HBHTMLTOK${idx++}`;
+    tokenMap.set(`<p style="margin:8px 0;line-height:1.6;">${token}</p>`, match);
+    tokenMap.set(token, match); // fallback: token appears bare on its own line
+    return token;
+  });
+
+  // Step 2: extract chart blocks
+  const mdWithTokens = mdNoHtmlBlocks.replace(/```chart\s*([\s\S]*?)(?:```|$)/g, (_, spec) => {
     const token = `HBCHARTTOK${idx++}`;
     const url = buildQuickChartUrl(spec.trim());
     if (!url) return '';
     const title = tryParseJson(spec.trim())?.title || '';
-    chartHtmlMap.set(
+    tokenMap.set(
       `<p style="margin:8px 0;line-height:1.6;">${token}</p>`,
       `<div style="margin:16px 0;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0;background:#fff;">${title ? `<p style="margin:0;padding:12px 16px 4px;font-size:13px;font-weight:600;color:#374151;">${title}</p>` : ''}<img src="${url}" alt="${title || 'Chart'}" width="600" style="width:100%;max-width:600px;display:block;" /></div>`
     );
     return token;
   });
 
-  // Step 2: convert remaining markdown to HTML
+  // Step 3: convert remaining markdown to HTML
   let html = markdownToHtml(mdWithTokens);
 
-  // Step 3: replace token paragraphs with chart img blocks
-  for (const [placeholder, chartHtml] of chartHtmlMap.entries()) {
-    html = html.replace(placeholder, chartHtml);
+  // Step 4: re-inject all preserved HTML blocks
+  for (const [placeholder, content] of tokenMap.entries()) {
+    html = html.replace(placeholder, content);
   }
   return html;
 }
@@ -595,20 +605,11 @@ Chart type rules:
 - "pie" → parts of a whole / percentages
 
 IMPORTANT — TABLE FORMATTING:
-When presenting tabular data, always output a raw HTML table with inline styles. Never use Markdown tables (no pipe syntax). Use this exact pattern:
+When presenting tabular data, always output a raw HTML table with inline styles. Never use Markdown tables (no pipe syntax). The ENTIRE table must be on a SINGLE LINE — no newlines inside the HTML markup. Use this exact single-line pattern:
 
-<div style="overflow-x:auto;margin:16px 0;border-radius:8px;border:1px solid #e2e8f0;">
-<table style="width:100%;border-collapse:collapse;font-family:-apple-system,sans-serif;">
-<thead><tr>
-<th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:#6b7280;background:#f8fafc;border-bottom:2px solid #e2e8f0;">Column</th>
-</tr></thead>
-<tbody>
-<tr style="background:white;"><td style="padding:10px 14px;font-size:13px;color:#111827;border-bottom:1px solid #f3f4f6;">Value</td></tr>
-</tbody>
-</table>
-</div>
+<div style="overflow-x:auto;margin:16px 0;border-radius:8px;border:1px solid #e2e8f0;"><table style="width:100%;border-collapse:collapse;font-family:-apple-system,sans-serif;"><thead><tr><th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:#6b7280;background:#f8fafc;border-bottom:2px solid #e2e8f0;">Column A</th><th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:#6b7280;background:#f8fafc;border-bottom:2px solid #e2e8f0;">Column B</th></tr></thead><tbody><tr style="background:white;"><td style="padding:10px 14px;font-size:13px;color:#111827;border-bottom:1px solid #f3f4f6;">Row 1 A</td><td style="padding:10px 14px;font-size:13px;color:#4b5563;border-bottom:1px solid #f3f4f6;">Row 1 B</td></tr><tr style="background:#fafafa;"><td style="padding:10px 14px;font-size:13px;color:#111827;border-bottom:1px solid #f3f4f6;">Row 2 A</td><td style="padding:10px 14px;font-size:13px;color:#4b5563;border-bottom:1px solid #f3f4f6;">Row 2 B</td></tr></tbody></table></div>
 
-Alternate row backgrounds: odd rows white (#ffffff), even rows #fafafa.
+Critical: no line breaks inside the HTML. The entire <div>...</div> must be one unbroken line. Alternate row backgrounds: odd rows white, even rows #fafafa.
 
 Strict rules:
 1. ONLY use numbers that actually appear in the current data. Never fabricate chart data.

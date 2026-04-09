@@ -265,6 +265,40 @@ export default function ReportsPage() {
                       {isSuccess && run.generated_output ? (
                         <>
                           <div ref={el => { reportRefs.current[run.id] = el; }} className="bg-white p-2">
+                            {/* Report header */}
+                            <div className="mb-6 pb-5 border-b border-slate-100">
+                              <div className="flex items-start justify-between gap-4 flex-wrap">
+                                <div>
+                                  <h2 className="text-xl font-bold text-brand-dark leading-tight">
+                                    {wf?.name || 'Report'}
+                                  </h2>
+                                  <p className="text-sm text-brand-dark/50 mt-1">
+                                    {runDate.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                                    {' · '}
+                                    {runDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                                  </p>
+                                </div>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  {wf?.category && (
+                                    <span className="text-xs px-2.5 py-1 bg-slate-100 text-slate-600 rounded-full font-medium border border-slate-200">
+                                      {wf.category}
+                                    </span>
+                                  )}
+                                  {confidence && (
+                                    <span className={`text-xs px-2.5 py-1 rounded-full font-medium border ${
+                                      confidence.level === 'high'   ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                      confidence.level === 'medium' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                                                                      'bg-slate-100 text-slate-500 border-slate-200'
+                                    }`}>
+                                      {confidence.score}% confidence
+                                    </span>
+                                  )}
+                                  <span className="text-xs px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full font-medium">
+                                    Run complete
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
                             <ReportRenderer output={run.generated_output} />
                           </div>
 
