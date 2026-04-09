@@ -76,18 +76,20 @@ export default function DataSourcesPage() {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<DataSource | null>(null);
 
+  async function load() {
+    const [{ data: s }, { data: st }] = await Promise.all([
+      supabase.from('data_sources').select('*').eq('user_id', user!.id).order('created_at', { ascending: false }),
+      supabase.from('telegram_connections').select('chat_id, first_name, username, role').eq('user_id', user!.id),
+    ]);
+    if (s) setSources(s);
+    if (st) setStaff(st as StaffMember[]);
+    setLoading(false);
+  }
+
   useEffect(() => {
     if (!user) { navigate('/'); return; }
-    async function load() {
-      const [{ data: s }, { data: st }] = await Promise.all([
-        supabase.from('data_sources').select('*').eq('user_id', user!.id).order('created_at', { ascending: false }),
-        supabase.from('telegram_connections').select('chat_id, first_name, username, role').eq('user_id', user!.id),
-      ]);
-      if (s) setSources(s);
-      if (st) setStaff(st as StaffMember[]);
-      setLoading(false);
-    }
     load();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, navigate]);
 
   async function handleVerify(source: DataSource) {
