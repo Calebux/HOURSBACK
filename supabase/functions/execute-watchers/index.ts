@@ -192,14 +192,43 @@ function renderEmailHtml(md: string): string {
     return token;
   });
 
-  // Step 2: extract markdown pipe tables → render to HTML
-  const mdNoTables = mdNoHtmlBlocks.replace(/^(\|.+\|\n?){2,}/gm, (block) => {
-    const token = `HBTABLETOK${idx++}`;
-    const rendered = renderMarkdownTableForEmail(block);
-    tokenMap.set(`<p style="margin:8px 0;line-height:1.6;">${token}</p>`, rendered);
-    tokenMap.set(token, rendered);
-    return token;
-  });
+  // Step 2: collect markdown pipe tables line-by-line (handles blank lines between rows)
+  // The LLM often puts a blank line after every row — regex won't catch this, so we walk line by line.
+  let mdNoTables = '';
+  {
+    const lines = mdNoHtmlBlocks.split('\n');
+    const parts: string[] = [];
+    let tableLines: string[] = [];
+
+    const flushTable = () => {
+      if (tableLines.length === 0) return;
+      const nonBlank = tableLines.filter(l => l.trim() !== '');
+      const isPipeRow = (l: string) => l.trimStart().startsWith('|');
+      if (nonBlank.filter(isPipeRow).length >= 2) {
+        const token = `HBTABLETOK${idx++}`;
+        const rendered = renderMarkdownTableForEmail(nonBlank.join('\n'));
+        tokenMap.set(`<p style="margin:8px 0;line-height:1.6;">${token}</p>`, rendered);
+        tokenMap.set(token, rendered);
+        parts.push(token);
+      } else {
+        parts.push(...tableLines);
+      }
+      tableLines = [];
+    };
+
+    for (const line of lines) {
+      if (line.trimStart().startsWith('|')) {
+        tableLines.push(line);                          // pipe row — part of table
+      } else if (line.trim() === '' && tableLines.length > 0) {
+        tableLines.push(line);                          // blank line inside table — keep collecting
+      } else {
+        flushTable();
+        parts.push(line);
+      }
+    }
+    flushTable();
+    mdNoTables = parts.join('\n');
+  }
 
   // Step 3: extract chart blocks
   const mdWithTokens = mdNoTables.replace(/```chart\s*([\s\S]*?)(?:```|$)/g, (_, spec) => {
