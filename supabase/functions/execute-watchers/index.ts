@@ -16,7 +16,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-function computeNextRun(schedule: string, time = "08:00", day = "monday"): string {
+function computeNextRun(schedule: string, time = "08:00", day = "monday", monthDay = 1): string {
   const now = new Date();
   const [h, m] = time.split(":").map(Number);
 
@@ -40,6 +40,24 @@ function computeNextRun(schedule: string, time = "08:00", day = "monday"): strin
     let diff = (target - next.getDay() + 7) % 7;
     if (diff === 0 && next <= now) diff = 7;
     next.setDate(next.getDate() + diff);
+    return next.toISOString();
+  }
+
+  if (schedule === "biweekly") {
+    const next = new Date();
+    next.setHours(h, m, 0, 0);
+    next.setDate(next.getDate() + 14);
+    return next.toISOString();
+  }
+
+  if (schedule === "monthly") {
+    const next = new Date();
+    next.setHours(h, m, 0, 0);
+    next.setDate(monthDay);
+    if (next <= now) {
+      next.setMonth(next.getMonth() + 1);
+      next.setDate(monthDay);
+    }
     return next.toISOString();
   }
 
@@ -649,7 +667,7 @@ Strict rules:
 
       await supabase.from("workflows").update({
         last_run: now,
-        next_run: manualWorkflowId ? undefined : computeNextRun(triggerConfig.schedule || "daily", triggerConfig.time || "08:00", triggerConfig.day || "monday"),
+        next_run: manualWorkflowId ? undefined : computeNextRun(triggerConfig.schedule || "daily", triggerConfig.time || "08:00", triggerConfig.day || "monday", triggerConfig.monthDay || 1),
       }).eq("id", workflow.id);
 
       runsCount++;

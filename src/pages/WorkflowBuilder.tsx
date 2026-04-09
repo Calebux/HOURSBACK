@@ -261,6 +261,7 @@ export default function WorkflowBuilder() {
   const [schedule, setSchedule] = useState('weekly');
   const [runTime, setRunTime] = useState('08:00');
   const [runDay, setRunDay] = useState('monday');
+  const [runMonthDay, setRunMonthDay] = useState(1);
   const [notifyEmail, setNotifyEmail] = useState(user?.email ?? '');
   const [teamEmails, setTeamEmails] = useState('');
   const [dataSource, setDataSource] = useState('');
@@ -317,7 +318,7 @@ export default function WorkflowBuilder() {
     try {
       const validAlerts = alerts.filter(a => a.metric.trim() && a.value.trim());
       const trigger_config = triggerType === 'schedule'
-        ? { type: 'schedule', schedule, time: runTime, ...(schedule === 'weekly' ? { day: runDay } : {}), ...(validAlerts.length ? { alerts: validAlerts } : {}) }
+        ? { type: 'schedule', schedule, time: runTime, ...(schedule === 'weekly' || schedule === 'biweekly' ? { day: runDay } : {}), ...(schedule === 'monthly' ? { monthDay: runMonthDay } : {}), ...(validAlerts.length ? { alerts: validAlerts } : {}) }
         : { type: 'webhook', ...(validAlerts.length ? { alerts: validAlerts } : {}) };
 
       const dsConfig = dataSourceMode === 'excel' && xlsxPath
@@ -759,14 +760,16 @@ export default function WorkflowBuilder() {
                       <option value="hourly">Hourly</option>
                       <option value="daily">Daily</option>
                       <option value="weekly">Weekly</option>
+                      <option value="biweekly">Every 2 weeks</option>
+                      <option value="monthly">Monthly</option>
                     </select>
                   </div>
 
                   {schedule !== 'hourly' && (
                     <div className="grid grid-cols-2 gap-4">
-                      {schedule === 'weekly' && (
+                      {(schedule === 'weekly' || schedule === 'biweekly') && (
                         <div>
-                          <label className="block font-semibold mb-2">Day</label>
+                          <label className="block font-semibold mb-2">{schedule === 'biweekly' ? 'Starting day' : 'Day'}</label>
                           <select
                             value={runDay}
                             onChange={e => setRunDay(e.target.value)}
@@ -778,7 +781,21 @@ export default function WorkflowBuilder() {
                           </select>
                         </div>
                       )}
-                      <div className={schedule === 'weekly' ? '' : 'col-span-2'}>
+                      {schedule === 'monthly' && (
+                        <div>
+                          <label className="block font-semibold mb-2">Day of month</label>
+                          <select
+                            value={runMonthDay}
+                            onChange={e => setRunMonthDay(Number(e.target.value))}
+                            className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue outline-none"
+                          >
+                            {[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28].map(d => (
+                              <option key={d} value={d}>{d}{d===1?'st':d===2?'nd':d===3?'rd':'th'} of the month</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                      <div className={schedule === 'weekly' || schedule === 'biweekly' || schedule === 'monthly' ? '' : 'col-span-2'}>
                         <label className="block font-semibold mb-2">Time</label>
                         <input
                           type="time"
@@ -1132,7 +1149,9 @@ export default function WorkflowBuilder() {
                       <p className="text-sm font-medium text-brand-dark capitalize">
                         {schedule === 'daily' && `Every day at ${runTime}`}
                         {schedule === 'weekly' && `Every ${runDay} at ${runTime}`}
-                        {schedule === 'monthly' && `Monthly on the 1st at ${runTime}`}
+                        {schedule === 'biweekly' && `Every 2 weeks (${runDay}) at ${runTime}`}
+                        {schedule === 'monthly' && `Monthly on the ${runMonthDay}${runMonthDay===1?'st':runMonthDay===2?'nd':runMonthDay===3?'rd':'th'} at ${runTime}`}
+                        {schedule === 'hourly' && `Every hour`}
                       </p>
                     </div>
                   </div>
