@@ -594,6 +594,22 @@ Chart type rules:
 - "line" → trend over time (weeks, months, quarters)
 - "pie" → parts of a whole / percentages
 
+IMPORTANT — TABLE FORMATTING:
+When presenting tabular data, always output a raw HTML table with inline styles. Never use Markdown tables (no pipe syntax). Use this exact pattern:
+
+<div style="overflow-x:auto;margin:16px 0;border-radius:8px;border:1px solid #e2e8f0;">
+<table style="width:100%;border-collapse:collapse;font-family:-apple-system,sans-serif;">
+<thead><tr>
+<th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:#6b7280;background:#f8fafc;border-bottom:2px solid #e2e8f0;">Column</th>
+</tr></thead>
+<tbody>
+<tr style="background:white;"><td style="padding:10px 14px;font-size:13px;color:#111827;border-bottom:1px solid #f3f4f6;">Value</td></tr>
+</tbody>
+</table>
+</div>
+
+Alternate row backgrounds: odd rows white (#ffffff), even rows #fafafa.
+
 Strict rules:
 1. ONLY use numbers that actually appear in the current data. Never fabricate chart data.
 2. Each chart must be on its own line block, starting with \`\`\`chart and ending with \`\`\`
