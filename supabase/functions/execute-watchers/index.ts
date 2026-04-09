@@ -106,6 +106,10 @@ function markdownToHtml(md: string): string {
       html.push(`<li style="margin:4px 0;">${inline(ulMatch[1])}</li>`); continue;
     }
     if (line.trim() === "") { closeList(); continue; }
+    // Pass raw HTML blocks through directly (e.g. <div><table>...</table></div> from LLM)
+    if (line.trimStart().startsWith("<") && /<(div|table|figure|blockquote)\b/i.test(line)) {
+      closeList(); html.push(line); continue;
+    }
     closeList();
     html.push(`<p style="margin:8px 0;line-height:1.6;">${inline(line)}</p>`);
   }
