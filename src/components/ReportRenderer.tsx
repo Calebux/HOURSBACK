@@ -108,11 +108,31 @@ function renderTable(block: string): string {
 }
 
 function renderMarkdown(md: string): string {
-  // Extract and render tables first before any other processing
-  const withTables = md.replace(/^(\|.+\|\n?){2,}/gm, block => renderTable(block));
+  const preserved = new Map<string, string>();
+  let idx = 0;
 
-  return withTables
-    .replace(/&(?!amp;|lt;|gt;)/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  // Step 1: preserve raw HTML block lines (LLM-generated <div><table>...</table></div>)
+  let processed = md.replace(/^(<(?:div|table)\b.+)$/gm, (match) => {
+    const tok = `\x00HBTOK${idx++}\x00`;
+    preserved.set(tok, match);
+    return tok;
+  });
+
+  // Step 2: convert markdown pipe tables → HTML, then preserve those too
+  processed = processed.replace(/^(\|.+\|\n?){2,}/gm, (block) => {
+    const tok = `\x00HBTOK${idx++}\x00`;
+    preserved.set(tok, renderTable(block));
+    return tok;
+  });
+
+  // Step 3: escape HTML in the remaining text only
+  processed = processed
+    .replace(/&(?!amp;|lt;|gt;)/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+  // Step 4: apply markdown transforms to the safe text
+  processed = processed
     .replace(/^### (.+)$/gm, '<h3 style="font-size:14px;font-weight:700;margin:14px 0 4px;color:#0f172a;">$1</h3>')
     .replace(/^## (.+)$/gm, '<h2 style="font-size:16px;font-weight:700;margin:20px 0 6px;color:#0f172a;padding-top:4px;">$1</h2>')
     .replace(/^# (.+)$/gm, '<h1 style="font-size:20px;font-weight:700;margin:20px 0 8px;color:#0f172a;">$1</h1>')
@@ -124,6 +144,13 @@ function renderMarkdown(md: string): string {
     .replace(/(<li[^>]*>.*?<\/li>\n?)+/gs, s => `<ul style="margin:8px 0;padding-left:20px;list-style:disc;">${s}</ul>`)
     .replace(/\n\n+/g, '</p><p style="margin:8px 0;line-height:1.75;">')
     .trim();
+
+  // Step 5: re-inject the preserved HTML blocks
+  for (const [tok, html] of preserved.entries()) {
+    processed = processed.replace(tok, html);
+  }
+
+  return processed;
 }
 
 function ChartImage({ spec }: { spec: string }) {
@@ -173,19 +200,36 @@ export function computeConfidence(output: string): { score: number; level: 'high
   return { score, level, reason };
 }
 
-// ── "Why this matters" / callout block detection ─────────────────────────────
+// ── Section callout detection ─────────────────────────────────────────────────
 function injectCallouts(md: string): string {
-  // Match lines that are bold-wrapped callout labels
-  return md.replace(
-    /(\*\*(Why this matters|Key takeaway|Bottom line|Action required|Recommendation|Alert|Warning)[:\s*]*\*\*[^\n]*(?:\n(?![#\n]).*)*)/gi,
-    (match) => {
-      const isAlert = /\b(alert|warning)\b/i.test(match);
-      const bg = isAlert ? '#fff7ed' : '#eff6ff';
-      const border = isAlert ? '#fdba74' : '#93c5fd';
-      const icon = isAlert ? '⚠' : '✦';
-      return `\n<div style="background:${bg};border-left:3px solid ${border};border-radius:0 10px 10px 0;padding:10px 14px;margin:12px 0;font-size:13px;line-height:1.65;">${icon} ${match.replace(/\*\*/g, '')}</div>\n`;
-    }
+  type CalloutStyle = { bg: string; border: string; label: string; labelColor: string };
+  const styles: Record<string, CalloutStyle> = {
+    risk:        { bg: '#fff7ed', border: '#f97316', label: 'Risk',        labelColor: '#9a3412' },
+    alert:       { bg: '#fff7ed', border: '#f97316', label: 'Alert',       labelColor: '#9a3412' },
+    warning:     { bg: '#fff7ed', border: '#f97316', label: 'Warning',     labelColor: '#9a3412' },
+    signal:      { bg: '#eff6ff', border: '#3b82f6', label: 'Signal',      labelColor: '#1d4ed8' },
+    trend:       { bg: '#eff6ff', border: '#3b82f6', label: 'Trend',       labelColor: '#1d4ed8' },
+    opportunity: { bg: '#f0fdf4', border: '#22c55e', label: 'Opportunity', labelColor: '#15803d' },
+    finding:     { bg: '#f8fafc', border: '#94a3b8', label: 'Finding',     labelColor: '#475569' },
+    status:      { bg: '#f0fdf4', border: '#22c55e', label: 'Status',      labelColor: '#15803d' },
+    recommendation: { bg: '#f0fdf4', border: '#22c55e', label: 'Recommendation', labelColor: '#15803d' },
+    'key takeaway':  { bg: '#f8fafc', border: '#94a3b8', label: 'Key Takeaway',  labelColor: '#475569' },
+    'bottom line':   { bg: '#f8fafc', border: '#94a3b8', label: 'Bottom Line',   labelColor: '#475569' },
+    'action required': { bg: '#fff7ed', border: '#f97316', label: 'Action Required', labelColor: '#9a3412' },
+    'why this matters': { bg: '#eff6ff', border: '#3b82f6', label: 'Why This Matters', labelColor: '#1d4ed8' },
+  };
+
+  const pattern = Object.keys(styles).map(k => k.replace(/\s+/g, '\\s+')).join('|');
+  const regex = new RegExp(
+    `(\\*\\*(${pattern})[:\\s]*\\*\\*[^\\n]*(?:\\n(?![#\\n]).*)*)`  ,
+    'gi'
   );
+
+  return md.replace(regex, (match, _, key) => {
+    const s = styles[(key as string).toLowerCase().trim()] ?? styles.finding;
+    const body = match.replace(/\*\*/g, '').replace(/^[^:]+:\s*/, '').trim();
+    return `\n<div style="background:${s.bg};border-left:3px solid ${s.border};border-radius:0 8px 8px 0;padding:10px 14px;margin:14px 0;font-size:13px;line-height:1.65;"><span style="display:inline-block;font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:${s.labelColor};margin-bottom:4px;">${s.label}</span><br>${body}</div>\n`;
+  });
 }
 
 export function ReportRenderer({ output, compact = false }: { output: string; compact?: boolean }) {

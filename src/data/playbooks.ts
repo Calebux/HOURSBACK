@@ -486,19 +486,19 @@ Also show:
 Write a short paragraph (3–5 sentences) explaining what these numbers mean in simple language. No jargon. Assume the reader has never seen an income statement before.
 
 ## Step 3: Flag These Critical Signals
-Check for the following and explain each one clearly if found:
+Check for the following and explain each one clearly if found. Use the exact label format shown — these are section headers, not inline text.
 
-**🚨 Staff Theft Risk**
+**Risk: Staff Theft — Elevated COGS**
 If COGS is unusually high relative to revenue (gross margin below 30% for a product business, or a sudden drop vs prior period), flag it: "Your cost of goods is unusually high. This could mean staff are taking stock without recording it, or suppliers are overcharging you."
 
-**📈 Vendor Price Increase**
-If COGS increased month-over-month without a matching revenue increase, flag it: "Your input costs went up but your sales price didn't. Check whether your suppliers increased prices recently."
+**Signal: Vendor Price Increase**
+If COGS increased month-over-month without a matching revenue increase, flag it: "Your input costs went up but your sales price did not. Check whether your suppliers increased prices recently."
 
-**💰 Time to Raise Prices**
-If gross margin is healthy (above 50%) but net profit is thin (below 10%), flag it: "Your product pricing is good but your fixed costs are eating your profit. Consider a price increase of 5–10% to protect your margins."
+**Opportunity: Pricing Adjustment**
+If gross margin is healthy (above 50%) but net profit is thin (below 10%), flag it: "Your product pricing is good but your fixed costs are eating your profit. A price increase of 5–10% would protect your margins."
 
-**✅ Business is Actually Doing Well**
-If net profit is positive and margins are stable, say this clearly: "Your business is profitable. Many owners worry because they don't see the numbers clearly — but this report shows you are in a healthy position."
+**Status: Business Health**
+If net profit is positive and margins are stable, say this clearly: "Your business is profitable. Many owners worry because they do not see the numbers clearly — but this report shows you are in a healthy position."
 
 ## Step 4: The 3 Most Important Actions This Month
 Give exactly 3 numbered, specific actions the owner should take based on these numbers. Be direct. Example: "1. Call your flour supplier — your COGS jumped 18% this month. Ask if they changed their prices."
