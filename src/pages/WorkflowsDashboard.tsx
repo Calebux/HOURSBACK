@@ -407,6 +407,19 @@ export default function WorkflowsDashboard() {
                 <span className="hidden sm:inline">{runningId === workflow.id ? 'Running...' : 'Run now'}</span>
               </button>
 
+              {/* Quick pause/resume toggle */}
+              <button
+                onClick={() => toggleStatus(workflow.id, workflow.status)}
+                title={workflow.status === 'active' ? 'Pause workflow' : 'Resume workflow'}
+                className={`p-1.5 rounded-full border transition-colors ${
+                  workflow.status === 'active'
+                    ? 'text-slate-400 border-slate-200 hover:text-amber-600 hover:bg-amber-50 hover:border-amber-200'
+                    : 'text-emerald-600 bg-emerald-50 border-emerald-200 hover:bg-emerald-100'
+                }`}
+              >
+                {workflow.status === 'active' ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+              </button>
+
               {/* 3-dot menu */}
               <div className="relative">
                 <button

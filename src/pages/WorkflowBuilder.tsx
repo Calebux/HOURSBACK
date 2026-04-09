@@ -262,6 +262,8 @@ export default function WorkflowBuilder() {
   const [runTime, setRunTime] = useState('08:00');
   const [runDay, setRunDay] = useState('monday');
   const [runMonthDay, setRunMonthDay] = useState(1);
+  const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const utcOffset = -new Date().getTimezoneOffset() / 60;
   const [notifyEmail, setNotifyEmail] = useState(user?.email ?? '');
   const [teamEmails, setTeamEmails] = useState('');
   const [dataSource, setDataSource] = useState('');
@@ -318,7 +320,7 @@ export default function WorkflowBuilder() {
     try {
       const validAlerts = alerts.filter(a => a.metric.trim() && a.value.trim());
       const trigger_config = triggerType === 'schedule'
-        ? { type: 'schedule', schedule, time: runTime, ...(schedule === 'weekly' || schedule === 'biweekly' ? { day: runDay } : {}), ...(schedule === 'monthly' ? { monthDay: runMonthDay } : {}), ...(validAlerts.length ? { alerts: validAlerts } : {}) }
+        ? { type: 'schedule', schedule, time: runTime, utcOffset, ...(schedule === 'weekly' || schedule === 'biweekly' ? { day: runDay } : {}), ...(schedule === 'monthly' ? { monthDay: runMonthDay } : {}), ...(validAlerts.length ? { alerts: validAlerts } : {}) }
         : { type: 'webhook', ...(validAlerts.length ? { alerts: validAlerts } : {}) };
 
       const dsConfig = dataSourceMode === 'excel' && xlsxPath
@@ -759,9 +761,11 @@ export default function WorkflowBuilder() {
                     >
                       <option value="hourly">Hourly</option>
                       <option value="daily">Daily</option>
+                      <option value="weekdays">Weekdays only (Mon–Fri)</option>
                       <option value="weekly">Weekly</option>
                       <option value="biweekly">Every 2 weeks</option>
                       <option value="monthly">Monthly</option>
+                      <option value="once">Run once</option>
                     </select>
                   </div>
 
@@ -795,6 +799,7 @@ export default function WorkflowBuilder() {
                           </select>
                         </div>
                       )}
+                      {schedule !== 'once' && (
                       <div className={schedule === 'weekly' || schedule === 'biweekly' || schedule === 'monthly' ? '' : 'col-span-2'}>
                         <label className="block font-semibold mb-2">Time</label>
                         <input
@@ -803,8 +808,11 @@ export default function WorkflowBuilder() {
                           onChange={e => setRunTime(e.target.value)}
                           className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue outline-none"
                         />
-                        <p className="text-xs text-slate-400 mt-1">Your local timezone</p>
+                        <p className="text-xs text-slate-400 mt-1">
+                          🌍 {userTimezone} (UTC{utcOffset >= 0 ? `+${utcOffset}` : utcOffset})
+                        </p>
                       </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1147,12 +1155,17 @@ export default function WorkflowBuilder() {
                     <div>
                       <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-0.5">Runs</p>
                       <p className="text-sm font-medium text-brand-dark capitalize">
+                        {schedule === 'hourly' && 'Every hour'}
                         {schedule === 'daily' && `Every day at ${runTime}`}
+                        {schedule === 'weekdays' && `Weekdays (Mon–Fri) at ${runTime}`}
                         {schedule === 'weekly' && `Every ${runDay} at ${runTime}`}
                         {schedule === 'biweekly' && `Every 2 weeks (${runDay}) at ${runTime}`}
                         {schedule === 'monthly' && `Monthly on the ${runMonthDay}${runMonthDay===1?'st':runMonthDay===2?'nd':runMonthDay===3?'rd':'th'} at ${runTime}`}
-                        {schedule === 'hourly' && `Every hour`}
+                        {schedule === 'once' && 'Runs one time immediately'}
                       </p>
+                      {schedule !== 'once' && schedule !== 'hourly' && (
+                        <p className="text-xs text-slate-400 mt-0.5">🌍 {userTimezone}</p>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-start gap-3">

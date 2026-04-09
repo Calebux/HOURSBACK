@@ -52,7 +52,7 @@ export default function TermsPage() {
             <h2 className="text-xl font-semibold text-brand-dark mb-3">5. Subscriptions and Billing</h2>
             <ul className="list-disc pl-6 space-y-1">
               <li>The Free plan is available at no cost with access to selected workflows.</li>
-              <li>The Pro plan is billed monthly. Prices are shown in USD and charged in NGN via Flutterwave.</li>
+              <li>The Pro plan is billed monthly at ₦9,900/month or ₦7,900/month (billed annually at ₦94,800/year). All prices are in Nigerian Naira (NGN) and charged via Flutterwave.</li>
               <li>Payments are non-refundable except where required by law.</li>
               <li>We reserve the right to change pricing with 30 days notice.</li>
               <li>Your Pro access continues until your subscription period ends.</li>

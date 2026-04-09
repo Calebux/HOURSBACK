@@ -16,9 +16,16 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-function computeNextRun(schedule: string, time = "08:00", day = "monday", monthDay = 1): string {
+function computeNextRun(schedule: string, time = "08:00", day = "monday", monthDay = 1, utcOffset = 0): string {
   const now = new Date();
-  const [h, m] = time.split(":").map(Number);
+  // Convert user's local time to UTC by subtracting their UTC offset
+  const [localH, m] = time.split(":").map(Number);
+  const h = ((localH - utcOffset) % 24 + 24) % 24;
+
+  if (schedule === "once") {
+    // Already ran — no next run
+    return new Date(0).toISOString();
+  }
 
   if (schedule === "hourly") {
     now.setHours(now.getHours() + 1, 0, 0, 0);
@@ -27,8 +34,17 @@ function computeNextRun(schedule: string, time = "08:00", day = "monday", monthD
 
   if (schedule === "daily") {
     const next = new Date();
-    next.setHours(h, m, 0, 0);
+    next.setUTCHours(h, m, 0, 0);
     if (next <= now) next.setDate(next.getDate() + 1);
+    return next.toISOString();
+  }
+
+  if (schedule === "weekdays") {
+    const next = new Date();
+    next.setUTCHours(h, m, 0, 0);
+    if (next <= now) next.setDate(next.getDate() + 1);
+    // Skip to next weekday
+    while (next.getDay() === 0 || next.getDay() === 6) next.setDate(next.getDate() + 1);
     return next.toISOString();
   }
 
@@ -36,7 +52,7 @@ function computeNextRun(schedule: string, time = "08:00", day = "monday", monthD
     const days = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"];
     const target = days.indexOf(day.toLowerCase());
     const next = new Date();
-    next.setHours(h, m, 0, 0);
+    next.setUTCHours(h, m, 0, 0);
     let diff = (target - next.getDay() + 7) % 7;
     if (diff === 0 && next <= now) diff = 7;
     next.setDate(next.getDate() + diff);
@@ -45,14 +61,14 @@ function computeNextRun(schedule: string, time = "08:00", day = "monday", monthD
 
   if (schedule === "biweekly") {
     const next = new Date();
-    next.setHours(h, m, 0, 0);
+    next.setUTCHours(h, m, 0, 0);
     next.setDate(next.getDate() + 14);
     return next.toISOString();
   }
 
   if (schedule === "monthly") {
     const next = new Date();
-    next.setHours(h, m, 0, 0);
+    next.setUTCHours(h, m, 0, 0);
     next.setDate(monthDay);
     if (next <= now) {
       next.setMonth(next.getMonth() + 1);
@@ -665,9 +681,11 @@ Strict rules:
         error_message: errorMessage,
       });
 
+      const isOnce = triggerConfig.schedule === "once";
       await supabase.from("workflows").update({
         last_run: now,
-        next_run: manualWorkflowId ? undefined : computeNextRun(triggerConfig.schedule || "daily", triggerConfig.time || "08:00", triggerConfig.day || "monday", triggerConfig.monthDay || 1),
+        next_run: manualWorkflowId || isOnce ? null : computeNextRun(triggerConfig.schedule || "daily", triggerConfig.time || "08:00", triggerConfig.day || "monday", triggerConfig.monthDay || 1, triggerConfig.utcOffset || 0),
+        ...(isOnce ? { status: "paused" } : {}),
       }).eq("id", workflow.id);
 
       runsCount++;
