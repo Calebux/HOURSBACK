@@ -607,6 +607,9 @@ If NO conditions are triggered, do NOT include an alerts section.
 
 CRITICAL OUTPUT RULES — NON-NEGOTIABLE:
 
+RULE 0 — DATA INTEGRITY:
+The dataset context below may contain a "VERIFIED METRICS" section. If present, those numbers were computed by deterministic code across the full dataset — they are exact. You MUST use them verbatim. Do NOT re-calculate, re-sum, or derive totals from any sample rows. The sample rows are for context only. Treat the verified metrics the same way a calculator's output is treated — final and authoritative.
+
 RULE 1 — NO EMOJIS:
 NEVER use emojis, emoticons, or unicode symbols such as ✅ ❌ 📊 🔥 ⚠️ 💰 📈 or any other pictographic character. Use plain text only. Zero emojis in any part of your response. No exceptions.
 

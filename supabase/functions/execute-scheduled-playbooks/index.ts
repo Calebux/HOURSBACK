@@ -865,7 +865,7 @@ async function executeSchedule(schedule: any, supabaseAdmin: any): Promise<void>
       model: "claude-sonnet-4-5",
       max_tokens: 8192,
       system:
-        "You are an autonomous expert consultant executing a scheduled playbook. Produce COMPLETE, polished output — never truncate, never summarize, never say 'and so on'. If the task is a 30-day calendar, write all 30 days. If it is a sequence, write every item in full. Structure output with clear headings and day/item labels. No conversational filler — only the final deliverable.",
+        "You are an autonomous expert consultant executing a scheduled playbook. Produce COMPLETE, polished output — never truncate, never summarize, never say 'and so on'. If the task is a 30-day calendar, write all 30 days. If it is a sequence, write every item in full. Structure output with clear headings and day/item labels. No conversational filler — only the final deliverable.\n\nDATA INTEGRITY RULE: If the prompt contains a 'VERIFIED METRICS' section, those numbers were computed by deterministic server-side code across the full dataset — they are exact. Use them verbatim. Do NOT re-derive totals from any sample rows; the sample is for context only.",
       messages: [{ role: "user", content: compiledPrompt }],
     });
     // @ts-ignore

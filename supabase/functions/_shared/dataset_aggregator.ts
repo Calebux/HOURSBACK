@@ -1,197 +1,265 @@
-import Anthropic from "npm:@anthropic-ai/sdk";
-import Papa from "npm:papaparse";
+/**
+ * dataset_aggregator.ts
+ *
+ * Deterministic server-side aggregation for CSV/Excel data.
+ * No LLM in the math path. Produces exact metrics Claude must use verbatim.
+ *
+ * Handles:
+ *   - RFC 4180 CSV: quoted fields, embedded commas, embedded newlines,
+ *     escaped quotes (""), CRLF + LF line endings, leading BOM
+ *   - Identifier columns (ID, phone, zip, SKU…) — excluded from aggregation
+ *   - Year columns (1900–2099) — excluded from SUM/AVG (meaningless)
+ *   - All-unique integer columns — detected as ID columns, excluded
+ *   - Numeric columns — SUM, AVG, MEDIAN, MIN, MAX, COUNT
+ *   - Categorical columns (2–30 unique values) — frequency + %
+ *   - Numeric values redacted in sample — Claude cannot re-derive totals
+ */
 
-export interface AggregationRule {
-  name: string;
-  operation: "sum" | "average" | "min" | "max" | "count";
-  column: string;
-  conditions?: Array<{
-    column: string;
-    operator: "equals" | "contains" | "greater_than" | "less_than" | "not_equals";
-    value: string | number;
-  }>;
-}
+// ---------------------------------------------------------------------------
+// RFC 4180 CSV parser
+// ---------------------------------------------------------------------------
+function parseCsv(csv: string): { headers: string[]; rows: Record<string, string>[] } {
+  // Strip BOM
+  const content = csv.charCodeAt(0) === 0xFEFF ? csv.slice(1) : csv;
 
-export interface AggregationPlan {
-  calculations: AggregationRule[];
-}
+  const allRows: string[][] = [];
+  let row: string[] = [];
+  let cell = "";
+  let inQuotes = false;
 
-function evaluateCondition(rowValue: any, op: string, targetValue: any): boolean {
-  if (rowValue === undefined || rowValue === null) return false;
-  const strVal = String(rowValue).toLowerCase().trim();
-  const targetStr = String(targetValue).toLowerCase().trim();
-  const numVal = parseFloat(String(rowValue).replace(/[^0-9.-]+/g, ''));
-  const targetNum = Number(targetValue);
+  for (let i = 0; i < content.length; i++) {
+    const ch = content[i];
+    const next = content[i + 1];
 
-  switch (op) {
-    case "equals": return strVal === targetStr;
-    case "not_equals": return strVal !== targetStr;
-    case "contains": return strVal.includes(targetStr);
-    case "greater_than": return !isNaN(numVal) && !isNaN(targetNum) && numVal > targetNum;
-    case "less_than": return !isNaN(numVal) && !isNaN(targetNum) && numVal < targetNum;
-    default: return false;
+    if (inQuotes) {
+      if (ch === '"' && next === '"') { cell += '"'; i++; }  // escaped quote ""
+      else if (ch === '"')            { inQuotes = false; }  // closing quote
+      else                            { cell += ch; }        // any char incl \n (multiline cell)
+    } else {
+      if      (ch === '"')                    { inQuotes = true; }
+      else if (ch === ',')                    { row.push(cell.trim()); cell = ""; }
+      else if (ch === '\r' && next === '\n')  { row.push(cell.trim()); cell = ""; flushRow(); i++; }
+      else if (ch === '\n')                   { row.push(cell.trim()); cell = ""; flushRow(); }
+      else                                    { cell += ch; }
+    }
   }
+  row.push(cell.trim());
+  if (row.some(c => c !== "")) allRows.push(row);
+
+  function flushRow() {
+    if (row.some(c => c !== "")) allRows.push(row);
+    row = [];
+  }
+
+  if (allRows.length === 0) return { headers: [], rows: [] };
+
+  // Strip stray surrounding quotes from header names
+  const headers = allRows[0].map(h => h.replace(/^"|"$/g, "").trim());
+  const rows: Record<string, string>[] = [];
+  for (let i = 1; i < allRows.length; i++) {
+    const r: Record<string, string> = {};
+    headers.forEach((h, idx) => { r[h] = allRows[i][idx] ?? ""; });
+    rows.push(r);
+  }
+  return { headers, rows };
 }
 
-function cleanNumber(val: any): number {
-  if (typeof val === 'number') return val;
-  if (!val) return 0;
-  const parsed = parseFloat(String(val).replace(/[^0-9.-]+/g, ''));
-  return isNaN(parsed) ? 0 : parsed;
+// ---------------------------------------------------------------------------
+// Column classification
+// ---------------------------------------------------------------------------
+
+/**
+ * Column names that represent identifiers, codes, or date-parts —
+ * technically numeric but meaningless to SUM or AVERAGE.
+ */
+const IDENTIFIER_NAME_RE =
+  /\b(ids?|identifier|uuid|guid|key|ref|reference|serial|code|sku|part_?no?|item_?no?|order_?no?|invoice_?no?|account_?no?|batch|phone|tel|mobile|cell|fax|zip|postal|postcode|pincode|year|month|day|date|time|timestamp|hour|minute|second|index|rank|row_?no?|line_?no?|seq|sequence)\b/i;
+
+function isIdentifierByName(header: string): boolean {
+  return IDENTIFIER_NAME_RE.test(header);
 }
 
+/** All non-empty values are integers AND all unique → primary-key style ID column. */
+function isIdentifierByValues(values: string[]): boolean {
+  const nonEmpty = values.filter(v => v.trim() !== "");
+  if (nonEmpty.length < 5) return false;                          // too small to tell
+  if (!nonEmpty.every(v => /^\d+$/.test(v.trim()))) return false; // must be all integers
+  return new Set(nonEmpty).size === nonEmpty.length;              // all unique
+}
+
+/** Values are all 4-digit integers in the year range 1900–2099. */
+function isYearColumn(values: string[]): boolean {
+  const nonEmpty = values.filter(v => v.trim() !== "");
+  if (nonEmpty.length === 0) return false;
+  return nonEmpty.every(v => {
+    const trimmed = v.trim();
+    if (!/^\d{4}$/.test(trimmed)) return false;
+    const n = parseInt(trimmed, 10);
+    return n >= 1900 && n <= 2099;
+  });
+}
+
+const STRIP_RE = /[$£€₦,%\s]/g;
+
+function toNumber(val: string): number | null {
+  if (!val || !val.trim()) return null;
+  const cleaned = val.replace(STRIP_RE, "");
+  const n = parseFloat(cleaned);
+  return isFinite(n) ? n : null;
+}
+
+/** ≥60% of non-empty values parse as finite numbers. */
+function isNumericColumn(values: string[]): boolean {
+  const nonEmpty = values.filter(v => v.trim() !== "");
+  if (nonEmpty.length === 0) return false;
+  const count = nonEmpty.filter(v => toNumber(v) !== null).length;
+  return count / nonEmpty.length >= 0.6;
+}
+
+function fmt(n: number): string {
+  return new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(n);
+}
+
+function median(sorted: number[]): number {
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 !== 0
+    ? sorted[mid]
+    : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+// ---------------------------------------------------------------------------
+// Main export
+// ---------------------------------------------------------------------------
 export async function aggregateCsvData(
   csvContent: string,
-  workflowPrompt: string,
-  anthropicApiKey: string
+  _workflowPrompt: string,   // kept for API compat — no longer used for LLM planning
+  _anthropicApiKey: string,  // kept for API compat — no longer needed
 ): Promise<{ aggregatedSummary: string; safeSample: string }> {
   try {
-    // 1. Parse CSV into objects
-    const parsed = Papa.parse(csvContent, { header: true, skipEmptyLines: true });
-    const rows = parsed.data as Record<string, any>[];
-    
-    if (rows.length === 0) {
-      return { aggregatedSummary: "No rows found in dataset.", safeSample: csvContent.substring(0, 1000) };
+    const { headers, rows } = parseCsv(csvContent);
+
+    if (headers.length === 0 || rows.length === 0) {
+      return { aggregatedSummary: "", safeSample: csvContent.substring(0, 2000) };
     }
 
-    // Prepare a safe sample to send to Claude
-    const headers = parsed.meta.fields || [];
-    const sampleRows = rows.slice(0, 15);
-    const safeSample = Papa.unparse(sampleRows);
-
-    if (rows.length <= 15) {
-      // If dataset is very small anyway, no need for complex aggregation loop
-      return { aggregatedSummary: "Dataset is small, exact data provided below.", safeSample: csvContent.substring(0, 4000) };
+    // Small datasets pass through whole — nothing to hide
+    if (rows.length <= 20) {
+      return {
+        aggregatedSummary: `Dataset: ${rows.length} rows, ${headers.length} columns (${headers.join(", ")}).`,
+        safeSample: csvContent.substring(0, 4000),
+      };
     }
 
-    // 2. Query Claude Haiku to determine the necessary calculations
-    const anthropic = new Anthropic({ apiKey: anthropicApiKey });
-    const systemPrompt = `You are a data aggregation planner.
-A user has uploaded a dataset and requested an analysis. The full dataset is too large to pass to the final report-generating AI. 
-Before we run the final AI, we need to pre-aggregate the mathematical metrics securely using an exact code engine.
+    const lines: string[] = [
+      `## VERIFIED METRICS — CODE-COMPUTED, NOT ESTIMATED`,
+      `CRITICAL: Every figure below was calculated by deterministic server-side code`,
+      `across ALL ${rows.length} rows. These numbers are exact. You MUST use them verbatim.`,
+      `Do NOT re-derive, re-sum, or re-average from the sample rows — the sample`,
+      `is a layout preview only and contains redacted numeric values.`,
+      ``,
+      `Dataset: ${rows.length} rows · ${headers.length} columns`,
+      `Columns: ${headers.join(", ")}`,
+      ``,
+    ];
 
-Your task: output a JSON object describing exactly what metrics to calculate from the rows.
-The JSON must follow this exact schema:
-{
-  "calculations": [
-    {
-      "name": "metric name (e.g., Total Revenue)",
-      "operation": "sum" | "average" | "min" | "max" | "count",
-      "column": "exact_column_header_to_calculate",
-      "conditions": [
-        { "column": "header_to_check", "operator": "equals" | "contains" | "greater_than" | "less_than" | "not_equals", "value": "value to match" }
-      ]
-    }
-  ]
-}
+    let hasAnyMetric = false;
+    const numericHeaders = new Set<string>();
+    const skippedHeaders = new Set<string>();
 
-- Omit conditions array if no filters apply.
-- Use ONLY the exact column headers provided in the sample.
-- Match the required metrics from the Goal prompt below.
-- Return ONLY valid JSON, no markdown blocks or surrounding text.`;
+    for (const header of headers) {
+      const colValues = rows.map(r => r[header] ?? "");
+      const nonEmpty   = colValues.filter(v => v.trim() !== "");
 
-    const userPrompt = `GOAL / REQUIRED METRICS:
-${workflowPrompt}
+      // Skip fully empty columns
+      if (nonEmpty.length === 0) { skippedHeaders.add(header); continue; }
 
-CSV HEADERS:
-${headers.join(", ")}
+      // Classify and skip identifier / date-part columns
+      if (isIdentifierByName(header) || isIdentifierByValues(colValues) || isYearColumn(colValues)) {
+        skippedHeaders.add(header);
+        continue;
+      }
 
-SAMPLE ROW DATA (First 15 rows):
-${safeSample}`;
+      if (isNumericColumn(colValues)) {
+        numericHeaders.add(header);
 
-    const haikuRes = await anthropic.messages.create({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 1500,
-      temperature: 0,
-      system: systemPrompt,
-      messages: [{ role: "user", content: userPrompt }]
-    });
+        const nums = colValues
+          .map(toNumber)
+          .filter((n): n is number => n !== null);
 
-    const rawContent = (haikuRes.content[0] as any).text as string;
-    let plan: AggregationPlan | null = null;
-    
-    try {
-      const match = rawContent.match(/\{[\s\S]*\}/);
-      if (match) {
-        plan = JSON.parse(match[0]) as AggregationPlan;
+        nums.sort((a, b) => a - b);
+        const sum = nums.reduce((a, b) => a + b, 0);
+        const avg = sum / nums.length;
+        const med = median(nums);
+
+        lines.push(`### ${header}`);
+        lines.push(`- Count (non-empty): ${nums.length}`);
+        lines.push(`- SUM:     ${fmt(sum)}`);
+        lines.push(`- Average: ${fmt(avg)}`);
+        lines.push(`- Median:  ${fmt(med)}`);
+        lines.push(`- Min:     ${fmt(nums[0])}`);
+        lines.push(`- Max:     ${fmt(nums[nums.length - 1])}`);
+        lines.push(``);
+        hasAnyMetric = true;
+
       } else {
-        plan = JSON.parse(rawContent) as AggregationPlan;
-      }
-    } catch (e) {
-      console.error("[Autopilot] Failed to parse aggregation plan JSON", rawContent);
-      return { aggregatedSummary: "Failed to parse aggregation plan.", safeSample: csvContent.substring(0, 4000) };
-    }
-
-    if (!plan || !plan.calculations || !Array.isArray(plan.calculations)) {
-      return { aggregatedSummary: "", safeSample: csvContent.substring(0, 4000) };
-    }
-
-    // 3. Execute the aggregations mathematically over all rows
-    const results: Record<string, number> = {};
-    const executionLogs: string[] = [];
-
-    for (const calc of plan.calculations) {
-      try {
-        let count = 0;
-        let sum = 0;
-        let min = Infinity;
-        let max = -Infinity;
-
-        for (const row of rows) {
-          // Check conditions
-          let matches = true;
-          if (calc.conditions && calc.conditions.length > 0) {
-            for (const cond of calc.conditions) {
-              if (!evaluateCondition(row[cond.column], cond.operator, cond.value)) {
-                matches = false;
-                break;
-              }
-            }
-          }
-          if (!matches) continue;
-
-          count++;
-          const val = cleanNumber(row[calc.column]);
-          sum += val;
-          if (val < min) min = val;
-          if (val > max) max = val;
+        // Categorical — only useful if low-cardinality
+        const freq: Record<string, number> = {};
+        for (const v of colValues) {
+          const key = v.trim();
+          if (!key) continue;
+          freq[key] = (freq[key] ?? 0) + 1;
         }
-
-        let resultVal = 0;
-        if (count > 0) {
-          switch (calc.operation) {
-            case "sum": resultVal = sum; break;
-            case "average": resultVal = sum / count; break;
-            case "min": resultVal = min; break;
-            case "max": resultVal = max; break;
-            case "count": resultVal = count; break;
+        const unique = Object.keys(freq).length;
+        if (unique >= 2 && unique <= 30) {
+          const top = Object.entries(freq)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 10);
+          lines.push(`### ${header} (${unique} unique values)`);
+          for (const [val, count] of top) {
+            const pct = ((count / rows.length) * 100).toFixed(1);
+            lines.push(`- ${val}: ${count} rows (${pct}%)`);
           }
+          if (Object.keys(freq).length > 10) lines.push(`  ... and ${Object.keys(freq).length - 10} more values`);
+          lines.push(``);
+          hasAnyMetric = true;
         }
-        
-        results[calc.name] = resultVal;
-        
-        // Format nicely
-        const isMoneyOrLarge = resultVal > 100 || (calc.column.toLowerCase().includes('amount') || calc.column.toLowerCase().includes('price'));
-        const formattedVal = isMoneyOrLarge 
-          ? new Intl.NumberFormat('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(resultVal)
-          : resultVal;
-          
-        executionLogs.push(`- **${calc.name}**: ${formattedVal} (Matches: ${count} rows)`);
-      } catch (err) {
-         console.warn(`[Autopilot] Aggregation error for ${calc.name}:`, err);
       }
     }
 
-    const summary = executionLogs.length > 0 
-      ? `## Exact Pre-Calculated Metrics (DO NOT HALLUCINATE SUMS)\nThe following totals were calculated securely from the full ${rows.length}-row dataset. Use these exact numbers in your final report:\n\n${executionLogs.join("\n")}`
-      : "No mathematical aggregations were successfully compiled from the dataset.";
+    if (skippedHeaders.size > 0) {
+      lines.push(`_Columns excluded from aggregation (identifiers / date-parts): ${[...skippedHeaders].join(", ")}_`);
+      lines.push(``);
+    }
+
+    if (!hasAnyMetric) {
+      lines.push(`No numeric or groupable columns detected.`);
+    }
+
+    // ---------------------------------------------------------------------------
+    // Safe sample: 5 rows, numeric columns redacted
+    // Claude sees column structure and text values — not raw numbers to re-add.
+    // ---------------------------------------------------------------------------
+    const sampleLines = [headers.join(",")];
+    for (let i = 0; i < Math.min(5, rows.length); i++) {
+      sampleLines.push(
+        headers.map(h =>
+          numericHeaders.has(h) ? "[see aggregations above]" : (rows[i][h] ?? "")
+        ).join(",")
+      );
+    }
+    sampleLines.push(`[${rows.length} total rows — numeric columns redacted to prevent re-calculation]`);
 
     return {
-      aggregatedSummary: summary,
-      safeSample: safeSample
+      aggregatedSummary: lines.join("\n"),
+      safeSample: sampleLines.join("\n"),
     };
-  } catch (error: any) {
-    console.error("[Autopilot] Global aggregation error", error);
-    return { aggregatedSummary: `Aggregation failed: ${error.message}`, safeSample: csvContent.substring(0, 4000) };
+
+  } catch (err: any) {
+    console.error("[dataset_aggregator] error:", err);
+    // Fallback: truncated raw data (old behaviour — better than crashing)
+    return { aggregatedSummary: "", safeSample: csvContent.substring(0, 3000) };
   }
 }
