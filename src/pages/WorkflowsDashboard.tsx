@@ -169,7 +169,7 @@ function FirstRunOnboarding({ user }: { user: any }) {
 }
 
 export default function WorkflowsDashboard() {
-  const { user, refreshPro, isPro } = useAuth();
+  const { user, refreshPro, isPro, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [runs, setRuns] = useState<WorkflowRun[]>([]);
@@ -189,6 +189,7 @@ export default function WorkflowsDashboard() {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
   useEffect(() => {
+    if (authLoading) return;
     if (!user) { navigate('/'); return; }
     refreshPro();
     async function loadData() {
@@ -214,7 +215,7 @@ export default function WorkflowsDashboard() {
       }
     }
     loadData();
-  }, [user, navigate, refreshPro]);
+  }, [user, authLoading, navigate, refreshPro]);
 
   // Computed stats
   const activeWorkflows = workflows.filter(w => w.status === 'active');

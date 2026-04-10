@@ -68,7 +68,7 @@ function AppWithOnboarding() {
       <ToastProvider />
       <Suspense fallback={<PageLoader />}>
         <Routes>
-          <Route path="/" element={isLoading ? null : user ? <Navigate to="/workflows" replace /> : <LandingPage />} />
+          <Route path="/" element={isLoading ? <PageLoader /> : user ? <Navigate to="/workflows" replace /> : <LandingPage />} />
           <Route path="/playbooks" element={<PlaybooksPage />} />
           <Route path="/playbooks/:slug" element={<PlaybookViewerPage />} />
           <Route path="/crash-course" element={<CrashCoursePage />} />
