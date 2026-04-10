@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import Anthropic from "npm:@anthropic-ai/sdk";
 import { sanitizeUrl, getClientIp, checkRateLimit, rateLimitResponse, fetchWithTimeout } from "../_shared/security.ts";
+import { aggregateCsvData } from "../_shared/dataset_aggregator.ts";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
@@ -376,7 +377,7 @@ function generateInfographicHtml(d: InfographData): string {
 
 // Fetch fresh CSV data from a Google Sheets URL stored as "SHEETS_URL:..."
 // Scrape competitor/target URLs via Firecrawl if available
-async function resolveVariables(variables: Record<string, string>): Promise<Record<string, string>> {
+async function resolveVariables(variables: Record<string, string>, workflowPrompt?: string): Promise<Record<string, string>> {
   const resolved: Record<string, string> = {};
   for (const [key, value] of Object.entries(variables)) {
     if (value.startsWith('SHEETS_URL:')) {
@@ -389,15 +390,21 @@ async function resolveVariables(variables: Record<string, string>): Promise<Reco
         const res = await fetchWithTimeout(csvUrl, {}, 15_000);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const text = await res.text();
-        const lines = text.split(/\r?\n/).filter(l => l.trim());
-        if (lines.length < 2) throw new Error('Sheet appears empty');
-        const header = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
-        const rows = lines.slice(1).map(line => {
-          const cols = line.split(',').map(c => c.replace(/"/g, '').trim());
-          return header.map((h, i) => `${h}: ${cols[i] ?? ''}`).join(' | ');
-        });
-        resolved[key] = `[Live data: ${rows.length} rows, columns: ${header.join(', ')}]\n${rows.join('\n')}`;
-        console.log(`[Autopilot] Fetched live sheet for "${key}": ${rows.length} rows`);
+        if (workflowPrompt && typeof ANTHROPIC_API_KEY !== "undefined") {
+          const { aggregatedSummary, safeSample } = await aggregateCsvData(text, workflowPrompt, ANTHROPIC_API_KEY!);
+          resolved[key] = `${aggregatedSummary}\n\n## Data Sample:\n${safeSample}`;
+          console.log(`[Autopilot] Fetched and aggregated live sheet for "${key}"`);
+        } else {
+          const lines = text.split(/\r?\n/).filter(l => l.trim());
+          if (lines.length < 2) throw new Error('Sheet appears empty');
+          const header = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
+          const rows = lines.slice(1).map(line => {
+            const cols = line.split(',').map(c => c.replace(/"/g, '').trim());
+            return header.map((h, i) => `${h}: ${cols[i] ?? ''}`).join(' | ');
+          });
+          resolved[key] = `[Live data: ${rows.length} rows, columns: ${header.join(', ')}]\n${rows.join('\n')}`;
+          console.log(`[Autopilot] Fetched live sheet for "${key}": ${rows.length} rows`);
+        }
       } catch (e: any) {
         console.error(`[Autopilot] Failed to fetch live sheet for "${key}":`, e.message);
         resolved[key] = `[Could not fetch live sheet: ${e.message}]`;
@@ -593,8 +600,10 @@ async function runTinyFishAgent(url: string, goal: string): Promise<string> {
 async function executeSchedule(schedule: any, supabaseAdmin: any): Promise<void> {
   const playbookData = schedule.playbook_data;
   const playbookSlug = schedule.playbook_slug;
+  // Extract prompt from playbook data if available for aggregation context
+  const workflowPrompt = schedule.playbook_data?.expectedOutcome || schedule.playbook_data?.prompt || "";
   // Resolve any live Google Sheets URLs to fresh CSV data before building the prompt
-  const variables = await resolveVariables(schedule.variables || {});
+  const variables = await resolveVariables(schedule.variables || {}, workflowPrompt);
 
   // Get user email via admin auth API
   const { data: userData, error: userError } =

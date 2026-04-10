@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Bot, CheckCircle2, XCircle, Clock, Filter, FileText, Download, ThumbsUp, ThumbsDown, AlertCircle, TrendingUp, TrendingDown, Minus } from 'lucide-react';
-import { ReportRenderer, computeConfidence } from '../components/ReportRenderer';
+import { ReportRenderer, computeConfidence, renderMarkdown, injectCallouts, parseReport, buildQuickChartUrl } from '../components/ReportRenderer';
 import { MobileNav } from '../components/MobileNav';
 import { UserAvatar } from '../components/UserAvatar';
 import { toast } from 'sonner';
@@ -37,7 +37,6 @@ export default function ReportsPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [submittingFeedback, setSubmittingFeedback] = useState<string | null>(null);
-  const reportRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   useEffect(() => {
     if (!user) { navigate('/'); return; }
@@ -76,29 +75,76 @@ export default function ReportsPage() {
     }
   };
 
-  const downloadPdf = async (run: WorkflowRun, wfName: string) => {
-    const el = reportRefs.current[run.id];
-    if (!el) return;
+  const downloadPdf = (run: WorkflowRun, wf: Workflow | undefined) => {
+    const wfName = wf?.name || 'Report';
     setDownloadingId(run.id);
     try {
-      const html2canvas = (await import('html2canvas')).default;
-      const { jsPDF } = await import('jspdf');
-      const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = pageWidth - 20;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      let y = 10;
-      let remaining = imgHeight;
-      while (remaining > 0) {
-        pdf.addImage(imgData, 'PNG', 10, y, imgWidth, imgHeight);
-        remaining -= (pageHeight - 20);
-        if (remaining > 0) { pdf.addPage(); y = 10 - (imgHeight - remaining); }
-      }
+      const runDate = new Date(run.created_at);
+      const confidence = run.generated_output ? computeConfidence(run.generated_output) : null;
+
+      // Build report body from output parts
+      const parts = parseReport(run.generated_output || '');
+      const bodyHtml = parts.map(part => {
+        if (part.type === 'chart') {
+          const url = buildQuickChartUrl(part.content);
+          if (!url) return '';
+          let title = '';
+          try { title = JSON.parse(part.content).title || ''; } catch { /* ok */ }
+          return `<div style="margin:20px 0;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;page-break-inside:avoid;">
+            ${title ? `<p style="font-size:12px;font-weight:600;color:#334155;padding:12px 16px 0;margin:0;">${title}</p>` : ''}
+            <img src="${url}" alt="${title || 'Chart'}" style="width:100%;display:block;" />
+          </div>`;
+        }
+        return `<div style="font-family:Arial,sans-serif;font-size:13px;color:#334155;line-height:1.75;">${renderMarkdown(injectCallouts(part.content))}</div>`;
+      }).join('');
+
+      const confBg    = confidence?.level === 'high' ? '#ecfdf5' : confidence?.level === 'medium' ? '#fffbeb' : '#f1f5f9';
+      const confColor = confidence?.level === 'high' ? '#047857' : confidence?.level === 'medium' ? '#b45309' : '#64748b';
+      const confBorder= confidence?.level === 'high' ? '#a7f3d0' : confidence?.level === 'medium' ? '#fde68a' : '#e2e8f0';
+      const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) { setDownloadingId(null); return; }
+
+      printWindow.document.write(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>${esc(wfName)}</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family: Arial, Helvetica, sans-serif; font-size: 13px; line-height: 1.6; color: #111827; margin: 0 auto; padding: 32px 40px; background: white; max-width: 750px; }
+    h1, h2, h3 { page-break-after: avoid; }
+    table { page-break-inside: avoid; width: 100%; border-collapse: collapse; }
+    tr { page-break-inside: avoid; }
+    thead { display: table-header-group; }
+    img { max-width: 100% !important; page-break-inside: avoid; }
+    div[style*="border-left"] { page-break-inside: avoid; }
+    @media print { body { padding: 0; } }
+  </style>
+</head>
+<body>
+  <div style="margin-bottom:24px;padding-bottom:20px;border-bottom:2px solid #e2e8f0;">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+      <div>
+        <h1 style="font-size:20px;font-weight:700;color:#1a1a2e;margin:0 0 4px;">${esc(wfName)}</h1>
+        <p style="font-size:12px;color:rgba(26,26,46,0.5);margin:0;">${runDate.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} · ${runDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</p>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        ${wf?.category ? `<span style="font-size:11px;padding:4px 10px;background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;border-radius:9999px;font-weight:500;">${esc(wf.category)}</span>` : ''}
+        ${confidence ? `<span style="font-size:11px;padding:4px 10px;background:${confBg};color:${confColor};border:1px solid ${confBorder};border-radius:9999px;font-weight:500;">${confidence.score}% confidence</span>` : ''}
+        <span style="font-size:11px;padding:4px 10px;background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;border-radius:9999px;font-weight:500;">Run complete</span>
+      </div>
+    </div>
+  </div>
+  ${bodyHtml}
+</body>
+</html>`);
+
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => { printWindow.print(); }, 500);
       posthog.capture('report_downloaded', { run_id: run.id });
-      pdf.save(`${wfName.replace(/\s+/g, '-')}-${new Date(run.created_at).toISOString().split('T')[0]}.pdf`);
     } finally {
       setDownloadingId(null);
     }
@@ -264,7 +310,7 @@ export default function ReportsPage() {
                     <div className="border-t border-slate-100 px-6 py-5">
                       {isSuccess && run.generated_output ? (
                         <>
-                          <div ref={el => { reportRefs.current[run.id] = el; }} className="bg-white p-2">
+                          <div className="bg-white p-2">
                             {/* Report header */}
                             <div className="mb-6 pb-5 border-b border-slate-100">
                               <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -343,7 +389,7 @@ export default function ReportsPage() {
                               </div>
                             </div>
                             <button
-                              onClick={() => downloadPdf(run, wf?.name || 'Report')}
+                              onClick={() => downloadPdf(run, wf)}
                               disabled={downloadingId === run.id}
                               className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors disabled:opacity-50 shrink-0"
                             >

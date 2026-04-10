@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import Anthropic from "npm:@anthropic-ai/sdk";
 import * as XLSX from "npm:xlsx";
 import { sanitizeDataSourceConfig, getClientIp, checkRateLimit, rateLimitResponse, fetchWithTimeout } from "../_shared/security.ts";
+import { aggregateCsvData } from "../_shared/dataset_aggregator.ts";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
@@ -267,7 +268,7 @@ function parseNewsRss(xml: string, query: string, limit = 15): string {
   return parsed.length ? `Recent results for "${query}":\n\n${parsed.join("\n\n")}` : "No results found.";
 }
 
-async function fetchData(sourceType: string, config: any, supabaseClient?: any): Promise<string> {
+async function fetchData(sourceType: string, config: any, supabaseClient?: any, workflowPrompt?: string): Promise<string> {
   if (sourceType === "excel_file" && config.storage_path && supabaseClient) {
     try {
       const { data, error } = await supabaseClient.storage
@@ -280,7 +281,14 @@ async function fetchData(sourceType: string, config: any, supabaseClient?: any):
       for (const sheetName of workbook.SheetNames) {
         const sheet = workbook.Sheets[sheetName];
         const csv = XLSX.utils.sheet_to_csv(sheet);
-        if (csv.trim()) results.push(`## Sheet: ${sheetName}\n${csv.substring(0, 3000)}`);
+        if (csv.trim()) {
+          if (workflowPrompt && typeof ANTHROPIC_API_KEY !== "undefined") {
+            const { aggregatedSummary, safeSample } = await aggregateCsvData(csv, workflowPrompt, ANTHROPIC_API_KEY!);
+            results.push(`## Sheet: ${sheetName}\n${aggregatedSummary}\n\n## Data Sample:\n${safeSample}`);
+          } else {
+            results.push(`## Sheet: ${sheetName}\n${csv.substring(0, 3000)}`);
+          }
+        }
       }
       return results.join("\n\n") || "Excel file is empty.";
     } catch (e) { console.error("excel_file error", e); }
@@ -291,7 +299,14 @@ async function fetchData(sourceType: string, config: any, supabaseClient?: any):
       let csvUrl = config.url;
       if (csvUrl.includes("/edit")) csvUrl = csvUrl.replace(/\/edit.*$/, "/export?format=csv");
       const res = await fetchWithTimeout(csvUrl, {}, 15_000);
-      if (res.ok) return (await res.text()).substring(0, 4000);
+      if (res.ok) {
+        const csvTxt = await res.text();
+        if (workflowPrompt && typeof ANTHROPIC_API_KEY !== "undefined") {
+          const { aggregatedSummary, safeSample } = await aggregateCsvData(csvTxt, workflowPrompt, ANTHROPIC_API_KEY!);
+          return `${aggregatedSummary}\n\n## Data Sample:\n${safeSample}`;
+        }
+        return csvTxt.substring(0, 4000);
+      }
     } catch (e) { console.error("Sheet fetch error", e); }
   }
 
@@ -506,7 +521,7 @@ serve(async (req) => {
 
       try {
         // Fetch current data
-        const data = await fetchData(dataSourceConfig.type, dataSourceConfig, supabase);
+        const data = await fetchData(dataSourceConfig.type, dataSourceConfig, supabase, agentConfig.prompt);
 
         // Fetch last successful run for memory/comparison
         const { data: lastRun } = await supabase

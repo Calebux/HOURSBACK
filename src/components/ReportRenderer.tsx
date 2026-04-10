@@ -11,7 +11,7 @@ function tryParseJson(raw: string): any | null {
   return null;
 }
 
-function buildQuickChartUrl(spec: string): string | null {
+export function buildQuickChartUrl(spec: string): string | null {
   const config = tryParseJson(spec);
   try {
     if (!config || !config.data?.length) return null;
@@ -54,7 +54,7 @@ function buildQuickChartUrl(spec: string): string | null {
   }
 }
 
-function parseReport(output: string): Part[] {
+export function parseReport(output: string): Part[] {
   const parts: Part[] = [];
   // \s* handles both ```chart\n{...} and ```chart {...} (same line)
   // (?:```|$) handles truncated output that never closes
@@ -107,12 +107,20 @@ function renderTable(block: string): string {
   return `<div style="overflow-x:auto;margin:16px 0;border-radius:10px;border:1px solid #e2e8f0;"><table style="width:100%;border-collapse:collapse;font-family:-apple-system,sans-serif;"><thead><tr>${headerCells}</tr></thead><tbody>${bodyRows}</tbody></table></div>`;
 }
 
-function renderMarkdown(md: string): string {
+export function renderMarkdown(md: string): string {
   const preserved = new Map<string, string>();
   let idx = 0;
 
-  // Step 1: preserve raw HTML block lines (LLM-generated <div><table>...</table></div>)
-  let processed = md.replace(/^(<(?:div|table)\b.+)$/gm, (match) => {
+  // Step 0: handle inline code and escape its content so it renders correctly
+  let processed = md.replace(/`([^`]+)`/g, (_, code) => {
+    const escaped = code.replace(/&(?!amp;|lt;|gt;)/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const tok = `\x00HBTOK${idx++}\x00`;
+    preserved.set(tok, `<code style="background:#e2e8f0;padding:1px 4px;border-radius:3px;font-size:12px;font-family:monospace;">${escaped}</code>`);
+    return tok;
+  });
+
+  // Step 1: preserve raw HTML tags (e.g. LLM-generated table tags)
+  processed = processed.replace(/<\/?[a-zA-Z][a-zA-Z0-9]*\b[^>]*>/g, (match) => {
     const tok = `\x00HBTOK${idx++}\x00`;
     preserved.set(tok, match);
     return tok;
@@ -138,7 +146,6 @@ function renderMarkdown(md: string): string {
     .replace(/^# (.+)$/gm, '<h1 style="font-size:20px;font-weight:700;margin:20px 0 8px;color:#0f172a;">$1</h1>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/`([^`]+)`/g, '<code style="background:#e2e8f0;padding:1px 4px;border-radius:3px;font-size:12px;font-family:monospace;">$1</code>')
     .replace(/^\d+\. (.+)$/gm, '<li style="margin:5px 0;padding-left:4px;list-style:decimal;">$1</li>')
     .replace(/^[-*] (.+)$/gm, '<li style="margin:5px 0;padding-left:4px;">$1</li>')
     .replace(/(<li[^>]*>.*?<\/li>\n?)+/gs, s => `<ul style="margin:8px 0;padding-left:20px;list-style:disc;">${s}</ul>`)
@@ -201,7 +208,7 @@ export function computeConfidence(output: string): { score: number; level: 'high
 }
 
 // ── Section callout detection ─────────────────────────────────────────────────
-function injectCallouts(md: string): string {
+export function injectCallouts(md: string): string {
   type CalloutStyle = { bg: string; border: string; label: string; labelColor: string };
   const styles: Record<string, CalloutStyle> = {
     risk:        { bg: '#fff7ed', border: '#f97316', label: 'Risk',        labelColor: '#9a3412' },
