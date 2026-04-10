@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -272,7 +272,8 @@ export default function WorkflowBuilder() {
   const [deployedWorkflowTitle, setDeployedWorkflowTitle] = useState('');
   const [copied, setCopied] = useState(false);
   const [telegramDeployId, setTelegramDeployId] = useState<string | null>(null);
-  const { isPro: hasPro } = useAuth();
+  const { isPro: hasPro, refreshPro } = useAuth();
+  useEffect(() => { refreshPro(); }, [refreshPro]);
   const [dataSourceMode, setDataSourceMode] = useState<'url' | 'excel'>('url');
   const [xlsxPath, setXlsxPath] = useState('');
   const [xlsxFileName, setXlsxFileName] = useState('');
