@@ -126,12 +126,40 @@ export function renderMarkdown(md: string): string {
     return tok;
   });
 
-  // Step 2: convert markdown pipe tables → HTML, then preserve those too
-  processed = processed.replace(/^(\|.+\|\n?){2,}/gm, (block) => {
-    const tok = `\x00HBTOK${idx++}\x00`;
-    preserved.set(tok, renderTable(block));
-    return tok;
-  });
+  // Step 2: collect markdown pipe tables line-by-line (handles blank lines between rows —
+  // Claude often emits a blank line after every row, which breaks a simple regex approach)
+  {
+    const lines = processed.split('\n');
+    const parts: string[] = [];
+    let tableLines: string[] = [];
+
+    const flushTable = () => {
+      if (tableLines.length === 0) return;
+      const nonBlank = tableLines.filter(l => l.trim() !== '');
+      const isPipeRow = (l: string) => l.trimStart().startsWith('|');
+      if (nonBlank.filter(isPipeRow).length >= 2) {
+        const tok = `\x00HBTOK${idx++}\x00`;
+        preserved.set(tok, renderTable(nonBlank.join('\n')));
+        parts.push(tok);
+      } else {
+        parts.push(...tableLines);
+      }
+      tableLines = [];
+    };
+
+    for (const line of lines) {
+      if (line.trimStart().startsWith('|')) {
+        tableLines.push(line);
+      } else if (line.trim() === '' && tableLines.length > 0) {
+        tableLines.push(line); // blank line mid-table — keep collecting
+      } else {
+        flushTable();
+        parts.push(line);
+      }
+    }
+    flushTable();
+    processed = parts.join('\n');
+  }
 
   // Step 3: escape HTML in the remaining text only
   processed = processed
