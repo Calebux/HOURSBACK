@@ -916,6 +916,25 @@ Keep the entire report readable in under 3 minutes. Write as if you are a truste
     steps: [],
     relatedPlaybooks: []
   },
+  {
+    id: 'wkflow-custom',
+    slug: 'custom-ai-analysis',
+    title: 'Custom AI Analysis',
+    subtitle: 'Bring your own dataset and define custom rules for the AI to analyze it.',
+    category: 'Operations',
+    difficulty: 'Advanced',
+    timeToComplete: 0,
+    timeSaved: 120,
+    completionCount: 0,
+    rating: 5.0,
+    isPro: true,
+    tools: ['Claude'],
+    beforeYouStart: [],
+    expectedOutcome: "",
+    troubleshooting: [],
+    steps: [],
+    relatedPlaybooks: []
+  }
 ];
 
 export const publicPlaybooks = launchCatalog;

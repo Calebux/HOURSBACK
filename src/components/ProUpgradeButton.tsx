@@ -46,10 +46,14 @@ export function ProUpgradeButton({ className, children }: Props) {
           try {
             await updateProfile(user.id, { subscription_status: 'pro' });
             await refreshPro();
+            toast.success('Welcome to Pro! All workflows are now unlocked.');
           } catch (err) {
             console.error('Failed to update profile', err);
+            toast.error(
+              'Payment successful but account upgrade failed. Please contact support at petersoncaleb275@gmail.com with your transaction reference.',
+              { duration: 10000 }
+            );
           }
-          toast.success('Welcome to Pro! All workflows are now unlocked.');
         } else {
           toast.error('Payment failed or was incomplete. Please try again.');
           closePaymentModal();

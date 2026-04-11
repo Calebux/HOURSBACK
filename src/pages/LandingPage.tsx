@@ -826,13 +826,23 @@ function PricingPlanCard({ plan, isAnnual, onAuthRequired }: { plan: any; isAnnu
         callback: async (response) => {
           if (response.status === 'successful' || response.status === 'completed') {
             closePaymentModal();
-            toast.success('Payment successful! Welcome to Pro.');
             localStorage.setItem('has_pro_access', 'true');
             if (user?.id) {
-              try { await updateProfile(user.id, { subscription_status: 'pro' }); }
-              catch (err) { console.error('Failed to update profile', err); }
+              try {
+                await updateProfile(user.id, { subscription_status: 'pro' });
+                toast.success('Payment successful! Welcome to Pro.');
+                window.location.href = '/workflows';
+              } catch (err) {
+                console.error('Failed to update profile', err);
+                toast.error(
+                  'Payment received but account upgrade failed. Please contact support at petersoncaleb275@gmail.com with your transaction reference.',
+                  { duration: 10000 }
+                );
+              }
+            } else {
+              toast.success('Payment successful! Welcome to Pro.');
+              window.location.href = '/workflows';
             }
-            window.location.href = '/workflows';
           } else {
             toast.error('Payment failed or was incomplete. Please try again.');
             closePaymentModal();
