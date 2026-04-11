@@ -389,7 +389,6 @@ export default function WorkflowBuilder() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const totalSteps = 3;
 
   return (
     <div className="min-h-screen bg-slate-50 text-brand-dark flex flex-col">
