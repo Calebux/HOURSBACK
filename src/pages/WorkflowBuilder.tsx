@@ -175,6 +175,7 @@ const workflowInputs: Record<string, WorkflowInput> = {
   'wkflow-52': { label: 'Paste your logs, errors, or complaints', placeholder: 'e.g.\n[09:42] Payment gateway timeout — 3 customers affected\n[10:15] Broken display fridge reported by staff\n[11:00] 2 complaints about late delivery\n[12:30] Generator alarm triggered', type: 'textarea' },
   'wkflow-54': { label: 'Paste incident timeline and resolution notes', placeholder: 'e.g.\n13:00 — Customer orders stopped processing\n13:15 — IT team alerted\n13:45 — Root cause found: database timeout\n14:30 — Fix deployed, orders resuming\n15:00 — All systems normal\n\nResolution: Increased DB connection pool size.', type: 'textarea' },
   'wkflow-55': { label: 'Upload your bank statement (CSV/Excel) or paste a Google Sheets URL', placeholder: 'https://docs.google.com/spreadsheets/d/...\n\nOr upload your bank statement export. Your sheet needs 4 columns:\nDate | Description | Amount In (₦) | Amount Out (₦)', type: 'url' },
+  'wkflow-custom': { label: 'Your data (Google Sheets URL, any URL, or upload a file)', placeholder: 'https://docs.google.com/spreadsheets/d/...', type: 'url' },
 };
 
 // Workflows delivered via Telegram bot conversation (not the standard deploy pipeline)
@@ -272,6 +273,7 @@ export default function WorkflowBuilder() {
   const [deployedWorkflowTitle, setDeployedWorkflowTitle] = useState('');
   const [copied, setCopied] = useState(false);
   const [telegramDeployId, setTelegramDeployId] = useState<string | null>(null);
+  const [customPrompt, setCustomPrompt] = useState<string>('');
   const { isPro: hasPro, refreshPro } = useAuth();
   useEffect(() => { refreshPro(); }, [refreshPro]);
   const [dataSourceMode, setDataSourceMode] = useState<'url' | 'excel'>('url');
@@ -338,7 +340,7 @@ export default function WorkflowBuilder() {
           is_pro: workflow.isPro ?? false,
           trigger_config,
           agent_config: {
-            prompt: workflow.expectedOutcome,
+            prompt: workflow.id === 'wkflow-custom' ? customPrompt : workflow.expectedOutcome,
             model: 'claude-sonnet-4-6',
             data_source: dataSourceMode === 'excel' ? xlsxFileName : dataSource,
           },
@@ -933,6 +935,19 @@ export default function WorkflowBuilder() {
             <div className="bg-white p-6 rounded-2xl border border-slate-200 space-y-6 shadow-sm">
               {inputConfig && (
                 <div>
+                  {selectedWorkflow === 'wkflow-custom' && (
+                    <div className="mb-4">
+                      <label className="block font-semibold mb-2">Analysis Instructions</label>
+                      <textarea
+                        value={customPrompt}
+                        onChange={e => setCustomPrompt(e.target.value)}
+                        placeholder="E.g. Look through my sales sheet and flag any clients ordering 20% less week over week."
+                        rows={4}
+                        className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue outline-none resize-none text-sm"
+                      />
+                      <p className="text-xs text-slate-400 mt-1">Tell Custom AI precisely what analysis to run on your attached data.</p>
+                    </div>
+                  )}
                   {/* xlsx mode toggle — shown for URL-type inputs */}
                   {(inputConfig.type === 'url' || inputConfig.type === 'text') && (
                     <div className="flex gap-1 mb-3 p-1 bg-slate-100 rounded-xl w-fit">
@@ -1009,6 +1024,7 @@ export default function WorkflowBuilder() {
                       )}
                     </div>
                   )}
+
                 </div>
               )}
 
