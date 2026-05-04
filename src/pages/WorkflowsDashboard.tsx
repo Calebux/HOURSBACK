@@ -14,6 +14,10 @@ import {
 } from 'lucide-react';
 import { MobileNav } from '../components/MobileNav';
 import { UserAvatar } from '../components/UserAvatar';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Badge } from '../components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 
 interface Workflow {
   id: string;
@@ -22,8 +26,11 @@ interface Workflow {
   status: 'active' | 'paused';
   trigger_config: any;
   action_config: any;
+  agent_config?: any;
+  data_source_config?: any;
   next_run?: string;
   last_run?: string;
+  webhook_secret?: string;
 }
 
 interface WorkflowRun {
@@ -56,6 +63,103 @@ function timeAgo(dateStr: string): string {
   if (mins > 0) return `${mins}m ago`;
   return 'just now';
 }
+
+function isHubWorkflow(workflow: Workflow): boolean {
+  return workflow.agent_config?.hub_bundle === 'wkflow-hub' || workflow.name.startsWith('Hub: ');
+}
+
+function getWorkflowDisplayName(workflow: Pick<Workflow, 'name'> | undefined): string {
+  if (!workflow?.name) return 'Unknown Workflow';
+  return workflow.name.replace(/^Hub:\s*/, '');
+}
+
+function getWorkflowCategoryLabel(category: string | undefined): string {
+  if (!category) return 'Workflow';
+  return category === 'Hub Workflow' ? 'Workflow Bundle' : category;
+}
+
+function getWorkflowRecipients(workflow: Workflow): string[] {
+  const to = typeof workflow.action_config?.to === 'string' ? [workflow.action_config.to] : [];
+  const cc = Array.isArray(workflow.action_config?.cc) ? workflow.action_config.cc : [];
+  return [...new Set([...to, ...cc].filter((value): value is string => Boolean(value)))];
+}
+
+function getWorkflowScheduleLabel(workflow: Workflow): string {
+  if (workflow.trigger_config?.type === 'webhook') return 'Webhook';
+
+  const schedule = workflow.trigger_config?.schedule || 'Scheduled';
+  const time = workflow.trigger_config?.time;
+  return time ? `${schedule} · ${time}` : schedule;
+}
+
+function getWorkflowLastIssue(workflow: WorkflowRun | undefined): string {
+  if (!workflow) return 'Waiting for first run';
+  return workflow.status === 'failed' ? (workflow.error_message || 'Last run failed') : 'Healthy';
+}
+
+const HUB_PREVIEW_SUBSETS = [
+  {
+    name: 'Internet Renewal Watch',
+    status: 'active',
+    schedule: 'Daily · 08:00',
+    health: '96% success',
+    lastRun: '42m ago',
+    recipients: 'manager@hub.com, reception@hub.com',
+  },
+  {
+    name: 'Overdue Balance Recovery',
+    status: 'active',
+    schedule: 'Daily · 09:00',
+    health: '91% success',
+    lastRun: '42m ago',
+    recipients: 'manager@hub.com',
+  },
+  {
+    name: 'Class Fee Reminder',
+    status: 'active',
+    schedule: 'Daily · 17:30',
+    health: '100% success',
+    lastRun: '18h ago',
+    recipients: 'reception@hub.com',
+  },
+  {
+    name: 'Attendance Drop-off Predictor',
+    status: 'watch',
+    schedule: 'Mon/Wed/Fri · 18:00',
+    health: '78% success',
+    lastRun: '2d ago',
+    recipients: 'manager@hub.com',
+  },
+  {
+    name: 'Weekly Manager Brief',
+    status: 'active',
+    schedule: 'Weekly · Mon 07:30',
+    health: '100% success',
+    lastRun: '6d ago',
+    recipients: 'manager@hub.com, owner@hub.com',
+  },
+] as const;
+
+const HUB_PREVIEW_RUNS = [
+  {
+    workflow: 'Internet Renewal Watch',
+    status: 'success',
+    when: '42m ago',
+    summary: '8 internet users expire in the next 3 days. 3 already have balances.',
+  },
+  {
+    workflow: 'Overdue Balance Recovery',
+    status: 'success',
+    when: '42m ago',
+    summary: '₦67,500 outstanding across 11 customers. Top 3 accounts make up 58% of the balance.',
+  },
+  {
+    workflow: 'Attendance Drop-off Predictor',
+    status: 'failed',
+    when: '2d ago',
+    summary: 'Attendance_Log tab had missing Session_Date values in 4 rows.',
+  },
+] as const;
 
 
 function SuccessRateBadge({ rate, total }: { rate: number | null; total: number }) {
@@ -168,7 +272,7 @@ function FirstRunOnboarding({ user }: { user: any }) {
   );
 }
 
-export default function WorkflowsDashboard() {
+export default function WorkflowsDashboard({ previewMode = false }: { previewMode?: boolean }) {
   const { user, refreshPro, isPro, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
@@ -189,6 +293,10 @@ export default function WorkflowsDashboard() {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
   useEffect(() => {
+    if (previewMode) {
+      setLoading(false);
+      return;
+    }
     if (authLoading) return;
     if (!user) { navigate('/'); return; }
     refreshPro();
@@ -215,11 +323,48 @@ export default function WorkflowsDashboard() {
       }
     }
     loadData();
-  }, [user, authLoading, navigate, refreshPro]);
+  }, [user, authLoading, navigate, refreshPro, previewMode]);
 
   // Computed stats
   const activeWorkflows = workflows.filter(w => w.status === 'active');
   const pausedWorkflows = workflows.filter(w => w.status === 'paused');
+  const hubWorkflows = workflows.filter(isHubWorkflow);
+  const hubWorkflowIds = new Set(hubWorkflows.map(workflow => workflow.id));
+  const hubRuns = runs.filter(run => hubWorkflowIds.has(run.workflow_id));
+  const activeHubWorkflows = hubWorkflows.filter(w => w.status === 'active');
+  const pausedHubWorkflows = hubWorkflows.filter(w => w.status === 'paused');
+  const hubSuccessfulRuns = hubRuns.filter(run => run.status === 'success').length;
+  const hubSuccessRate = hubRuns.length > 0 ? Math.round((hubSuccessfulRuns / hubRuns.length) * 100) : null;
+  const hubRecipients = [...new Set(hubWorkflows.flatMap(getWorkflowRecipients))];
+  const nextHubRun = activeHubWorkflows
+    .map(workflow => workflow.next_run)
+    .filter((value): value is string => Boolean(value))
+    .sort((a, b) => new Date(a).getTime() - new Date(b).getTime())[0];
+  const lastHubRun = hubRuns[0];
+  const hubAtRisk = hubWorkflows
+    .map(workflow => {
+      const stats = getWorkflowStats(workflow.id);
+      const latestRun = hubRuns.find(run => run.workflow_id === workflow.id);
+      const rate = stats.rate;
+      const riskLevel = workflow.status === 'paused' || latestRun?.status === 'failed'
+        ? 'high'
+        : stats.total === 0 || (rate !== null && rate < 80)
+          ? 'medium'
+          : 'low';
+
+      return {
+        workflow,
+        stats,
+        latestRun,
+        rate,
+        riskLevel,
+      };
+    })
+    .filter(item => item.riskLevel !== 'low')
+    .sort((a, b) => {
+      const riskWeight = { high: 0, medium: 1 } as const;
+      return riskWeight[a.riskLevel as 'high' | 'medium'] - riskWeight[b.riskLevel as 'high' | 'medium'];
+    });
   const successfulRuns = runs.filter(r => r.status === 'success').length;
   const successRate = runs.length > 0 ? Math.round((successfulRuns / runs.length) * 100) : null;
 
@@ -236,14 +381,16 @@ export default function WorkflowsDashboard() {
 
   const toggleStatus = async (id: string, currentStatus: string) => {
     const newStatus = currentStatus === 'active' ? 'paused' : 'active';
-    await supabase.from('workflows').update({ status: newStatus }).eq('id', id);
+    const { error } = await supabase.from('workflows').update({ status: newStatus }).eq('id', id);
+    if (error) { toast.error('Failed to update workflow'); return; }
     setWorkflows(prev => prev.map(w => w.id === id ? { ...w, status: newStatus as 'active' | 'paused' } : w));
     toast.success(`Workflow ${newStatus}`);
   };
 
   const deleteWorkflow = async (id: string) => {
     if (!confirm('Delete this workflow? This cannot be undone.')) return;
-    await supabase.from('workflows').delete().eq('id', id);
+    const { error } = await supabase.from('workflows').delete().eq('id', id);
+    if (error) { toast.error('Failed to delete workflow'); return; }
     setWorkflows(prev => prev.filter(w => w.id !== id));
     toast.success('Workflow deleted');
   };
@@ -266,9 +413,11 @@ export default function WorkflowsDashboard() {
     }
   };
 
-  const copyWebhookUrl = (id: string) => {
-    navigator.clipboard.writeText(`${supabaseUrl}/functions/v1/webhook-receiver?workflow_id=${id}`);
-    setCopiedId(id);
+  const copyWebhookUrl = (workflow: Workflow) => {
+    const base = `${supabaseUrl}/functions/v1/webhook-receiver?workflow_id=${workflow.id}`;
+    const url = workflow.webhook_secret ? `${base}&secret=${workflow.webhook_secret}` : base;
+    navigator.clipboard.writeText(url);
+    setCopiedId(workflow.id);
     setTimeout(() => setCopiedId(null), 2000);
   };
 
@@ -393,8 +542,8 @@ export default function WorkflowsDashboard() {
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-2 flex-wrap min-w-0">
               <span className={`w-2 h-2 rounded-full shrink-0 ${workflow.status === 'active' ? 'bg-green-500 animate-pulse' : 'bg-slate-300'}`} />
-              <h3 className="font-semibold text-base leading-tight">{workflow.name}</h3>
-              <span className="text-xs font-medium px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200 shrink-0">{workflow.category}</span>
+              <h3 className="font-semibold text-base leading-tight">{getWorkflowDisplayName(workflow)}</h3>
+              <span className="text-xs font-medium px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200 shrink-0">{getWorkflowCategoryLabel(workflow.category)}</span>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <button
@@ -505,7 +654,7 @@ export default function WorkflowsDashboard() {
               <code className="text-xs text-slate-600 truncate flex-1 font-mono">
                 {supabaseUrl}/functions/v1/webhook-receiver?workflow_id={workflow.id}
               </code>
-              <button onClick={() => copyWebhookUrl(workflow.id)} className="shrink-0 p-1 hover:bg-slate-200 rounded transition-colors">
+              <button onClick={() => copyWebhookUrl(workflow)} className="shrink-0 p-1 hover:bg-slate-200 rounded transition-colors">
                 {copiedId === workflow.id ? <CheckCheck className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5 text-slate-400" />}
               </button>
             </div>
@@ -549,6 +698,438 @@ export default function WorkflowsDashboard() {
     );
   };
 
+  const ManagerMetricCard = ({
+    title,
+    value,
+    detail,
+    tone = 'default',
+  }: {
+    title: string;
+    value: string;
+    detail: string;
+    tone?: 'default' | 'teal' | 'amber';
+  }) => {
+    const toneMap = {
+      default: 'bg-slate-50 text-slate-700 border-slate-200',
+      teal: 'bg-teal-50 text-teal-700 border-teal-200',
+      amber: 'bg-amber-50 text-amber-700 border-amber-200',
+    };
+
+    return (
+      <Card className="border-slate-200 shadow-none">
+        <CardContent className="px-5 py-5">
+          <div className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] ${toneMap[tone]}`}>
+            {title}
+          </div>
+          <p className="mt-4 text-3xl font-semibold tracking-tight text-slate-900">{value}</p>
+          <p className="mt-1 text-sm text-slate-500 leading-relaxed">{detail}</p>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  const HubOverview = () => (
+    <div className="space-y-6">
+      <Card className="border-slate-200 shadow-sm">
+        <CardHeader className="gap-3">
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div>
+              <CardTitle className="text-xl text-slate-900">Workflow Overview</CardTitle>
+              <CardDescription className="mt-1 max-w-2xl text-sm leading-relaxed">
+                A grouped oversight layer for bundled workflows. This rolls up the related reports so you can see coverage, health, and exceptions without opening each child workflow.
+              </CardDescription>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="outline" className="rounded-full border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-700">
+                Live data
+              </Badge>
+              <Badge variant="outline" className="rounded-full border-teal-200 bg-teal-50 px-3 py-1 text-teal-700">
+                {activeHubWorkflows.length} active
+              </Badge>
+              <Badge variant="outline" className="rounded-full border-slate-200 bg-slate-50 px-3 py-1 text-slate-700">
+                {pausedHubWorkflows.length} paused
+              </Badge>
+              <Badge variant="outline" className="rounded-full border-slate-200 bg-white px-3 py-1 text-slate-700">
+                {hubRecipients.length} recipients
+              </Badge>
+            </div>
+          </div>
+        </CardHeader>
+      </Card>
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <ManagerMetricCard
+          title="Hub Subsets"
+          value={String(hubWorkflows.length)}
+          detail="Child workflows deployed from the bundled hub setup."
+          tone="teal"
+        />
+        <ManagerMetricCard
+          title="Success Rate"
+          value={hubSuccessRate !== null ? `${hubSuccessRate}%` : '—'}
+          detail={hubRuns.length > 0 ? `${hubRuns.length} total hub runs recorded.` : 'No hub runs yet.'}
+        />
+        <ManagerMetricCard
+          title="Next Run"
+          value={nextHubRun ? new Date(nextHubRun).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '—'}
+          detail={nextHubRun ? new Date(nextHubRun).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'No upcoming scheduled run found.'}
+        />
+        <ManagerMetricCard
+          title="Last Delivery"
+          value={lastHubRun ? timeAgo(lastHubRun.created_at) : '—'}
+          detail={lastHubRun ? getWorkflowLastIssue(lastHubRun) : 'Waiting for the first completed report.'}
+          tone={lastHubRun?.status === 'failed' ? 'amber' : 'default'}
+        />
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[1.55fr_1fr]">
+        <Card className="border-slate-200 shadow-none">
+          <CardHeader>
+            <CardTitle className="text-base">Subset Coverage</CardTitle>
+            <CardDescription>Each subset remains an independent workflow, but the manager sees them grouped here.</CardDescription>
+          </CardHeader>
+          <CardContent className="px-0 pb-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="px-6">Subset</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Schedule</TableHead>
+                  <TableHead>Health</TableHead>
+                  <TableHead className="pr-6 text-right">Last run</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {hubWorkflows.map(workflow => {
+                  const stats = getWorkflowStats(workflow.id);
+                  const latestRun = hubRuns.find(run => run.workflow_id === workflow.id);
+                  return (
+                    <TableRow key={workflow.id}>
+                      <TableCell className="px-6 py-4 align-top whitespace-normal">
+                        <div>
+                          <p className="font-medium text-slate-900">{getWorkflowDisplayName(workflow)}</p>
+                          <p className="mt-1 text-xs text-slate-500">{getWorkflowRecipients(workflow).join(', ') || 'No recipients set'}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-4">
+                        <Badge
+                          variant="outline"
+                          className={workflow.status === 'active'
+                            ? 'border-teal-200 bg-teal-50 text-teal-700'
+                            : 'border-slate-200 bg-slate-50 text-slate-600'}
+                        >
+                          {workflow.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="py-4 text-sm text-slate-600">{getWorkflowScheduleLabel(workflow)}</TableCell>
+                      <TableCell className="py-4">
+                        <div className="space-y-1">
+                          <SuccessRateBadge rate={stats.rate} total={stats.total} />
+                          {latestRun?.status === 'failed' && (
+                            <p className="text-xs text-red-600">Needs attention</p>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-4 pr-6 text-right text-sm text-slate-500">
+                        {stats.lastRun ? timeAgo(stats.lastRun) : 'Never'}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
+        <div className="space-y-6">
+          <Card className="border-slate-200 shadow-none">
+            <CardHeader>
+              <CardTitle className="text-base">Manager Watchlist</CardTitle>
+              <CardDescription>Exceptions worth checking before the next reporting window.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {hubAtRisk.length === 0 ? (
+                <div className="rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-teal-800">
+                  All hub subsets are active and currently healthy.
+                </div>
+              ) : (
+                hubAtRisk.slice(0, 5).map(item => (
+                  <div key={item.workflow.id} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-medium text-slate-900">{getWorkflowDisplayName(item.workflow)}</p>
+                        <p className="mt-1 text-xs leading-relaxed text-slate-500">
+                          {item.workflow.status === 'paused'
+                            ? 'This subset is paused and will not send its report.'
+                            : item.latestRun?.status === 'failed'
+                              ? item.latestRun.error_message || 'The last run failed.'
+                              : 'This subset has not built enough successful runs yet.'}
+                        </p>
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className={item.riskLevel === 'high'
+                          ? 'border-red-200 bg-red-50 text-red-700'
+                          : 'border-amber-200 bg-amber-50 text-amber-700'}
+                      >
+                        {item.riskLevel === 'high' ? 'Action' : 'Watch'}
+                      </Badge>
+                    </div>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="border-slate-200 shadow-none">
+            <CardHeader>
+              <CardTitle className="text-base">Recipients</CardTitle>
+              <CardDescription>Who receives the hub reports today.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-wrap gap-2">
+              {hubRecipients.length === 0 ? (
+                <p className="text-sm text-slate-500">No recipients configured yet.</p>
+              ) : (
+                hubRecipients.map(recipient => (
+                  <Badge key={recipient} variant="outline" className="rounded-full border-slate-200 bg-white px-3 py-1 text-slate-700">
+                    {recipient}
+                  </Badge>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      <Card className="border-slate-200 shadow-none">
+        <CardHeader>
+          <CardTitle className="text-base">Recent Hub Runs</CardTitle>
+          <CardDescription>The latest outputs generated by the bundled workflows.</CardDescription>
+        </CardHeader>
+        <CardContent className="px-0 pb-0">
+          {hubRuns.length === 0 ? (
+            <div className="px-6 pb-6 text-sm text-slate-500">No hub runs yet.</div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="px-6">Workflow</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>When</TableHead>
+                  <TableHead className="pr-6">Output</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {hubRuns.slice(0, 6).map(run => {
+                  const workflow = hubWorkflows.find(item => item.id === run.workflow_id);
+                  return (
+                    <TableRow key={run.id}>
+                      <TableCell className="px-6 py-4 whitespace-normal">
+                        <p className="font-medium text-slate-900">{workflow ? getWorkflowDisplayName(workflow) : 'Unknown subset'}</p>
+                        <p className="mt-1 text-xs text-slate-500">{getWorkflowCategoryLabel(workflow?.category || 'Workflow Bundle')}</p>
+                      </TableCell>
+                      <TableCell className="py-4">
+                        <Badge
+                          variant="outline"
+                          className={run.status === 'success'
+                            ? 'border-teal-200 bg-teal-50 text-teal-700'
+                            : 'border-red-200 bg-red-50 text-red-700'}
+                        >
+                          {run.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="py-4 text-sm text-slate-600">{timeAgo(run.created_at)}</TableCell>
+                      <TableCell className="py-4 pr-6 text-sm text-slate-500 whitespace-normal">
+                        {run.status === 'failed'
+                          ? run.error_message || 'Run failed'
+                          : 'Report generated successfully. Open Reports for the full output.'}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+
+  const HubOverviewPreview = () => (
+    <div className="space-y-6">
+      <Card className="border-slate-200 shadow-sm">
+        <CardHeader className="gap-3">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <CardTitle className="text-xl text-slate-900">Workflow Overview</CardTitle>
+              <CardDescription className="mt-1 max-w-2xl text-sm leading-relaxed">
+                This preview shows how bundled workflows can roll up into one oversight layer. Once you deploy a workflow package, this page groups the related reports into a single operating view.
+              </CardDescription>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="outline" className="rounded-full border-amber-200 bg-amber-50 px-3 py-1 text-amber-700">
+                Demo data
+              </Badge>
+              <Link to="/workflows/new?id=wkflow-hub" className="shrink-0">
+                <button className="rounded-full bg-brand-dark px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-dark/90">
+                  Create Workflow
+                </button>
+              </Link>
+            </div>
+          </div>
+        </CardHeader>
+      </Card>
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <ManagerMetricCard
+          title="Hub Subsets"
+          value="5"
+          detail="Preview of a typical hub setup across renewals, fees, attendance, and management."
+          tone="teal"
+        />
+        <ManagerMetricCard
+          title="Success Rate"
+          value="94%"
+          detail="18 successful runs out of the last 19 across the bundled hub subsets."
+        />
+        <ManagerMetricCard
+          title="Next Run"
+          value="Today"
+          detail="Next delivery at 17:30 for Class Fee Reminder."
+        />
+        <ManagerMetricCard
+          title="Manager Brief"
+          value="4 Alerts"
+          detail="2 payment issues, 1 attendance risk, 1 underfilled class need review."
+          tone="amber"
+        />
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[1.55fr_1fr]">
+        <Card className="border-slate-200 shadow-none">
+          <CardHeader>
+            <CardTitle className="text-base">Subset Coverage Preview</CardTitle>
+            <CardDescription>The deployed hub subsets still run independently, but the manager sees them grouped here.</CardDescription>
+          </CardHeader>
+          <CardContent className="px-0 pb-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="px-6">Subset</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Schedule</TableHead>
+                  <TableHead>Health</TableHead>
+                  <TableHead className="pr-6 text-right">Last run</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {HUB_PREVIEW_SUBSETS.map(subset => (
+                  <TableRow key={subset.name}>
+                    <TableCell className="px-6 py-4 align-top whitespace-normal">
+                      <div>
+                        <p className="font-medium text-slate-900">{subset.name}</p>
+                        <p className="mt-1 text-xs text-slate-500">{subset.recipients}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-4">
+                      <Badge
+                        variant="outline"
+                        className={subset.status === 'active'
+                          ? 'border-teal-200 bg-teal-50 text-teal-700'
+                          : 'border-amber-200 bg-amber-50 text-amber-700'}
+                      >
+                        {subset.status === 'active' ? 'active' : 'watch'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="py-4 text-sm text-slate-600">{subset.schedule}</TableCell>
+                    <TableCell className="py-4 text-sm text-slate-600">{subset.health}</TableCell>
+                    <TableCell className="py-4 pr-6 text-right text-sm text-slate-500">{subset.lastRun}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
+        <div className="space-y-6">
+          <Card className="border-slate-200 shadow-none">
+            <CardHeader>
+              <CardTitle className="text-base">Workbook Tabs Expected</CardTitle>
+              <CardDescription>The receptionist keeps one workbook with these tabs.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-wrap gap-2">
+              {['Internet_Customers', 'Class_Enrollments', 'Attendance_Log', 'Daily_Transactions', 'Classes_Master'].map(tab => (
+                <Badge key={tab} variant="outline" className="rounded-full border-slate-200 bg-white px-3 py-1 text-slate-700">
+                  {tab}
+                </Badge>
+              ))}
+            </CardContent>
+          </Card>
+
+          <Card className="border-slate-200 shadow-none">
+            <CardHeader>
+              <CardTitle className="text-base">Manager Watchlist Preview</CardTitle>
+              <CardDescription>What the manager will see once reports begin running.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {[
+                '6 internet customers expire in the next 48 hours, with 3 still unpaid.',
+                '4 students have balances before tomorrow’s classes.',
+                'Data Analysis Weekend class is at 33% fill rate and needs promotion.',
+                'Attendance Drop-off Predictor needs sheet cleanup before the next run.',
+              ].map(item => (
+                <div key={item} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                  {item}
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      <Card className="border-slate-200 shadow-none">
+        <CardHeader>
+          <CardTitle className="text-base">Recent Hub Runs Preview</CardTitle>
+          <CardDescription>Example output summaries the manager would scan at a glance.</CardDescription>
+        </CardHeader>
+        <CardContent className="px-0 pb-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="px-6">Workflow</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>When</TableHead>
+                <TableHead className="pr-6">Summary</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {HUB_PREVIEW_RUNS.map(run => (
+                <TableRow key={`${run.workflow}-${run.when}`}>
+                  <TableCell className="px-6 py-4 whitespace-normal">
+                    <p className="font-medium text-slate-900">{run.workflow}</p>
+                    <p className="mt-1 text-xs text-slate-500">Workflow Bundle</p>
+                  </TableCell>
+                  <TableCell className="py-4">
+                    <Badge
+                      variant="outline"
+                      className={run.status === 'success'
+                        ? 'border-teal-200 bg-teal-50 text-teal-700'
+                        : 'border-red-200 bg-red-50 text-red-700'}
+                    >
+                      {run.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="py-4 text-sm text-slate-600">{run.when}</TableCell>
+                  <TableCell className="py-4 pr-6 text-sm text-slate-500 whitespace-normal">{run.summary}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-brand-light text-brand-dark">
       {/* Nav */}
@@ -558,18 +1139,28 @@ export default function WorkflowsDashboard() {
             <img src="/logo.svg" alt="Hoursback" className="h-[36px] w-auto" />
           </Link>
           <div className="flex items-center gap-4">
-            <Link to="/workflows/new" className="hidden sm:flex items-center gap-1.5 text-sm font-medium text-brand-dark/60 hover:text-brand-dark transition-colors px-3 py-1.5">
-              <Plus className="w-4 h-4" /> Browse
-            </Link>
-            <Link to="/workflows" className="hidden sm:flex items-center gap-1.5 text-sm font-medium text-[#DA7756] bg-[#DA7756]/10 px-3 py-1.5 rounded-full">
-              <Bot className="w-4 h-4" /> Workflows
-            </Link>
-            <Link to="/reports" className="hidden sm:flex items-center gap-1.5 text-sm font-medium text-brand-dark/60 hover:text-brand-dark transition-colors px-3 py-1.5">
-              <FileText className="w-4 h-4" /> Reports
-            </Link>
-            <Link to="/account" title="Account">
-              <UserAvatar user={user} size="sm" />
-            </Link>
+            {previewMode ? (
+              <>
+                <Link to="/workflows/new?id=wkflow-hub" className="hidden sm:flex items-center gap-1.5 text-sm font-medium text-brand-dark/60 hover:text-brand-dark transition-colors px-3 py-1.5">
+                  <Plus className="w-4 h-4" /> Browse
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link to="/workflows/new" className="hidden sm:flex items-center gap-1.5 text-sm font-medium text-brand-dark/60 hover:text-brand-dark transition-colors px-3 py-1.5">
+                  <Plus className="w-4 h-4" /> Browse
+                </Link>
+                <Link to="/workflows" className="hidden sm:flex items-center gap-1.5 text-sm font-medium text-[#DA7756] bg-[#DA7756]/10 px-3 py-1.5 rounded-full">
+                  <Bot className="w-4 h-4" /> Workflows
+                </Link>
+                <Link to="/reports" className="hidden sm:flex items-center gap-1.5 text-sm font-medium text-brand-dark/60 hover:text-brand-dark transition-colors px-3 py-1.5">
+                  <FileText className="w-4 h-4" /> Reports
+                </Link>
+                <Link to="/account" title="Account">
+                  <UserAvatar user={user} size="sm" />
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </nav>
@@ -581,7 +1172,7 @@ export default function WorkflowsDashboard() {
             <h1 className="text-3xl font-bold mb-1">My Workflows</h1>
             <p className="text-brand-dark/60">Automated AI agents running on your schedule.</p>
           </div>
-          <Link to="/workflows/new">
+          <Link to={previewMode ? '/workflows/new?id=wkflow-hub' : '/workflows/new'}>
             <button className="bg-brand-dark text-white px-5 py-2.5 rounded-full font-medium hover:bg-brand-dark/90 transition-colors flex items-center gap-2">
               <Plus className="w-4 h-4" /> Create Workflow
             </button>
@@ -589,7 +1180,7 @@ export default function WorkflowsDashboard() {
         </div>
 
         {/* Pro teaser strip — shown when user has < 3 workflows */}
-        {!isPro && workflows.length < 3 && (
+        {!previewMode && !isPro && workflows.length < 3 && (
           <div className="mb-6 space-y-3">
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -624,7 +1215,7 @@ export default function WorkflowsDashboard() {
         )}
 
         {/* Contextual upgrade — user is at the 3-workflow limit */}
-        {!isPro && workflows.length >= 3 && (
+        {!previewMode && !isPro && workflows.length >= 3 && (
           <div className="mb-6 bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div>
               <p className="font-semibold text-amber-900 text-sm">You've deployed 3 workflows — that's the free limit</p>
@@ -637,7 +1228,7 @@ export default function WorkflowsDashboard() {
         )}
 
         {/* Telegram onboarding nudge — shown after first workflow if bot not connected */}
-        {telegramConnected === false && workflows.length >= 1 && telegramRuns.length === 0 && (
+        {!previewMode && telegramConnected === false && workflows.length >= 1 && telegramRuns.length === 0 && (
           <div className="mb-6 bg-sky-50 border border-sky-200 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="flex items-start gap-3">
               <Send className="w-5 h-5 text-sky-500 shrink-0 mt-0.5" />
@@ -656,7 +1247,7 @@ export default function WorkflowsDashboard() {
         )}
 
         {/* Milestone banner — after 10 runs, nudge with hours saved */}
-        {!isPro && runs.length >= 10 && workflows.length < 3 && (
+        {!previewMode && !isPro && runs.length >= 10 && workflows.length < 3 && (
           <div className="mb-6 bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div>
               <p className="font-semibold text-emerald-900 text-sm">
@@ -671,7 +1262,7 @@ export default function WorkflowsDashboard() {
         )}
 
         {/* Stats bar */}
-        {workflows.length > 0 && (
+        {!previewMode && workflows.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-8">
             <div className="bg-white rounded-2xl border border-brand-dark/10 p-4 flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
@@ -703,171 +1294,182 @@ export default function WorkflowsDashboard() {
           </div>
         )}
 
-        {workflows.length === 0 ? (
-          <FirstRunOnboarding user={user} />
-        ) : (
-        <div className="grid md:grid-cols-3 gap-8">
-          {/* Workflow cards */}
-          <div className="md:col-span-2 space-y-8">
-            <>
-              {/* Active */}
-              {activeWorkflows.length > 0 && (
-                <div className="space-y-4">
-                  <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                    Active — {activeWorkflows.length}
-                  </h2>
-                  {activeWorkflows.map(wf => <WorkflowCard key={wf.id} workflow={wf} />)}
-                </div>
-              )}
+        <Tabs defaultValue={hubWorkflows.length > 0 || workflows.length === 0 ? 'hub-overview' : 'all-workflows'} className="gap-6">
+          <TabsList className="h-auto w-full justify-start gap-2 rounded-2xl bg-white p-2 shadow-sm md:w-fit">
+            <TabsTrigger value="hub-overview" className="rounded-xl px-4 py-2 text-sm">
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="all-workflows" className="rounded-xl px-4 py-2 text-sm">
+              All Workflows
+            </TabsTrigger>
+          </TabsList>
 
-              {/* Paused */}
-              {pausedWorkflows.length > 0 && (
-                <div className="space-y-4">
-                  <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-slate-300" />
-                    Paused — {pausedWorkflows.length}
-                  </h2>
-                  <div className="opacity-70">
-                    {pausedWorkflows.map(wf => <WorkflowCard key={wf.id} workflow={wf} />)}
-                  </div>
-                </div>
-              )}
-            </>
-          </div>
+          <TabsContent value="hub-overview">
+            {hubWorkflows.length > 0 ? <HubOverview /> : <HubOverviewPreview />}
+          </TabsContent>
 
-          {/* Recent runs + Telegram Activity */}
-          <div className="space-y-6">
-            <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Recent Runs</h2>
-              {runs.length > 0 && (
-                <Link to="/reports" className="text-xs text-brand-blue hover:underline font-medium flex items-center gap-1">
-                  View all <ExternalLink className="w-3 h-3" />
-                </Link>
-              )}
-            </div>
-            <div className="bg-white rounded-2xl border border-brand-dark/10 overflow-hidden">
-              {runs.length === 0 ? (
-                <div className="p-6 text-center text-brand-dark/40 text-sm">No runs yet.</div>
-              ) : (
-                <div className="divide-y divide-slate-100 max-h-[520px] overflow-y-auto">
-                  {runs.slice(0, 20).map(run => {
-                    const wf = workflows.find(w => w.id === run.workflow_id);
-                    const isSuccess = run.status === 'success';
-                    const isExpanded = expandedRunId === run.id;
-                    return (
-                      <div key={run.id}>
-                        <button
-                          onClick={() => setExpandedRunId(isExpanded ? null : run.id)}
-                          className="w-full p-3.5 text-left hover:bg-slate-50 transition-colors"
-                        >
-                          <div className="flex items-start gap-2.5">
-                            <div className={`mt-0.5 shrink-0 ${isSuccess ? 'text-emerald-500' : 'text-red-500'}`}>
-                              {isSuccess ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium leading-tight truncate">{wf?.name || 'Unknown'}</p>
-                              <p className="text-xs text-slate-400 mt-0.5">{timeAgo(run.created_at)}</p>
-                            </div>
-                            {isSuccess && (
-                              <div className="shrink-0 text-slate-300">
-                                {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                              </div>
-                            )}
-                          </div>
-                        </button>
-                        {isExpanded && isSuccess && run.generated_output && (
-                          <div className="px-4 pb-4 border-t border-slate-100 max-h-72 overflow-y-auto bg-slate-50/40">
-                            <div className="pt-3">
-                              <ReportRenderer output={run.generated_output} compact />
-                            </div>
-                            <Link to="/reports" className="flex items-center gap-1 text-xs text-brand-blue hover:underline mt-3 font-medium">
-                              <ExternalLink className="w-3 h-3" /> Open full report
-                            </Link>
-                          </div>
-                        )}
+          <TabsContent value="all-workflows">
+            {workflows.length === 0 ? (
+              <FirstRunOnboarding user={user} />
+            ) : (
+            <div className="grid md:grid-cols-3 gap-8">
+              <div className="md:col-span-2 space-y-8">
+                <>
+                  {activeWorkflows.length > 0 && (
+                    <div className="space-y-4">
+                      <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                        Active — {activeWorkflows.length}
+                      </h2>
+                      {activeWorkflows.map(wf => <WorkflowCard key={wf.id} workflow={wf} />)}
+                    </div>
+                  )}
+
+                  {pausedWorkflows.length > 0 && (
+                    <div className="space-y-4">
+                      <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-slate-300" />
+                        Paused — {pausedWorkflows.length}
+                      </h2>
+                      <div className="opacity-70">
+                        {pausedWorkflows.map(wf => <WorkflowCard key={wf.id} workflow={wf} />)}
                       </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-            </div>
-
-            {/* Telegram Activity */}
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <Send className="w-4 h-4 text-sky-500" />
-                  <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Telegram Activity</h2>
-                </div>
-                <Link to="/telegram" className="text-xs text-sky-600 hover:underline font-medium">
-                  View all →
-                </Link>
+                    </div>
+                  )}
+                </>
               </div>
-              {/* Free-tier usage bar */}
-              {!isPro && telegramConnected && (
-                <div className="mb-3 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs text-slate-400">{telegramMonthCount}/50 runs this month</p>
-                    {telegramMonthCount >= 50 && (
-                      <ProUpgradeButton className="text-xs font-semibold text-purple-600 hover:text-purple-700 flex items-center gap-1">
-                        <Crown className="w-3 h-3" /> Upgrade
-                      </ProUpgradeButton>
+
+              <div className="space-y-6">
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Recent Runs</h2>
+                    {runs.length > 0 && (
+                      <Link to="/reports" className="text-xs text-brand-blue hover:underline font-medium flex items-center gap-1">
+                        View all <ExternalLink className="w-3 h-3" />
+                      </Link>
                     )}
                   </div>
-                  <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full ${telegramMonthCount >= 50 ? 'bg-red-400' : telegramMonthCount >= 35 ? 'bg-amber-400' : 'bg-sky-400'}`}
-                      style={{ width: `${Math.min(100, Math.round((telegramMonthCount / 50) * 100))}%` }}
-                    />
+                  <div className="bg-white rounded-2xl border border-brand-dark/10 overflow-hidden">
+                    {runs.length === 0 ? (
+                      <div className="p-6 text-center text-brand-dark/40 text-sm">No runs yet.</div>
+                    ) : (
+                      <div className="divide-y divide-slate-100 max-h-[520px] overflow-y-auto">
+                        {runs.slice(0, 20).map(run => {
+                          const wf = workflows.find(w => w.id === run.workflow_id);
+                          const isSuccess = run.status === 'success';
+                          const isExpanded = expandedRunId === run.id;
+                          return (
+                            <div key={run.id}>
+                              <button
+                                onClick={() => setExpandedRunId(isExpanded ? null : run.id)}
+                                className="w-full p-3.5 text-left hover:bg-slate-50 transition-colors"
+                              >
+                                <div className="flex items-start gap-2.5">
+                                  <div className={`mt-0.5 shrink-0 ${isSuccess ? 'text-emerald-500' : 'text-red-500'}`}>
+                                    {isSuccess ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium leading-tight truncate">{wf ? getWorkflowDisplayName(wf) : 'Unknown'}</p>
+                                    <p className="text-xs text-slate-400 mt-0.5">{timeAgo(run.created_at)}</p>
+                                  </div>
+                                  {isSuccess && (
+                                    <div className="shrink-0 text-slate-300">
+                                      {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                                    </div>
+                                  )}
+                                </div>
+                              </button>
+                              {isExpanded && isSuccess && run.generated_output && (
+                                <div className="px-4 pb-4 border-t border-slate-100 max-h-72 overflow-y-auto bg-slate-50/40">
+                                  <div className="pt-3">
+                                    <ReportRenderer output={run.generated_output} compact />
+                                  </div>
+                                  <Link to="/reports" className="flex items-center gap-1 text-xs text-brand-blue hover:underline mt-3 font-medium">
+                                    <ExternalLink className="w-3 h-3" /> Open full report
+                                  </Link>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 </div>
-              )}
-              <div className="bg-white rounded-2xl border border-brand-dark/10 overflow-hidden">
-                {telegramRuns.length === 0 ? (
-                  <div className="p-5 text-center space-y-2">
-                    <p className="text-sm text-brand-dark/40">No bot activity yet.</p>
-                    <a href="/settings" className="text-xs text-sky-600 hover:underline font-medium block">
-                      Set up Telegram bot →
-                    </a>
+
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Send className="w-4 h-4 text-sky-500" />
+                      <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Telegram Activity</h2>
+                    </div>
+                    <Link to="/telegram" className="text-xs text-sky-600 hover:underline font-medium">
+                      View all →
+                    </Link>
                   </div>
-                ) : (
-                  <div className="divide-y divide-slate-100 max-h-80 overflow-y-auto">
-                    {telegramRuns.map(run => (
-                      <div key={run.id} className="p-3.5 flex items-start gap-2.5">
-                        <div className={`mt-0.5 shrink-0 ${run.status === 'success' ? 'text-emerald-500' : 'text-red-500'}`}>
-                          {run.status === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium leading-tight truncate">{run.workflow_name}</p>
-                          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                            {run.triggered_by && (
-                              <span className="text-xs text-slate-500">by {run.triggered_by}</span>
-                            )}
-                            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
-                              run.role === 'manager'
-                                ? 'bg-purple-50 text-purple-600 border border-purple-200'
-                                : 'bg-sky-50 text-sky-600 border border-sky-200'
-                            }`}>
-                              {run.role}
-                            </span>
-                            <span className="text-xs text-slate-400">{timeAgo(run.created_at)}</span>
-                          </div>
-                        </div>
+                  {!isPro && telegramConnected && (
+                    <div className="mb-3 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs text-slate-400">{telegramMonthCount}/50 runs this month</p>
+                        {telegramMonthCount >= 50 && (
+                          <ProUpgradeButton className="text-xs font-semibold text-purple-600 hover:text-purple-700 flex items-center gap-1">
+                            <Crown className="w-3 h-3" /> Upgrade
+                          </ProUpgradeButton>
+                        )}
                       </div>
-                    ))}
+                      <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${telegramMonthCount >= 50 ? 'bg-red-400' : telegramMonthCount >= 35 ? 'bg-amber-400' : 'bg-sky-400'}`}
+                          style={{ width: `${Math.min(100, Math.round((telegramMonthCount / 50) * 100))}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  <div className="bg-white rounded-2xl border border-brand-dark/10 overflow-hidden">
+                    {telegramRuns.length === 0 ? (
+                      <div className="p-5 text-center space-y-2">
+                        <p className="text-sm text-brand-dark/40">No bot activity yet.</p>
+                        <a href="/settings" className="text-xs text-sky-600 hover:underline font-medium block">
+                          Set up Telegram bot →
+                        </a>
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-slate-100 max-h-80 overflow-y-auto">
+                        {telegramRuns.map(run => (
+                          <div key={run.id} className="p-3.5 flex items-start gap-2.5">
+                            <div className={`mt-0.5 shrink-0 ${run.status === 'success' ? 'text-emerald-500' : 'text-red-500'}`}>
+                              {run.status === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium leading-tight truncate">{run.workflow_name}</p>
+                              <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                                {run.triggered_by && (
+                                  <span className="text-xs text-slate-500">by {run.triggered_by}</span>
+                                )}
+                                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                                  run.role === 'manager'
+                                    ? 'bg-purple-50 text-purple-600 border border-purple-200'
+                                    : 'bg-sky-50 text-sky-600 border border-sky-200'
+                                }`}>
+                                  {run.role}
+                                </span>
+                                <span className="text-xs text-slate-400">{timeAgo(run.created_at)}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-        )}{/* end workflows.length > 0 */}
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
 
-      <MobileNav />
+      {!previewMode && <MobileNav />}
 
       {/* Edit modal */}
       {editingWorkflow && (

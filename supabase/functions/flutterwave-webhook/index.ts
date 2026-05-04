@@ -9,7 +9,31 @@ const corsHeaders = {
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
 
-async function sendConfirmationEmail(email: string, amount: string, currency: string, txRef: string, expiresAt: Date) {
+const MONTHLY_PRO_AMOUNT_NGN = 9900
+const ANNUAL_PRO_AMOUNT_NGN = 94800
+const SUPPORTED_CURRENCY = 'NGN'
+
+function resolveBillingInterval(payload: any, amountNum: number): 'monthly' | 'annual' | null {
+  const metaInterval = payload?.meta?.billing_interval
+
+  if (metaInterval === 'monthly' || metaInterval === 'annual') {
+    return metaInterval
+  }
+
+  if (amountNum === MONTHLY_PRO_AMOUNT_NGN) return 'monthly'
+  if (amountNum === ANNUAL_PRO_AMOUNT_NGN) return 'annual'
+
+  return null
+}
+
+async function sendConfirmationEmail(
+  email: string,
+  amount: string,
+  currency: string,
+  txRef: string,
+  expiresAt: Date,
+  planLabel: string,
+) {
   if (!RESEND_API_KEY) return
 
   const expiryStr = expiresAt.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
@@ -74,7 +98,7 @@ async function sendConfirmationEmail(email: string, amount: string, currency: st
                       </tr>
                       <tr>
                         <td style="font-size:14px;color:#6b7280;padding:5px 0;">Plan</td>
-                        <td align="right" style="font-size:14px;color:#111827;font-weight:600;">Hoursback Pro (Monthly)</td>
+                        <td align="right" style="font-size:14px;color:#111827;font-weight:600;">${planLabel}</td>
                       </tr>
                       <tr>
                         <td style="font-size:14px;color:#6b7280;padding:5px 0;">Amount paid</td>
@@ -224,12 +248,12 @@ Deno.serve(async (req) => {
         return new Response('Ignored: Missing Valid user_id', { status: 200 })
       }
 
-      // Reject payments below the minimum Pro price (₦25,000 — buffer below ₦30,000)
       const amountNum = parseFloat(data.amount ?? '0')
       const amountCurrency = data.currency ?? ''
-      if (amountCurrency !== 'NGN' || amountNum < 25000) {
-        console.warn(`Rejected webhook: amount ${amountNum} ${amountCurrency} is below minimum for tx_ref ${txRef}`)
-        return new Response('Ignored: Amount below minimum', { status: 200 })
+      const billingInterval = resolveBillingInterval(data, amountNum)
+      if (amountCurrency !== SUPPORTED_CURRENCY || !billingInterval) {
+        console.warn(`Rejected webhook: unsupported amount ${amountNum} ${amountCurrency} for tx_ref ${txRef}`)
+        return new Response('Ignored: Unsupported amount or currency', { status: 200 })
       }
 
       // Idempotency: reject duplicate transactions
@@ -245,7 +269,11 @@ Deno.serve(async (req) => {
       }
 
       const expiresAt = new Date()
-      expiresAt.setDate(expiresAt.getDate() + 30)
+      if (billingInterval === 'annual') {
+        expiresAt.setMonth(expiresAt.getMonth() + 12)
+      } else {
+        expiresAt.setDate(expiresAt.getDate() + 30)
+      }
 
       // Upgrade user to Pro and set expiry 30 days from now
       const { error } = await supabase
@@ -264,12 +292,13 @@ Deno.serve(async (req) => {
       // Record this transaction so replays are ignored
       await supabase.from('processed_payments').insert({ tx_ref: txRef, user_id: userId })
 
-      console.log(`Successfully upgraded user ${userId} to Pro plan via Flutterwave webhook. Expires: ${expiresAt.toISOString()}`)
+      console.log(`Successfully upgraded user ${userId} to Pro plan (${billingInterval}) via Flutterwave webhook. Expires: ${expiresAt.toISOString()}`)
 
       // Send confirmation email if we have the customer email
       const emailToUse = customerEmail ?? data.customer?.email
       if (emailToUse) {
-        await sendConfirmationEmail(emailToUse, amount, currency, txRef, expiresAt)
+        const planLabel = billingInterval === 'annual' ? 'Hoursback Pro (Annual)' : 'Hoursback Pro (Monthly)'
+        await sendConfirmationEmail(emailToUse, amount, currency, txRef, expiresAt, planLabel)
         console.log(`Confirmation email sent to ${emailToUse}`)
       }
     }

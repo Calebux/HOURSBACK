@@ -299,6 +299,46 @@ async function fetchData(sourceType: string, config: any, supabaseClient?: any, 
     } catch (e) { console.error("excel_file error", e); }
   }
 
+  if (sourceType === "google_sheets_workbook" && config.url) {
+    try {
+      let exportUrl = config.url;
+      if (exportUrl.includes("/edit")) {
+        exportUrl = exportUrl.replace(/\/edit.*$/, "/export?format=xlsx");
+      } else if (!exportUrl.includes("/export?format=xlsx")) {
+        exportUrl = exportUrl.replace(/\?.*$/, "");
+        exportUrl = `${exportUrl}/export?format=xlsx`;
+      }
+
+      const res = await fetchWithTimeout(exportUrl, {}, 20_000);
+      if (res.ok) {
+        const arrayBuffer = await res.arrayBuffer();
+        const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: "array" });
+        const results: string[] = [];
+
+        for (const sheetName of workbook.SheetNames.slice(0, 12)) {
+          const sheet = workbook.Sheets[sheetName];
+          const csv = XLSX.utils.sheet_to_csv(sheet);
+          if (!csv.trim()) continue;
+
+          if (workflowPrompt && ANTHROPIC_API_KEY) {
+            try {
+              const { aggregateCsvData } = await import("../_shared/dataset_aggregator.ts");
+              const { aggregatedSummary, safeSample } = await aggregateCsvData(csv, workflowPrompt, ANTHROPIC_API_KEY!);
+              results.push(`## Sheet: ${sheetName}\n${aggregatedSummary}\n\n## Data Sample:\n${safeSample}`);
+            } catch (aggErr) {
+              console.error("Workbook aggregation failed, falling back to raw CSV", aggErr);
+              results.push(`## Sheet: ${sheetName}\n${csv.substring(0, 3000)}`);
+            }
+          } else {
+            results.push(`## Sheet: ${sheetName}\n${csv.substring(0, 3000)}`);
+          }
+        }
+
+        return results.join("\n\n") || "Google Sheets workbook is empty.";
+      }
+    } catch (e) { console.error("Workbook fetch error", e); }
+  }
+
   if (sourceType === "google_sheets" && config.url) {
     try {
       let csvUrl = config.url;
@@ -487,21 +527,27 @@ serve(async (req) => {
     const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
     const manualWorkflowId: string | undefined = body.workflow_id;
 
+    let workflows: any[] = [];
     if (manualWorkflowId) {
       const authHeader = req.headers.get("Authorization");
-      if (!authHeader) {
+      if (!authHeader?.startsWith("Bearer ")) {
         return new Response(JSON.stringify({ error: "Unauthorized." }), { status: 401, headers: corsHeaders });
+      }
+      const token = authHeader.replace("Bearer ", "");
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      if (authError || !user) {
+        return new Response(JSON.stringify({ error: "Invalid token." }), { status: 401, headers: corsHeaders });
       }
       // Rate limit manual triggers: 20 per hour per IP
       const clientIp = getClientIp(req);
       const rl = await checkRateLimit(supabase, `manual-run:${clientIp}`, 20, 3600);
       if (!rl.allowed) return rateLimitResponse();
-    }
 
-    let workflows: any[] = [];
-    if (manualWorkflowId) {
       const { data, error } = await supabase.from("workflows").select("*").eq("id", manualWorkflowId).single();
       if (error || !data) return new Response(JSON.stringify({ error: "Workflow not found." }), { status: 404, headers: corsHeaders });
+      if (data.user_id !== user.id) {
+        return new Response(JSON.stringify({ error: "Forbidden." }), { status: 403, headers: corsHeaders });
+      }
       workflows = [data];
     } else {
       const { data, error: fetchErr } = await supabase

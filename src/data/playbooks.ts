@@ -17,7 +17,37 @@ export const launchCatalog: Playbook[] = [
     isPro: true,
     tools: ['Supabase', 'Claude'],
     beforeYouStart: [],
-    expectedOutcome: 'A weekly email summarizing business health.',
+    expectedOutcome: `You are the Chief of Staff delivering a weekly executive briefing. Analyse all business data provided across sales, finance, and operations. Structure the report as:
+
+## Bottom Line
+One sentence — the single most important thing the CEO needs to know this week.
+
+## Business Health Dashboard
+| Metric | This Week | Last Week | Target | Status |
+Show: Revenue (₦), Gross Margin (%), Cash Position (₦), Pipeline Coverage, Team Utilisation. Flag each as 🟢 On Track / 🟡 At Risk / 🔴 Off Track.
+
+## Sales & Revenue
+- Total revenue this week (₦) vs target — % to target, trend vs last week
+- Top 3 revenue drivers
+- Pipeline: total value, coverage ratio (pipeline ÷ monthly target — healthy = 3–4×), stalled deals (no activity >14 days)
+- One deal to close or accelerate this week
+
+## Finance
+- Cash inflows vs outflows this week (₦), net position
+- Top 3 expense categories and % of total
+- Runway estimate at current burn rate
+- Any budget categories above 80% spend with time remaining
+
+## Operations
+- Key operational metric (fulfilment rate, SLA hit rate, staff utilisation)
+- Any incidents, escalations, or compliance gaps this week
+- Top process bottleneck
+
+## CEO Action Items
+Three numbered decisions or actions required this week, in priority order. Each must be specific — who does what by when.
+
+## Next Week Watch
+The one metric or situation most likely to change the picture next week.`,
     troubleshooting: [],
     steps: [],
     relatedPlaybooks: []
@@ -36,7 +66,34 @@ export const launchCatalog: Playbook[] = [
     isPro: true,
     tools: ['Salesforce', 'Claude'],
     beforeYouStart: [],
-    expectedOutcome: 'A clear view of at-risk deals in your pipeline.',
+    expectedOutcome: `Analyse this sales pipeline data using the Revenue Operations framework. Produce a pipeline health report with every section below.
+
+## Pipeline Coverage
+- Total pipeline value (₦) vs quota target (₦)
+- Coverage ratio = pipeline ÷ quota. Benchmark: 3–4× is healthy, <2× is critical
+- Rating: Healthy (≥3×) / At Risk (2–3×) / Critical (<2×)
+
+## Stage Distribution
+Show deal count and value by stage. Flag if the funnel shape is unhealthy (e.g. too many deals stuck in one stage, thin early stages that won't cover future quarters).
+
+## Sales Velocity
+Velocity = (Number of Opportunities × Avg Deal Size × Win Rate) ÷ Avg Sales Cycle Days
+Calculate if data allows. Compare to prior period.
+
+## Deal Aging & Stall Risk
+- Flag any deal that has exceeded 2× the average sales cycle time at its current stage
+- List stalled deals: name, value (₦), stage, days idle, recommended action
+
+## Concentration Risk
+- Flag if any single deal represents >30% of total pipeline — single-deal dependency is high risk
+- Identify the top 3 deals by value and their probability of closing this quarter
+
+## Coverage Gap Analysis
+- Which weeks or months have insufficient pipeline to hit target?
+- How much new pipeline needs to be added to cover the gap?
+
+## Recommended Actions
+Three specific actions this week to protect or grow the pipeline — assign an owner to each.`,
     troubleshooting: [],
     steps: [],
     relatedPlaybooks: []
@@ -55,7 +112,27 @@ export const launchCatalog: Playbook[] = [
     isPro: true,
     tools: ['QuickBooks', 'Claude'],
     beforeYouStart: [],
-    expectedOutcome: 'Alerts for late payments with suggested follow-ups.',
+    expectedOutcome: `Analyse this accounts receivable data. Produce a complete AR Aging Report.
+
+## AR Aging Table
+Categorise every unpaid invoice:
+| Client | Invoice # | Amount (₦) | Invoice Date | Days Outstanding | Category | Action |
+- **Current (0–30 days):** List with amounts. No action needed yet.
+- **Overdue (31–60 days):** Flag each. Recommended action: send payment reminder with invoice attached.
+- **Seriously Overdue (61–90 days):** Flag each. Recommended action: direct call + written notice.
+- **Critical (90+ days):** Flag each. Assess write-off risk. Recommend escalation or legal notice.
+
+## Summary
+- Total AR outstanding (₦)
+- Total current vs overdue breakdown
+- % of AR that is overdue (>30 days) — benchmark: keep below 15%
+- Highest-value overdue client and the exact message to send them today
+
+## Collection Risk Assessment
+For any client with >₦100,000 overdue: assess risk as Low / Medium / High based on payment history, relationship, and amount. Flag if any single client represents >25% of total outstanding.
+
+## 3 Collection Actions This Week
+Numbered, specific actions with client names, amounts, and communication scripts ready to use.`,
     troubleshooting: [],
     steps: [],
     relatedPlaybooks: []
@@ -98,10 +175,20 @@ For each expense category: budgeted amount (₦), actual spend (₦), variance (
 ## 4. Expense Anomalies
 Flag any transactions that are: significantly larger than usual for that category, missing a category, potential duplicates (same amount + vendor within 7 days), or have unusual timing. For each: date, amount, vendor, category, reason flagged, recommended action.
 
-## 5. 4-Week Cash Forecast
+## 5. GTM Efficiency Snapshot (calculate where data allows)
+| Metric | Value | Benchmark | Status |
+|--------|-------|-----------|--------|
+| Gross Margin | Gross Profit ÷ Revenue | >60% (services) / >40% (products) | |
+| Burn Multiple | Net Burn ÷ Net New Revenue | <2× = efficient, >2× = review spend | |
+| Net Dollar Retention | (Begin Rev + Expansion − Churn) ÷ Begin Rev | >110% = growing from existing customers | |
+| Rule of 40 | Revenue Growth % + Profit Margin % | >40% = healthy | |
+
+Flag any metric that is significantly off benchmark with a specific corrective action.
+
+## 6. 4-Week Cash Forecast
 Project the cash closing balance for each of the next 4 weeks based on: current closing balance, average weekly burn rate from transactions, and any known recurring expenses. Present as a table: Week | Projected Inflows | Projected Outflows | Projected Balance. Flag any week where cash may fall below ₦500,000 (or the lowest single-week balance in the data if no baseline exists). Give a runway estimate in weeks at current burn.
 
-## 6. This Week's 5 Financial Actions
+## 7. This Week's 5 Financial Actions
 Give exactly 5 numbered, specific actions to take this week. Include names, amounts, and deadlines. Prioritize by financial impact. Examples of the specificity required: "Call [Client Name] today — ₦240,000 invoice is 45 days overdue", "Cut [Category] spend — you are 94% through budget with 11 days left in the month."`,
     troubleshooting: [],
     steps: [],
@@ -121,7 +208,32 @@ Give exactly 5 numbered, specific actions to take this week. Include names, amou
     isPro: true,
     tools: ['QuickBooks', 'Xero', 'Claude'],
     beforeYouStart: [],
-    expectedOutcome: 'Plain-English breakdown of your financials.',
+    expectedOutcome: `You are a CFO advisor. Analyse this month's financial data and produce a complete CFO report with every section below.
+
+## Financial Position Summary
+- Revenue (₦), COGS (₦), Gross Profit (₦ and %), Operating Expenses (₦), Net Profit/Loss (₦ and %)
+- Month-over-month change for each line — flag any category that moved >10%
+
+## GTM Efficiency Metrics (calculate where data allows)
+| Metric | Value | Benchmark | Rating |
+| Magic Number | Net New ARR ÷ Prior Period S&M Spend | >0.75 = Good | |
+| Gross Margin | Gross Profit ÷ Revenue | >60% SaaS / >40% products | |
+| Burn Multiple | Net Burn ÷ Net New Revenue | <2× = efficient | |
+| Rule of 40 | Revenue Growth % + Profit Margin % | >40% = healthy | |
+
+## Cash & Runway
+- Opening balance, total inflows, total outflows, closing balance (₦)
+- Monthly burn rate (₦) and runway in months at current rate
+- 🔴 If runway <6 months: escalate with specific actions to extend it
+
+## Expense Anomalies
+Flag: any category that increased >15% vs prior month, any unusual or duplicate transactions, any category exceeding its budget. For each: amount (₦), reason flagged, recommended action.
+
+## The Key Number
+The single metric that matters most this month — and what it means for the business.
+
+## 3 CFO Actions
+Numbered, specific, actionable steps the owner should take before month end. No vague advice — name the exact action, the amount, and the expected impact.`,
     troubleshooting: [],
     steps: [],
     relatedPlaybooks: []
@@ -444,7 +556,44 @@ Give exactly 5 numbered, specific actions to take this week. Include names, amou
     isPro: true,
     tools: ['Google Sheets', 'Claude'],
     beforeYouStart: [],
-    expectedOutcome: "Analyze this customer activity data. Identify customers showing churn signals: declining usage, missed payments, support tickets, reduced logins, or stagnant accounts. For each at-risk customer give: a risk score (1–10), the reason for risk, and a recommended action (email re-engagement, discount offer, personal outreach, etc.). Prioritise by revenue at risk. Output as a clear action table.",
+    expectedOutcome: `Analyse this customer data using the Customer Success health scoring framework. Produce a complete churn risk report.
+
+## Health Scoring
+Score each customer across four dimensions (use the data available — skip dimensions with no data):
+- **Usage (30%)** — login frequency, feature adoption, activity levels. Declining = red flag.
+- **Engagement (25%)** — meeting attendance, response time, NPS/CSAT score, support ticket volume.
+- **Support (20%)** — open tickets, escalation rate, unresolved issues, resolution time.
+- **Relationship (15%)** — last executive contact, champion stability, renewal sentiment, competitor mentions.
+- **Commercial (10%)** — payment behaviour, contract type, any budget cuts or pricing complaints.
+
+Combine into a weighted Health Score. Classify each customer:
+- 🟢 **Green (75–100)** — Healthy, achieving value
+- 🟡 **Yellow (50–74)** — Needs attention, monitor closely
+- 🔴 **Red (0–49)** — At risk, immediate action required
+
+## Churn Risk Tiers
+For each at-risk customer assign a risk tier:
+- **Critical (80–100):** Immediate executive escalation. Revenue about to be lost.
+- **High (60–79):** Urgent CSM intervention within 48 hours.
+- **Medium (40–59):** Proactive outreach this week.
+- **Low (0–39):** Standard monitoring cadence.
+
+## Churn Risk Table
+| Customer | Revenue (₦) | Health Score | Risk Tier | Top 2 Signals | Recommended Action |
+List all Red and Yellow customers, sorted by revenue at risk.
+
+## Expansion Opportunities (Green Accounts)
+For healthy accounts, identify upsell or cross-sell signals:
+- Unused seats or modules they're paying for
+- High usage suggesting they need an upgrade
+- Departments not yet using the product
+Flag the top 2 expansion opportunities with estimated revenue uplift (₦).
+
+## Portfolio Summary
+- Total customers: Green / Yellow / Red count
+- Total revenue at churn risk (₦)
+- Highest-value at-risk customer: name + what to do today
+- One portfolio-level insight the owner needs to act on`,
     troubleshooting: [],
     steps: [],
     relatedPlaybooks: []
@@ -578,7 +727,33 @@ Keep the entire report readable in under 3 minutes. Write as if you are a truste
     isPro: false,
     tools: ['Google Sheets', 'Claude'],
     beforeYouStart: [],
-    expectedOutcome: "Compare actual sales figures against targets in this data. Report: percentage to target this week, which products/services are above vs below target, total revenue in ₦ vs target, the 3 biggest gaps and their likely causes, and whether the business is on track to hit monthly/quarterly targets at current pace. End with 3 specific actions to close the gap this week.",
+    expectedOutcome: `Analyse this sales vs target data using the Revenue Operations framework. Produce a weekly sales performance report.
+
+## Performance Dashboard
+| Metric | This Week | Target | Gap (₦) | % to Target | Trend |
+- Total revenue (₦) vs weekly target
+- Month-to-date revenue vs monthly target
+- Projected month-end revenue at current weekly pace — will the team hit target?
+
+## Product / Channel Breakdown
+For each product, service, or sales channel:
+- Actual (₦) vs target (₦), variance (₦), % to target
+- Flag: 🟢 On Track (≥90%) / 🟡 At Risk (70–89%) / 🔴 Off Track (<70%)
+
+## Sales Velocity Analysis (calculate where data allows)
+- Average deal size this week vs prior week
+- Number of deals closed vs prior week
+- Identify if the gap is a volume problem (fewer deals) or value problem (smaller deals)
+
+## Gap Root Cause
+For the 3 biggest underperforming products/channels: what is the most likely cause of the gap? (pricing, pipeline shortage, rep activity, seasonality, competitive pressure)
+
+## Win Rate & Pipeline Coverage (if data available)
+- Win rate this period vs prior period
+- Implied pipeline needed at current win rate to hit next week's target
+
+## Close-the-Gap Actions
+Three specific, numbered actions to take before week end — with owner, expected impact in ₦, and deadline. Be direct: "Run a 3-day flash promotion on [product] targeting existing customers who last bought >60 days ago."`,
     troubleshooting: [],
     steps: [],
     relatedPlaybooks: []
@@ -616,7 +791,37 @@ Keep the entire report readable in under 3 minutes. Write as if you are a truste
     isPro: true,
     tools: ['Google Sheets', 'Claude'],
     beforeYouStart: [],
-    expectedOutcome: "Analyze this customer order history. Identify: customers due for a reorder based on their typical purchase frequency, customers whose reorder is overdue (last ordered longer ago than their average cycle), and customers who have not reordered at all in 30+ days. For each group provide: customer name, last order date, typical frequency, reorder probability (High/Medium/Low), and a recommended outreach action. Sort by revenue at risk.",
+    expectedOutcome: `Analyse this customer order history using a reorder prediction and expansion scoring model. Produce a full customer revenue report.
+
+## Reorder Prediction Table
+For each customer calculate:
+- Average purchase frequency (days between orders)
+- Days since last order
+- Reorder status: Due (within cycle), Overdue (>1× cycle), Lapsed (>2× cycle), At Risk (>3× cycle)
+- Reorder probability: High (within normal window) / Medium (slightly overdue) / Low (significantly overdue)
+- Revenue at risk (₦): estimated value of the next expected order
+
+Sort by revenue at risk descending.
+
+## Segment Summary
+| Segment | Count | Total Revenue at Risk (₦) |
+- Due for reorder this week
+- Overdue (need urgent outreach)
+- Lapsed (need win-back campaign)
+- At Risk (may be churned)
+
+## Expansion Opportunities
+For customers with 3+ orders and High reorder probability — identify upsell signals:
+- Customers ordering the same item repeatedly (candidate for bulk pricing or subscription)
+- Customers who have never tried adjacent products they'd logically need
+- Customers whose order value has been increasing (signal of growing trust)
+Flag the top 3 expansion opportunities with estimated incremental revenue (₦).
+
+## Outreach Priority List
+Top 10 customers to contact this week — ranked by (revenue at risk × reorder probability). For each: customer name, recommended message angle (reorder reminder / win-back offer / upsell intro), and best channel (WhatsApp / call / email).
+
+## One Insight
+The single most important pattern in this customer data that the owner needs to act on.`,
     troubleshooting: [],
     steps: [],
     relatedPlaybooks: []
@@ -916,6 +1121,200 @@ Keep the entire report readable in under 3 minutes. Write as if you are a truste
     steps: [],
     relatedPlaybooks: []
   },
+  // ── Business Growth Skills ────────────────────────────────────────────────
+  {
+    id: 'wkflow-71',
+    slug: 'customer-health-check',
+    title: 'Customer Health Check',
+    subtitle: 'Score every customer Green/Yellow/Red, flag your highest churn risks, and get specific retention actions before they leave.',
+    category: 'Sales',
+    difficulty: 'Beginner',
+    timeToComplete: 0,
+    timeSaved: 120,
+    completionCount: 0,
+    rating: 5.0,
+    isPro: true,
+    tools: ['Claude'],
+    beforeYouStart: [],
+    expectedOutcome: `Analyse the customer data provided. For each customer score their health as Green (healthy), Yellow (needs attention), or Red (at risk). Assess churn risk as Low/Medium/High/Critical based on usage, engagement, payment behaviour, and relationship signals. For every Red or High-risk customer: name the top 2 warning signals and give 3 specific actions to take in the next 7 days. End with a portfolio summary: total Green/Yellow/Red count, highest-value at-risk customer, and the single most important action this week. Use ₦ for all currency values.`,
+    troubleshooting: [],
+    steps: [],
+    relatedPlaybooks: []
+  },
+  {
+    id: 'wkflow-72',
+    slug: 'sales-pipeline-review',
+    title: 'Sales Pipeline Review',
+    subtitle: 'Calculate your pipeline coverage ratio, flag stalled and concentrated deals, and get a clear action plan for the week.',
+    category: 'Sales',
+    difficulty: 'Beginner',
+    timeToComplete: 0,
+    timeSaved: 90,
+    completionCount: 0,
+    rating: 5.0,
+    isPro: true,
+    tools: ['Claude'],
+    beforeYouStart: [],
+    expectedOutcome: `Analyse the sales pipeline data provided. Calculate: (1) Pipeline coverage ratio = total pipeline ÷ quota target (healthy benchmark: 3–4x). (2) Stage distribution — is there a healthy funnel shape? (3) Stalled deals — flag any deal with no activity in >14 days. (4) Concentration risk — warn if any single deal is >30% of total pipeline. Give a pipeline health rating: Healthy / At Risk / Critical. List the top 3 deals to focus on this week with specific recommended actions for each. End with 3 tactical actions to close more pipeline this week. Use ₦ for all currency values.`,
+    troubleshooting: [],
+    steps: [],
+    relatedPlaybooks: []
+  },
+  {
+    id: 'wkflow-73',
+    slug: 'rfp-bid-analyser',
+    title: 'RFP & Bid Analyser',
+    subtitle: 'Get a coverage score, Bid/No-Bid recommendation, your strongest selling points, and a gap-handling strategy — all from the RFP.',
+    category: 'Sales',
+    difficulty: 'Intermediate',
+    timeToComplete: 0,
+    timeSaved: 180,
+    completionCount: 0,
+    rating: 5.0,
+    isPro: true,
+    tools: ['Claude'],
+    beforeYouStart: [],
+    expectedOutcome: `Analyse the RFP requirements and product/service offering provided. Calculate an estimated coverage score (% of requirements met). Give a clear recommendation: Bid (coverage >70%, must-have gaps ≤3) / Conditional Bid (coverage 50–70%) / No-Bid (coverage <50% or must-have gaps >3). For a Bid or Conditional Bid: (1) Write the 3 strongest selling points to lead with. (2) For each gap: suggest how to handle it (partial solution, roadmap item, partner capability, or honest exclusion). (3) Identify the 2-3 questions to ask the client before submitting. Output a 1-page bid strategy summary the team can act on immediately.`,
+    troubleshooting: [],
+    steps: [],
+    relatedPlaybooks: []
+  },
+  {
+    id: 'wkflow-74',
+    slug: 'contract-proposal-writer',
+    title: 'Contract & Proposal Writer',
+    subtitle: 'Generate a complete, professional contract, proposal, NDA, or SOW — with all standard clauses — ready to send in minutes.',
+    category: 'Legal/Compliance',
+    difficulty: 'Beginner',
+    timeToComplete: 0,
+    timeSaved: 240,
+    completionCount: 0,
+    rating: 5.0,
+    isPro: true,
+    tools: ['Claude'],
+    beforeYouStart: [],
+    expectedOutcome: `Generate a complete, professional document based on the type, parties, scope, and terms provided. Include all standard clauses: scope of services, payment terms (50% upfront, 50% on completion unless otherwise specified), intellectual property assignment, confidentiality (2-year term), warranties (90-day fix warranty), termination (30-day notice for convenience, 14-day cure for cause), and dispute resolution. Use ₦ for Nigerian currency. Flag any fields requiring specific information as [REQUIRED: description]. Write in clear professional language — no unnecessary legalese. The document must be ready to send as a first draft.`,
+    troubleshooting: [],
+    steps: [],
+    relatedPlaybooks: []
+  },
+
+  // ── C-Level Advisory Skills ───────────────────────────────────────────────
+  {
+    id: 'wkflow-75',
+    slug: 'ceo-strategic-advisor',
+    title: 'CEO Strategic Advisor',
+    subtitle: 'Describe your strategic challenge and get a Bottom Line recommendation, 30-day action plan, key risk, and the question you should really be asking.',
+    category: 'Executive',
+    difficulty: 'Advanced',
+    timeToComplete: 0,
+    timeSaved: 120,
+    completionCount: 0,
+    rating: 5.0,
+    isPro: true,
+    tools: ['Claude'],
+    beforeYouStart: [],
+    expectedOutcome: `You are an experienced CEO advisor. Analyse the strategic challenge, options, and constraints provided. Structure your response as:\n\n**Bottom Line** (1 sentence — the single most important thing to know)\n\n**Recommended Path** — which option and why, in 3-4 sentences\n\n**Next 30 Days** — 3 specific, sequenced actions with clear owners\n\n**Biggest Risk** — the #1 thing that could derail this, and how to prevent it\n\n**The Better Question** — if the framing itself is the problem, offer a reframe\n\nBe direct. Don't hedge. Give real advice, not a list of considerations. Reference the specific numbers and context provided.`,
+    troubleshooting: [],
+    steps: [],
+    relatedPlaybooks: []
+  },
+  {
+    id: 'wkflow-76',
+    slug: 'cfo-financial-advisor',
+    title: 'CFO Financial Advisor',
+    subtitle: 'Share your financials and get your position, the key metric that matters most, a cash risk flag, and 3 specific financial actions.',
+    category: 'Executive',
+    difficulty: 'Intermediate',
+    timeToComplete: 0,
+    timeSaved: 120,
+    completionCount: 0,
+    rating: 5.0,
+    isPro: true,
+    tools: ['Claude'],
+    beforeYouStart: [],
+    expectedOutcome: `You are an experienced CFO advisor. Analyse the financial data and question provided. Structure your response as:\n\n**Current Financial Position** — 2-3 sentences summarising where the business stands financially right now\n\n**The Key Number** — the single metric that matters most right now and why\n\n**3 Financial Actions** — numbered, specific, actionable steps for the next 30 days\n\n**Cash Risk Flag** — if implied runway is <6 months, flag this clearly with what to do immediately\n\n**One CFO Insight** — something they probably aren't tracking but should be\n\nCalculate implied monthly burn, profit/loss margin, and runway from the data provided. Use ₦ for all amounts. Be specific — no vague recommendations.`,
+    troubleshooting: [],
+    steps: [],
+    relatedPlaybooks: []
+  },
+  {
+    id: 'wkflow-77',
+    slug: 'cto-tech-advisor',
+    title: 'CTO Tech Advisor',
+    subtitle: 'Describe your technical decision and get a clear recommendation, build vs buy analysis, top risks, and the question to ask your team.',
+    category: 'Executive',
+    difficulty: 'Intermediate',
+    timeToComplete: 0,
+    timeSaved: 90,
+    completionCount: 0,
+    rating: 5.0,
+    isPro: true,
+    tools: ['Claude'],
+    beforeYouStart: [],
+    expectedOutcome: `You are an experienced CTO advisor. Analyse the technical decision, stack context, and constraints provided. Structure your response as:\n\n**Recommendation** — a clear, opinionated stance. Pick one path and defend it. No "it depends" answers.\n\n**Build vs Buy Analysis** (only if relevant) — the specific tradeoff in this context with a recommendation\n\n**Technical Risks** — the top 2-3 risks and a concrete mitigation for each\n\n**3 Next Steps** — specific, sequenced technical actions\n\n**The Question to Ask Your Team** — one diagnostic question that will reveal the real constraint or assumption to test\n\nBe opinionated. Reference the specific tech stack and team size provided.`,
+    troubleshooting: [],
+    steps: [],
+    relatedPlaybooks: []
+  },
+  {
+    id: 'wkflow-78',
+    slug: 'founder-coach',
+    title: 'Founder Coach',
+    subtitle: 'Tell the coach what you\'re struggling with and get the real pattern, one key shift, 3 practical steps, and one hard truth to act on.',
+    category: 'Executive',
+    difficulty: 'Beginner',
+    timeToComplete: 0,
+    timeSaved: 60,
+    completionCount: 0,
+    rating: 5.0,
+    isPro: true,
+    tools: ['Claude'],
+    beforeYouStart: [],
+    expectedOutcome: `You are an experienced founder coach. The founder has shared what they're struggling with and what success looks like. Give honest, direct coaching — not motivational fluff. Structure your response as:\n\n**What's Really Happening** — name the real pattern or dynamic beneath the surface, not just the symptom they described\n\n**The Shift Required** — one mindset or behavioural change that would unlock the most progress\n\n**3 Practical Steps** — specific, concrete actions for this week (not "think about", not "consider" — actual steps)\n\n**The Hard Truth** — one uncomfortable thing they probably already know but haven't acted on\n\n**One Question** — a coaching question for them to sit with\n\nBe warm but direct. Speak as a trusted advisor who wants them to succeed.`,
+    troubleshooting: [],
+    steps: [],
+    relatedPlaybooks: []
+  },
+  {
+    id: 'wkflow-79',
+    slug: 'virtual-board-meeting',
+    title: 'Virtual Board Meeting',
+    subtitle: 'Bring your key decision to a simulated board — CEO, CFO, and COO each weigh in independently, then reach a consensus recommendation.',
+    category: 'Executive',
+    difficulty: 'Advanced',
+    timeToComplete: 0,
+    timeSaved: 180,
+    completionCount: 0,
+    rating: 5.0,
+    isPro: true,
+    tools: ['Claude'],
+    beforeYouStart: [],
+    expectedOutcome: `Simulate a virtual board meeting with three independent board perspectives. For the decision, context, and options provided, produce:\n\n**📋 Board Meeting — Decision Brief**\nDecision: [restate clearly in one sentence]\n\n**CEO Lens (Strategy & Market)**\nIndependent analysis of each option. Stance and reasoning.\n\n**CFO Lens (Financial & Risk)**\nIndependent analysis of each option. Stance and reasoning.\n\n**COO Lens (Operations & Execution)**\nIndependent analysis of each option. Stance and reasoning.\n\n**Board Consensus**\nWhich option do 2+ board members recommend, and why?\n\n**Decision**\nThe recommended path + the 3 most critical conditions for success.\n\nEach lens must have a distinct voice and perspective. Reference the specific numbers and options provided. Be concrete — no vague frameworks.`,
+    troubleshooting: [],
+    steps: [],
+    relatedPlaybooks: []
+  },
+  {
+    id: 'wkflow-hub',
+    slug: 'hub-workflow',
+    title: 'Workflow Bundle',
+    subtitle: 'Connect one workbook, choose the subset reports you want, and deploy a bundled operations workflow for renewals, classes, attendance, and revenue.',
+    category: 'Operations',
+    difficulty: 'Intermediate',
+    timeToComplete: 0,
+    timeSaved: 300,
+    completionCount: 0,
+    rating: 5.0,
+    isPro: true,
+    tools: ['Google Sheets', 'Claude'],
+    beforeYouStart: [],
+    expectedOutcome: 'This is a bundled workflow. During setup, choose the subset reports you want to deploy from one shared workbook. Each subset becomes its own scheduled report under the hood so you can monitor runs, outputs, and failures separately.',
+    troubleshooting: [],
+    steps: [],
+    relatedPlaybooks: []
+  },
+
   {
     id: 'wkflow-custom',
     slug: 'custom-ai-analysis',

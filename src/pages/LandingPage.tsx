@@ -10,7 +10,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { pricingPlans } from '../data/playbooks';
 import { useFlutterwave, closePaymentModal } from 'flutterwave-react-v3';
-import { updateProfile } from '../lib/api';
 import { toast } from 'sonner';
 
 export default function LandingPage() {
@@ -796,8 +795,7 @@ function TelegramStrip() {
 
 /* ─────────────────────────────── PRICING CARD ─────────────────────────────── */
 function PricingPlanCard({ plan, isAnnual, onAuthRequired }: { plan: any; isAnnual: boolean; onAuthRequired?: () => void }) {
-  const { user } = useAuth();
-  const isPro = localStorage.getItem('has_pro_access') === 'true';
+  const { user, isPro, refreshPro } = useAuth();
   const [txRef] = useState(() => `hb_tx_${Date.now()}_${Math.floor(Math.random() * 1000)}`);
 
   const amountNGN = isAnnual ? (plan.annualPrice || 0) * 12 : (plan.monthlyPrice || 0);
@@ -809,7 +807,11 @@ function PricingPlanCard({ plan, isAnnual, onAuthRequired }: { plan: any; isAnnu
     currency: 'NGN',
     payment_options: 'card,mobilemoney,ussd',
     customer: { email: user?.email || '', phone_number: '', name: user?.user_metadata?.name || '' },
-    meta: { user_id: user?.id || '' },
+    meta: {
+      user_id: user?.id || '',
+      plan_name: (plan.name || '').toLowerCase(),
+      billing_interval: isAnnual ? 'annual' : 'monthly',
+    },
     customizations: {
       title: 'Hoursback Pro',
       description: `Upgrade to ${plan.name} Plan`,
@@ -826,23 +828,15 @@ function PricingPlanCard({ plan, isAnnual, onAuthRequired }: { plan: any; isAnnu
         callback: async (response) => {
           if (response.status === 'successful' || response.status === 'completed') {
             closePaymentModal();
-            localStorage.setItem('has_pro_access', 'true');
-            if (user?.id) {
-              try {
-                await updateProfile(user.id, { subscription_status: 'pro' });
-                toast.success('Payment successful! Welcome to Pro.');
-                window.location.href = '/workflows';
-              } catch (err) {
-                console.error('Failed to update profile', err);
-                toast.error(
-                  'Payment received but account upgrade failed. Please contact support at petersoncaleb275@gmail.com with your transaction reference.',
-                  { duration: 10000 }
-                );
-              }
-            } else {
-              toast.success('Payment successful! Welcome to Pro.');
-              window.location.href = '/workflows';
-            }
+            toast.success('Payment received — activating your account…');
+            let attempts = 0;
+            const poll = async () => {
+              await refreshPro();
+              attempts++;
+              if (attempts < 4) setTimeout(poll, 2000);
+              else window.location.href = '/workflows';
+            };
+            poll();
           } else {
             toast.error('Payment failed or was incomplete. Please try again.');
             closePaymentModal();

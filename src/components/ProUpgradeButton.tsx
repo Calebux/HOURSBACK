@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useFlutterwave, closePaymentModal } from 'flutterwave-react-v3';
 import { useAuth } from '../contexts/AuthContext';
-import { updateProfile } from '../lib/api';
 import { toast } from 'sonner';
 import { Crown } from 'lucide-react';
 
@@ -26,7 +25,11 @@ export function ProUpgradeButton({ className, children }: Props) {
       phone_number: '',
       name: user?.user_metadata?.name || '',
     },
-    meta: { user_id: user?.id || '' },
+    meta: {
+      user_id: user?.id || '',
+      plan_name: 'pro',
+      billing_interval: 'monthly',
+    },
     customizations: {
       title: 'Hoursback Pro',
       description: 'Unlock all workflows — ₦9,900/month',
@@ -42,18 +45,14 @@ export function ProUpgradeButton({ className, children }: Props) {
       callback: async (response) => {
         if (response.status === 'successful' || response.status === 'completed') {
           closePaymentModal();
-          localStorage.setItem('has_pro_access', 'true');
-          try {
-            await updateProfile(user.id, { subscription_status: 'pro' });
+          toast.success('Payment received — activating your account…');
+          let attempts = 0;
+          const poll = async () => {
             await refreshPro();
-            toast.success('Welcome to Pro! All workflows are now unlocked.');
-          } catch (err) {
-            console.error('Failed to update profile', err);
-            toast.error(
-              'Payment successful but account upgrade failed. Please contact support at petersoncaleb275@gmail.com with your transaction reference.',
-              { duration: 10000 }
-            );
-          }
+            attempts++;
+            if (attempts < 4) setTimeout(poll, 2000);
+          };
+          poll();
         } else {
           toast.error('Payment failed or was incomplete. Please try again.');
           closePaymentModal();

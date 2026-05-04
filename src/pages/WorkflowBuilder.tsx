@@ -7,11 +7,338 @@ import { toast } from 'sonner';
 import posthog from 'posthog-js';
 import { ArrowLeft, ChevronRight, Copy, CheckCheck, ExternalLink, Upload, FileSpreadsheet, Clock, Lock, Bell, Plus, X, ChevronDown, Send, Activity } from 'lucide-react';
 import { ProUpgradeButton } from '../components/ProUpgradeButton';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
+import * as XLSX from 'xlsx';
 
 interface WorkflowInput {
   label: string;
   placeholder: string;
   type: 'url' | 'text' | 'textarea';
+}
+
+interface HubSubsetDefinition {
+  id: string;
+  title: string;
+  description: string;
+  prompt: string;
+}
+
+interface HubSheetTemplate {
+  tab: string;
+  purpose: string;
+  headers: string[];
+  sampleRow: string[];
+}
+
+interface WorkbookValidationState {
+  status: 'idle' | 'checking' | 'valid' | 'warning' | 'unavailable';
+  availableTabs: string[];
+  missingTabs: string[];
+  message: string;
+}
+
+const HUB_WORKFLOW_ID = 'wkflow-hub';
+
+const HUB_SUBSETS: HubSubsetDefinition[] = [
+  {
+    id: 'internet-renewal-watch',
+    title: 'Internet Renewal Watch',
+    description: 'Expiring today, tomorrow, and within 7 days, with reminder-ready follow-ups.',
+    prompt: `Analyze the "Internet_Customers" sheet.
+
+Identify:
+- customers whose Expiry_Date is today
+- customers whose Expiry_Date is tomorrow
+- customers expiring within the next 7 days
+- customers with Balance > 0
+- customers whose usage appears to be dropping based on Days_Used_Last_7 vs Days_Used_Last_30
+
+For each customer include:
+Full_Name, Phone, Plan_Name, Expiry_Date, Balance, Status, and the recommended next action.
+
+Output sections:
+## Priority Follow-Ups
+## Expiring Today
+## Expiring Tomorrow
+## Expiring This Week
+## Customers Likely To Lapse
+## Reminder Scripts
+
+Reminder scripts should include:
+- expiring today
+- expiring tomorrow
+- already expired`,
+  },
+  {
+    id: 'overdue-balance-recovery',
+    title: 'Overdue Balance Recovery',
+    description: 'A receptionist chase list across internet renewals and class fees.',
+    prompt: `Analyze the "Internet_Customers" and "Class_Enrollments" sheets for unpaid balances.
+
+Group accounts into:
+- 1 to 3 days overdue
+- 4 to 7 days overdue
+- more than 7 days overdue
+
+For each person include:
+name, phone, service type, amount owed, relevant date (Expiry_Date or Next_Class_Date), and urgency.
+
+Output sections:
+## Collections Priority List
+## 1–3 Days Overdue
+## 4–7 Days Overdue
+## 7+ Days Overdue
+## Highest-Value Balances
+## Reminder Scripts
+## Manager Note
+
+Be specific with names, balances, and dates.`,
+  },
+  {
+    id: 'class-fee-reminder',
+    title: 'Class Fee Reminder',
+    description: 'Flags students with upcoming classes and unpaid balances.',
+    prompt: `Analyze the "Class_Enrollments" sheet for payment follow-up.
+
+Identify:
+- students with Next_Class_Date today or tomorrow who still have Balance > 0
+- students with Payment_Status marked Partly Paid
+- students with both low Attendance_Rate and unpaid balances
+
+For each student include:
+Student_Name, Phone, Class_Name, Tutor_Name, Next_Class_Date, Amount_Paid, Balance, Payment_Status, and recommended action.
+
+Output sections:
+## Receptionist Follow-Up List
+## Students With Class Today
+## Students With Class Tomorrow
+## Partly Paid Students
+## Payment Risk By Class
+## Reminder Scripts`,
+  },
+  {
+    id: 'attendance-dropoff-predictor',
+    title: 'Attendance Drop-off Predictor',
+    description: 'Predicts which students are likely to stop showing up.',
+    prompt: `Analyze the "Attendance_Log" and "Class_Enrollments" sheets for attendance risk.
+
+Flag students who:
+- missed 2 or more recent sessions
+- have low Attendance_Rate
+- have not attended recently compared to their Next_Class_Date
+- also have unpaid balances
+
+For each at-risk student include:
+Student_Name, Class_Name, Attendance_Rate, Last_Attended_Date, Balance, Payment_Status, and risk level: Low, Medium, High.
+
+Output sections:
+## At-Risk Students
+## Why Each Student Is At Risk
+## Retention Actions This Week
+## Classes With Highest Drop-Off Risk`,
+  },
+  {
+    id: 'revenue-trend-forecast',
+    title: 'Revenue Trend & Forecast',
+    description: 'Tracks internet vs classes revenue and predicts the next 7 days.',
+    prompt: `Analyze the "Daily_Transactions" sheet.
+
+Calculate:
+- total revenue by day
+- revenue split by Category
+- average daily revenue for the last 7 days
+- average daily revenue for the last 30 days if available
+- strongest and weakest categories
+
+Then estimate:
+- likely revenue for the next 7 days
+- whether the trend is up, flat, or down
+- the biggest risk to next week's revenue
+
+Output sections:
+## Revenue Summary
+## Revenue By Category
+## Trend Signals
+## 7-Day Forecast
+## Recommended Actions`,
+  },
+  {
+    id: 'class-demand-capacity-forecast',
+    title: 'Class Demand & Capacity Forecast',
+    description: 'Shows which classes are filling, weak, or worth promoting.',
+    prompt: `Analyze the "Classes_Master" and "Class_Enrollments" sheets.
+
+For each active class calculate:
+- Capacity
+- Current_Enrollment
+- fill rate
+- expected fee revenue
+- unpaid balance concentration
+- attendance weakness if enough context exists
+
+Flag:
+- classes above 80% full
+- classes below 40% full
+- classes with high unpaid balances
+- classes with weak attendance and weak enrollment together
+
+Output sections:
+## Class-by-Class Demand Summary
+## Near Full Classes
+## Underfilled Classes
+## Revenue Opportunity By Class
+## Manager Recommendations`,
+  },
+  {
+    id: 'daily-reception-summary',
+    title: 'Daily Reception Summary',
+    description: 'A closing brief for front desk activity, receipts, and tomorrow’s follow-ups.',
+    prompt: `Produce a daily hub operations summary using the workbook data, especially "Daily_Transactions", "Internet_Customers", and "Class_Enrollments".
+
+Summarize:
+- today's total revenue
+- revenue from Internet vs Classes
+- major expenses logged today
+- number of renewals processed
+- number of students or customers with unpaid balances
+- who must be followed up tomorrow
+
+Output sections:
+## Today's Numbers
+## Payments And Renewals
+## Expenses Logged
+## Follow-Ups For Tomorrow
+## Closing Note For The Manager`,
+  },
+  {
+    id: 'manager-oversight-brief',
+    title: 'Manager Oversight Brief',
+    description: 'One high-level operating brief across revenue, renewals, classes, and risk.',
+    prompt: `Produce a hub manager briefing using all workbook tabs available.
+
+Cover:
+- current revenue picture
+- internet renewals and upcoming expiries
+- overdue balances and recovery risk
+- attendance drop-off signals
+- class demand and capacity issues
+- near-term revenue outlook
+
+Structure the response exactly as:
+## Executive Summary
+## Key Findings
+## Revenue And Collections
+## Student And Class Risks
+## What Changed Or Needs Attention
+## Recommended Actions
+
+Be specific with names, balances, classes, and dates.`,
+  },
+];
+
+const HUB_DEFAULT_SUBSETS = [
+  'internet-renewal-watch',
+  'overdue-balance-recovery',
+  'daily-reception-summary',
+];
+
+const EXPECTED_HUB_TABS = [
+  'Internet_Customers',
+  'Class_Enrollments',
+  'Attendance_Log',
+  'Daily_Transactions',
+  'Classes_Master',
+];
+
+const HUB_SHEET_TEMPLATES: HubSheetTemplate[] = [
+  {
+    tab: 'Internet_Customers',
+    purpose: 'Renewals, expiry reminders, internet balance follow-up, usage-based churn risk.',
+    headers: ['Customer_ID', 'Full_Name', 'Phone', 'Plan_Name', 'Start_Date', 'Expiry_Date', 'Last_Payment_Date', 'Amount_Due', 'Amount_Paid', 'Balance', 'Status', 'Days_Used_Last_7', 'Days_Used_Last_30', 'Notes'],
+    sampleRow: ['INT-001', 'John Ade', '08031234567', 'Weekly Pass', '2026-05-01', '2026-05-08', '2026-05-01', '5000', '5000', '0', 'Active', '5', '18', 'Usually renews on time'],
+  },
+  {
+    tab: 'Class_Enrollments',
+    purpose: 'Class fee reminders, unpaid balances, per-class student follow-up.',
+    headers: ['Enrollment_ID', 'Student_ID', 'Student_Name', 'Phone', 'Class_Name', 'Tutor_Name', 'Fee_Total', 'Amount_Paid', 'Balance', 'Enrollment_Date', 'Next_Class_Date', 'Payment_Status', 'Attendance_Rate', 'Last_Attended_Date', 'Notes'],
+    sampleRow: ['ENR-001', 'STD-001', 'Precious Udo', '08034445566', 'Graphics Design', 'Tutor A', '25000', '15000', '10000', '2026-04-20', '2026-05-05', 'Partly Paid', '85', '2026-05-02', 'Promising student'],
+  },
+  {
+    tab: 'Attendance_Log',
+    purpose: 'Drop-off prediction and class attendance risk tracking.',
+    headers: ['Attendance_ID', 'Session_Date', 'Student_ID', 'Student_Name', 'Class_Name', 'Tutor_Name', 'Present', 'Arrival_Time', 'Session_Status', 'Reason_If_Absent'],
+    sampleRow: ['ATT-001', '2026-05-02', 'STD-001', 'Precious Udo', 'Graphics Design', 'Tutor A', 'Yes', '09:05', 'Completed', ''],
+  },
+  {
+    tab: 'Daily_Transactions',
+    purpose: 'Revenue trends, daily summary, and short-term forecasting.',
+    headers: ['Transaction_ID', 'Date', 'Category', 'Subcategory', 'Customer_or_Student', 'Item_or_Service', 'Qty', 'Unit_Price', 'Total_Amount', 'Payment_Method', 'Handled_By', 'Status', 'Notes'],
+    sampleRow: ['TX-001', '2026-05-03', 'Internet', 'Weekly Pass', 'John Ade', 'Weekly Pass', '1', '5000', '5000', 'Cash', 'Receptionist', 'Paid', 'Renewal'],
+  },
+  {
+    tab: 'Classes_Master',
+    purpose: 'Capacity planning, weak classes, and demand forecasting.',
+    headers: ['Class_ID', 'Class_Name', 'Tutor_Name', 'Capacity', 'Current_Enrollment', 'Start_Time', 'End_Time', 'Days', 'Fee', 'Active_Status', 'Room', 'Notes'],
+    sampleRow: ['CLS-001', 'Graphics Design', 'Tutor A', '20', '14', '09:00', '11:00', 'Mon/Wed/Fri', '25000', 'Active', 'Room 1', 'Steady demand'],
+  },
+];
+
+function getSheetColumnLabel(index: number): string {
+  let value = index + 1;
+  let label = '';
+
+  while (value > 0) {
+    const remainder = (value - 1) % 26;
+    label = String.fromCharCode(65 + remainder) + label;
+    value = Math.floor((value - 1) / 26);
+  }
+
+  return label;
+}
+
+function getWorkflowDisplayName(name: string): string {
+  return name.replace(/^Hub:\s*/, '');
+}
+
+function buildWorkbookValidation(sheetNames: string[]): WorkbookValidationState {
+  const availableTabs = sheetNames.filter(Boolean);
+  const missingTabs = EXPECTED_HUB_TABS.filter(tab => !availableTabs.includes(tab));
+
+  if (availableTabs.length === 0) {
+    return {
+      status: 'unavailable',
+      availableTabs,
+      missingTabs: EXPECTED_HUB_TABS,
+      message: 'We could not inspect the workbook tabs automatically.',
+    };
+  }
+
+  if (missingTabs.length > 0) {
+    return {
+      status: 'warning',
+      availableTabs,
+      missingTabs,
+      message: `Missing expected tabs: ${missingTabs.join(', ')}`,
+    };
+  }
+
+  return {
+    status: 'valid',
+    availableTabs,
+    missingTabs: [],
+    message: 'Workbook tabs look good.',
+  };
+}
+
+function normalizeWorkbookExportUrl(url: string): string {
+  let exportUrl = url.trim();
+  if (exportUrl.includes('/edit')) {
+    exportUrl = exportUrl.replace(/\/edit.*$/, '/export?format=xlsx');
+  } else if (!exportUrl.includes('/export?format=xlsx')) {
+    exportUrl = exportUrl.replace(/\?.*$/, '');
+    exportUrl = `${exportUrl}/export?format=xlsx`;
+  }
+  return exportUrl;
 }
 
 const workflowDescriptions: Record<string, string> = {
@@ -64,6 +391,18 @@ const workflowDescriptions: Record<string, string> = {
   'wkflow-52': 'Reads your pasted error logs, complaints, or operational notes and classifies every incident by severity (P1–P4) — giving you a clear action dashboard with immediate steps for critical issues.',
   'wkflow-54': 'Takes your incident notes and resolution summary and produces a professional post-mortem — with root cause analysis, business impact, response timeline, lessons learned, and 5 prevention actions with clear owners.',
   'wkflow-55': 'Upload your monthly bank statement or sales & expense sheet and get a complete 5-Line Income Statement — Revenue, COGS, Gross Profit, Operating Expenses, Net Profit — with plain-English interpretation and specific flags for theft risk, vendor price hikes, and pricing opportunities.',
+  'wkflow-hub': 'Connect one workbook, choose the reports you want, and let Hoursback watch renewals, class fees, attendance risk, and revenue from a single setup.',
+  // Business Growth Skills
+  'wkflow-71': 'Paste or share your customer list and the bot scores every account — Green, Yellow, or Red — flags your highest churn risks, and gives you specific actions for each at-risk customer before they walk out the door.',
+  'wkflow-72': 'Enter your open deals and revenue target — the bot calculates your pipeline coverage ratio, flags stalled and concentrated deals, and tells you exactly what to do this week to protect your number.',
+  'wkflow-73': 'Paste the RFP requirements and describe your offering — the bot estimates your coverage score, gives a Bid/No-Bid recommendation, identifies your strongest selling points, and tells you how to handle every gap.',
+  'wkflow-74': 'Tell the bot what document you need (contract, proposal, NDA, SOW), the parties, scope, and value — and it generates a complete, professional draft with all standard clauses, ready to send.',
+  // C-Level Advisory
+  'wkflow-75': 'Describe your strategic challenge and options — the CEO Advisor gives you a Bottom Line recommendation, the 3 most important actions for the next 30 days, the biggest risk to watch, and the question you should really be asking.',
+  'wkflow-76': 'Share your revenue, expenses, and runway — the CFO Advisor calculates your financial position, identifies the key metric that matters most right now, flags cash risks, and gives you 3 specific financial actions for the next 30 days.',
+  'wkflow-77': 'Describe your technical decision — the CTO Advisor gives you a clear recommendation (not a list of options), a build vs buy analysis if relevant, the top technical risks, and the question to ask your team.',
+  'wkflow-78': 'Tell the Founder Coach what you\'re struggling with and what winning looks like — you get honest coaching, the real pattern beneath the surface, one key shift, 3 practical steps, and one hard truth to act on.',
+  'wkflow-79': 'Bring your key decision to the virtual board — CEO, CFO, and COO each analyse it independently, then reach a consensus recommendation with the 3 conditions that must be true for success.',
 };
 
 const sampleReportLines: Record<string, string[]> = {
@@ -75,6 +414,7 @@ const sampleReportLines: Record<string, string[]> = {
   'wkflow-55': ['5-Line Income Statement — Mar 2025', '● Revenue: ₦4,200,000', '● COGS: ₦1,680,000 → Gross Profit: ₦2,520,000 (60%)', '● Signal: Vendor spike detected — packaging cost +22%'],
   'wkflow-44': ['Cash Reconciliation — Shift: 6 Apr 2025', '● Opening float: ₦50,000', '● Cash received: ₦184,500', '● Variance: ₦0 — No discrepancy found'],
   'wkflow-31': ['Weekly Cash Position — 7 Apr 2025', '● Net Naira cash: ₦1,240,000', '● Biggest cost driver: Salaries (38% of outflows)', '● Runway is healthy — 8 weeks remaining'],
+  'wkflow-hub': ['Workflow Bundle — Morning Brief', '● 8 internet users expire in the next 3 days', '● 5 students have balances before tomorrow’s classes', '● Forecast: class revenue flat, internet renewals slightly up this week'],
 };
 
 const dataSourceHelp: Record<string, string> = {
@@ -124,6 +464,7 @@ const dataSourceHelp: Record<string, string> = {
   'wkflow-52': 'Paste your error logs, complaints, or incident notes. Include timestamps and short descriptions. The more context you give, the more accurate the severity classification.',
   'wkflow-54': 'Paste a timeline of what happened, when, what was done, and how it was resolved. Include timestamps where possible — more detail means a more specific report.',
   'wkflow-55': 'Download your bank statement as CSV or Excel from your banking app (most Nigerian banks support this). Alternatively, paste your data into Google Sheets with columns: Date, Description, Amount In (₦), Amount Out (₦). Do not include your account number or BVN in the file.',
+  'wkflow-hub': 'Use one workbook with tabs named exactly: Internet_Customers, Class_Enrollments, Attendance_Log, Daily_Transactions, and Classes_Master. If you use Google Sheets, set it to "Anyone with link can view".',
 };
 
 const workflowInputs: Record<string, WorkflowInput> = {
@@ -175,7 +516,19 @@ const workflowInputs: Record<string, WorkflowInput> = {
   'wkflow-52': { label: 'Paste your logs, errors, or complaints', placeholder: 'e.g.\n[09:42] Payment gateway timeout — 3 customers affected\n[10:15] Broken display fridge reported by staff\n[11:00] 2 complaints about late delivery\n[12:30] Generator alarm triggered', type: 'textarea' },
   'wkflow-54': { label: 'Paste incident timeline and resolution notes', placeholder: 'e.g.\n13:00 — Customer orders stopped processing\n13:15 — IT team alerted\n13:45 — Root cause found: database timeout\n14:30 — Fix deployed, orders resuming\n15:00 — All systems normal\n\nResolution: Increased DB connection pool size.', type: 'textarea' },
   'wkflow-55': { label: 'Upload your bank statement (CSV/Excel) or paste a Google Sheets URL', placeholder: 'https://docs.google.com/spreadsheets/d/...\n\nOr upload your bank statement export. Your sheet needs 4 columns:\nDate | Description | Amount In (₦) | Amount Out (₦)', type: 'url' },
+  'wkflow-hub': { label: 'Workbook URL', placeholder: 'https://docs.google.com/spreadsheets/d/...', type: 'url' },
   'wkflow-custom': { label: 'Your data (Google Sheets URL, any URL, or upload a file)', placeholder: 'https://docs.google.com/spreadsheets/d/...', type: 'url' },
+  // Business Growth Skills
+  'wkflow-71': { label: 'Paste your customer list (one per line or a table)', placeholder: 'Customer: Acme Corp | MRR: ₦250,000 | Last login: 2 weeks ago | Support tickets: 3 | Sponsor: Tunde\nCustomer: Beta Ltd | MRR: ₦80,000 | Last login: yesterday | Tickets: 0 | Sponsor: Amaka\n...', type: 'textarea' },
+  'wkflow-72': { label: 'Paste your open deals (one per line or a table)', placeholder: 'Deal: Acme Corp | Stage: Proposal | Value: ₦1.2m | Close date: 30 Apr | Days stale: 14\nDeal: Beta Ltd | Stage: Negotiation | Value: ₦450k | Close date: 15 May | Days stale: 3\n...\nRevenue target this quarter: ₦5m', type: 'textarea' },
+  'wkflow-73': { label: 'Paste the RFP requirements and your offering description', placeholder: 'RFP REQUIREMENTS:\n[paste the RFP sections here]\n\nOUR OFFERING:\n[describe your product/service, differentiators, past wins, any gaps vs requirements]', type: 'textarea' },
+  'wkflow-74': { label: 'Describe the document you need', placeholder: 'Document type: Service Agreement\nParties: Hoursback Ltd (provider) and Acme Corp (client)\nScope: 6-month SEO retainer — 4 blog posts/month, monthly reporting\nValue: ₦150,000/month\nAny special clauses: IP ownership, 30-day termination notice', type: 'textarea' },
+  // C-Level Advisory
+  'wkflow-75': { label: 'Describe your strategic challenge', placeholder: 'Context: [your business, stage, team size]\nChallenge: [what you\'re wrestling with]\nOptions on the table: [what you\'re considering]\nWhat\'s at stake: [downside if you get this wrong]', type: 'textarea' },
+  'wkflow-76': { label: 'Share your financial snapshot', placeholder: 'Revenue this month: ₦\nRevenue last month: ₦\nTotal expenses: ₦\nCash in bank: ₦\nMonthly burn: ₦\nAR outstanding: ₦\nKey concern: [what keeps you up at night financially]', type: 'textarea' },
+  'wkflow-77': { label: 'Describe your technical decision', placeholder: 'Decision: [what you\'re deciding]\nOptions: [what you\'re choosing between]\nTeam size / skills: [relevant context]\nTimeline pressure: [hard deadline or flexible]\nBiggest constraint: [budget / people / time / risk tolerance]', type: 'textarea' },
+  'wkflow-78': { label: 'Tell me what you\'re struggling with', placeholder: 'What\'s the challenge: [be honest — this is confidential]\nWhat winning looks like: [your ideal outcome]\nWhat you\'ve already tried: [so we don\'t repeat it]\nWhat you\'re afraid to admit: [optional but powerful]', type: 'textarea' },
+  'wkflow-79': { label: 'Describe the key decision for the board', placeholder: 'Decision: [what needs to be decided]\nBackground: [brief context]\nOptions: [what\'s on the table]\nYour current lean: [which way are you leaning and why]\nKey risks: [what could go wrong with each option]', type: 'textarea' },
 };
 
 // Workflows delivered via Telegram bot conversation (not the standard deploy pipeline)
@@ -188,6 +541,17 @@ const TELEGRAM_WORKFLOWS: Record<string, { command: string; role: 'staff' | 'man
   'wkflow-49': { command: '/assign',    role: 'manager', description: 'Create a task assignment with owner, deadline, and notes.' },
   'wkflow-51': { command: '/handover',  role: 'both',    description: 'Structured end-of-shift log — completed tasks, pending items, issues.' },
   'wkflow-53': { command: '/escalate',  role: 'both',    description: 'Assess urgency and route issues to the right person.' },
+  // Business Growth Skills
+  'wkflow-71': { command: '/csm',      role: 'manager', description: 'Score customer health, flag churn risks, and get specific retention actions.' },
+  'wkflow-72': { command: '/pipeline', role: 'manager', description: 'Pipeline coverage ratio, stalled deals, and what to do this week.' },
+  'wkflow-73': { command: '/rfp',      role: 'manager', description: 'Coverage score, Bid/No-Bid recommendation, and gap handling strategy.' },
+  'wkflow-74': { command: '/proposal', role: 'manager', description: 'Generate a complete contract, proposal, or NDA in minutes.' },
+  // C-Level Advisory
+  'wkflow-75': { command: '/ceo',     role: 'manager', description: 'Strategic challenge → Bottom Line recommendation + 30-day action plan.' },
+  'wkflow-76': { command: '/cfo',     role: 'manager', description: 'Financial challenge → position, key metric, cash risk, 3 actions.' },
+  'wkflow-77': { command: '/cto',     role: 'manager', description: 'Technical decision → clear recommendation, risks, and next steps.' },
+  'wkflow-78': { command: '/founder', role: 'manager', description: 'Founder struggle → real pattern, key shift, 3 steps, hard truth.' },
+  'wkflow-79': { command: '/board',   role: 'manager', description: 'Board-level decision → CEO, CFO, COO lenses + consensus.' },
 };
 
 function detectSourceType(url: string): 'google_sheets' | 'website' | 'api' {
@@ -244,6 +608,16 @@ function getDataSourceConfig(workflowId: string, dataSource: string): Record<str
     case 'wkflow-52': return { type: 'text_prompt', text: dataSource };
     case 'wkflow-54': return { type: 'text_prompt', text: dataSource };
     case 'wkflow-55': return { type: 'google_sheets', url: dataSource };
+    // Business Growth Skills + C-Level Advisory
+    case 'wkflow-71': return { type: 'text_prompt', text: dataSource };
+    case 'wkflow-72': return { type: 'text_prompt', text: dataSource };
+    case 'wkflow-73': return { type: 'text_prompt', text: dataSource };
+    case 'wkflow-74': return { type: 'text_prompt', text: dataSource };
+    case 'wkflow-75': return { type: 'text_prompt', text: dataSource };
+    case 'wkflow-76': return { type: 'text_prompt', text: dataSource };
+    case 'wkflow-77': return { type: 'text_prompt', text: dataSource };
+    case 'wkflow-78': return { type: 'text_prompt', text: dataSource };
+    case 'wkflow-79': return { type: 'text_prompt', text: dataSource };
     default:
       return { type: detectSourceType(dataSource), url: dataSource };
   }
@@ -274,6 +648,15 @@ export default function WorkflowBuilder() {
   const [copied, setCopied] = useState(false);
   const [telegramDeployId, setTelegramDeployId] = useState<string | null>(null);
   const [customPrompt, setCustomPrompt] = useState<string>('');
+  const [hubSubsets, setHubSubsets] = useState<string[]>(HUB_DEFAULT_SUBSETS);
+  const [deployedWorkflowNames, setDeployedWorkflowNames] = useState<string[]>([]);
+  const [selectedHubSheetTab, setSelectedHubSheetTab] = useState(HUB_SHEET_TEMPLATES[0].tab);
+  const [workbookValidation, setWorkbookValidation] = useState<WorkbookValidationState>({
+    status: 'idle',
+    availableTabs: [],
+    missingTabs: [],
+    message: '',
+  });
   const { isPro: hasPro, refreshPro } = useAuth();
   useEffect(() => { refreshPro(); }, [refreshPro]);
   const [dataSourceMode, setDataSourceMode] = useState<'url' | 'excel'>('url');
@@ -294,11 +677,68 @@ export default function WorkflowBuilder() {
 
   const workflow = launchCatalog.find(p => p.id === selectedWorkflow);
   const inputConfig = workflow ? workflowInputs[workflow.id] : null;
+  const isHubWorkflow = selectedWorkflow === HUB_WORKFLOW_ID;
+  const selectedHubSubsetDefs = HUB_SUBSETS.filter(subset => hubSubsets.includes(subset.id));
+  const activeHubSheetTemplate = HUB_SHEET_TEMPLATES.find(template => template.tab === selectedHubSheetTab) ?? HUB_SHEET_TEMPLATES[0];
+
+  useEffect(() => {
+    if (selectedWorkflow === HUB_WORKFLOW_ID) {
+      setTriggerType('schedule');
+      if (hubSubsets.length === 0) {
+        setHubSubsets(HUB_DEFAULT_SUBSETS);
+      }
+    }
+  }, [selectedWorkflow]);
+
+  const toggleHubSubset = (subsetId: string) => {
+    setHubSubsets(prev =>
+      prev.includes(subsetId)
+        ? prev.filter(id => id !== subsetId)
+        : [...prev, subsetId]
+    );
+  };
+
+  const inspectWorkbookTabs = async (source: File | string, mode: 'excel' | 'url') => {
+    try {
+      setWorkbookValidation({
+        status: 'checking',
+        availableTabs: [],
+        missingTabs: [],
+        message: 'Checking workbook tabs…',
+      });
+
+      let workbook: XLSX.WorkBook;
+      if (mode === 'excel') {
+        const buffer = await (source as File).arrayBuffer();
+        workbook = XLSX.read(buffer, { type: 'array' });
+      } else {
+        const exportUrl = normalizeWorkbookExportUrl(source as string);
+        const res = await fetch(exportUrl);
+        if (!res.ok) throw new Error(`Failed to fetch workbook (${res.status})`);
+        const buffer = await res.arrayBuffer();
+        workbook = XLSX.read(buffer, { type: 'array' });
+      }
+
+      setWorkbookValidation(buildWorkbookValidation(workbook.SheetNames));
+    } catch {
+      setWorkbookValidation({
+        status: 'unavailable',
+        availableTabs: [],
+        missingTabs: [],
+        message: mode === 'url'
+          ? 'Could not inspect the public workbook automatically. We will still use it on run if the link is valid.'
+          : 'Could not inspect the uploaded workbook automatically.',
+      });
+    }
+  };
 
   const handleXlsxUpload = async (file: File) => {
     if (!user) return;
     setXlsxUploading(true);
     try {
+      if (isHubWorkflow) {
+        await inspectWorkbookTabs(file, 'excel');
+      }
       const ext = file.name.split('.').pop();
       const path = `${user.id}/${Date.now()}.${ext}`;
       const { error } = await supabase.storage.from('excel-uploads').upload(path, file);
@@ -313,6 +753,29 @@ export default function WorkflowBuilder() {
     }
   };
 
+  useEffect(() => {
+    if (!isHubWorkflow || dataSourceMode !== 'url') {
+      return;
+    }
+
+    const trimmed = dataSource.trim();
+    if (!trimmed) {
+      setWorkbookValidation({
+        status: 'idle',
+        availableTabs: [],
+        missingTabs: [],
+        message: '',
+      });
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      inspectWorkbookTabs(trimmed, 'url');
+    }, 500);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [isHubWorkflow, dataSourceMode, dataSource]);
+
   const handleDeploy = async () => {
     if (!user || !workflow) return;
     if (workflow.isPro && !hasPro) {
@@ -321,28 +784,39 @@ export default function WorkflowBuilder() {
     }
     setIsDeploying(true);
     try {
+      if (isHubWorkflow && selectedHubSubsetDefs.length === 0) {
+        throw new Error('Choose at least one hub subset to deploy.');
+      }
+      if (isHubWorkflow && workbookValidation.status === 'warning' && workbookValidation.missingTabs.length > 0) {
+        throw new Error(`Fix workbook tabs before deploying. Missing: ${workbookValidation.missingTabs.join(', ')}`);
+      }
+
       const validAlerts = alerts.filter(a => a.metric.trim() && a.value.trim());
-      const trigger_config = triggerType === 'schedule'
+      const effectiveTriggerType = isHubWorkflow ? 'schedule' : triggerType;
+      const trigger_config = effectiveTriggerType === 'schedule'
         ? { type: 'schedule', schedule, time: runTime, utcOffset, ...(schedule === 'weekly' || schedule === 'biweekly' ? { day: runDay } : {}), ...(schedule === 'monthly' ? { monthDay: runMonthDay } : {}), ...(validAlerts.length ? { alerts: validAlerts } : {}) }
         : { type: 'webhook', ...(validAlerts.length ? { alerts: validAlerts } : {}) };
 
       const dsConfig = dataSourceMode === 'excel' && xlsxPath
         ? { type: 'excel_file', storage_path: xlsxPath }
+        : isHubWorkflow
+          ? { type: 'google_sheets_workbook', url: dataSource }
         : getDataSourceConfig(selectedWorkflow, dataSource);
 
-      const { data: newWorkflow, error } = await supabase
-        .from('workflows')
-        .insert({
+      if (isHubWorkflow) {
+        const rows = selectedHubSubsetDefs.map(subset => ({
           user_id: user.id,
-          name: workflow.title,
-          category: workflow.category,
+          name: `Hub: ${subset.title}`,
+          category: 'Workflow Bundle',
           status: 'active',
-          is_pro: workflow.isPro ?? false,
+          is_pro: true,
           trigger_config,
           agent_config: {
-            prompt: workflow.id === 'wkflow-custom' ? customPrompt : workflow.expectedOutcome,
+            prompt: subset.prompt,
             model: 'claude-sonnet-4-6',
             data_source: dataSourceMode === 'excel' ? xlsxFileName : dataSource,
+            hub_bundle: HUB_WORKFLOW_ID,
+            hub_subset: subset.id,
           },
           action_config: {
             type: 'email',
@@ -352,29 +826,77 @@ export default function WorkflowBuilder() {
               : {}),
           },
           data_source_config: dsConfig,
-        })
-        .select()
-        .single();
+        }));
 
-      if (error) throw error;
+        const { data: newWorkflows, error } = await supabase
+          .from('workflows')
+          .insert(rows)
+          .select();
 
-      posthog.capture('workflow_deployed', {
-        workflow_id: selectedWorkflow,
-        workflow_name: workflow.title,
-        category: workflow.category,
-        trigger_type: triggerType,
-        data_source_mode: dataSourceMode,
-        is_pro: workflow.isPro,
-      });
+        if (error) throw error;
 
-      if (triggerType === 'webhook' && newWorkflow) {
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-        setDeployedWebhookUrl(`${supabaseUrl}/functions/v1/webhook-receiver?workflow_id=${newWorkflow.id}&secret=${newWorkflow.webhook_secret}`);
-        setDeployedWorkflowTitle(workflow.title);
+        const deployedNames = newWorkflows?.map(item => item.name) ?? rows.map(item => item.name);
+        setDeployedWorkflowNames(deployedNames);
+        setDeployedWorkflowTitle(`Workflow Bundle (${deployedNames.length} subsets)`);
+        setDeployedWebhookUrl('');
         setStep(4);
+
+        posthog.capture('hub_workflow_deployed', {
+          workflow_id: HUB_WORKFLOW_ID,
+          workflow_name: workflow.title,
+          subset_ids: selectedHubSubsetDefs.map(subset => subset.id),
+          subset_count: selectedHubSubsetDefs.length,
+          data_source_mode: dataSourceMode,
+        });
       } else {
-        setDeployedWorkflowTitle(workflow.title);
-        setStep(4);
+        const { data: newWorkflow, error } = await supabase
+          .from('workflows')
+          .insert({
+            user_id: user.id,
+            name: workflow.title,
+            category: workflow.category,
+            status: 'active',
+            is_pro: workflow.isPro ?? false,
+            trigger_config,
+            agent_config: {
+              prompt: workflow.id === 'wkflow-custom' ? customPrompt : workflow.expectedOutcome,
+              model: 'claude-sonnet-4-6',
+              data_source: dataSourceMode === 'excel' ? xlsxFileName : dataSource,
+            },
+            action_config: {
+              type: 'email',
+              to: notifyEmail || user.email,
+              ...(hasPro && teamEmails.trim()
+                ? { cc: teamEmails.split(',').map(e => e.trim()).filter(Boolean) }
+                : {}),
+            },
+            data_source_config: dsConfig,
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        posthog.capture('workflow_deployed', {
+          workflow_id: selectedWorkflow,
+          workflow_name: workflow.title,
+          category: workflow.category,
+          trigger_type: effectiveTriggerType,
+          data_source_mode: dataSourceMode,
+          is_pro: workflow.isPro,
+        });
+
+        setDeployedWorkflowNames([workflow.title]);
+        if (effectiveTriggerType === 'webhook' && newWorkflow) {
+          const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+          setDeployedWebhookUrl(`${supabaseUrl}/functions/v1/webhook-receiver?workflow_id=${newWorkflow.id}&secret=${newWorkflow.webhook_secret}`);
+          setDeployedWorkflowTitle(workflow.title);
+          setStep(4);
+        } else {
+          setDeployedWebhookUrl('');
+          setDeployedWorkflowTitle(workflow.title);
+          setStep(4);
+        }
       }
     } catch (err: any) {
       toast.error(err.message || 'Failed to deploy workflow');
@@ -458,14 +980,20 @@ export default function WorkflowBuilder() {
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Start here — most popular</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 {[
-                  { id: 'wkflow-55', title: '5-Line Profit Check',    category: 'Finance',   color: '#4285F4', desc: 'Upload your bank statement or paste your sales & expense sheet. Get a complete 5-Line Income Statement — Revenue, COGS, Gross Profit, Operating Expenses, Net Profit — with plain-English interpretation and flags for theft risk, vendor price hikes, and pricing opportunities you\'re leaving on the table.' },
-                  { id: 'wkflow-14', title: 'Weekly Cash Flow Report', category: 'Finance',   color: '#10b981', desc: 'Reads your Google Sheets income & expense data. Delivers a weekly cash position summary every Monday — so you always know your runway before the week starts.' },
-                  { id: 'wkflow-7',  title: 'Industry News Digest',   category: 'Research',  color: '#6366f1', desc: 'Monitors news in your niche every week and curates the trends you actually need to know — without spending hours reading through noise.' },
-                  { id: 'wkflow-5',  title: 'Competitor Monitor',     category: 'Marketing', color: '#f59e0b', desc: 'Watches competitor websites for price changes, new launches, and messaging shifts. Weekly alert so you\'re never caught off guard.' },
+                  { id: 'wkflow-hub', title: 'Workflow Bundle',        category: 'Operations', color: '#0f766e', free: false, desc: 'One workbook, one oversight layer, multiple reports. Choose renewal reminders, class fee follow-ups, attendance risk, revenue forecasting, and more.' },
+                  { id: 'wkflow-55', title: '5-Line Profit Check',     category: 'Finance',   color: '#4285F4', free: true, desc: 'Upload your bank statement or paste your sales & expense sheet. Get a complete 5-Line Income Statement — Revenue, COGS, Gross Profit, Operating Expenses, Net Profit — with plain-English interpretation and flags for theft risk, vendor price hikes, and pricing opportunities you\'re leaving on the table.' },
+                  { id: 'wkflow-14', title: 'Weekly Cash Flow Report', category: 'Finance',   color: '#10b981', free: true, desc: 'Reads your Google Sheets income & expense data. Delivers a weekly cash position summary every Monday — so you always know your runway before the week starts.' },
+                  { id: 'wkflow-7',  title: 'Industry News Digest',    category: 'Research',  color: '#6366f1', free: true, desc: 'Monitors news in your niche every week and curates the trends you actually need to know — without spending hours reading through noise.' },
+                  { id: 'wkflow-5',  title: 'Competitor Monitor',      category: 'Marketing', color: '#f59e0b', free: true, desc: 'Watches competitor websites for price changes, new launches, and messaging shifts. Weekly alert so you\'re never caught off guard.' },
                 ].map(wf => (
                     <div
                       key={wf.id}
-                      onClick={() => { setSelectedWorkflow(wf.id); setTelegramDeployId(null); setStep(2); }}
+                      onClick={() => {
+                        setSelectedWorkflow(wf.id);
+                        setTelegramDeployId(null);
+                        if (!wf.free && !hasPro) return;
+                        setStep(2);
+                      }}
                       onMouseEnter={() => setHoveredWorkflow(wf.id)}
                       className="bg-white border border-slate-200 rounded-2xl p-5 cursor-pointer transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:-translate-y-0.5 hover:border-slate-300 group flex flex-col h-full relative overflow-hidden"
                     >
@@ -473,7 +1001,9 @@ export default function WorkflowBuilder() {
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                           <span className="text-[10px] font-bold tracking-wide uppercase px-2 py-0.5 rounded-md" style={{ backgroundColor: `${wf.color}15`, color: wf.color }}>{wf.category}</span>
-                          <span className="text-[10px] font-bold tracking-wide uppercase px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-600 border border-emerald-100">Free</span>
+                          <span className={`text-[10px] font-bold tracking-wide uppercase px-2 py-0.5 rounded-md border ${wf.free ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-purple-50 text-purple-700 border-purple-100'}`}>
+                            {wf.free ? 'Free' : 'Pro'}
+                          </span>
                         </div>
                         <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-brand-dark group-hover:translate-x-1 transition-all" />
                       </div>
@@ -783,23 +1313,70 @@ export default function WorkflowBuilder() {
             </div>
 
             <div className="bg-white p-6 rounded-2xl border border-slate-200 space-y-6 shadow-sm">
-              <div>
-                <label className="block font-semibold mb-3">Trigger type</label>
-                <div className="flex gap-4">
-                  <label className={`flex-1 p-4 border rounded-xl cursor-pointer ${triggerType === 'schedule' ? 'border-brand-blue bg-blue-50/30 ring-1 ring-brand-blue' : 'border-slate-200 hover:bg-slate-50'}`}>
-                    <input type="radio" name="trigger" value="schedule" checked={triggerType === 'schedule'} onChange={() => setTriggerType('schedule')} className="hidden" />
-                    <div className="font-semibold text-center mt-1">Scheduled</div>
-                    <div className="text-xs text-center text-slate-500 mt-1">Runs automatically on a timer</div>
-                  </label>
-                  <label className={`flex-1 p-4 border rounded-xl cursor-pointer ${triggerType === 'webhook' ? 'border-brand-blue bg-blue-50/30 ring-1 ring-brand-blue' : 'border-slate-200 hover:bg-slate-50'}`}>
-                    <input type="radio" name="trigger" value="webhook" checked={triggerType === 'webhook'} onChange={() => setTriggerType('webhook')} className="hidden" />
-                    <div className="font-semibold text-center mt-1">Webhook</div>
-                    <div className="text-xs text-center text-slate-500 mt-1">Listens for external events</div>
-                  </label>
-                </div>
-              </div>
+              {isHubWorkflow && (
+                <>
+                  <div className="bg-teal-50 border border-teal-200 rounded-2xl p-4">
+                    <p className="text-sm font-semibold text-teal-950 mb-1">Workflow bundle</p>
+                    <p className="text-sm text-teal-800 leading-relaxed">
+                      Choose the subset reports you want. Hoursback will deploy each selected subset as its own scheduled workflow behind the scenes, all reading from the same workbook.
+                    </p>
+                  </div>
 
-              {triggerType === 'schedule' && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between gap-4">
+                      <label className="block font-semibold">Subset reports</label>
+                      <span className="text-xs text-slate-400">{selectedHubSubsetDefs.length} selected</span>
+                    </div>
+                    <div className="grid gap-3">
+                      {HUB_SUBSETS.map(subset => {
+                        const checked = hubSubsets.includes(subset.id);
+                        return (
+                          <button
+                            key={subset.id}
+                            type="button"
+                            onClick={() => toggleHubSubset(subset.id)}
+                            className={`text-left rounded-2xl border p-4 transition-all ${
+                              checked
+                                ? 'border-brand-blue bg-blue-50/40 ring-1 ring-brand-blue/30'
+                                : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                            }`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className={`mt-0.5 w-5 h-5 rounded-md border flex items-center justify-center ${checked ? 'bg-brand-blue border-brand-blue text-white' : 'border-slate-300 bg-white text-transparent'}`}>
+                                <CheckCheck className="w-3 h-3" />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="font-semibold text-sm text-brand-dark">{subset.title}</p>
+                                <p className="text-sm text-slate-500 mt-1 leading-relaxed">{subset.description}</p>
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {!isHubWorkflow && (
+                <div>
+                  <label className="block font-semibold mb-3">Trigger type</label>
+                  <div className="flex gap-4">
+                    <label className={`flex-1 p-4 border rounded-xl cursor-pointer ${triggerType === 'schedule' ? 'border-brand-blue bg-blue-50/30 ring-1 ring-brand-blue' : 'border-slate-200 hover:bg-slate-50'}`}>
+                      <input type="radio" name="trigger" value="schedule" checked={triggerType === 'schedule'} onChange={() => setTriggerType('schedule')} className="hidden" />
+                      <div className="font-semibold text-center mt-1">Scheduled</div>
+                      <div className="text-xs text-center text-slate-500 mt-1">Runs automatically on a timer</div>
+                    </label>
+                    <label className={`flex-1 p-4 border rounded-xl cursor-pointer ${triggerType === 'webhook' ? 'border-brand-blue bg-blue-50/30 ring-1 ring-brand-blue' : 'border-slate-200 hover:bg-slate-50'}`}>
+                      <input type="radio" name="trigger" value="webhook" checked={triggerType === 'webhook'} onChange={() => setTriggerType('webhook')} className="hidden" />
+                      <div className="font-semibold text-center mt-1">Webhook</div>
+                      <div className="text-xs text-center text-slate-500 mt-1">Listens for external events</div>
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {(triggerType === 'schedule' || isHubWorkflow) && (
                 <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
                   <div>
                     <label className="block font-semibold mb-2">Frequency</label>
@@ -867,7 +1444,7 @@ export default function WorkflowBuilder() {
                 </div>
               )}
 
-              {triggerType === 'webhook' && (
+              {triggerType === 'webhook' && !isHubWorkflow && (
                 <div className="p-4 bg-amber-50 rounded-xl border border-amber-200 text-amber-800 text-sm">
                   A unique webhook URL will be generated after deployment. Use it to trigger this workflow from Zapier, Make, or any external service.
                 </div>
@@ -917,7 +1494,7 @@ export default function WorkflowBuilder() {
                 onClick={() => setStep(3)}
                 className="bg-brand-dark text-white px-8 py-3 rounded-full font-medium hover:bg-brand-dark/90 transition-colors"
               >
-                Connect Data Source
+                {isHubWorkflow ? 'Connect Hub Workbook' : 'Connect Data Source'}
               </button>
             </div>
           </div>
@@ -927,8 +1504,8 @@ export default function WorkflowBuilder() {
         {step === 3 && workflow && (
           <div className="space-y-8 animate-in slide-in-from-right-4 fade-in duration-300 max-w-2xl mx-auto">
             <div>
-              <h1 className="text-3xl font-bold mb-2">Connect your data</h1>
-              <p className="text-slate-600">Tell the workflow what to watch and where to send results.</p>
+              <h1 className="text-3xl font-bold mb-2">{isHubWorkflow ? 'Connect your hub workbook' : 'Connect your data'}</h1>
+              <p className="text-slate-600">{isHubWorkflow ? 'Connect one workbook, confirm the sheet structure, and choose who receives the reports.' : 'Tell the workflow what to watch and where to send results.'}</p>
             </div>
 
             <div className="bg-white p-6 rounded-2xl border border-slate-200 space-y-6 shadow-sm">
@@ -947,6 +1524,14 @@ export default function WorkflowBuilder() {
                       <p className="text-xs text-slate-400 mt-1">Tell Custom AI precisely what analysis to run on your attached data.</p>
                     </div>
                   )}
+                  {isHubWorkflow && (
+                    <div className="mb-4 p-4 rounded-2xl bg-teal-50 border border-teal-200">
+                      <p className="text-sm font-semibold text-teal-950 mb-1">One workbook, multiple child workflows</p>
+                      <p className="text-sm text-teal-800 leading-relaxed">
+                        If you use Google Sheets, point this to the full workbook. Hoursback will read each tab it finds. If you upload a file instead, use an Excel workbook with separate tabs rather than a single CSV.
+                      </p>
+                    </div>
+                  )}
                   {/* xlsx mode toggle — shown for URL-type inputs */}
                   {(inputConfig.type === 'url' || inputConfig.type === 'text') && (
                     <div className="flex gap-1 mb-3 p-1 bg-slate-100 rounded-xl w-fit">
@@ -954,7 +1539,7 @@ export default function WorkflowBuilder() {
                         onClick={() => setDataSourceMode('url')}
                         className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${dataSourceMode === 'url' ? 'bg-white shadow-sm text-brand-dark' : 'text-slate-500 hover:text-slate-700'}`}
                       >
-                        {inputConfig.type === 'url' ? 'Google Sheets / URL' : 'Keywords'}
+                        {isHubWorkflow ? 'Workbook URL' : inputConfig.type === 'url' ? 'Google Sheets / URL' : 'Keywords'}
                       </button>
                       <button
                         onClick={() => setDataSourceMode('excel')}
@@ -993,7 +1578,7 @@ export default function WorkflowBuilder() {
                           className="w-full p-6 border-2 border-dashed border-slate-200 rounded-xl hover:border-brand-blue/40 hover:bg-blue-50/20 transition-all flex flex-col items-center gap-2 text-slate-500 disabled:opacity-50"
                         >
                           <Upload className="w-6 h-6" />
-                          <span className="text-sm font-medium">{xlsxUploading ? 'Uploading...' : 'Click to upload .xlsx, .xls, or .csv'}</span>
+                          <span className="text-sm font-medium">{xlsxUploading ? 'Uploading...' : isHubWorkflow ? 'Click to upload a multi-tab .xlsx workbook' : 'Click to upload .xlsx, .xls, or .csv'}</span>
                           <span className="text-xs text-slate-400">Max 10MB</span>
                         </button>
                       )}
@@ -1027,8 +1612,157 @@ export default function WorkflowBuilder() {
                 </div>
               )}
 
+              {isHubWorkflow && (
+                <div className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                  <div>
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Workbook template</p>
+                    <p className="text-sm text-slate-600 mt-1">
+                      Keep one tab per data type. Row 1 should always be headers, dates should use <span className="font-mono">YYYY-MM-DD</span>, and money should be plain numbers like <span className="font-mono">5000</span>, not formatted currency text.
+                    </p>
+                  </div>
+                  <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-sm">
+                    <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
+                      <div className="flex flex-wrap gap-2">
+                        {HUB_SHEET_TEMPLATES.map(template => (
+                          <button
+                            key={template.tab}
+                            onClick={() => setSelectedHubSheetTab(template.tab)}
+                            className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                              activeHubSheetTemplate.tab === template.tab
+                                ? 'bg-emerald-600 text-white shadow-sm'
+                                : 'border border-slate-200 bg-white text-slate-600 hover:border-emerald-200 hover:text-emerald-700'
+                            }`}
+                          >
+                            {template.tab}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="border-b border-slate-200 px-4 py-3 bg-white">
+                      <div className="flex items-start gap-3">
+                        <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                          <FileSpreadsheet className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-sm text-brand-dark">{activeHubSheetTemplate.tab}</p>
+                          <p className="text-sm text-slate-500 mt-1">{activeHubSheetTemplate.purpose}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="border-b border-slate-200 bg-[#f8fafc] px-3 py-2">
+                      <div className="flex items-center gap-2 text-[11px] text-slate-500">
+                        <span className="rounded-md border border-slate-200 bg-white px-2 py-1 font-medium">fx</span>
+                        <div className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap rounded-md border border-slate-200 bg-white px-3 py-1.5 text-slate-400">
+                          Row 1 contains the exact sheet titles. Add one customer, student, attendance record, or transaction per row below it.
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="overflow-x-auto bg-white">
+                      <Table className="min-w-[1100px]">
+                        <TableHeader>
+                          <TableRow className="border-b border-slate-200 bg-slate-100 hover:bg-slate-100">
+                            <TableHead className="w-14 border-r border-slate-200 text-center text-[11px] font-semibold text-slate-500">#</TableHead>
+                            {activeHubSheetTemplate.headers.map((_, index) => (
+                              <TableHead
+                                key={`${activeHubSheetTemplate.tab}-column-${index}`}
+                                className="border-r border-slate-200 text-center text-[11px] font-semibold text-slate-500"
+                              >
+                                {getSheetColumnLabel(index)}
+                              </TableHead>
+                            ))}
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          <TableRow className="hover:bg-white">
+                            <TableCell className="border-r border-slate-200 bg-slate-50 text-center text-xs font-semibold text-slate-500">1</TableCell>
+                            {activeHubSheetTemplate.headers.map(header => (
+                              <TableCell
+                                key={`${activeHubSheetTemplate.tab}-header-${header}`}
+                                className="min-w-[140px] whitespace-normal border-r border-slate-200 bg-emerald-50/60 text-xs font-semibold text-slate-800"
+                              >
+                                {header}
+                              </TableCell>
+                            ))}
+                          </TableRow>
+                          <TableRow className="hover:bg-white">
+                            <TableCell className="border-r border-slate-200 bg-slate-50 text-center text-xs font-semibold text-slate-500">2</TableCell>
+                            {activeHubSheetTemplate.sampleRow.map((value, index) => (
+                              <TableCell
+                                key={`${activeHubSheetTemplate.tab}-sample-${index}`}
+                                className="min-w-[140px] whitespace-normal border-r border-slate-200 text-xs text-slate-700"
+                              >
+                                {value || '—'}
+                              </TableCell>
+                            ))}
+                          </TableRow>
+                          <TableRow className="hover:bg-white">
+                            <TableCell className="border-r border-slate-200 bg-slate-50 text-center text-xs font-semibold text-slate-500">3</TableCell>
+                            {activeHubSheetTemplate.headers.map((_, index) => (
+                              <TableCell
+                                key={`${activeHubSheetTemplate.tab}-blank-${index}`}
+                                className="h-11 min-w-[140px] border-r border-slate-200 text-xs text-slate-300"
+                              >
+                                &nbsp;
+                              </TableCell>
+                            ))}
+                          </TableRow>
+                        </TableBody>
+                      </Table>
+                    </div>
+
+                    <div className="border-t border-slate-200 bg-slate-50 px-4 py-3">
+                      <div className="flex flex-wrap gap-2">
+                        {HUB_SHEET_TEMPLATES.map(template => (
+                          <button
+                            key={`${template.tab}-bottom-tab`}
+                            onClick={() => setSelectedHubSheetTab(template.tab)}
+                            className={`rounded-t-xl border px-3 py-2 text-xs font-medium transition-colors ${
+                              activeHubSheetTemplate.tab === template.tab
+                                ? '-mb-[13px] border-slate-300 border-b-white bg-white text-slate-900'
+                                : 'border-slate-200 bg-slate-100 text-slate-500 hover:text-slate-700'
+                            }`}
+                          >
+                            {template.tab}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {workbookValidation.status !== 'idle' && (
+                    <div className={`rounded-2xl border px-4 py-3 text-sm ${
+                      workbookValidation.status === 'valid'
+                        ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                        : workbookValidation.status === 'checking'
+                          ? 'border-slate-200 bg-white text-slate-600'
+                          : workbookValidation.status === 'warning'
+                            ? 'border-amber-200 bg-amber-50 text-amber-800'
+                            : 'border-slate-200 bg-white text-slate-600'
+                    }`}>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-semibold">
+                          {workbookValidation.status === 'valid' && 'Workbook check passed'}
+                          {workbookValidation.status === 'checking' && 'Checking workbook'}
+                          {workbookValidation.status === 'warning' && 'Workbook needs attention'}
+                          {workbookValidation.status === 'unavailable' && 'Workbook check unavailable'}
+                        </span>
+                        {workbookValidation.availableTabs.length > 0 && (
+                          <span className="text-xs opacity-80">
+                            Found tabs: {workbookValidation.availableTabs.join(', ')}
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-1 leading-relaxed">{workbookValidation.message}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div>
-                <label className="block font-semibold mb-2">Notify email</label>
+                <label className="block font-semibold mb-2">{isHubWorkflow ? 'Manager email' : 'Notify email'}</label>
                 <input
                   type="email"
                   value={notifyEmail}
@@ -1036,13 +1770,13 @@ export default function WorkflowBuilder() {
                   placeholder="you@company.com"
                   className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue outline-none text-sm"
                 />
-                <p className="text-xs text-slate-400 mt-1">Workflow results will be emailed here.</p>
+                <p className="text-xs text-slate-400 mt-1">{isHubWorkflow ? 'Manager oversight reports will be emailed here.' : 'Workflow results will be emailed here.'}</p>
               </div>
 
               {/* Team alerts — Pro only */}
               <div>
                 <div className="flex items-center gap-2 mb-2">
-                  <label className="block font-semibold">Also notify team members</label>
+                  <label className="block font-semibold">{isHubWorkflow ? 'Also notify receptionist / team members' : 'Also notify team members'}</label>
                   {!hasPro && (
                     <span className="text-[10px] font-semibold bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full flex items-center gap-1">
                       <Lock className="w-2.5 h-2.5" /> Pro
@@ -1055,10 +1789,10 @@ export default function WorkflowBuilder() {
                       type="text"
                       value={teamEmails}
                       onChange={e => setTeamEmails(e.target.value)}
-                      placeholder="colleague@company.com, manager@company.com"
+                      placeholder={isHubWorkflow ? 'reception@hub.com, owner@hub.com' : 'colleague@company.com, manager@company.com'}
                       className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue outline-none text-sm"
                     />
-                    <p className="text-xs text-slate-400 mt-1">Separate multiple emails with commas. Each person receives the full report.</p>
+                    <p className="text-xs text-slate-400 mt-1">{isHubWorkflow ? 'Separate multiple emails with commas. This is the easiest way to keep the receptionist and manager in sync from one setup.' : 'Separate multiple emails with commas. Each person receives the full report.'}</p>
                   </>
                 ) : (
                   <div className="p-3 rounded-xl bg-slate-50 border border-dashed border-slate-200 text-xs text-slate-400">
@@ -1138,9 +1872,14 @@ export default function WorkflowBuilder() {
                 <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Deployment Summary</p>
                 <div className="space-y-1.5 text-sm text-slate-700">
                   <p><span className="text-slate-400">Workflow:</span> <strong>{workflow.title}</strong></p>
+                  {isHubWorkflow && selectedHubSubsetDefs.length > 0 && (
+                    <p>
+                      <span className="text-slate-400">Subsets:</span> {selectedHubSubsetDefs.map(subset => subset.title).join(', ')}
+                    </p>
+                  )}
                   <p>
                     <span className="text-slate-400">Schedule:</span>{' '}
-                    {triggerType === 'webhook'
+                    {!isHubWorkflow && triggerType === 'webhook'
                       ? 'Webhook triggered'
                       : `${schedule.charAt(0).toUpperCase() + schedule.slice(1)}${schedule === 'weekly' ? ` on ${runDay.charAt(0).toUpperCase() + runDay.slice(1)}` : ''} at ${runTime}`}
                   </p>
@@ -1164,7 +1903,7 @@ export default function WorkflowBuilder() {
               </button>
               <button
                 onClick={handleDeploy}
-                disabled={isDeploying || !notifyEmail || (dataSourceMode === 'excel' && !xlsxPath)}
+                disabled={isDeploying || !notifyEmail || (dataSourceMode === 'excel' && !xlsxPath) || (isHubWorkflow && dataSourceMode !== 'excel' && !dataSource.trim()) || (isHubWorkflow && selectedHubSubsetDefs.length === 0)}
                 className="bg-brand-blue text-white px-8 py-3 rounded-full font-medium hover:bg-blue-600 disabled:opacity-50 transition-colors flex items-center gap-2"
               >
                 {isDeploying ? 'Deploying...' : 'Deploy Workflow'}
@@ -1209,11 +1948,35 @@ export default function WorkflowBuilder() {
                     <p>Send a <code className="bg-blue-100 px-1 rounded">POST</code> request with your data as JSON. The AI agent analyzes the payload and emails you the results.</p>
                   </div>
                 </>
-              ) : (
-                <div className="text-left bg-slate-50 rounded-2xl border border-slate-100 p-5 space-y-3">
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 bg-white border border-slate-200 rounded-full flex items-center justify-center shrink-0 mt-0.5">
-                      <span className="text-sm">🕐</span>
+	              ) : (
+	                <div className="text-left bg-slate-50 rounded-2xl border border-slate-100 p-5 space-y-3">
+	                  {isHubWorkflow && (
+	                    <>
+	                      <div className="grid gap-3 sm:grid-cols-2">
+	                        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+	                          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Manager email</p>
+	                          <p className="text-sm font-medium text-brand-dark break-all">{notifyEmail}</p>
+	                        </div>
+	                        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+	                          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Workbook source</p>
+	                          <p className="text-sm font-medium text-brand-dark break-all">
+	                            {dataSourceMode === 'excel'
+	                              ? (xlsxFileName || 'Uploaded workbook')
+	                              : (dataSource.length > 70 ? `${dataSource.slice(0, 70)}…` : dataSource)}
+	                          </p>
+	                        </div>
+	                      </div>
+	                      {hasPro && teamEmails.trim() && (
+	                        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+	                          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Also notifying</p>
+	                          <p className="text-sm font-medium text-brand-dark break-all">{teamEmails}</p>
+	                        </div>
+	                      )}
+	                    </>
+	                  )}
+	                  <div className="flex items-start gap-3">
+	                    <div className="w-8 h-8 bg-white border border-slate-200 rounded-full flex items-center justify-center shrink-0 mt-0.5">
+	                      <span className="text-sm">🕐</span>
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-0.5">Runs</p>
@@ -1231,15 +1994,32 @@ export default function WorkflowBuilder() {
                       )}
                     </div>
                   </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 bg-white border border-slate-200 rounded-full flex items-center justify-center shrink-0 mt-0.5">
-                      <span className="text-sm">📧</span>
+	                  <div className="flex items-start gap-3">
+	                    <div className="w-8 h-8 bg-white border border-slate-200 rounded-full flex items-center justify-center shrink-0 mt-0.5">
+	                      <span className="text-sm">📧</span>
+	                    </div>
+	                    <div>
+	                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-0.5">{isHubWorkflow ? 'Primary recipient' : 'Results sent to'}</p>
+	                      <p className="text-sm font-medium text-brand-dark">{notifyEmail}</p>
+	                    </div>
+	                  </div>
+                  {deployedWorkflowNames.length > 1 && (
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 bg-white border border-slate-200 rounded-full flex items-center justify-center shrink-0 mt-0.5">
+                        <span className="text-sm">🧩</span>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-0.5">Deployed subsets</p>
+                        <div className="flex flex-wrap gap-2">
+                          {deployedWorkflowNames.map(name => (
+                            <span key={name} className="text-xs px-2.5 py-1 rounded-full bg-white border border-slate-200 text-slate-600">
+                              {getWorkflowDisplayName(name)}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-0.5">Results sent to</p>
-                      <p className="text-sm font-medium text-brand-dark">{notifyEmail}</p>
-                    </div>
-                  </div>
+                  )}
                 </div>
               )}
 
@@ -1252,7 +2032,7 @@ export default function WorkflowBuilder() {
                   </button>
                 </Link>
                 <button
-                  onClick={() => { setStep(1); setSelectedWorkflow(''); setDeployedWebhookUrl(''); setDeployedWorkflowTitle(''); }}
+                  onClick={() => { setStep(1); setSelectedWorkflow(''); setDeployedWebhookUrl(''); setDeployedWorkflowTitle(''); setDeployedWorkflowNames([]); }}
                   className="w-full text-slate-500 hover:text-brand-dark text-sm py-2 font-medium transition-colors"
                 >
                   Deploy another workflow →

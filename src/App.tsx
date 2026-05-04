@@ -27,6 +27,8 @@ const HowItLearnsPage    = lazy(() => import('./pages/HowItLearnsPage'));
 const SettingsPage       = lazy(() => import('./pages/SettingsPage'));
 const TelegramPage       = lazy(() => import('./pages/TelegramPage'));
 const DataSourcesPage    = lazy(() => import('./pages/DataSourcesPage'));
+const SalesLogPage       = lazy(() => import('./pages/SalesLogPage'));
+const AdminDashboard     = lazy(() => import('./pages/AdminDashboard'));
 
 function PageLoader() {
   return (
@@ -74,6 +76,8 @@ function AppWithOnboarding() {
           <Route path="/crash-course" element={<CrashCoursePage />} />
           <Route path="/workspace" element={<Navigate to="/workflows" replace />} />
           <Route path="/workflows" element={<WorkflowsDashboard />} />
+          <Route path="/workflow-preview" element={<WorkflowsDashboard previewMode />} />
+          <Route path="/hub-preview" element={<Navigate to="/workflow-preview" replace />} />
           <Route path="/workflows/new" element={<WorkflowBuilder />} />
           <Route path="/browse" element={<Navigate to="/workflows/new" replace />} />
           <Route path="/reports" element={<ReportsPage />} />
@@ -88,6 +92,8 @@ function AppWithOnboarding() {
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/telegram" element={<TelegramPage />} />
           <Route path="/data-sources" element={<DataSourcesPage />} />
+          <Route path="/data-log" element={<SalesLogPage />} />
+          <Route path="/admin" element={<AdminDashboard />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>

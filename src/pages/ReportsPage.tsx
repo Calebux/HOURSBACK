@@ -27,6 +27,16 @@ interface Workflow {
   category: string;
 }
 
+function getWorkflowDisplayName(workflow: Workflow | undefined): string {
+  if (!workflow?.name) return 'Unknown Workflow';
+  return workflow.name.replace(/^Hub:\s*/, '');
+}
+
+function getWorkflowCategoryLabel(category: string | undefined): string {
+  if (!category) return '';
+  return category === 'Hub Workflow' ? 'Workflow Bundle' : category;
+}
+
 export default function ReportsPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -76,7 +86,7 @@ export default function ReportsPage() {
   };
 
   const downloadPdf = (run: WorkflowRun, wf: Workflow | undefined) => {
-    const wfName = wf?.name || 'Report';
+    const wfName = wf ? getWorkflowDisplayName(wf) : 'Report';
     setDownloadingId(run.id);
     try {
       const runDate = new Date(run.created_at);
@@ -131,7 +141,7 @@ export default function ReportsPage() {
         <p style="font-size:12px;color:rgba(26,26,46,0.5);margin:0;">${runDate.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} · ${runDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</p>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-        ${wf?.category ? `<span style="font-size:11px;padding:4px 10px;background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;border-radius:9999px;font-weight:500;">${esc(wf.category)}</span>` : ''}
+        ${wf?.category ? `<span style="font-size:11px;padding:4px 10px;background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;border-radius:9999px;font-weight:500;">${esc(getWorkflowCategoryLabel(wf.category))}</span>` : ''}
         ${confidence ? `<span style="font-size:11px;padding:4px 10px;background:${confBg};color:${confColor};border:1px solid ${confBorder};border-radius:9999px;font-weight:500;">${confidence.score}% confidence</span>` : ''}
         <span style="font-size:11px;padding:4px 10px;background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;border-radius:9999px;font-weight:500;">Run complete</span>
       </div>
@@ -199,7 +209,7 @@ export default function ReportsPage() {
                 className="text-sm border border-slate-200 rounded-xl px-3 py-2 bg-white outline-none focus:ring-2 focus:ring-brand-blue/20"
               >
                 <option value="all">All workflows</option>
-                {workflows.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+                {workflows.map(w => <option key={w.id} value={w.id}>{getWorkflowDisplayName(w)}</option>)}
               </select>
             </div>
           )}
@@ -247,11 +257,11 @@ export default function ReportsPage() {
                           {isSuccess ? <CheckCircle2 className="w-5 h-5" /> : <XCircle className="w-5 h-5" />}
                         </div>
                         <div>
-                          <p className="font-semibold leading-tight">{wf?.name || 'Unknown Workflow'}</p>
+                          <p className="font-semibold leading-tight">{getWorkflowDisplayName(wf)}</p>
                           <div className="flex items-center gap-3 mt-1 flex-wrap">
                             {wf && (
                               <span className="text-xs px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md border border-slate-200 font-medium">
-                                {wf.category}
+                                {getWorkflowCategoryLabel(wf.category)}
                               </span>
                             )}
                             <span className="flex items-center gap-1 text-xs text-brand-dark/40">
@@ -316,7 +326,7 @@ export default function ReportsPage() {
                               <div className="flex items-start justify-between gap-4 flex-wrap">
                                 <div>
                                   <h2 className="text-xl font-bold text-brand-dark leading-tight">
-                                    {wf?.name || 'Report'}
+                                    {wf ? getWorkflowDisplayName(wf) : 'Report'}
                                   </h2>
                                   <p className="text-sm text-brand-dark/50 mt-1">
                                     {runDate.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
