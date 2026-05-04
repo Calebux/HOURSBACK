@@ -97,71 +97,6 @@ function getWorkflowLastIssue(workflow: WorkflowRun | undefined): string {
   return workflow.status === 'failed' ? (workflow.error_message || 'Last run failed') : 'Healthy';
 }
 
-const HUB_PREVIEW_SUBSETS = [
-  {
-    name: 'Internet Renewal Watch',
-    status: 'active',
-    schedule: 'Daily · 08:00',
-    health: '96% success',
-    lastRun: '42m ago',
-    recipients: 'manager@hub.com, reception@hub.com',
-  },
-  {
-    name: 'Overdue Balance Recovery',
-    status: 'active',
-    schedule: 'Daily · 09:00',
-    health: '91% success',
-    lastRun: '42m ago',
-    recipients: 'manager@hub.com',
-  },
-  {
-    name: 'Class Fee Reminder',
-    status: 'active',
-    schedule: 'Daily · 17:30',
-    health: '100% success',
-    lastRun: '18h ago',
-    recipients: 'reception@hub.com',
-  },
-  {
-    name: 'Attendance Drop-off Predictor',
-    status: 'watch',
-    schedule: 'Mon/Wed/Fri · 18:00',
-    health: '78% success',
-    lastRun: '2d ago',
-    recipients: 'manager@hub.com',
-  },
-  {
-    name: 'Weekly Manager Brief',
-    status: 'active',
-    schedule: 'Weekly · Mon 07:30',
-    health: '100% success',
-    lastRun: '6d ago',
-    recipients: 'manager@hub.com, owner@hub.com',
-  },
-] as const;
-
-const HUB_PREVIEW_RUNS = [
-  {
-    workflow: 'Internet Renewal Watch',
-    status: 'success',
-    when: '42m ago',
-    summary: '8 internet users expire in the next 3 days. 3 already have balances.',
-  },
-  {
-    workflow: 'Overdue Balance Recovery',
-    status: 'success',
-    when: '42m ago',
-    summary: '₦67,500 outstanding across 11 customers. Top 3 accounts make up 58% of the balance.',
-  },
-  {
-    workflow: 'Attendance Drop-off Predictor',
-    status: 'failed',
-    when: '2d ago',
-    summary: 'Attendance_Log tab had missing Session_Date values in 4 rows.',
-  },
-] as const;
-
-
 function SuccessRateBadge({ rate, total }: { rate: number | null; total: number }) {
   if (total === 0) return <span className="text-xs text-slate-400">No runs yet</span>;
   const color = rate! >= 80 ? 'text-emerald-600 bg-emerald-50' : rate! >= 50 ? 'text-amber-600 bg-amber-50' : 'text-red-600 bg-red-50';
@@ -740,9 +675,6 @@ export default function WorkflowsDashboard({ previewMode = false }: { previewMod
               </CardDescription>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Badge variant="outline" className="rounded-full border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-700">
-                Live data
-              </Badge>
               <Badge variant="outline" className="rounded-full border-teal-200 bg-teal-50 px-3 py-1 text-teal-700">
                 {activeHubWorkflows.length} active
               </Badge>
@@ -963,168 +895,21 @@ export default function WorkflowsDashboard({ previewMode = false }: { previewMod
             <div>
               <CardTitle className="text-xl text-slate-900">Workflow Overview</CardTitle>
               <CardDescription className="mt-1 max-w-2xl text-sm leading-relaxed">
-                This preview shows how bundled workflows can roll up into one oversight layer. Once you deploy a workflow package, this page groups the related reports into a single operating view.
+                Bundled workflows can roll up into one oversight layer, so related reports appear in a single operating view.
               </CardDescription>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="outline" className="rounded-full border-amber-200 bg-amber-50 px-3 py-1 text-amber-700">
-                Demo data
-              </Badge>
-              <Link to="/workflows/new?id=wkflow-hub" className="shrink-0">
-                <button className="rounded-full bg-brand-dark px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-dark/90">
-                  Create Workflow
-                </button>
-              </Link>
             </div>
           </div>
         </CardHeader>
       </Card>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <ManagerMetricCard
-          title="Hub Subsets"
-          value="5"
-          detail="Preview of a typical hub setup across renewals, fees, attendance, and management."
-          tone="teal"
-        />
-        <ManagerMetricCard
-          title="Success Rate"
-          value="94%"
-          detail="18 successful runs out of the last 19 across the bundled hub subsets."
-        />
-        <ManagerMetricCard
-          title="Next Run"
-          value="Today"
-          detail="Next delivery at 17:30 for Class Fee Reminder."
-        />
-        <ManagerMetricCard
-          title="Manager Brief"
-          value="4 Alerts"
-          detail="2 payment issues, 1 attendance risk, 1 underfilled class need review."
-          tone="amber"
-        />
-      </div>
-
-      <div className="grid gap-6 xl:grid-cols-[1.55fr_1fr]">
-        <Card className="border-slate-200 shadow-none">
-          <CardHeader>
-            <CardTitle className="text-base">Subset Coverage Preview</CardTitle>
-            <CardDescription>The deployed hub subsets still run independently, but the manager sees them grouped here.</CardDescription>
-          </CardHeader>
-          <CardContent className="px-0 pb-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="px-6">Subset</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Schedule</TableHead>
-                  <TableHead>Health</TableHead>
-                  <TableHead className="pr-6 text-right">Last run</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {HUB_PREVIEW_SUBSETS.map(subset => (
-                  <TableRow key={subset.name}>
-                    <TableCell className="px-6 py-4 align-top whitespace-normal">
-                      <div>
-                        <p className="font-medium text-slate-900">{subset.name}</p>
-                        <p className="mt-1 text-xs text-slate-500">{subset.recipients}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell className="py-4">
-                      <Badge
-                        variant="outline"
-                        className={subset.status === 'active'
-                          ? 'border-teal-200 bg-teal-50 text-teal-700'
-                          : 'border-amber-200 bg-amber-50 text-amber-700'}
-                      >
-                        {subset.status === 'active' ? 'active' : 'watch'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="py-4 text-sm text-slate-600">{subset.schedule}</TableCell>
-                    <TableCell className="py-4 text-sm text-slate-600">{subset.health}</TableCell>
-                    <TableCell className="py-4 pr-6 text-right text-sm text-slate-500">{subset.lastRun}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-
-        <div className="space-y-6">
-          <Card className="border-slate-200 shadow-none">
-            <CardHeader>
-              <CardTitle className="text-base">Workbook Tabs Expected</CardTitle>
-              <CardDescription>The receptionist keeps one workbook with these tabs.</CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-wrap gap-2">
-              {['Internet_Customers', 'Class_Enrollments', 'Attendance_Log', 'Daily_Transactions', 'Classes_Master'].map(tab => (
-                <Badge key={tab} variant="outline" className="rounded-full border-slate-200 bg-white px-3 py-1 text-slate-700">
-                  {tab}
-                </Badge>
-              ))}
-            </CardContent>
-          </Card>
-
-          <Card className="border-slate-200 shadow-none">
-            <CardHeader>
-              <CardTitle className="text-base">Manager Watchlist Preview</CardTitle>
-              <CardDescription>What the manager will see once reports begin running.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {[
-                '6 internet customers expire in the next 48 hours, with 3 still unpaid.',
-                '4 students have balances before tomorrow’s classes.',
-                'Data Analysis Weekend class is at 33% fill rate and needs promotion.',
-                'Attendance Drop-off Predictor needs sheet cleanup before the next run.',
-              ].map(item => (
-                <div key={item} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                  {item}
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
       <Card className="border-slate-200 shadow-none">
-        <CardHeader>
-          <CardTitle className="text-base">Recent Hub Runs Preview</CardTitle>
-          <CardDescription>Example output summaries the manager would scan at a glance.</CardDescription>
-        </CardHeader>
-        <CardContent className="px-0 pb-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="px-6">Workflow</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>When</TableHead>
-                <TableHead className="pr-6">Summary</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {HUB_PREVIEW_RUNS.map(run => (
-                <TableRow key={`${run.workflow}-${run.when}`}>
-                  <TableCell className="px-6 py-4 whitespace-normal">
-                    <p className="font-medium text-slate-900">{run.workflow}</p>
-                    <p className="mt-1 text-xs text-slate-500">Workflow Bundle</p>
-                  </TableCell>
-                  <TableCell className="py-4">
-                    <Badge
-                      variant="outline"
-                      className={run.status === 'success'
-                        ? 'border-teal-200 bg-teal-50 text-teal-700'
-                        : 'border-red-200 bg-red-50 text-red-700'}
-                    >
-                      {run.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="py-4 text-sm text-slate-600">{run.when}</TableCell>
-                  <TableCell className="py-4 pr-6 text-sm text-slate-500 whitespace-normal">{run.summary}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+        <CardContent className="flex min-h-[320px] flex-col items-center justify-center px-6 py-12 text-center">
+          <div className="max-w-md space-y-3">
+            <h2 className="text-lg font-semibold text-slate-900">No workflow data yet</h2>
+            <p className="text-sm leading-relaxed text-slate-500">
+              This overview stays empty until you create a workflow bundle and it starts running.
+            </p>
+          </div>
         </CardContent>
       </Card>
     </div>
