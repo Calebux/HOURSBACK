@@ -7,7 +7,13 @@
 -- =============================================================
 
 -- 1. Autopilot cron job
-SELECT cron.unschedule('hoursback-autopilot-runner');
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'hoursback-autopilot-runner') THEN
+    PERFORM cron.unschedule('hoursback-autopilot-runner');
+  END IF;
+END;
+$$;
 SELECT cron.schedule(
   'hoursback-autopilot-runner',
   '* * * * *',
@@ -21,7 +27,13 @@ SELECT cron.schedule(
 );
 
 -- 2. Renewal cron job
-SELECT cron.unschedule('hoursback-renewal-cron');
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'hoursback-renewal-cron') THEN
+    PERFORM cron.unschedule('hoursback-renewal-cron');
+  END IF;
+END;
+$$;
 SELECT cron.schedule(
   'hoursback-renewal-cron',
   '0 8 * * *',
@@ -35,13 +47,35 @@ SELECT cron.schedule(
 );
 
 -- 3. Watcher runner cron job
-SELECT cron.unschedule('hoursback-watcher-runner');
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'hoursback-watcher-runner') THEN
+    PERFORM cron.unschedule('hoursback-watcher-runner');
+  END IF;
+  IF EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'hoursback-workflow-worker') THEN
+    PERFORM cron.unschedule('hoursback-workflow-worker');
+  END IF;
+END;
+$$;
 SELECT cron.schedule(
   'hoursback-watcher-runner',
-  '0 8 * * *',
+  '* * * * *',
   $$
   SELECT net.http_post(
     url     := 'https://tsooqmbrxquybqcuqcby.supabase.co/functions/v1/execute-watchers',
+    headers := '{"Content-Type":"application/json","Authorization":"Bearer <NEW_SERVICE_ROLE_JWT>"}'::jsonb,
+    body    := '{"trigger":"cron"}'::jsonb
+  );
+  $$
+);
+
+-- 4. Workflow queue worker cron job
+SELECT cron.schedule(
+  'hoursback-workflow-worker',
+  '* * * * *',
+  $$
+  SELECT net.http_post(
+    url     := 'https://tsooqmbrxquybqcuqcby.supabase.co/functions/v1/process-workflow-jobs',
     headers := '{"Content-Type":"application/json","Authorization":"Bearer <NEW_SERVICE_ROLE_JWT>"}'::jsonb,
     body    := '{"trigger":"cron"}'::jsonb
   );

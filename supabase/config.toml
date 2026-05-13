@@ -399,6 +399,11 @@ entrypoint = "./functions/execute-watchers/index.ts"
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/execute-watchers/*.html" ]
 
+[functions.process-workflow-jobs]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/process-workflow-jobs/index.ts"
+
 [functions.subscription-renewal-cron]
 enabled = true
 verify_jwt = false
