@@ -60,21 +60,42 @@ function firstString(...values: unknown[]) {
 function parseKapsoMessage(payload: any): ParsedMessage | null {
   const data = payload?.data || payload;
   const msg = data?.message || data?.messages?.[0] || data;
+  const conversation = data?.conversation || payload?.conversation || {};
   const kapso = msg?.kapso || data?.kapso || {};
+  const conversationKapso = conversation?.kapso || {};
   const text = firstString(
     msg?.text?.body,
     data?.text?.body,
+    typeof msg?.text === "string" ? msg.text : undefined,
+    typeof data?.text === "string" ? data.text : undefined,
+    msg?.kapso?.transcript?.text,
+    data?.kapso?.transcript?.text,
+    conversationKapso?.last_message_text,
     kapso?.content,
     msg?.content,
     data?.content
   );
 
   return {
-    messageId: firstString(msg?.id, data?.id, data?.message_id),
-    phoneNumberId: firstString(kapso?.phone_number_id, data?.phone_number_id, msg?.phone_number_id, payload?.phone_number_id),
-    from: firstString(msg?.from, data?.from, kapso?.from, kapso?.phone_number, data?.contact?.wa_id),
+    messageId: firstString(msg?.id, data?.id, data?.message_id, msg?.whatsapp_message_id),
+    phoneNumberId: firstString(
+      data?.phone_number_id,
+      payload?.phone_number_id,
+      conversation?.phone_number_id,
+      kapso?.phone_number_id,
+      msg?.phone_number_id
+    ),
+    from: firstString(
+      msg?.from,
+      data?.from,
+      kapso?.from,
+      conversation?.phone_number,
+      data?.contact?.wa_id,
+      conversation?.business_scoped_user_id,
+      conversation?.username
+    ),
     to: firstString(msg?.to, data?.to, kapso?.to),
-    contactName: firstString(kapso?.contact_name, data?.contact?.name, data?.profile?.name),
+    contactName: firstString(conversationKapso?.contact_name, kapso?.contact_name, data?.contact?.name, data?.profile?.name),
     type: firstString(msg?.type, data?.type) || (text ? "text" : undefined),
     text,
   };
@@ -169,13 +190,18 @@ serve(async (req) => {
       }
     }
 
-    const event = req.headers.get("X-Webhook-Event") || payload?.event;
+    const event = firstString(req.headers.get("X-Webhook-Event"), payload?.event);
     if (event && event !== "whatsapp.message.received") {
       return new Response(JSON.stringify({ success: true, ignored: true }), { headers });
     }
 
     const message = parseKapsoMessage(payload);
     if (!message?.text || !message.phoneNumberId) {
+      console.log("Kapso webhook ignored: no text or phone number id", {
+        hasText: !!message?.text,
+        phoneNumberId: message?.phoneNumberId || null,
+        event: event || null,
+      });
       return new Response(JSON.stringify({ success: true, ignored: "no text message" }), { headers });
     }
 
@@ -185,10 +211,31 @@ serve(async (req) => {
       ? query.eq("user_id", uid)
       : query.eq("phone_number_id", message.phoneNumberId);
 
-    const { data: connections } = await query;
-    const connection = connections?.[0];
+    const { data: connections, error: connectionError } = await query;
+    if (connectionError) throw connectionError;
+    let connection = connections?.[0];
     if (!connection) {
-      return new Response(JSON.stringify({ success: true, ignored: "no matching connection" }), { headers });
+      if (!uid) {
+        console.log("Kapso webhook ignored: no matching connection", { phoneNumberId: message.phoneNumberId });
+        return new Response(JSON.stringify({ success: true, ignored: "no matching connection" }), { headers });
+      }
+
+      const { data: createdConnection, error: createConnectionError } = await supabase
+        .from("kapso_connections")
+        .insert({
+          user_id: uid,
+          phone_number_id: message.phoneNumberId,
+          phone_number: message.to || null,
+          display_name: "Kapso WhatsApp",
+          status: "connected",
+          webhook_secret_set: !!KAPSO_WEBHOOK_SECRET,
+          last_webhook_at: new Date().toISOString(),
+        })
+        .select("*")
+        .single();
+
+      if (createConnectionError) throw createConnectionError;
+      connection = createdConnection;
     }
 
     await supabase.from("kapso_connections").update({
