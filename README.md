@@ -1,73 +1,87 @@
-# React + TypeScript + Vite
+# Hoursback
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Hoursback is a React/Vite app backed by Supabase Auth, Database, Storage, and
+Edge Functions. It supports AI workflow automation, Telegram workflows,
+reports, and paid Pro access.
 
-Currently, two official plugins are available:
+## Local Setup
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+1. Install dependencies:
 
-## React Compiler
+   ```bash
+   npm install
+   ```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+2. Copy the environment template:
 
-## Expanding the ESLint configuration
+   ```bash
+   cp .env.example .env.local
+   ```
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+3. Fill in the local values in `.env.local`.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+4. Start the app:
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+   ```bash
+   npm run dev
+   ```
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Required Environment Variables
+
+Frontend variables:
+
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+- `VITE_FLUTTERWAVE_PUBLIC_KEY`
+
+Server/Edge Function secrets are configured in Supabase, not in frontend env:
+
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `ANTHROPIC_API_KEY`
+- `OPENAI_API_KEY`
+- `RESEND_API_KEY`
+- `FIRECRAWL_API_KEY`
+- `APIFY_API_KEY`
+- `TINYFISH_API_KEY`
+- `FLUTTERWAVE_SECRET_KEY`
+
+Never commit `.env`, `.env.local`, service role keys, OAuth client secrets, or
+provider tokens.
+
+## Auth Configuration
+
+Supabase Auth should use PKCE redirects.
+
+Recommended production settings:
+
+```text
+Site URL:
+https://www.hoursback.xyz
+
+Redirect URLs:
+https://www.hoursback.xyz/auth/callback
+https://hoursback.xyz/auth/callback
+http://127.0.0.1:5173/auth/callback
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+The frontend callback route is `/auth/callback`. It exchanges the temporary
+OAuth `code` for a Supabase session and then redirects to the requested app
+route.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Useful Commands
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm run dev
+npm run build
+npm run lint
+npm run smoke:prod
 ```
+
+`npm run smoke:prod` checks the production HTML and a few core routes for
+deployment regressions.
+
+## Quarantine
+
+Legacy admin/debug scripts live in `quarantine/admin-debug-scripts`. They are
+kept for historical context only. Do not run them against production without a
+fresh review.
