@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import {
   ArrowRight, CheckCircle2, Menu, X, Lightbulb,
   Zap, Mail, Bot, CalendarClock,
-  BarChart3, Users, PauseCircle, Sparkles
+  BarChart3, Users, PauseCircle, Sparkles, MessageCircle
 } from 'lucide-react';
 import { AuthModal } from '../components/AuthModal';
 import { useAuth } from '../contexts/AuthContext';
@@ -101,6 +101,9 @@ export default function LandingPage() {
       {/* ── Telegram Strip ── */}
       <TelegramStrip />
 
+      {/* ── WhatsApp Feature ── */}
+      <WhatsAppFeature />
+
       {/* ── Who Is It For ── */}
       <WhoIsItForSection />
 
@@ -196,8 +199,8 @@ const heroCards = [
   {
     dark: false,
     tag: 'Operations',
-    title: 'Telegram Reconcile',
-    meta: 'Variance: ₦0 · Balanced',
+    title: 'WhatsApp Sales Log',
+    meta: '₦128,500 logged today',
     badge: '✓ Done',
     badgeColor: 'bg-emerald-100 text-emerald-600',
     bars: [90, 75, 85, 70, 95],
@@ -246,7 +249,7 @@ function HeroSection({ onGetStarted }: { onGetStarted: () => void }) {
           className="mt-5 text-base md:text-lg text-white/85 max-w-lg mx-auto leading-relaxed"
           style={{ textShadow: '0 1px 8px rgba(0,0,0,0.3)' }}
         >
-          Deploy AI workflows that monitor your business automatically — and deliver clear insights to your inbox.
+          Deploy AI workflows that monitor your business automatically — from spreadsheets, websites, webhooks, and team updates in chat.
         </motion.p>
 
         <motion.div
@@ -438,12 +441,12 @@ function HowItWorksSection() {
     {
       num: '01',
       title: 'Connect a data source',
-      desc: 'Paste a Google Sheets URL, a website link, or connect via webhook. No API keys or technical setup — takes 30 seconds.',
+      desc: 'Paste a Google Sheets URL, a website link, connect via webhook, or capture team updates from chat. No API keys or technical setup — takes 30 seconds.',
       preview: (
         <div className="bg-white rounded-2xl border border-black/10 p-5 shadow-sm">
           <p className="text-xs font-semibold text-[#202124]/40 uppercase tracking-widest mb-3">Data source</p>
           <div className="flex gap-2 mb-4 flex-wrap">
-            {['Google Sheets', 'Website URL', 'Webhook'].map((s, i) => (
+            {['Google Sheets', 'Website URL', 'Webhook', 'WhatsApp'].map((s, i) => (
               <span key={i} className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${i === 0 ? 'bg-[#202124] text-white border-transparent' : 'border-black/15 text-[#202124]/50'}`}>{s}</span>
             ))}
           </div>
@@ -659,7 +662,7 @@ function SampleReportsSection() {
             See exactly what lands in your inbox
           </h2>
           <p className="mt-4 text-base text-[#202124]/60 max-w-xl mx-auto">
-            Every workflow sends a plain-English email like this. Click a category to preview what you'd receive.
+            Every workflow sends a plain-English update like this by email, and selected workflows can also use chat for staff input and owner summaries.
           </p>
         </div>
 
@@ -787,6 +790,88 @@ function TelegramStrip() {
             </div>
           </div>
 
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─────────────────────────────── WHATSAPP FEATURE ─────────────────────────────── */
+function WhatsAppFeature() {
+  const examples = [
+    {
+      title: 'Sales by text, photo, or voice',
+      body: 'Staff send daily sales in WhatsApp. Hoursback structures the entry, updates totals, and flags missing reports.',
+    },
+    {
+      title: 'Owner answers on demand',
+      body: 'Ask “How much did we sell today?” or “What changed this week?” and get a plain-English answer from business data.',
+    },
+    {
+      title: 'Customer order intake',
+      body: 'Capture order details from WhatsApp chats, confirm the request, and route the next action to your team.',
+    },
+  ];
+
+  return (
+    <section className="py-20 bg-[#F8F9FA] border-b border-black/8">
+      <div className="container mx-auto px-6 max-w-5xl">
+        <div className="grid lg:grid-cols-[0.95fr_1.05fr] gap-10 items-center">
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-9 h-9 rounded-xl bg-[#25D366] flex items-center justify-center">
+                <MessageCircle className="w-4.5 h-4.5 text-white" />
+              </div>
+              <p className="text-xs font-semibold tracking-[0.15em] uppercase text-[#128C4A]">WhatsApp workflows</p>
+            </div>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-[#202124] leading-[1.1]">
+              Add WhatsApp to the workflows your business already runs.
+            </h2>
+            <p className="mt-4 text-sm md:text-base text-[#202124]/60 leading-relaxed">
+              Hoursback can use WhatsApp as an input and delivery channel for the businesses that already run operations there — sales logs, staff reminders, customer orders, and owner summaries.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-2">
+              {['Sales logs', 'Staff reminders', 'Customer orders', 'Daily summaries'].map((item) => (
+                <span key={item} className="px-3 py-1.5 rounded-full bg-white border border-black/8 text-xs font-semibold text-[#202124]/55">
+                  {item}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-3xl border border-black/10 shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-black/8 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-[#25D366] flex items-center justify-center text-white text-xs font-bold">WA</div>
+              <div>
+                <p className="text-sm font-semibold text-[#202124]">Hoursback on WhatsApp</p>
+                <p className="text-xs text-[#202124]/40">Team input → AI analysis → owner update</p>
+              </div>
+            </div>
+            <div className="p-5 space-y-3">
+              <div className="ml-auto max-w-[82%] rounded-2xl rounded-tr-md bg-[#DCF8C6] px-4 py-3">
+                <p className="text-sm text-[#202124]/80">Sold 5 jollof, 3 chicken, 2 coke. Transfer ₦42,000.</p>
+              </div>
+              <div className="max-w-[88%] rounded-2xl rounded-tl-md bg-[#F1F3F4] px-4 py-3">
+                <p className="text-sm font-medium text-[#202124]">Logged. Total today is now ₦128,500.</p>
+                <p className="mt-1 text-xs text-[#202124]/50">Top item: Jollof · 23 units</p>
+              </div>
+              <div className="ml-auto max-w-[72%] rounded-2xl rounded-tr-md bg-[#DCF8C6] px-4 py-3">
+                <p className="text-sm text-[#202124]/80">What sold most today?</p>
+              </div>
+              <div className="max-w-[90%] rounded-2xl rounded-tl-md bg-[#F1F3F4] px-4 py-3">
+                <p className="text-sm text-[#202124]/75">Jollof is leading with 23 units. Coke is down 35% from yesterday. Two staff have not submitted closing reports yet.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-4 mt-8">
+          {examples.map((example) => (
+            <div key={example.title} className="bg-white border border-black/8 rounded-2xl p-5">
+              <p className="font-bold text-sm text-[#202124]">{example.title}</p>
+              <p className="mt-2 text-xs text-[#202124]/55 leading-relaxed">{example.body}</p>
+            </div>
+          ))}
         </div>
       </div>
     </section>
