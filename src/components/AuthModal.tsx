@@ -20,13 +20,14 @@ export function AuthModal({ isOpen, onClose, defaultView = 'signin' }: AuthModal
     const [isLoading, setIsLoading] = useState(false);
     const [isGoogleLoading, setIsGoogleLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const authCallbackUrl = `${window.location.origin}/auth/callback`;
 
     const handleGoogleSignIn = async () => {
         setIsGoogleLoading(true);
         setError(null);
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
-            options: { redirectTo: window.location.origin },
+            options: { redirectTo: `${authCallbackUrl}?next=/workflows` },
         });
         if (error) {
             setError(error.message);
@@ -54,7 +55,7 @@ export function AuthModal({ isOpen, onClose, defaultView = 'signin' }: AuthModal
                         data: {
                             full_name: fullName,
                         },
-                        emailRedirectTo: `${window.location.origin}/`,
+                        emailRedirectTo: `${authCallbackUrl}?next=/workflows`,
                     }
                 });
                 if (signUpError) throw signUpError;
@@ -76,7 +77,7 @@ export function AuthModal({ isOpen, onClose, defaultView = 'signin' }: AuthModal
                 onClose();
             } else if (view === 'reset') {
                 const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-                    redirectTo: `${window.location.origin}/settings`,
+                    redirectTo: `${authCallbackUrl}?next=/settings`,
                 });
                 if (resetError) throw resetError;
                 toast.success('Check your email for the password reset link!');

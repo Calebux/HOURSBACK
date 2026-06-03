@@ -10,6 +10,7 @@ import LandingPage from './pages/LandingPage';
 import WorkflowsDashboard from './pages/WorkflowsDashboard';
 import ReportsPage from './pages/ReportsPage';
 import AccountPage from './pages/AccountPage';
+import AuthCallbackPage from './pages/AuthCallbackPage';
 
 // Lazily loaded — not needed on first paint
 const WorkflowBuilder    = lazy(() => import('./pages/WorkflowBuilder'));
@@ -71,6 +72,7 @@ function AppWithOnboarding() {
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/" element={isLoading ? <PageLoader /> : user ? <Navigate to="/workflows" replace /> : <LandingPage />} />
+          <Route path="/auth/callback" element={<AuthCallbackPage />} />
           <Route path="/playbooks" element={<PlaybooksPage />} />
           <Route path="/playbooks/:slug" element={<PlaybookViewerPage />} />
           <Route path="/crash-course" element={<CrashCoursePage />} />
