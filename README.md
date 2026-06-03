@@ -44,6 +44,8 @@ Server/Edge Function secrets are configured in Supabase, not in frontend env:
 - `APIFY_API_KEY`
 - `TINYFISH_API_KEY`
 - `FLUTTERWAVE_SECRET_KEY`
+- `KAPSO_API_KEY`
+- `KAPSO_WEBHOOK_SECRET`
 
 Never commit `.env`, `.env.local`, service role keys, OAuth client secrets, or
 provider tokens.
@@ -85,3 +87,19 @@ deployment regressions.
 Legacy admin/debug scripts live in `quarantine/admin-debug-scripts`. They are
 kept for historical context only. Do not run them against production without a
 fresh review.
+
+## WhatsApp/Kapso
+
+The WhatsApp feature uses Kapso as the transport layer.
+
+Required Supabase secrets:
+
+```text
+KAPSO_API_KEY
+KAPSO_WEBHOOK_SECRET
+ANTHROPIC_API_KEY
+```
+
+Set up a workspace at `/whatsapp`, then register the displayed webhook URL in
+Kapso for `whatsapp.message.received` events. Inbound WhatsApp sales updates are
+stored in the existing Sales Log.

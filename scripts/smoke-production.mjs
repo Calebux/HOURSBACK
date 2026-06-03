@@ -4,6 +4,7 @@ const routes = [
   '/',
   '/auth/callback?code=smoke-test&next=%2Fworkflows',
   '/workflows',
+  '/whatsapp',
   '/settings',
 ];
 

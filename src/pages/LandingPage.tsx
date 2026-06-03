@@ -837,6 +837,13 @@ function WhatsAppFeature() {
                 </span>
               ))}
             </div>
+            <Link
+              to="/whatsapp"
+              className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#202124] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#202124]/85 transition-colors"
+            >
+              Set up WhatsApp
+              <ArrowRight className="w-4 h-4" />
+            </Link>
           </div>
 
           <div className="bg-white rounded-3xl border border-black/10 shadow-sm overflow-hidden">

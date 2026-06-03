@@ -52,3 +52,15 @@ npm run smoke:prod
 
 This checks that production routes serve the SPA, that nested routes load
 root-relative assets, and that token fragments are not present in HTML.
+
+## Kapso Webhooks
+
+Kapso webhooks must use a secret key and include `X-Webhook-Signature`.
+
+Production setup:
+
+1. Set `KAPSO_API_KEY` in Supabase Edge Function secrets.
+2. Set `KAPSO_WEBHOOK_SECRET` in Supabase Edge Function secrets.
+3. Register the `/functions/v1/kapso-webhook?uid=<user_id>` URL in Kapso.
+4. Subscribe to `whatsapp.message.received`.
+5. Send a test WhatsApp message and confirm it appears in the Sales Log.

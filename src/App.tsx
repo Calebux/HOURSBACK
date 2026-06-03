@@ -27,6 +27,7 @@ const CaseStudiesPage    = lazy(() => import('./pages/CaseStudiesPage'));
 const HowItLearnsPage    = lazy(() => import('./pages/HowItLearnsPage'));
 const SettingsPage       = lazy(() => import('./pages/SettingsPage'));
 const TelegramPage       = lazy(() => import('./pages/TelegramPage'));
+const WhatsAppPage       = lazy(() => import('./pages/WhatsAppPage'));
 const DataSourcesPage    = lazy(() => import('./pages/DataSourcesPage'));
 const SalesLogPage       = lazy(() => import('./pages/SalesLogPage'));
 const AdminDashboard     = lazy(() => import('./pages/AdminDashboard'));
@@ -93,6 +94,7 @@ function AppWithOnboarding() {
           <Route path="/how-it-learns" element={<HowItLearnsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/telegram" element={<TelegramPage />} />
+          <Route path="/whatsapp" element={<WhatsAppPage />} />
           <Route path="/data-sources" element={<DataSourcesPage />} />
           <Route path="/data-log" element={<SalesLogPage />} />
           <Route path="/admin" element={<AdminDashboard />} />
