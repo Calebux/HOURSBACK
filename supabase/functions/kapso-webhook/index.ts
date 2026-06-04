@@ -186,6 +186,10 @@ function looksLikeOrderMessage(text: string) {
     || /\b(bowl|plate|pack|piece|pcs|rice|chicken|drink|coke|shawarma|pizza|burger)\b/i.test(text);
 }
 
+function looksLikePaymentConfirmation(text: string) {
+  return /\b(paid|payment done|sent receipt|receipt sent|i have paid|i've paid|done payment|transfer(?:red)?|bank transfer done)\b/i.test(text);
+}
+
 function looksLikeMenuRequest(text: string) {
   return /\b(menu|price list|pricelist|prices|how much|what do you sell|what do you have|available items|list of items)\b/i.test(text);
 }
@@ -364,6 +368,51 @@ async function findOpenCustomerOrder(supabase: any, connection: any, from?: stri
     .limit(1);
 
   return openOrders?.[0] || null;
+}
+
+async function findLatestUnpaidConfirmedOrder(supabase: any, connection: any, from?: string) {
+  if (!from) return null;
+  const { data: orders } = await supabase
+    .from("kapso_orders")
+    .select("*")
+    .eq("user_id", connection.user_id)
+    .eq("customer_phone", from)
+    .eq("status", "confirmed")
+    .neq("payment_status", "paid")
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  return orders?.[0] || null;
+}
+
+async function markLatestOrderPaid(supabase: any, connection: any, message: ParsedMessage, text: string) {
+  const order = await findLatestUnpaidConfirmedOrder(supabase, connection, message.from);
+  if (!order) {
+    return "Thanks. I could not find an unpaid confirmed order for this number. A staff member will review this payment message.";
+  }
+
+  const paidAt = new Date().toISOString();
+  const notes = [order.notes, `Payment confirmation received from WhatsApp: ${text}`]
+    .filter(Boolean)
+    .join("\n");
+
+  const { error } = await supabase
+    .from("kapso_orders")
+    .update({
+      payment_status: "paid",
+      paid_at: paidAt,
+      notes,
+      updated_at: paidAt,
+    })
+    .eq("id", order.id);
+
+  if (error) throw error;
+
+  return [
+    "Payment noted. Thank you.",
+    `Order: ${orderItemsSummary(order.items || [])}`,
+    "A staff member will verify the payment and continue processing your order.",
+  ].join("\n");
 }
 
 async function handleCustomerOrder(supabase: any, connection: any, message: ParsedMessage, text: string, openOrder?: any) {
@@ -787,6 +836,8 @@ serve(async (req) => {
       const availabilityItem = extractAvailabilityItem(text);
       if (looksLikeWorkflowRequest(text)) {
         reply = await saveWorkflowRequest(supabase, connection, message, text);
+      } else if (looksLikePaymentConfirmation(text)) {
+        reply = await markLatestOrderPaid(supabase, connection, message, text);
       } else if (availabilityItem) {
         reply = buildAvailabilityReply(connection, availabilityItem);
       } else if (looksLikeMenuRequest(text)) {

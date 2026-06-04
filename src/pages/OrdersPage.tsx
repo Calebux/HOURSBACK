@@ -13,6 +13,8 @@ interface Order {
   items: Array<{ name: string; qty?: number | null; unit_price?: number | null }>;
   delivery_address: string | null;
   payment_method: string | null;
+  payment_status?: string | null;
+  paid_at?: string | null;
   notes: string | null;
   raw_text: string | null;
   created_at: string;
@@ -34,6 +36,10 @@ function statusClass(status: string) {
     case 'cancelled': return 'bg-slate-100 text-slate-500';
     default: return 'bg-amber-50 text-amber-700';
   }
+}
+
+function paymentStatusClass(status?: string | null) {
+  return status === 'paid' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700';
 }
 
 function itemSummary(items: Order['items']) {
@@ -146,13 +152,19 @@ export default function OrdersPage() {
                       {order.customer_name || order.customer_phone || 'Customer'} · {fmtDate(order.created_at)}
                     </p>
                   </div>
-                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${statusClass(order.status)}`}>
-                    {order.status.replace(/_/g, ' ')}
-                  </span>
+                  <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${statusClass(order.status)}`}>
+                      {order.status.replace(/_/g, ' ')}
+                    </span>
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${paymentStatusClass(order.payment_status)}`}>
+                      {order.payment_status || 'unpaid'}
+                    </span>
+                  </div>
                 </div>
                 <div className="mt-3 grid sm:grid-cols-2 gap-2 text-xs text-slate-500">
                   <p><span className="font-semibold text-slate-600">Delivery:</span> {order.delivery_address || 'missing'}</p>
                   <p><span className="font-semibold text-slate-600">Payment:</span> {order.payment_method || 'not specified'}</p>
+                  {order.paid_at && <p><span className="font-semibold text-slate-600">Paid:</span> {fmtDate(order.paid_at)}</p>}
                 </div>
                 {order.notes && <p className="mt-2 text-xs text-slate-500">{order.notes}</p>}
                 {order.raw_text && <p className="mt-3 text-xs text-slate-400 border-t border-slate-100 pt-3">{order.raw_text}</p>}
