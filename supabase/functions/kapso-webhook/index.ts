@@ -104,7 +104,11 @@ function firstString(...values: unknown[]) {
 
 function findReceiptUrl(...values: unknown[]): string | undefined {
   for (const value of values) {
-    if (typeof value === "string" && /^https?:\/\//i.test(value.trim())) return value.trim();
+    if (typeof value !== "string") continue;
+    const trimmed = value.trim();
+    if (/^https?:\/\//i.test(trimmed)) return trimmed;
+    const embeddedUrl = trimmed.match(/https?:\/\/[^\s)]+/i)?.[0];
+    if (embeddedUrl) return embeddedUrl;
   }
   return undefined;
 }
@@ -175,7 +179,8 @@ function parseKapsoMessage(payload: any): ParsedMessage | null {
       data?.media_url,
       data?.kapso?.media_url,
       data?.attachments?.[0]?.url,
-      payload?.attachments?.[0]?.url
+      payload?.attachments?.[0]?.url,
+      text
     ),
   };
 }
@@ -326,6 +331,15 @@ function formatNaira(amount: number) {
   return `₦${amount.toLocaleString("en-NG")}`;
 }
 
+function parseClaimedPaymentAmount(text: string) {
+  const normalized = text.replace(/,/g, "");
+  const labelled = normalized.match(/\b(?:amount|paid|payment|transferred|sent)\b\s*(?:was|is|of|for|:|-)?\s*(?:₦|ngn|naira)?\s*([0-9][0-9]*(?:\.\d+)?)/i);
+  if (labelled) return Number(labelled[1]);
+
+  const currency = normalized.match(/(?:₦|ngn|naira)\s*([0-9][0-9]*(?:\.\d+)?)/i);
+  return currency ? Number(currency[1]) : null;
+}
+
 function cleanPaymentMethod(value: string | null | undefined) {
   const paymentMethod = String(value || "").trim();
   if (!paymentMethod) return null;
@@ -440,17 +454,29 @@ async function findLatestAwaitingReceiptOrder(supabase: any, connection: any, fr
   return orders?.[0] || null;
 }
 
-async function promptForReceipt(supabase: any, connection: any, message: ParsedMessage) {
+async function promptForReceipt(supabase: any, connection: any, message: ParsedMessage, text = "") {
   const order = await findLatestAwaitingReceiptOrder(supabase, connection, message.from);
   if (!order) {
     return "Thanks. I could not find a confirmed order waiting for payment proof from this number. A staff member will review this message.";
   }
 
+  const claimedAmount = parseClaimedPaymentAmount(text);
+  if (claimedAmount) {
+    await supabase
+      .from("kapso_orders")
+      .update({
+        payment_claimed_amount: claimedAmount,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", order.id);
+  }
+
   return [
     "Thanks. Please send your payment receipt or transfer screenshot here as proof.",
     `Order: ${orderItemsSummary(order.items || [])}`,
+    claimedAmount ? `Amount noted: ${formatNaira(claimedAmount)}.` : null,
     "We will confirm it and update you once payment is received.",
-  ].join("\n");
+  ].filter(Boolean).join("\n");
 }
 
 async function markLatestOrderReceiptSent(supabase: any, connection: any, message: ParsedMessage, text: string, payload: any) {
@@ -460,7 +486,12 @@ async function markLatestOrderReceiptSent(supabase: any, connection: any, messag
   }
 
   const receivedAt = new Date().toISOString();
-  const notes = [order.notes, `Payment receipt received from WhatsApp${text ? `: ${text}` : ""}`]
+  const claimedAmount = parseClaimedPaymentAmount(text);
+  const receiptUrl = message.receiptUrl || order.receipt_url || findReceiptUrl(text) || null;
+  const notes = [
+    order.notes,
+    `Payment receipt received from WhatsApp.${claimedAmount ? ` Customer claimed ${formatNaira(claimedAmount)}.` : ""}`,
+  ]
     .filter(Boolean)
     .join("\n");
 
@@ -470,8 +501,9 @@ async function markLatestOrderReceiptSent(supabase: any, connection: any, messag
       payment_status: "receipt_sent",
       receipt_received_at: receivedAt,
       receipt_message_id: message.messageId || null,
-      receipt_url: message.receiptUrl || order.receipt_url || null,
+      receipt_url: receiptUrl,
       receipt_payload: payload,
+      payment_claimed_amount: claimedAmount || order.payment_claimed_amount || null,
       notes,
       updated_at: receivedAt,
     })
@@ -523,6 +555,7 @@ async function getCustomerAIResponse(supabase: any, connection: any, message: Pa
         content: [
           "You are the WhatsApp customer-service assistant for this business.",
           "Reply naturally and briefly, but never invent menu items, prices, payment details, delivery guarantees, discounts, opening hours, or policies that are not provided.",
+          "Do not add emojis or decorative symbols. If showing the menu, preserve the saved menu text as closely as possible.",
           "If the customer asks something not covered by the supplied business info, answer what you can and say a staff member will confirm the unknown part.",
           "For payment: never say payment is received or verified. Customers can only send proof. Staff verifies payment inside Hoursback.",
           "If the customer says they paid but sends no receipt/proof, action must be payment_claim and ask for receipt/proof.",
@@ -571,7 +604,7 @@ async function handleCustomerAIAction(
     return markLatestOrderReceiptSent(supabase, connection, message, text, payload);
   }
   if (ai.action === "payment_claim") {
-    return promptForReceipt(supabase, connection, message);
+    return promptForReceipt(supabase, connection, message, text);
   }
   if (ai.action === "order") {
     return handleCustomerOrder(supabase, connection, message, text, openOrder);
@@ -1012,7 +1045,7 @@ serve(async (req) => {
       } else if (looksLikeReceiptSubmission(text, message)) {
         reply = await markLatestOrderReceiptSent(supabase, connection, message, text, payload);
       } else if (looksLikePaymentConfirmation(text)) {
-        reply = await promptForReceipt(supabase, connection, message);
+        reply = await promptForReceipt(supabase, connection, message, text);
       } else if (availabilityItem) {
         reply = buildAvailabilityReply(connection, availabilityItem);
       } else if (looksLikeMenuRequest(text)) {

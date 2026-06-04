@@ -15,6 +15,7 @@ interface Order {
   delivery_address: string | null;
   payment_method: string | null;
   payment_status?: string | null;
+  payment_claimed_amount?: number | string | null;
   paid_at?: string | null;
   receipt_received_at?: string | null;
   receipt_url?: string | null;
@@ -51,6 +52,20 @@ function paymentStatusClass(status?: string | null) {
 function itemSummary(items: Order['items']) {
   if (!items?.length) return 'No items parsed';
   return items.map((item) => `${item.qty ? `${item.qty} x ` : ''}${item.name}`).join(', ');
+}
+
+function orderTotal(items: Order['items']) {
+  const total = items.reduce((sum, item) => {
+    const qty = Number(item.qty || 1);
+    const price = Number(item.unit_price || 0);
+    return price > 0 ? sum + qty * price : sum;
+  }, 0);
+  return total > 0 ? total : null;
+}
+
+function money(amount: number | string | null | undefined) {
+  const value = Number(amount || 0);
+  return value > 0 ? `₦${value.toLocaleString('en-NG')}` : null;
 }
 
 export default function OrdersPage() {
@@ -171,6 +186,11 @@ export default function OrdersPage() {
           <div className="space-y-3">
             {filtered.map((order) => (
               <article key={order.id} className="bg-white rounded-2xl border border-brand-dark/10 p-4">
+                {(() => {
+                  const expectedTotal = orderTotal(order.items);
+                  const claimedAmount = money(order.payment_claimed_amount);
+                  return (
+                    <>
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold text-brand-dark">{itemSummary(order.items)}</p>
@@ -190,6 +210,8 @@ export default function OrdersPage() {
                 <div className="mt-3 grid sm:grid-cols-2 gap-2 text-xs text-slate-500">
                   <p><span className="font-semibold text-slate-600">Delivery:</span> {order.delivery_address || 'missing'}</p>
                   <p><span className="font-semibold text-slate-600">Payment:</span> {order.payment_method || 'not specified'}</p>
+                  {expectedTotal && <p><span className="font-semibold text-slate-600">Expected:</span> {money(expectedTotal)}</p>}
+                  {claimedAmount && <p><span className="font-semibold text-slate-600">Customer paid:</span> {claimedAmount}</p>}
                   <p>
                     <span className="font-semibold text-slate-600">Receipt:</span>{' '}
                     {order.receipt_url ? (
@@ -214,6 +236,9 @@ export default function OrdersPage() {
                 )}
                 {order.notes && <p className="mt-2 text-xs text-slate-500">{order.notes}</p>}
                 {order.raw_text && <p className="mt-3 text-xs text-slate-400 border-t border-slate-100 pt-3">{order.raw_text}</p>}
+                    </>
+                  );
+                })()}
               </article>
             ))}
           </div>
