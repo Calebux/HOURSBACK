@@ -148,7 +148,7 @@ export default function WhatsAppPage() {
   const generateSetupLink = async () => {
     setSaving(true);
     const { data, error } = await supabase.functions.invoke('kapso-setup', {
-      body: { action: 'generate_setup_link' },
+      body: { action: 'generate_setup_link', connection_type: connectionType },
     });
     setSaving(false);
 
@@ -160,7 +160,11 @@ export default function WhatsAppPage() {
       connected: !!data.connection?.phone_number_id,
       api_configured: prev?.api_configured ?? true,
       webhook_secret_configured: prev?.webhook_secret_configured ?? false,
-      connection: data.connection,
+      connection: data.connection.connection_type === 'internal' ? data.connection : prev?.connection || data.connection,
+      connections: [
+        ...(prev?.connections || []).filter((item) => item.connection_type !== data.connection.connection_type),
+        data.connection,
+      ],
     }));
     toast.success('WhatsApp setup link created');
   };

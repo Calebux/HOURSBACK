@@ -121,7 +121,9 @@ function extensionForContentType(contentType: string) {
 }
 
 async function persistReceiptMedia(supabase: any, order: any, message: ParsedMessage, receiptUrl: string | null) {
-  if (!receiptUrl) return null;
+  if (!receiptUrl) {
+    return { status: "failed", error: "No receipt media URL found" };
+  }
 
   try {
     const apiKey = getKapsoApiKey();
@@ -150,13 +152,17 @@ async function persistReceiptMedia(supabase: any, order: any, message: ParsedMes
     if (error) throw error;
 
     return {
+      status: "saved",
       path,
       filename: `receipt-${messageId}.${ext}`,
       contentType,
     };
   } catch (err) {
     console.error("Receipt media persistence failed:", err);
-    return null;
+    return {
+      status: "failed",
+      error: err instanceof Error ? err.message : "Receipt media persistence failed",
+    };
   }
 }
 
@@ -266,6 +272,15 @@ function parseWorkflowRequest(text: string) {
   const wantsPdf = /\bpdf|document|doc\b/i.test(text);
   const reportType = /\bp&l|profit and loss|profit\b/i.test(text) ? "profit_and_loss" : "sales_summary";
   return { cadence, wantsEmail, wantsWhatsapp, wantsPdf, reportType };
+}
+
+function generateOrderCode() {
+  return crypto.randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase();
+}
+
+function extractOrderCode(text: string) {
+  const match = text.match(/\b(?:order\s*)?#?\s*([A-Z0-9]{8})\b/i);
+  return match?.[1]?.toUpperCase() || null;
 }
 
 async function saveWorkflowRequest(supabase: any, connection: any, message: ParsedMessage, text: string) {
@@ -535,7 +550,7 @@ async function findOpenCustomerOrder(supabase: any, connection: any, from?: stri
   return openOrders?.[0] || null;
 }
 
-async function findLatestAwaitingReceiptOrder(supabase: any, connection: any, from?: string) {
+async function findAwaitingReceiptOrders(supabase: any, connection: any, from?: string) {
   if (!from) return null;
   const { data: orders } = await supabase
     .from("kapso_orders")
@@ -545,15 +560,36 @@ async function findLatestAwaitingReceiptOrder(supabase: any, connection: any, fr
     .eq("status", "confirmed")
     .in("payment_status", ["unpaid", "receipt_sent"])
     .order("created_at", { ascending: false })
-    .limit(1);
+    .limit(5);
 
-  return orders?.[0] || null;
+  return orders || [];
+}
+
+async function findLatestAwaitingReceiptOrder(supabase: any, connection: any, from?: string, text = "") {
+  const orders = await findAwaitingReceiptOrders(supabase, connection, from);
+  if (!orders?.length) return null;
+  const orderCode = extractOrderCode(text);
+  if (orderCode) {
+    return orders.find((order: any) => String(order.order_code || "").toUpperCase() === orderCode) || null;
+  }
+  if (orders.length > 1) {
+    return { needsOrderCode: true, orders };
+  }
+  return orders[0];
 }
 
 async function promptForReceipt(supabase: any, connection: any, message: ParsedMessage, text = "") {
-  const order = await findLatestAwaitingReceiptOrder(supabase, connection, message.from);
+  const order = await findLatestAwaitingReceiptOrder(supabase, connection, message.from, text);
   if (!order) {
     return "Thanks. I could not find a confirmed order waiting for payment proof from this number. A staff member will review this message.";
+  }
+  if (order.needsOrderCode) {
+    const choices = order.orders.map((item: any) => `${item.order_code}: ${orderItemsSummary(item.items || [])}`).join("\n");
+    return [
+      "I found more than one unpaid order for this number.",
+      "Please resend payment proof with the order code:",
+      choices,
+    ].join("\n");
   }
 
   const claimedAmount = parseClaimedPaymentAmount(text);
@@ -569,6 +605,7 @@ async function promptForReceipt(supabase: any, connection: any, message: ParsedM
 
   return [
     "Thanks. Please send your payment receipt or transfer screenshot here as proof.",
+    order.order_code ? `Order code: ${order.order_code}` : null,
     `Order: ${orderItemsSummary(order.items || [])}`,
     claimedAmount ? `Amount noted: ${formatNaira(claimedAmount)}.` : null,
     "We will confirm it and update you once payment is received.",
@@ -576,15 +613,24 @@ async function promptForReceipt(supabase: any, connection: any, message: ParsedM
 }
 
 async function markLatestOrderReceiptSent(supabase: any, connection: any, message: ParsedMessage, text: string, payload: any) {
-  const order = await findLatestAwaitingReceiptOrder(supabase, connection, message.from);
+  const order = await findLatestAwaitingReceiptOrder(supabase, connection, message.from, text);
   if (!order) {
     return "Receipt received. I could not match it to a confirmed unpaid order from this number, so a staff member will review it.";
+  }
+  if (order.needsOrderCode) {
+    const choices = order.orders.map((item: any) => `${item.order_code}: ${orderItemsSummary(item.items || [])}`).join("\n");
+    return [
+      "Receipt received, but I found more than one unpaid order for this number.",
+      "Please resend the receipt with the order code:",
+      choices,
+    ].join("\n");
   }
 
   const receivedAt = new Date().toISOString();
   const claimedAmount = parseClaimedPaymentAmount(text);
   const receiptUrl = message.receiptUrl || order.receipt_url || findReceiptUrl(text) || null;
   const storedReceipt = await persistReceiptMedia(supabase, order, message, receiptUrl);
+  const receiptSaved = storedReceipt?.status === "saved";
   const notes = [
     order.notes,
     `Payment receipt received from WhatsApp.${claimedAmount ? ` Customer claimed ${formatNaira(claimedAmount)}.` : ""}`,
@@ -599,9 +645,12 @@ async function markLatestOrderReceiptSent(supabase: any, connection: any, messag
       receipt_received_at: receivedAt,
       receipt_message_id: message.messageId || null,
       receipt_url: receiptUrl,
-      receipt_storage_path: storedReceipt?.path || order.receipt_storage_path || null,
-      receipt_filename: storedReceipt?.filename || order.receipt_filename || null,
-      receipt_content_type: storedReceipt?.contentType || order.receipt_content_type || null,
+      receipt_storage_path: receiptSaved ? storedReceipt.path : order.receipt_storage_path || null,
+      receipt_filename: receiptSaved ? storedReceipt.filename : order.receipt_filename || null,
+      receipt_content_type: receiptSaved ? storedReceipt.contentType : order.receipt_content_type || null,
+      receipt_storage_status: receiptSaved ? "saved" : "failed",
+      receipt_storage_error: receiptSaved ? null : storedReceipt?.error || "Receipt media could not be saved",
+      receipt_storage_failed_at: receiptSaved ? null : receivedAt,
       receipt_payload: payload,
       payment_claimed_amount: claimedAmount || order.payment_claimed_amount || null,
       notes,
@@ -617,10 +666,11 @@ async function markLatestOrderReceiptSent(supabase: any, connection: any, messag
       const expectedTotal = order.owner_adjusted_total_amount || order.expected_total_amount || expectedOrderTotal(order.items || [], order.delivery_fee_amount || null);
       const ownerLines = [
         "New payment receipt received.",
+        order.order_code ? `Order code: ${order.order_code}` : null,
         `Order: ${orderItemsSummary(order.items || [])}`,
         expectedTotal ? `Expected: ${formatNaira(Number(expectedTotal))}` : null,
         claimedAmount || order.payment_claimed_amount ? `Customer paid: ${formatNaira(Number(claimedAmount || order.payment_claimed_amount))}` : null,
-        storedReceipt ? "Receipt: saved in Hoursback" : receiptUrl ? `Receipt: ${receiptUrl}` : "Receipt: sent",
+        receiptSaved ? "Receipt: saved in Hoursback" : "Receipt: needs resend or manual review",
         "Open Hoursback /orders to verify payment.",
       ].filter(Boolean);
       await sendKapsoText(connection.phone_number_id, ownerNumber, ownerLines.join("\n"));
@@ -630,10 +680,13 @@ async function markLatestOrderReceiptSent(supabase: any, connection: any, messag
   }
 
   return [
-    "Receipt received. Thank you.",
+    receiptSaved ? "Receipt received. Thank you." : "Receipt received, but we could not save the image for review.",
+    order.order_code ? `Order code: ${order.order_code}` : null,
     `Order: ${orderItemsSummary(order.items || [])}`,
-    "We will confirm the payment and update you once it is received.",
-  ].join("\n");
+    receiptSaved
+      ? "We will confirm the payment and update you once it is received."
+      : "Please resend the receipt with the order code so a staff member can verify payment.",
+  ].filter(Boolean).join("\n");
 }
 
 function sanitizeCustomerAIResponse(value: any): CustomerAIResponse | null {
@@ -679,7 +732,7 @@ async function getCustomerAIResponse(supabase: any, connection: any, message: Pa
           "If the customer says they paid but sends no receipt/proof, action must be payment_claim and ask for receipt/proof.",
           "If the customer sends a receipt/proof or media receipt, action must be receipt_submitted.",
           "If the customer is placing or continuing an order, action must be order.",
-          "If the customer asks to schedule reports/workflows, action must be workflow_request.",
+          "If the customer asks to schedule reports/workflows, action must be handoff because customer mode cannot create internal workflow drafts.",
           "For normal questions, action must be answer.",
           "Return JSON only with this shape: {\"action\":\"answer|order|payment_claim|receipt_submitted|workflow_request|handoff\",\"reply\":string|null}",
           "",
@@ -716,6 +769,9 @@ async function handleCustomerAIAction(
   if (!ai) return null;
 
   if (ai.action === "workflow_request") {
+    if (connection.connection_type === "customer") {
+      return "A staff member will help with that request.";
+    }
     return saveWorkflowRequest(supabase, connection, message, text);
   }
   if (ai.action === "receipt_submitted") {
@@ -766,6 +822,7 @@ async function handleCustomerOrder(supabase: any, connection: any, message: Pars
   const paymentMethod = cleanPaymentMethod(parsed.payment_method || existing?.payment_method);
   const customerName = parsed.customer_name || existing?.customer_name || message.contactName || null;
   const status = items.length && deliveryAddress ? "confirmed" : "needs_details";
+  const orderCode = existing?.order_code || generateOrderCode();
   const deliveryFee = deliveryAddress
     ? deliveryFeeFromMenu(connection.customer_menu, deliveryAddress) ?? existing?.delivery_fee_amount ?? null
     : existing?.delivery_fee_amount ?? null;
@@ -776,6 +833,7 @@ async function handleCustomerOrder(supabase: any, connection: any, message: Pars
   const payload = {
     user_id: connection.user_id,
     connection_id: connection.id,
+    order_code: orderCode,
     customer_phone: message.from || null,
     customer_name: customerName,
     status,
@@ -787,7 +845,7 @@ async function handleCustomerOrder(supabase: any, connection: any, message: Pars
     notes: parsed.notes || existing?.notes || null,
     raw_text: existing?.raw_text ? `${existing.raw_text}\n${text}` : text,
     source_message_id: message.messageId || existing?.source_message_id || null,
-    confirmed_at: status === "confirmed" ? new Date().toISOString() : null,
+    confirmed_at: status === "confirmed" ? existing?.confirmed_at || new Date().toISOString() : null,
     updated_at: new Date().toISOString(),
   };
 
@@ -807,6 +865,7 @@ async function handleCustomerOrder(supabase: any, connection: any, message: Pars
   const paymentInstructions = String(connection.payment_instructions || "").trim();
   const lines = [
     "Order confirmed.",
+    `Order code: ${orderCode}`,
     `Items: ${orderItemsSummary(items)}`,
     `Delivery: ${deliveryAddress}`,
   ];
@@ -814,7 +873,7 @@ async function handleCustomerOrder(supabase: any, connection: any, message: Pars
   if (total) lines.push(`Total: ${formatNaira(total)}`);
   if (paymentMethod) lines.push(`Payment: ${paymentMethod}`);
   if (paymentInstructions) {
-    lines.push("Payment details:", paymentInstructions, "Please reply paid after payment.");
+    lines.push("Payment details:", paymentInstructions, `Please reply paid after payment and include order code ${orderCode}.`);
   } else {
     lines.push("Payment details are not configured yet. A staff member will send payment instructions.");
   }
@@ -874,14 +933,25 @@ function closeoutPrompt() {
   ].join("\n");
 }
 
-function getTodayStart() {
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
-  return start;
+function getTodayStart(timeZone = "Africa/Lagos") {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  const year = Number(value.year);
+  const month = Number(value.month);
+  const day = Number(value.day);
+  if (timeZone === "Africa/Lagos") {
+    return new Date(Date.UTC(year, month - 1, day, -1, 0, 0));
+  }
+  return new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
 }
 
-async function getDailyTotals(supabase: any, userId: string) {
-  const start = getTodayStart();
+async function getDailyTotals(supabase: any, userId: string, timeZone?: string) {
+  const start = getTodayStart(timeZone);
   const { data: entries } = await supabase
     .from("bot_entries")
     .select("entry_type, parsed_data, created_at")
@@ -932,7 +1002,7 @@ async function saveCloseout(supabase: any, connection: any, message: ParsedMessa
   const transferTotal = Number(parsed.transfer_total || 0);
   const expensesTotal = Number(parsed.expenses_total || 0);
   const actualCollectedTotal = cashTotal + posTotal + transferTotal;
-  const totals = await getDailyTotals(supabase, connection.user_id);
+  const totals = await getDailyTotals(supabase, connection.user_id, connection.business_timezone);
   const variance = actualCollectedTotal - totals.sales;
   const status = classifyCloseoutVariance(variance);
 
@@ -1006,8 +1076,8 @@ async function parseEntryWithAI(text: string) {
   return { entry_type: "note", item: null, qty: null, unit_price: null, total: null, customer: null, notes: text };
 }
 
-async function getTodayBusinessMetrics(supabase: any, userId: string) {
-  const start = getTodayStart();
+async function getTodayBusinessMetrics(supabase: any, userId: string, timeZone?: string) {
+  const start = getTodayStart(timeZone);
   const { data: entries } = await supabase
     .from("bot_entries")
     .select("entry_type, parsed_data, triggered_by, created_at")
@@ -1045,8 +1115,8 @@ async function getTodayBusinessMetrics(supabase: any, userId: string) {
   };
 }
 
-async function buildSalesSummary(supabase: any, userId: string) {
-  const metrics = await getTodayBusinessMetrics(supabase, userId);
+async function buildSalesSummary(supabase: any, userId: string, timeZone?: string) {
+  const metrics = await getTodayBusinessMetrics(supabase, userId, timeZone);
 
   return [
     `Today so far:`,
@@ -1060,10 +1130,10 @@ async function buildSalesSummary(supabase: any, userId: string) {
   ].join("\n");
 }
 
-async function buildProfitAndLossSummary(supabase: any, userId: string) {
-  const metrics = await getTodayBusinessMetrics(supabase, userId);
+async function buildProfitAndLossSummary(supabase: any, userId: string, timeZone?: string) {
+  const metrics = await getTodayBusinessMetrics(supabase, userId, timeZone);
   return [
-    "Profit and loss today:",
+    "Estimated profit and loss today:",
     `Revenue: ₦${metrics.totalSales.toLocaleString()}`,
     `Expenses: ₦${metrics.totalExpenses.toLocaleString()}`,
     `Estimated profit: ₦${metrics.estimatedProfit.toLocaleString()}`,
@@ -1073,12 +1143,12 @@ async function buildProfitAndLossSummary(supabase: any, userId: string) {
   ].join("\n");
 }
 
-async function buildFiveLineSummary(supabase: any, userId: string) {
-  const metrics = await getTodayBusinessMetrics(supabase, userId);
+async function buildFiveLineSummary(supabase: any, userId: string, timeZone?: string) {
+  const metrics = await getTodayBusinessMetrics(supabase, userId, timeZone);
   return [
     `Sales: ₦${metrics.totalSales.toLocaleString()}`,
     `Expenses: ₦${metrics.totalExpenses.toLocaleString()}`,
-    `Profit: ₦${metrics.estimatedProfit.toLocaleString()}`,
+    `Estimated profit: ₦${metrics.estimatedProfit.toLocaleString()}`,
     metrics.topItem ? `Top item: ${metrics.topItem[0]} (${metrics.topItem[1]})` : "Top item: none yet",
     metrics.latestCloseout ? `Closeout: ${metrics.latestCloseout.status.replace(/_/g, " ")}` : "Closeout: not done yet",
   ].join("\n");
@@ -1284,11 +1354,11 @@ serve(async (req) => {
     } else if (looksLikeWorkflowRequest(text)) {
       reply = await saveWorkflowRequest(supabase, connection, message, text);
     } else if (looksLikeProfitAndLossQuestion(text)) {
-      reply = await buildProfitAndLossSummary(supabase, connection.user_id);
+      reply = await buildProfitAndLossSummary(supabase, connection.user_id, connection.business_timezone);
     } else if (looksLikeFiveLineSummary(text)) {
-      reply = await buildFiveLineSummary(supabase, connection.user_id);
+      reply = await buildFiveLineSummary(supabase, connection.user_id, connection.business_timezone);
     } else if (looksLikeSummaryQuestion(text)) {
-      reply = await buildSalesSummary(supabase, connection.user_id);
+      reply = await buildSalesSummary(supabase, connection.user_id, connection.business_timezone);
     } else if (looksLikeSalesEntry(text) || text.toLowerCase().startsWith("/log ")) {
       const logText = text.toLowerCase().startsWith("/log ") ? text.slice(5).trim() : text;
       const parsed = await parseEntryWithAI(logText);

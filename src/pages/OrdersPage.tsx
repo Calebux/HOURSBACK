@@ -28,6 +28,9 @@ interface Order {
   receipt_storage_path?: string | null;
   receipt_filename?: string | null;
   receipt_content_type?: string | null;
+  receipt_storage_status?: string | null;
+  receipt_storage_error?: string | null;
+  order_code?: string | null;
   payment_verified_at?: string | null;
   notes: string | null;
   raw_text: string | null;
@@ -284,6 +287,7 @@ export default function OrdersPage() {
                     <p className="text-sm font-semibold text-brand-dark">{itemSummary(order.items)}</p>
                     <p className="mt-1 text-xs text-slate-400">
                       {order.customer_name || order.customer_phone || 'Customer'} · {fmtDate(order.created_at)}
+                      {order.order_code ? ` · ${order.order_code}` : ''}
                     </p>
                   </div>
                   <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
@@ -318,6 +322,11 @@ export default function OrdersPage() {
                       </button>
                     ) : order.receipt_received_at ? 'needs resend' : 'not sent'}
                   </p>
+                  {order.receipt_storage_status === 'failed' && (
+                    <p className="text-amber-700">
+                      <span className="font-semibold">Receipt issue:</span> customer should resend with order code {order.order_code || 'shown above'}
+                    </p>
+                  )}
                   {order.receipt_received_at && <p><span className="font-semibold text-slate-600">Receipt sent:</span> {fmtDate(order.receipt_received_at)}</p>}
                   {order.paid_at && <p><span className="font-semibold text-slate-600">Paid:</span> {fmtDate(order.paid_at)}</p>}
                   {order.payment_verified_at && <p><span className="font-semibold text-slate-600">Verified:</span> {fmtDate(order.payment_verified_at)}</p>}
@@ -383,11 +392,12 @@ export default function OrdersPage() {
                 {order.payment_status === 'receipt_sent' && (
                   <button
                     onClick={() => verifyPayment(order.id)}
-                    disabled={verifyingOrderId === order.id}
+                    disabled={verifyingOrderId === order.id || !order.receipt_storage_path}
                     className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
+                    title={!order.receipt_storage_path ? 'Ask the customer to resend the receipt before confirming payment' : undefined}
                   >
                     <CheckCircle2 className="w-3.5 h-3.5" />
-                    {verifyingOrderId === order.id ? 'Confirming...' : 'Confirm payment'}
+                    {verifyingOrderId === order.id ? 'Confirming...' : order.receipt_storage_path ? 'Confirm payment' : 'Waiting for saved receipt'}
                   </button>
                 )}
                 {order.payment_status === 'verified' && order.status !== 'fulfilled' && (

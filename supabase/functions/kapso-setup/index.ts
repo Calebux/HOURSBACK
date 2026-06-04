@@ -116,6 +116,12 @@ serve(async (req) => {
         .eq("user_id", user.id)
         .single();
       if (orderError) throw orderError;
+      if (!order.receipt_storage_path) {
+        return new Response(
+          JSON.stringify({ error: "Receipt file is not available. Ask the customer to resend the receipt before confirming payment." }),
+          { status: 400, headers: corsHeaders }
+        );
+      }
 
       const { data: connection, error: connectionError } = await supabase
         .from("kapso_connections")
@@ -287,6 +293,7 @@ serve(async (req) => {
     }
 
     if (action === "generate_setup_link") {
+      const connectionType = body.connection_type === "customer" ? "customer" : "internal";
       if (!getKapsoApiKey()) {
         return new Response(
           JSON.stringify({ error: "KAPSO_API_KEY is not configured in Supabase secrets" }),
@@ -298,11 +305,11 @@ serve(async (req) => {
         .from("kapso_connections")
         .select("*")
         .eq("user_id", user.id)
-        .eq("connection_type", "internal")
+        .eq("connection_type", connectionType)
         .maybeSingle();
 
       let customerId = existing?.kapso_customer_id;
-      const externalCustomerId = existing?.external_customer_id || `hoursback:${user.id}`;
+      const externalCustomerId = existing?.external_customer_id || `hoursback:${user.id}:${connectionType}`;
 
       if (!customerId) {
         const customer = await createKapsoCustomer(
@@ -321,7 +328,7 @@ serve(async (req) => {
         .from("kapso_connections")
         .upsert({
           user_id: user.id,
-          connection_type: "internal",
+          connection_type: connectionType,
           kapso_customer_id: customerId,
           external_customer_id: externalCustomerId,
           setup_link_url: setupLink?.url || null,
