@@ -327,13 +327,54 @@ function orderTotal(items: Array<{ unit_price?: number | null; qty?: number | nu
   return total > 0 ? total : null;
 }
 
+function isPickupDelivery(value: string | null | undefined) {
+  return /^(pickup|pick up|collection|collect)$/i.test(String(value || "").trim());
+}
+
+function extractMoney(text: string) {
+  const match = text.replace(/,/g, "").match(/(?:₦|ngn|naira)?\s*([0-9][0-9]*(?:\.\d+)?)/i);
+  return match ? Number(match[1]) : null;
+}
+
+function deliveryFeeFromMenu(menu: string | null | undefined, deliveryAddress: string | null | undefined) {
+  if (!menu || !deliveryAddress || isPickupDelivery(deliveryAddress)) return null;
+  const address = String(deliveryAddress).toLowerCase();
+  const deliveryLines = String(menu)
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => /\bdeliver|delivery\b/i.test(line));
+
+  let fallback: number | null = null;
+  for (const line of deliveryLines) {
+    const amount = extractMoney(line);
+    if (!amount) continue;
+    const normalized = line.toLowerCase();
+    if (/\boutside\b/.test(normalized)) {
+      if (!fallback) fallback = amount;
+      continue;
+    }
+    const locationMatch = normalized.match(/\b(?:within|to|in)\s+([a-z0-9\s-]+)/i);
+    const location = locationMatch?.[1]?.replace(/[-–—].*$/, "").trim();
+    if (location && address.includes(location)) return amount;
+    if (!fallback) fallback = amount;
+  }
+
+  return fallback;
+}
+
+function expectedOrderTotal(items: any[], deliveryFee: number | null) {
+  const itemTotal = orderTotal(items);
+  if (!itemTotal && !deliveryFee) return null;
+  return Number(itemTotal || 0) + Number(deliveryFee || 0);
+}
+
 function formatNaira(amount: number) {
   return `₦${amount.toLocaleString("en-NG")}`;
 }
 
 function parseClaimedPaymentAmount(text: string) {
   const normalized = text.replace(/,/g, "");
-  const labelled = normalized.match(/\b(?:amount|paid|payment|transferred|sent)\b\s*(?:was|is|of|for|:|-)?\s*(?:₦|ngn|naira)?\s*([0-9][0-9]*(?:\.\d+)?)/i);
+  const labelled = normalized.match(/\b(?:amount|amont|paid|payment|transferred|sent)\b\s*(?:was|is|of|for|:|-)?\s*(?:₦|ngn|naira)?\s*([0-9][0-9]*(?:\.\d+)?)/i);
   if (labelled) return Number(labelled[1]);
 
   const currency = normalized.match(/(?:₦|ngn|naira)\s*([0-9][0-9]*(?:\.\d+)?)/i);
@@ -616,6 +657,29 @@ async function handleCustomerAIAction(
   return null;
 }
 
+async function logCustomerAIAction(
+  supabase: any,
+  connection: any,
+  message: ParsedMessage,
+  text: string,
+  openOrder: any,
+  ai: CustomerAIResponse | null,
+  reply: string | null,
+) {
+  if (!ai) return;
+  await supabase.from("kapso_ai_logs").insert({
+    user_id: connection.user_id,
+    connection_id: connection.id,
+    order_id: openOrder?.id || null,
+    from_number: message.from || null,
+    message_id: message.messageId || null,
+    message_text: text || null,
+    action: ai.action,
+    reply: reply || ai.reply || null,
+    raw_response: ai,
+  });
+}
+
 async function handleCustomerOrder(supabase: any, connection: any, message: ParsedMessage, text: string, openOrder?: any) {
   const existing = openOrder || await findOpenCustomerOrder(supabase, connection, message.from);
   const parsed = await parseOrderWithAI(text, connection.customer_menu, existing);
@@ -625,6 +689,12 @@ async function handleCustomerOrder(supabase: any, connection: any, message: Pars
   const paymentMethod = cleanPaymentMethod(parsed.payment_method || existing?.payment_method);
   const customerName = parsed.customer_name || existing?.customer_name || message.contactName || null;
   const status = items.length && deliveryAddress ? "confirmed" : "needs_details";
+  const deliveryFee = deliveryAddress
+    ? deliveryFeeFromMenu(connection.customer_menu, deliveryAddress) ?? existing?.delivery_fee_amount ?? null
+    : existing?.delivery_fee_amount ?? null;
+  const expectedTotal = status === "confirmed"
+    ? expectedOrderTotal(items, deliveryFee)
+    : existing?.expected_total_amount ?? null;
 
   const payload = {
     user_id: connection.user_id,
@@ -635,6 +705,8 @@ async function handleCustomerOrder(supabase: any, connection: any, message: Pars
     items,
     delivery_address: deliveryAddress,
     payment_method: paymentMethod,
+    delivery_fee_amount: deliveryFee,
+    expected_total_amount: expectedTotal,
     notes: parsed.notes || existing?.notes || null,
     raw_text: existing?.raw_text ? `${existing.raw_text}\n${text}` : text,
     source_message_id: message.messageId || existing?.source_message_id || null,
@@ -654,13 +726,14 @@ async function handleCustomerOrder(supabase: any, connection: any, message: Pars
     return `Got it: ${orderItemsSummary(items)}.\nPlease send your delivery address or say pickup.`;
   }
 
-  const total = orderTotal(items);
+  const total = Number(expectedTotal || orderTotal(items) || 0) || null;
   const paymentInstructions = String(connection.payment_instructions || "").trim();
   const lines = [
     "Order confirmed.",
     `Items: ${orderItemsSummary(items)}`,
     `Delivery: ${deliveryAddress}`,
   ];
+  if (deliveryFee) lines.push(`Delivery fee: ${formatNaira(Number(deliveryFee))}`);
   if (total) lines.push(`Total: ${formatNaira(total)}`);
   if (paymentMethod) lines.push(`Payment: ${paymentMethod}`);
   if (paymentInstructions) {
@@ -1037,6 +1110,7 @@ serve(async (req) => {
       const openOrder = await findOpenCustomerOrder(supabase, connection, message.from);
       const ai = await getCustomerAIResponse(supabase, connection, message, text, openOrder);
       const aiReply = await handleCustomerAIAction(supabase, connection, message, text, payload, openOrder, ai);
+      await logCustomerAIAction(supabase, connection, message, text, openOrder, ai, aiReply);
       const availabilityItem = extractAvailabilityItem(text);
       if (aiReply) {
         reply = aiReply;

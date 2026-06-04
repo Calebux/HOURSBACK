@@ -16,6 +16,12 @@ interface Order {
   payment_method: string | null;
   payment_status?: string | null;
   payment_claimed_amount?: number | string | null;
+  delivery_fee_amount?: number | string | null;
+  expected_total_amount?: number | string | null;
+  owner_adjusted_total_amount?: number | string | null;
+  owner_notes?: string | null;
+  fulfillment_status?: string | null;
+  fulfilled_at?: string | null;
   paid_at?: string | null;
   receipt_received_at?: string | null;
   receipt_url?: string | null;
@@ -75,6 +81,8 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('');
   const [verifyingOrderId, setVerifyingOrderId] = useState<string | null>(null);
+  const [savingReviewId, setSavingReviewId] = useState<string | null>(null);
+  const [fulfillmentOrderId, setFulfillmentOrderId] = useState<string | null>(null);
 
   const loadOrders = async () => {
     if (!user) return;
@@ -105,6 +113,50 @@ export default function OrdersPage() {
     }
 
     toast.success('Payment confirmed and customer notified');
+    await loadOrders();
+  };
+
+  const saveReview = async (order: Order, form: HTMLFormElement) => {
+    const formData = new FormData(form);
+    setSavingReviewId(order.id);
+    const { error } = await supabase.functions.invoke('kapso-setup', {
+      body: {
+        action: 'update_order_review',
+        order_id: order.id,
+        delivery_fee_amount: String(formData.get('delivery_fee_amount') || ''),
+        expected_total_amount: String(formData.get('expected_total_amount') || ''),
+        owner_adjusted_total_amount: String(formData.get('owner_adjusted_total_amount') || ''),
+        owner_notes: String(formData.get('owner_notes') || ''),
+      },
+    });
+    setSavingReviewId(null);
+
+    if (error) {
+      toast.error(error.message || 'Could not save order review');
+      return;
+    }
+
+    toast.success('Order review saved');
+    await loadOrders();
+  };
+
+  const updateFulfillment = async (orderId: string, fulfillmentStatus: string) => {
+    setFulfillmentOrderId(orderId);
+    const { error } = await supabase.functions.invoke('kapso-setup', {
+      body: {
+        action: 'update_order_fulfillment',
+        order_id: orderId,
+        fulfillment_status: fulfillmentStatus,
+      },
+    });
+    setFulfillmentOrderId(null);
+
+    if (error) {
+      toast.error(error.message || 'Could not update fulfillment');
+      return;
+    }
+
+    toast.success('Customer notified');
     await loadOrders();
   };
 
@@ -187,7 +239,9 @@ export default function OrdersPage() {
             {filtered.map((order) => (
               <article key={order.id} className="bg-white rounded-2xl border border-brand-dark/10 p-4">
                 {(() => {
-                  const expectedTotal = orderTotal(order.items);
+                  const itemTotal = orderTotal(order.items);
+                  const expectedTotal = Number(order.expected_total_amount || 0) || itemTotal;
+                  const reviewedTotal = Number(order.owner_adjusted_total_amount || 0) || expectedTotal;
                   const claimedAmount = money(order.payment_claimed_amount);
                   return (
                     <>
@@ -205,12 +259,18 @@ export default function OrdersPage() {
                     <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${paymentStatusClass(order.payment_status)}`}>
                       {order.payment_status || 'unpaid'}
                     </span>
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
+                      {order.fulfillment_status || 'new'}
+                    </span>
                   </div>
                 </div>
                 <div className="mt-3 grid sm:grid-cols-2 gap-2 text-xs text-slate-500">
                   <p><span className="font-semibold text-slate-600">Delivery:</span> {order.delivery_address || 'missing'}</p>
                   <p><span className="font-semibold text-slate-600">Payment:</span> {order.payment_method || 'not specified'}</p>
+                  {itemTotal && <p><span className="font-semibold text-slate-600">Items:</span> {money(itemTotal)}</p>}
+                  {money(order.delivery_fee_amount) && <p><span className="font-semibold text-slate-600">Delivery fee:</span> {money(order.delivery_fee_amount)}</p>}
                   {expectedTotal && <p><span className="font-semibold text-slate-600">Expected:</span> {money(expectedTotal)}</p>}
+                  {reviewedTotal && reviewedTotal !== expectedTotal && <p><span className="font-semibold text-slate-600">Reviewed total:</span> {money(reviewedTotal)}</p>}
                   {claimedAmount && <p><span className="font-semibold text-slate-600">Customer paid:</span> {claimedAmount}</p>}
                   <p>
                     <span className="font-semibold text-slate-600">Receipt:</span>{' '}
@@ -223,7 +283,65 @@ export default function OrdersPage() {
                   {order.receipt_received_at && <p><span className="font-semibold text-slate-600">Receipt sent:</span> {fmtDate(order.receipt_received_at)}</p>}
                   {order.paid_at && <p><span className="font-semibold text-slate-600">Paid:</span> {fmtDate(order.paid_at)}</p>}
                   {order.payment_verified_at && <p><span className="font-semibold text-slate-600">Verified:</span> {fmtDate(order.payment_verified_at)}</p>}
+                  {order.fulfilled_at && <p><span className="font-semibold text-slate-600">Fulfilled:</span> {fmtDate(order.fulfilled_at)}</p>}
                 </div>
+                <form
+                  className="mt-3 grid gap-2 rounded-xl border border-slate-100 bg-slate-50 p-3 sm:grid-cols-3"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void saveReview(order, event.currentTarget);
+                  }}
+                >
+                  <label className="text-xs font-medium text-slate-500">
+                    Delivery fee
+                    <input
+                      name="delivery_fee_amount"
+                      type="number"
+                      min="0"
+                      step="1"
+                      defaultValue={String(order.delivery_fee_amount || '')}
+                      className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs outline-none focus:border-emerald-400"
+                    />
+                  </label>
+                  <label className="text-xs font-medium text-slate-500">
+                    Expected total
+                    <input
+                      name="expected_total_amount"
+                      type="number"
+                      min="0"
+                      step="1"
+                      defaultValue={String(order.expected_total_amount || expectedTotal || '')}
+                      className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs outline-none focus:border-emerald-400"
+                    />
+                  </label>
+                  <label className="text-xs font-medium text-slate-500">
+                    Reviewed total
+                    <input
+                      name="owner_adjusted_total_amount"
+                      type="number"
+                      min="0"
+                      step="1"
+                      defaultValue={String(order.owner_adjusted_total_amount || '')}
+                      className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs outline-none focus:border-emerald-400"
+                    />
+                  </label>
+                  <label className="text-xs font-medium text-slate-500 sm:col-span-3">
+                    Owner notes
+                    <textarea
+                      name="owner_notes"
+                      rows={2}
+                      defaultValue={order.owner_notes || ''}
+                      className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs outline-none focus:border-emerald-400"
+                    />
+                  </label>
+                  <button
+                    type="submit"
+                    disabled={savingReviewId === order.id}
+                    className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-60 sm:col-span-3 sm:w-fit"
+                  >
+                    {savingReviewId === order.id ? 'Saving...' : 'Save review'}
+                  </button>
+                </form>
                 {order.payment_status === 'receipt_sent' && (
                   <button
                     onClick={() => verifyPayment(order.id)}
@@ -234,6 +352,25 @@ export default function OrdersPage() {
                     {verifyingOrderId === order.id ? 'Confirming...' : 'Confirm payment'}
                   </button>
                 )}
+                {order.payment_status === 'verified' && order.status !== 'fulfilled' && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {[
+                      ['preparing', 'Preparing'],
+                      ['out_for_delivery', 'Out for delivery'],
+                      ['delivered', 'Delivered'],
+                    ].map(([value, label]) => (
+                      <button
+                        key={value}
+                        onClick={() => updateFulfillment(order.id, value)}
+                        disabled={fulfillmentOrderId === order.id}
+                        className="rounded-full border border-emerald-200 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 disabled:opacity-60"
+                      >
+                        {fulfillmentOrderId === order.id ? 'Updating...' : label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {order.owner_notes && <p className="mt-2 text-xs text-slate-600"><span className="font-semibold">Owner notes:</span> {order.owner_notes}</p>}
                 {order.notes && <p className="mt-2 text-xs text-slate-500">{order.notes}</p>}
                 {order.raw_text && <p className="mt-3 text-xs text-slate-400 border-t border-slate-100 pt-3">{order.raw_text}</p>}
                     </>

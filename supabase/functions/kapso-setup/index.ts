@@ -155,6 +155,100 @@ serve(async (req) => {
       return new Response(JSON.stringify({ success: true, order: updatedOrder, message_sent: messageSent }), { headers: corsHeaders });
     }
 
+    if (action === "update_order_review") {
+      const orderId = String(body.order_id || "").trim();
+      if (!orderId) {
+        return new Response(JSON.stringify({ error: "order_id is required" }), { status: 400, headers: corsHeaders });
+      }
+
+      const deliveryFee = body.delivery_fee_amount === "" || body.delivery_fee_amount == null ? null : Number(body.delivery_fee_amount);
+      const expectedTotal = body.expected_total_amount === "" || body.expected_total_amount == null ? null : Number(body.expected_total_amount);
+      const adjustedTotal = body.owner_adjusted_total_amount === "" || body.owner_adjusted_total_amount == null ? null : Number(body.owner_adjusted_total_amount);
+      const ownerNotes = String(body.owner_notes || "").trim();
+
+      const { data, error } = await supabase
+        .from("kapso_orders")
+        .update({
+          delivery_fee_amount: Number.isFinite(deliveryFee) ? deliveryFee : null,
+          expected_total_amount: Number.isFinite(expectedTotal) ? expectedTotal : null,
+          owner_adjusted_total_amount: Number.isFinite(adjustedTotal) ? adjustedTotal : null,
+          owner_notes: ownerNotes || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", orderId)
+        .eq("user_id", user.id)
+        .select("*")
+        .single();
+
+      if (error) throw error;
+      return new Response(JSON.stringify({ success: true, order: data }), { headers: corsHeaders });
+    }
+
+    if (action === "update_order_fulfillment") {
+      const orderId = String(body.order_id || "").trim();
+      const fulfillmentStatus = String(body.fulfillment_status || "").trim();
+      if (!orderId) {
+        return new Response(JSON.stringify({ error: "order_id is required" }), { status: 400, headers: corsHeaders });
+      }
+      if (!["preparing", "out_for_delivery", "delivered"].includes(fulfillmentStatus)) {
+        return new Response(JSON.stringify({ error: "Invalid fulfillment_status" }), { status: 400, headers: corsHeaders });
+      }
+
+      const { data: order, error: orderError } = await supabase
+        .from("kapso_orders")
+        .select("*")
+        .eq("id", orderId)
+        .eq("user_id", user.id)
+        .single();
+      if (orderError) throw orderError;
+
+      const { data: connection, error: connectionError } = await supabase
+        .from("kapso_connections")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("connection_type", "customer")
+        .maybeSingle();
+      if (connectionError) throw connectionError;
+
+      const now = new Date().toISOString();
+      const updatePayload: any = {
+        fulfillment_status: fulfillmentStatus,
+        updated_at: now,
+      };
+      if (fulfillmentStatus === "delivered") {
+        updatePayload.status = "fulfilled";
+        updatePayload.fulfilled_at = now;
+      }
+
+      const { data: updatedOrder, error: updateError } = await supabase
+        .from("kapso_orders")
+        .update(updatePayload)
+        .eq("id", order.id)
+        .eq("user_id", user.id)
+        .select("*")
+        .single();
+      if (updateError) throw updateError;
+
+      let messageSent = false;
+      if (connection?.phone_number_id && order.customer_phone) {
+        const items = Array.isArray(order.items)
+          ? order.items.map((item: any) => `${item.qty ? `${item.qty} x ` : ""}${item.name}`).join(", ")
+          : "your order";
+        const statusLine = fulfillmentStatus === "preparing"
+          ? "Your order is now being prepared."
+          : fulfillmentStatus === "out_for_delivery"
+            ? "Your order is out for delivery."
+            : "Your order has been marked delivered. Thank you.";
+        await sendKapsoText(connection.phone_number_id, order.customer_phone, [
+          statusLine,
+          `Order: ${items}`,
+        ].join("\n"));
+        messageSent = true;
+      }
+
+      return new Response(JSON.stringify({ success: true, order: updatedOrder, message_sent: messageSent }), { headers: corsHeaders });
+    }
+
     if (action === "manual_connect") {
       const phoneNumberId = String(body.phone_number_id || "").trim();
       const phoneNumber = String(body.phone_number || "").trim();
