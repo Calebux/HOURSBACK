@@ -39,6 +39,17 @@ interface ParsedEntry {
   sale_date: string | null;
 }
 
+interface Closeout {
+  id: string;
+  staff_name: string | null;
+  expected_sales_total: number;
+  expenses_total: number;
+  actual_collected_total: number;
+  variance_total: number;
+  status: string;
+  created_at: string;
+}
+
 function fmt(n: number | null | undefined) {
   if (n == null) return '';
   return `₦${Number(n).toLocaleString()}`;
@@ -79,6 +90,7 @@ export default function SalesLogPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [entries, setEntries] = useState<BotEntry[]>([]);
+  const [recentCloseout, setRecentCloseout] = useState<Closeout | null>(null);
   const [loading, setLoading] = useState(true);
   const [isPro, setIsPro] = useState(false);
   const [filterType, setFilterType] = useState('');
@@ -105,6 +117,23 @@ export default function SalesLogPage() {
       });
   };
 
+  const loadCloseout = () => {
+    if (!user) return;
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    supabase
+      .from('kapso_closeouts')
+      .select('*')
+      .eq('user_id', user.id)
+      .gte('created_at', start.toISOString())
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => {
+        setRecentCloseout(data ?? null);
+      });
+  };
+
   useEffect(() => {
     if (!user) { navigate('/'); return; }
     // Check pro status
@@ -117,6 +146,7 @@ export default function SalesLogPage() {
         setIsPro(!!data?.subscription_expires_at && new Date(data.subscription_expires_at) > new Date());
       });
     loadEntries();
+    loadCloseout();
   }, [user, navigate]);
 
   const staffOptions = useMemo(() =>
@@ -449,6 +479,29 @@ export default function SalesLogPage() {
               <p className="text-xs text-emerald-700 mt-1">
                 Sales sent from WhatsApp are saved here automatically. Use Download CSV to open the same rows in Google Sheets.
               </p>
+            </div>
+          </div>
+        )}
+
+        {recentCloseout && (
+          <div className="bg-white rounded-2xl border border-brand-dark/10 p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold tracking-[0.14em] uppercase text-slate-400">Latest closeout</p>
+                <p className="mt-1 text-sm font-semibold text-brand-dark">
+                  {recentCloseout.status.replace(/_/g, ' ')} by {recentCloseout.staff_name || 'WhatsApp'}
+                </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Logged sales {fmt(recentCloseout.expected_sales_total)} · Collected {fmt(recentCloseout.actual_collected_total)} · Expenses {fmt(recentCloseout.expenses_total)}
+                </p>
+              </div>
+              <div className={`rounded-xl px-3 py-2 text-sm font-bold ${
+                Math.abs(Number(recentCloseout.variance_total || 0)) < 1
+                  ? 'bg-emerald-50 text-emerald-700'
+                  : 'bg-amber-50 text-amber-700'
+              }`}>
+                Variance {fmt(recentCloseout.variance_total)}
+              </div>
             </div>
           </div>
         )}

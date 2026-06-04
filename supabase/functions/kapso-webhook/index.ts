@@ -132,6 +132,167 @@ function looksLikeSummaryQuestion(text: string) {
   return /\b(how much|total|summary|sold most|top item|today|sales today|what sold|report)\b/i.test(text);
 }
 
+function looksLikeCloseoutStart(text: string) {
+  return /^(\/)?(close|closeout|close out|end day|eod)\b/i.test(text.trim());
+}
+
+function moneyFromLabel(text: string, labels: string[]) {
+  const labelPattern = labels.map((label) => label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+  const match = text.match(new RegExp(`(?:${labelPattern})(?:\\s+(?:total|amount|at hand))?\\s*[:=\\-]?\\s*(?:₦|ngn|naira)?\\s*([0-9][0-9,]*(?:\\.\\d+)?)`, "i"));
+  if (!match) return null;
+  return Number(match[1].replace(/,/g, ""));
+}
+
+function parseCloseoutFallback(text: string) {
+  return {
+    cash_total: moneyFromLabel(text, ["cash", "cash at hand", "cash total"]),
+    pos_total: moneyFromLabel(text, ["pos", "card", "terminal"]),
+    transfer_total: moneyFromLabel(text, ["transfer", "bank", "bank transfer"]),
+    expenses_total: moneyFromLabel(text, ["expenses", "expense", "spent"]),
+    notes: null,
+  };
+}
+
+async function parseCloseoutWithAI(text: string) {
+  const fallback = parseCloseoutFallback(text);
+  if (!ANTHROPIC_API_KEY) return fallback;
+
+  try {
+    const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
+    const parseRes = await anthropic.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 180,
+      messages: [{
+        role: "user",
+        content: `Extract end-of-day closeout totals from this WhatsApp message: "${text}"\nReturn JSON only, no explanation:\n{"cash_total":number|null,"pos_total":number|null,"transfer_total":number|null,"expenses_total":number|null,"notes":string|null}\nUse null when a total is not mentioned. Do not invent numbers.`,
+      }],
+    });
+    const raw = (parseRes.content[0] as { text: string }).text.trim();
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (jsonMatch) return { ...fallback, ...JSON.parse(jsonMatch[0]) };
+  } catch (err) {
+    console.error("WhatsApp closeout parse error:", err);
+  }
+
+  return fallback;
+}
+
+function closeoutPrompt() {
+  return [
+    "Closeout started.",
+    "Reply with today's totals like:",
+    "Cash 39000, POS 12000, Transfer 34000, Expenses 7500",
+    "Send cancel closeout to stop.",
+  ].join("\n");
+}
+
+function getTodayStart() {
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  return start;
+}
+
+async function getDailyTotals(supabase: any, userId: string) {
+  const start = getTodayStart();
+  const { data: entries } = await supabase
+    .from("bot_entries")
+    .select("entry_type, parsed_data, created_at")
+    .eq("user_id", userId)
+    .gte("created_at", start.toISOString());
+
+  const rows = entries || [];
+  return {
+    entries: rows.length,
+    sales: rows
+      .filter((e: any) => e.entry_type === "sale")
+      .reduce((sum: number, e: any) => sum + Number(e.parsed_data?.total || 0), 0),
+    expenses: rows
+      .filter((e: any) => e.entry_type === "expense")
+      .reduce((sum: number, e: any) => sum + Number(e.parsed_data?.total || 0), 0),
+  };
+}
+
+function classifyCloseoutVariance(variance: number) {
+  if (Math.abs(variance) < 1) return "balanced";
+  return variance < 0 ? "short" : "over";
+}
+
+async function findActiveCloseoutSession(supabase: any, userId: string, fromNumber?: string) {
+  if (!fromNumber) return null;
+  const { data } = await supabase
+    .from("kapso_closeout_sessions")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("from_number", fromNumber)
+    .eq("status", "awaiting_closeout")
+    .gt("expires_at", new Date().toISOString())
+    .order("updated_at", { ascending: false })
+    .limit(1);
+
+  return data?.[0] || null;
+}
+
+async function saveCloseout(supabase: any, connection: any, message: ParsedMessage, text: string) {
+  const parsed = await parseCloseoutWithAI(text);
+  const values = [parsed.cash_total, parsed.pos_total, parsed.transfer_total, parsed.expenses_total];
+  if (!values.some((value) => typeof value === "number" && Number.isFinite(value))) {
+    return { saved: false, reply: `I couldn't find the closeout totals.\n\n${closeoutPrompt()}` };
+  }
+
+  const cashTotal = Number(parsed.cash_total || 0);
+  const posTotal = Number(parsed.pos_total || 0);
+  const transferTotal = Number(parsed.transfer_total || 0);
+  const expensesTotal = Number(parsed.expenses_total || 0);
+  const actualCollectedTotal = cashTotal + posTotal + transferTotal;
+  const totals = await getDailyTotals(supabase, connection.user_id);
+  const variance = actualCollectedTotal - totals.sales;
+  const status = classifyCloseoutVariance(variance);
+
+  await supabase.from("kapso_closeouts").insert({
+    user_id: connection.user_id,
+    connection_id: connection.id,
+    from_number: message.from || null,
+    staff_name: message.contactName || message.from || "WhatsApp",
+    expected_sales_total: totals.sales,
+    expected_expenses_total: totals.expenses,
+    cash_total: cashTotal,
+    pos_total: posTotal,
+    transfer_total: transferTotal,
+    expenses_total: expensesTotal,
+    actual_collected_total: actualCollectedTotal,
+    variance_total: variance,
+    status,
+    notes: parsed.notes || null,
+    raw_text: text,
+  });
+
+  if (message.from) {
+    await supabase
+      .from("kapso_closeout_sessions")
+      .update({ status: "completed", updated_at: new Date().toISOString() })
+      .eq("user_id", connection.user_id)
+      .eq("from_number", message.from)
+      .eq("status", "awaiting_closeout");
+  }
+
+  const statusLine = status === "balanced"
+    ? "Balanced."
+    : status === "short"
+      ? `Short by ₦${Math.abs(variance).toLocaleString()}. Review needed.`
+      : `Over by ₦${Math.abs(variance).toLocaleString()}. Review needed.`;
+
+  return {
+    saved: true,
+    reply: [
+      "Day closed.",
+      `Logged sales: ₦${totals.sales.toLocaleString()}`,
+      `Collected: ₦${actualCollectedTotal.toLocaleString()} (cash ₦${cashTotal.toLocaleString()}, POS ₦${posTotal.toLocaleString()}, transfer ₦${transferTotal.toLocaleString()})`,
+      `Expenses reported: ₦${expensesTotal.toLocaleString()}`,
+      statusLine,
+    ].join("\n"),
+  };
+}
+
 async function parseEntryWithAI(text: string) {
   if (!ANTHROPIC_API_KEY) {
     return { entry_type: "note", item: null, qty: null, unit_price: null, total: null, customer: null, notes: text };
@@ -158,8 +319,7 @@ async function parseEntryWithAI(text: string) {
 }
 
 async function buildSalesSummary(supabase: any, userId: string) {
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
+  const start = getTodayStart();
 
   const { data: entries } = await supabase
     .from("bot_entries")
@@ -179,6 +339,14 @@ async function buildSalesSummary(supabase: any, userId: string) {
     counts.set(item, (counts.get(item) || 0) + Number(e.parsed_data?.qty || 1));
   }
   const topItem = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
+  const { data: closeouts } = await supabase
+    .from("kapso_closeouts")
+    .select("actual_collected_total, variance_total, status, created_at")
+    .eq("user_id", userId)
+    .gte("created_at", start.toISOString())
+    .order("created_at", { ascending: false })
+    .limit(1);
+  const latestCloseout = closeouts?.[0];
 
   return [
     `Today so far:`,
@@ -186,6 +354,9 @@ async function buildSalesSummary(supabase: any, userId: string) {
     `Expenses: ₦${totalExpenses.toLocaleString()}`,
     `Entries logged: ${rows.length}`,
     topItem ? `Top item: ${topItem[0]} (${topItem[1]} units/entries)` : `Top item: none yet`,
+    latestCloseout
+      ? `Closeout: ${latestCloseout.status.replace(/_/g, " ")} (collected ₦${Number(latestCloseout.actual_collected_total || 0).toLocaleString()}, variance ₦${Number(latestCloseout.variance_total || 0).toLocaleString()})`
+      : `Closeout: not done yet`,
   ].join("\n");
 }
 
@@ -292,7 +463,43 @@ serve(async (req) => {
     let reply = "";
     const text = message.text.trim();
 
-    if (looksLikeSummaryQuestion(text)) {
+    const activeCloseoutSession = await findActiveCloseoutSession(supabase, connection.user_id, message.from);
+
+    if (activeCloseoutSession && /\b(cancel|stop)\b/i.test(text)) {
+      await supabase
+        .from("kapso_closeout_sessions")
+        .update({ status: "cancelled", updated_at: new Date().toISOString() })
+        .eq("id", activeCloseoutSession.id);
+      reply = "Closeout cancelled.";
+    } else if (activeCloseoutSession) {
+      const closeout = await saveCloseout(supabase, connection, message, text);
+      reply = closeout.reply;
+    } else if (looksLikeCloseoutStart(text)) {
+      const hasTotals = /\d/.test(text);
+      if (hasTotals) {
+        const closeout = await saveCloseout(supabase, connection, message, text);
+        reply = closeout.reply;
+      } else if (message.from) {
+        await supabase
+          .from("kapso_closeout_sessions")
+          .update({ status: "cancelled", updated_at: new Date().toISOString() })
+          .eq("user_id", connection.user_id)
+          .eq("from_number", message.from)
+          .eq("status", "awaiting_closeout");
+
+        await supabase.from("kapso_closeout_sessions").insert({
+          user_id: connection.user_id,
+          connection_id: connection.id,
+          from_number: message.from,
+          status: "awaiting_closeout",
+          updated_at: new Date().toISOString(),
+          expires_at: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString(),
+        });
+        reply = closeoutPrompt();
+      } else {
+        reply = closeoutPrompt();
+      }
+    } else if (looksLikeSummaryQuestion(text)) {
       reply = await buildSalesSummary(supabase, connection.user_id);
     } else if (looksLikeSalesEntry(text) || text.toLowerCase().startsWith("/log ")) {
       const logText = text.toLowerCase().startsWith("/log ") ? text.slice(5).trim() : text;
