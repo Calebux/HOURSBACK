@@ -31,9 +31,10 @@ function timingSafeEqual(a: string, b: string) {
   return result === 0;
 }
 
-async function verifySignature(payload: unknown, signature: string | null) {
+async function verifySignature(rawBody: string, signature: string | null) {
   if (!KAPSO_WEBHOOK_SECRET) return true;
   if (!signature) return false;
+  const normalizedSignature = signature.replace(/^sha256=/i, "").trim();
 
   const key = await crypto.subtle.importKey(
     "raw",
@@ -45,9 +46,9 @@ async function verifySignature(payload: unknown, signature: string | null) {
   const expected = bytesToHex(await crypto.subtle.sign(
     "HMAC",
     key,
-    new TextEncoder().encode(JSON.stringify(payload))
+    new TextEncoder().encode(rawBody)
   ));
-  return timingSafeEqual(signature, expected);
+  return timingSafeEqual(normalizedSignature, expected);
 }
 
 function firstString(...values: unknown[]) {
@@ -172,10 +173,16 @@ serve(async (req) => {
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
   try {
-    const payload = await req.json();
-    const signature = req.headers.get("X-Webhook-Signature");
-    const isValid = await verifySignature(payload, signature);
+    const rawBody = await req.text();
+    const payload = JSON.parse(rawBody);
+    const signature = firstString(
+      req.headers.get("X-Webhook-Signature"),
+      req.headers.get("X-Kapso-Signature"),
+      req.headers.get("X-Signature")
+    );
+    const isValid = await verifySignature(rawBody, signature || null);
     if (!isValid) {
+      console.log("Kapso webhook rejected: invalid signature", { hasSignature: !!signature });
       return new Response(JSON.stringify({ error: "Invalid signature" }), { status: 401, headers });
     }
 
