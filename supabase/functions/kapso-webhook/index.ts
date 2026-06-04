@@ -186,7 +186,88 @@ function looksLikeOrderMessage(text: string) {
     || /\b(bowl|plate|pack|piece|pcs|rice|chicken|drink|coke|shawarma|pizza|burger)\b/i.test(text);
 }
 
-async function parseOrderWithAI(text: string): Promise<ParsedOrder> {
+function looksLikeMenuRequest(text: string) {
+  return /\b(menu|price list|pricelist|prices|how much|what do you sell|what do you have|available items|list of items)\b/i.test(text);
+}
+
+function extractAvailabilityItem(text: string) {
+  const patterns = [
+    /\b(?:do you have|have you got|is there|is|are)\s+(.+?)(?:\?| available| in stock|$)/i,
+    /\b(.+?)\s+(?:available|in stock)\b/i,
+  ];
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (match?.[1]) {
+      return match[1]
+        .replace(/\b(today|please|pls|now|for delivery|for pickup)\b/gi, "")
+        .trim();
+    }
+  }
+  return null;
+}
+
+function normalizeItemText(text: string) {
+  return text
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\b(x|and|with|the|a|an|some|any)\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function menuHasItem(menu: string | null | undefined, item: string) {
+  if (!menu || !item) return false;
+  const normalizedMenu = normalizeItemText(menu);
+  const normalizedItem = normalizeItemText(item);
+  if (!normalizedItem) return false;
+  if (normalizedMenu.includes(normalizedItem)) return true;
+
+  const itemWords = normalizedItem.split(" ").filter((word) => word.length > 2);
+  return itemWords.length > 0 && itemWords.every((word) =>
+    normalizedMenu.includes(word) || normalizedMenu.includes(word.replace(/s$/, ""))
+  );
+}
+
+function buildMenuReply(connection: any) {
+  const menu = String(connection.customer_menu || "").trim();
+  if (!menu) {
+    return "The menu is not configured yet. Please tell us what you would like and a staff member will confirm availability.";
+  }
+
+  return [
+    "Here is our menu:",
+    menu,
+    "Send your order with delivery or pickup details when ready.",
+  ].join("\n");
+}
+
+function buildAvailabilityReply(connection: any, item: string) {
+  const menu = String(connection.customer_menu || "").trim();
+  if (!menu) {
+    return `I need a staff member to confirm ${item}. The menu is not configured yet.`;
+  }
+
+  if (menuHasItem(menu, item)) {
+    return `Yes, ${item} is on the menu. Send the quantity and delivery or pickup details to place your order.`;
+  }
+
+  return `I cannot find ${item} on the current menu. Here is what is listed:\n${menu}`;
+}
+
+function orderTotal(items: Array<{ unit_price?: number | null; qty?: number | null }>) {
+  const total = items.reduce((sum, item) => {
+    const qty = Number(item.qty || 1);
+    const price = Number(item.unit_price || 0);
+    return price > 0 ? sum + qty * price : sum;
+  }, 0);
+  return total > 0 ? total : null;
+}
+
+function formatNaira(amount: number) {
+  return `₦${amount.toLocaleString("en-NG")}`;
+}
+
+async function parseOrderWithAI(text: string, menu?: string | null): Promise<ParsedOrder> {
   if (!ANTHROPIC_API_KEY) {
     return { items: [{ name: text, qty: null, unit_price: null }], delivery_address: null, payment_method: null, notes: text };
   }
@@ -198,7 +279,14 @@ async function parseOrderWithAI(text: string): Promise<ParsedOrder> {
       max_tokens: 260,
       messages: [{
         role: "user",
-        content: `Extract a customer WhatsApp order from this message: "${text}"\nReturn JSON only:\n{"items":[{"name":string,"qty":number|null,"unit_price":number|null}],"delivery_address":string|null,"payment_method":string|null,"customer_name":string|null,"notes":string|null}\nIf the customer is only answering a missing detail, return empty items and fill the detail.`,
+        content: [
+          "Extract a customer WhatsApp order from the message.",
+          menu ? `Business menu / price list:\n${menu}` : "Business menu / price list: not configured.",
+          `Message: "${text}"`,
+          'Return JSON only: {"items":[{"name":string,"qty":number|null,"unit_price":number|null}],"delivery_address":string|null,"payment_method":string|null,"customer_name":string|null,"notes":string|null}',
+          "Use the menu prices when the ordered item clearly matches a menu item. Do not invent prices or items.",
+          "If the customer is only answering a missing detail, return empty items and fill the detail.",
+        ].join("\n"),
       }],
     });
     const raw = (parseRes.content[0] as { text: string }).text.trim();
@@ -217,7 +305,7 @@ function orderItemsSummary(items: any[]) {
 }
 
 async function handleCustomerOrder(supabase: any, connection: any, message: ParsedMessage, text: string) {
-  const parsed = await parseOrderWithAI(text);
+  const parsed = await parseOrderWithAI(text, connection.customer_menu);
   const { data: openOrders } = await supabase
     .from("kapso_orders")
     .select("*")
@@ -263,13 +351,24 @@ async function handleCustomerOrder(supabase: any, connection: any, message: Pars
     return `Got it: ${orderItemsSummary(items)}.\nPlease send your delivery address or say pickup.`;
   }
 
-  return [
+  const total = orderTotal(items);
+  const paymentInstructions = String(connection.payment_instructions || "").trim();
+  const lines = [
     "Order confirmed.",
     `Items: ${orderItemsSummary(items)}`,
     `Delivery: ${deliveryAddress}`,
-    paymentMethod ? `Payment: ${paymentMethod}` : "Payment: not specified",
+  ];
+  if (total) lines.push(`Total: ${formatNaira(total)}`);
+  if (paymentMethod) lines.push(`Payment: ${paymentMethod}`);
+  if (paymentInstructions) {
+    lines.push("Payment details:", paymentInstructions, "Please reply paid after payment.");
+  } else {
+    lines.push("Payment: staff will send payment details.");
+  }
+  lines.push(
     "A staff member will follow up if anything is unclear.",
-  ].join("\n");
+  );
+  return lines.join("\n");
 }
 
 function moneyFromLabel(text: string, labels: string[]) {
@@ -621,12 +720,20 @@ serve(async (req) => {
     const activeCloseoutSession = await findActiveCloseoutSession(supabase, connection.user_id, message.from);
 
     if (connection.connection_type === "customer") {
+      const availabilityItem = extractAvailabilityItem(text);
       if (looksLikeWorkflowRequest(text)) {
         reply = await saveWorkflowRequest(supabase, connection, message, text);
+      } else if (availabilityItem) {
+        reply = buildAvailabilityReply(connection, availabilityItem);
+      } else if (looksLikeMenuRequest(text)) {
+        reply = buildMenuReply(connection);
       } else if (looksLikeOrderMessage(text)) {
         reply = await handleCustomerOrder(supabase, connection, message, text);
       } else {
-        reply = "Hi. Send your order here, for example: “I want 3 rice bowls and 2 chicken delivered to Lekki.”";
+        reply = [
+          "Hi. Send your order here, for example: “I want 3 rice bowls and 2 chicken delivered to Lekki.”",
+          "You can also ask for the menu or ask if an item is available.",
+        ].join("\n");
       }
     } else if (activeCloseoutSession && /\b(cancel|stop)\b/i.test(text)) {
       await supabase

@@ -72,6 +72,8 @@ serve(async (req) => {
       const phoneNumber = String(body.phone_number || "").trim();
       const displayName = String(body.display_name || "WhatsApp").trim();
       const connectionType = body.connection_type === "customer" ? "customer" : "internal";
+      const customerMenu = String(body.customer_menu || "").trim();
+      const paymentInstructions = String(body.payment_instructions || "").trim();
 
       if (!phoneNumberId) {
         return new Response(JSON.stringify({ error: "phone_number_id is required" }), { status: 400, headers: corsHeaders });
@@ -85,6 +87,8 @@ serve(async (req) => {
           phone_number_id: phoneNumberId,
           phone_number: phoneNumber || null,
           display_name: displayName,
+          customer_menu: connectionType === "customer" ? customerMenu || null : null,
+          payment_instructions: connectionType === "customer" ? paymentInstructions || null : null,
           status: "connected",
           webhook_secret_set: !!KAPSO_WEBHOOK_SECRET,
           updated_at: new Date().toISOString(),

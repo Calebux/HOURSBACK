@@ -15,6 +15,8 @@ interface KapsoConnection {
   phone_number_id: string | null;
   phone_number: string | null;
   display_name: string | null;
+  customer_menu: string | null;
+  payment_instructions: string | null;
   last_webhook_at: string | null;
   webhook_secret_set: boolean;
 }
@@ -36,6 +38,8 @@ export default function WhatsAppPage() {
   const [phoneNumberId, setPhoneNumberId] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [displayName, setDisplayName] = useState('WhatsApp');
+  const [customerMenu, setCustomerMenu] = useState('');
+  const [paymentInstructions, setPaymentInstructions] = useState('');
   const [connectionType, setConnectionType] = useState<'internal' | 'customer'>('internal');
 
   const webhookUrl = useMemo(() => {
@@ -57,6 +61,8 @@ export default function WhatsAppPage() {
       setPhoneNumberId(selected?.phone_number_id || '');
       setPhoneNumber(selected?.phone_number || '');
       setDisplayName(selected?.display_name || (connectionType === 'customer' ? 'Customer Orders' : 'Internal Operations'));
+      setCustomerMenu(selected?.customer_menu || '');
+      setPaymentInstructions(selected?.payment_instructions || '');
     }
     setLoading(false);
   }, [user, connectionType]);
@@ -104,6 +110,8 @@ export default function WhatsAppPage() {
         phone_number_id: phoneNumberId.trim(),
         phone_number: phoneNumber.trim(),
         display_name: displayName.trim() || 'WhatsApp',
+        customer_menu: customerMenu.trim(),
+        payment_instructions: paymentInstructions.trim(),
       },
     });
     setSaving(false);
@@ -143,6 +151,8 @@ export default function WhatsAppPage() {
       }));
       setPhoneNumberId('');
       setPhoneNumber('');
+      setCustomerMenu('');
+      setPaymentInstructions('');
       toast.success('WhatsApp disconnected');
     }
   };
@@ -332,6 +342,31 @@ export default function WhatsAppPage() {
               />
             </label>
           </div>
+
+          {connectionType === 'customer' && (
+            <div className="grid sm:grid-cols-2 gap-3">
+              <label>
+                <span className="block text-xs font-medium text-slate-500 mb-1.5">Menu / price list</span>
+                <textarea
+                  value={customerMenu}
+                  onChange={(e) => setCustomerMenu(e.target.value)}
+                  rows={7}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-400"
+                  placeholder={'Rice bowl - ₦2500\nChicken - ₦1800\nCoke - ₦500'}
+                />
+              </label>
+              <label>
+                <span className="block text-xs font-medium text-slate-500 mb-1.5">Payment instructions</span>
+                <textarea
+                  value={paymentInstructions}
+                  onChange={(e) => setPaymentInstructions(e.target.value)}
+                  rows={7}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-400"
+                  placeholder={'Bank: GTBank\nAccount: 0123456789\nName: Hoursback Foods\nSend receipt here after payment.'}
+                />
+              </label>
+            </div>
+          )}
 
           <button
             onClick={saveManualConnection}
