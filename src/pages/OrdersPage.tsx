@@ -25,6 +25,9 @@ interface Order {
   paid_at?: string | null;
   receipt_received_at?: string | null;
   receipt_url?: string | null;
+  receipt_storage_path?: string | null;
+  receipt_filename?: string | null;
+  receipt_content_type?: string | null;
   payment_verified_at?: string | null;
   notes: string | null;
   raw_text: string | null;
@@ -83,6 +86,7 @@ export default function OrdersPage() {
   const [verifyingOrderId, setVerifyingOrderId] = useState<string | null>(null);
   const [savingReviewId, setSavingReviewId] = useState<string | null>(null);
   const [fulfillmentOrderId, setFulfillmentOrderId] = useState<string | null>(null);
+  const [openingReceiptId, setOpeningReceiptId] = useState<string | null>(null);
 
   const loadOrders = async () => {
     if (!user) return;
@@ -158,6 +162,45 @@ export default function OrdersPage() {
 
     toast.success('Customer notified');
     await loadOrders();
+  };
+
+  const openReceipt = async (order: Order) => {
+    setOpeningReceiptId(order.id);
+    const receiptWindow = window.open('about:blank', '_blank');
+    if (receiptWindow) receiptWindow.opener = null;
+    try {
+      if (order.receipt_storage_path) {
+        const { data, error } = await supabase.storage
+          .from('kapso-receipts')
+          .createSignedUrl(order.receipt_storage_path, 60 * 10);
+        if (error) throw error;
+        if (data?.signedUrl) {
+          if (receiptWindow) {
+            receiptWindow.location.href = data.signedUrl;
+          } else {
+            window.location.href = data.signedUrl;
+          }
+          return;
+        }
+      }
+
+      if (order.receipt_url) {
+        if (receiptWindow) {
+          receiptWindow.location.href = order.receipt_url;
+        } else {
+          window.location.href = order.receipt_url;
+        }
+        return;
+      }
+
+      receiptWindow?.close();
+      toast.error('No receipt link is available for this order');
+    } catch (err) {
+      receiptWindow?.close();
+      toast.error(err instanceof Error ? err.message : 'Could not open receipt');
+    } finally {
+      setOpeningReceiptId(null);
+    }
   };
 
   useEffect(() => {
@@ -274,10 +317,14 @@ export default function OrdersPage() {
                   {claimedAmount && <p><span className="font-semibold text-slate-600">Customer paid:</span> {claimedAmount}</p>}
                   <p>
                     <span className="font-semibold text-slate-600">Receipt:</span>{' '}
-                    {order.receipt_url ? (
-                      <a href={order.receipt_url} target="_blank" rel="noreferrer" className="text-emerald-700 underline">
-                        open receipt
-                      </a>
+                    {order.receipt_storage_path || order.receipt_url ? (
+                      <button
+                        onClick={() => openReceipt(order)}
+                        disabled={openingReceiptId === order.id}
+                        className="text-emerald-700 underline disabled:opacity-60"
+                      >
+                        {openingReceiptId === order.id ? 'opening...' : 'open receipt'}
+                      </button>
                     ) : order.receipt_received_at ? 'sent' : 'not sent'}
                   </p>
                   {order.receipt_received_at && <p><span className="font-semibold text-slate-600">Receipt sent:</span> {fmtDate(order.receipt_received_at)}</p>}

@@ -113,6 +113,45 @@ function findReceiptUrl(...values: unknown[]): string | undefined {
   return undefined;
 }
 
+function extensionForContentType(contentType: string) {
+  if (/png/i.test(contentType)) return "png";
+  if (/webp/i.test(contentType)) return "webp";
+  if (/pdf/i.test(contentType)) return "pdf";
+  return "jpg";
+}
+
+async function persistReceiptMedia(supabase: any, order: any, message: ParsedMessage, receiptUrl: string | null) {
+  if (!receiptUrl) return null;
+
+  try {
+    const response = await fetch(receiptUrl);
+    if (!response.ok) throw new Error(`Receipt fetch failed with ${response.status}`);
+
+    const contentType = response.headers.get("content-type") || "image/jpeg";
+    const arrayBuffer = await response.arrayBuffer();
+    const ext = extensionForContentType(contentType);
+    const messageId = String(message.messageId || crypto.randomUUID()).replace(/[^a-zA-Z0-9_-]/g, "_");
+    const path = `${order.user_id}/${order.id}/${messageId}.${ext}`;
+
+    const { error } = await supabase.storage
+      .from("kapso-receipts")
+      .upload(path, arrayBuffer, {
+        contentType,
+        upsert: true,
+      });
+    if (error) throw error;
+
+    return {
+      path,
+      filename: `receipt-${messageId}.${ext}`,
+      contentType,
+    };
+  } catch (err) {
+    console.error("Receipt media persistence failed:", err);
+    return null;
+  }
+}
+
 function parseKapsoMessage(payload: any): ParsedMessage | null {
   const data = payload?.data || payload;
   const msg = data?.message || data?.messages?.[0] || data;
@@ -529,6 +568,7 @@ async function markLatestOrderReceiptSent(supabase: any, connection: any, messag
   const receivedAt = new Date().toISOString();
   const claimedAmount = parseClaimedPaymentAmount(text);
   const receiptUrl = message.receiptUrl || order.receipt_url || findReceiptUrl(text) || null;
+  const storedReceipt = await persistReceiptMedia(supabase, order, message, receiptUrl);
   const notes = [
     order.notes,
     `Payment receipt received from WhatsApp.${claimedAmount ? ` Customer claimed ${formatNaira(claimedAmount)}.` : ""}`,
@@ -543,6 +583,9 @@ async function markLatestOrderReceiptSent(supabase: any, connection: any, messag
       receipt_received_at: receivedAt,
       receipt_message_id: message.messageId || null,
       receipt_url: receiptUrl,
+      receipt_storage_path: storedReceipt?.path || order.receipt_storage_path || null,
+      receipt_filename: storedReceipt?.filename || order.receipt_filename || null,
+      receipt_content_type: storedReceipt?.contentType || order.receipt_content_type || null,
       receipt_payload: payload,
       payment_claimed_amount: claimedAmount || order.payment_claimed_amount || null,
       notes,
@@ -561,7 +604,7 @@ async function markLatestOrderReceiptSent(supabase: any, connection: any, messag
         `Order: ${orderItemsSummary(order.items || [])}`,
         expectedTotal ? `Expected: ${formatNaira(Number(expectedTotal))}` : null,
         claimedAmount || order.payment_claimed_amount ? `Customer paid: ${formatNaira(Number(claimedAmount || order.payment_claimed_amount))}` : null,
-        receiptUrl ? `Receipt: ${receiptUrl}` : "Receipt: sent",
+        storedReceipt ? "Receipt: saved in Hoursback" : receiptUrl ? `Receipt: ${receiptUrl}` : "Receipt: sent",
         "Open Hoursback /orders to verify payment.",
       ].filter(Boolean);
       await sendKapsoText(connection.phone_number_id, ownerNumber, ownerLines.join("\n"));
