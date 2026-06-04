@@ -30,6 +30,62 @@ interface KapsoStatus {
   connections?: KapsoConnection[];
 }
 
+const internalCapabilities = [
+  {
+    title: 'Log sales',
+    body: 'Staff can send plain sales updates and Hoursback structures them into the Sales Log.',
+    example: 'Sold 5 jollof, 3 chicken. Transfer ₦42,000',
+  },
+  {
+    title: 'Log expenses and notes',
+    body: 'Operational updates can become expense or note entries without opening the dashboard.',
+    example: 'Spent ₦7,500 on delivery fuel',
+  },
+  {
+    title: 'Ask for today’s summary',
+    body: 'Owners can ask for sales, expenses, entry count, top item, and closeout status.',
+    example: 'How much did we sell today?',
+  },
+  {
+    title: 'Run end-of-day closeout',
+    body: 'Staff can submit cash, POS, transfer, and expenses totals so Hoursback compares collected cash against logged sales.',
+    example: 'Closeout: cash 39000, POS 12000, transfer 34000, expenses 7500',
+  },
+  {
+    title: 'Request reports and workflows',
+    body: 'Owners can ask for recurring summaries such as weekly profit and loss by WhatsApp, email, or PDF.',
+    example: 'Send weekly profit and loss as PDF to my email and WhatsApp',
+  },
+  {
+    title: 'Route customer work separately',
+    body: 'Keep staff operations on the internal number and customer ordering on the customer-facing number.',
+    example: 'Use customer mode for menu, orders, receipts, and payment verification',
+  },
+];
+
+const customerCapabilities = [
+  {
+    title: 'Answer menu questions',
+    body: 'Customers can ask for the menu, price list, or whether an item is available.',
+    example: 'Do you have moi moi?',
+  },
+  {
+    title: 'Take orders',
+    body: 'Hoursback captures items, quantities, pickup or delivery details, and order notes.',
+    example: 'I want 3 rice bowls and 2 chicken delivered to Lekki',
+  },
+  {
+    title: 'Request payment proof',
+    body: 'The assistant sends saved payment instructions and asks the customer to send a receipt.',
+    example: 'Paid',
+  },
+  {
+    title: 'Store receipts for review',
+    body: 'Receipt images are saved to Hoursback so the owner can confirm payment in Orders.',
+    example: 'Customer sends transfer screenshot',
+  },
+];
+
 export default function WhatsAppPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -201,6 +257,7 @@ export default function WhatsAppPage() {
 
   const connection = status?.connection;
   const selectedConnection = status?.connections?.find((item) => item.connection_type === connectionType) || connection;
+  const activeCapabilities = connectionType === 'internal' ? internalCapabilities : customerCapabilities;
 
   return (
     <div className="min-h-screen bg-brand-light pb-24">
@@ -302,6 +359,36 @@ export default function WhatsAppPage() {
               </button>
             );
           })}
+        </section>
+
+        <section className="bg-white rounded-3xl border border-brand-dark/10 p-6 space-y-4">
+          <div>
+            <p className="text-xs font-semibold tracking-[0.18em] uppercase text-emerald-600 mb-2">
+              {connectionType === 'internal' ? 'Internal capabilities' : 'Customer capabilities'}
+            </p>
+            <h3 className="text-lg font-semibold text-brand-dark">
+              {connectionType === 'internal'
+                ? 'What your team can do from WhatsApp'
+                : 'What customers can do from WhatsApp'}
+            </h3>
+            <p className="mt-1 text-sm text-slate-500 leading-relaxed">
+              {connectionType === 'internal'
+                ? 'Use this number for owner and staff operations. It turns daily business messages into logs, summaries, closeouts, and workflow requests.'
+                : 'Use this number for customer conversations. It handles menu questions, order capture, receipt collection, and owner review handoff.'}
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-3">
+            {activeCapabilities.map((item) => (
+              <div key={item.title} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-sm font-semibold text-brand-dark">{item.title}</p>
+                <p className="mt-1 text-xs text-slate-500 leading-relaxed">{item.body}</p>
+                <p className="mt-3 rounded-xl bg-white border border-slate-200 px-3 py-2 text-xs text-slate-600 leading-relaxed">
+                  {item.example}
+                </p>
+              </div>
+            ))}
+          </div>
         </section>
 
         <section className="bg-white rounded-3xl border border-brand-dark/10 p-6 space-y-5">
