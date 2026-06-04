@@ -17,6 +17,7 @@ interface KapsoConnection {
   display_name: string | null;
   customer_menu: string | null;
   payment_instructions: string | null;
+  owner_notification_number: string | null;
   last_webhook_at: string | null;
   webhook_secret_set: boolean;
 }
@@ -40,6 +41,7 @@ export default function WhatsAppPage() {
   const [displayName, setDisplayName] = useState('WhatsApp');
   const [customerMenu, setCustomerMenu] = useState('');
   const [paymentInstructions, setPaymentInstructions] = useState('');
+  const [ownerNotificationNumber, setOwnerNotificationNumber] = useState('');
   const [connectionType, setConnectionType] = useState<'internal' | 'customer'>('internal');
 
   const webhookUrl = useMemo(() => {
@@ -63,6 +65,7 @@ export default function WhatsAppPage() {
       setDisplayName(selected?.display_name || (connectionType === 'customer' ? 'Customer Orders' : 'Internal Operations'));
       setCustomerMenu(selected?.customer_menu || '');
       setPaymentInstructions(selected?.payment_instructions || '');
+      setOwnerNotificationNumber(selected?.owner_notification_number || '');
     }
     setLoading(false);
   }, [user, connectionType]);
@@ -125,6 +128,7 @@ export default function WhatsAppPage() {
         display_name: displayName.trim() || 'WhatsApp',
         customer_menu: customerMenu.trim(),
         payment_instructions: paymentInstructions.trim(),
+        owner_notification_number: ownerNotificationNumber.trim(),
       },
     });
     setSaving(false);
@@ -144,6 +148,7 @@ export default function WhatsAppPage() {
         action: 'customer_settings',
         customer_menu: customerMenu.trim(),
         payment_instructions: paymentInstructions.trim(),
+        owner_notification_number: ownerNotificationNumber.trim(),
       },
     });
     setSaving(false);
@@ -176,6 +181,7 @@ export default function WhatsAppPage() {
       setPhoneNumber('');
       setCustomerMenu('');
       setPaymentInstructions('');
+      setOwnerNotificationNumber('');
       toast.success('WhatsApp disconnected');
     }
   };
@@ -390,6 +396,15 @@ export default function WhatsAppPage() {
                   />
                 </label>
               </div>
+              <label className="block">
+                <span className="block text-xs font-medium text-slate-500 mb-1.5">Owner notification WhatsApp number</span>
+                <input
+                  value={ownerNotificationNumber}
+                  onChange={(e) => setOwnerNotificationNumber(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-400"
+                  placeholder="+234..."
+                />
+              </label>
               <button
                 onClick={saveCustomerSettings}
                 disabled={saving}

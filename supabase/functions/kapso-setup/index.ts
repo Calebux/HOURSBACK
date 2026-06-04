@@ -71,6 +71,7 @@ serve(async (req) => {
     if (action === "customer_settings") {
       const customerMenu = String(body.customer_menu || "").trim();
       const paymentInstructions = String(body.payment_instructions || "").trim();
+      const ownerNotificationNumber = String(body.owner_notification_number || "").trim();
 
       const { data: existing } = await supabase
         .from("kapso_connections")
@@ -91,6 +92,7 @@ serve(async (req) => {
           webhook_secret_set: !!KAPSO_WEBHOOK_SECRET,
           customer_menu: customerMenu || null,
           payment_instructions: paymentInstructions || null,
+          owner_notification_number: ownerNotificationNumber || null,
           updated_at: new Date().toISOString(),
         }, { onConflict: "user_id,connection_type" })
         .select("*")
@@ -256,6 +258,7 @@ serve(async (req) => {
       const connectionType = body.connection_type === "customer" ? "customer" : "internal";
       const customerMenu = String(body.customer_menu || "").trim();
       const paymentInstructions = String(body.payment_instructions || "").trim();
+      const ownerNotificationNumber = String(body.owner_notification_number || "").trim();
 
       if (!phoneNumberId) {
         return new Response(JSON.stringify({ error: "phone_number_id is required" }), { status: 400, headers: corsHeaders });
@@ -271,6 +274,7 @@ serve(async (req) => {
           display_name: displayName,
           customer_menu: connectionType === "customer" ? customerMenu || null : null,
           payment_instructions: connectionType === "customer" ? paymentInstructions || null : null,
+          owner_notification_number: connectionType === "customer" ? ownerNotificationNumber || null : null,
           status: "connected",
           webhook_secret_set: !!KAPSO_WEBHOOK_SECRET,
           updated_at: new Date().toISOString(),

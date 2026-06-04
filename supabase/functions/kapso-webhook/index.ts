@@ -552,6 +552,24 @@ async function markLatestOrderReceiptSent(supabase: any, connection: any, messag
 
   if (error) throw error;
 
+  const ownerNumber = String(connection.owner_notification_number || "").trim();
+  if (ownerNumber && connection.phone_number_id) {
+    try {
+      const expectedTotal = order.owner_adjusted_total_amount || order.expected_total_amount || expectedOrderTotal(order.items || [], order.delivery_fee_amount || null);
+      const ownerLines = [
+        "New payment receipt received.",
+        `Order: ${orderItemsSummary(order.items || [])}`,
+        expectedTotal ? `Expected: ${formatNaira(Number(expectedTotal))}` : null,
+        claimedAmount || order.payment_claimed_amount ? `Customer paid: ${formatNaira(Number(claimedAmount || order.payment_claimed_amount))}` : null,
+        receiptUrl ? `Receipt: ${receiptUrl}` : "Receipt: sent",
+        "Open Hoursback /orders to verify payment.",
+      ].filter(Boolean);
+      await sendKapsoText(connection.phone_number_id, ownerNumber, ownerLines.join("\n"));
+    } catch (err) {
+      console.error("Owner receipt notification failed:", err);
+    }
+  }
+
   return [
     "Receipt received. Thank you.",
     `Order: ${orderItemsSummary(order.items || [])}`,
