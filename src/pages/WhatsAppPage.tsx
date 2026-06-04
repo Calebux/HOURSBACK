@@ -96,6 +96,19 @@ export default function WhatsAppPage() {
     toast.success('WhatsApp setup link created');
   };
 
+  const mergeSavedConnection = (connection: KapsoConnection) => {
+    setStatus((prev) => ({
+      connected: prev?.connected || !!connection.phone_number_id,
+      api_configured: prev?.api_configured ?? false,
+      webhook_secret_configured: prev?.webhook_secret_configured ?? false,
+      connection: connection.connection_type === 'internal' ? connection : prev?.connection || connection,
+      connections: [
+        ...(prev?.connections || []).filter((item) => item.connection_type !== connection.connection_type),
+        connection,
+      ],
+    }));
+  };
+
   const saveManualConnection = async () => {
     if (!phoneNumberId.trim()) {
       toast.error('Phone number ID is required');
@@ -120,17 +133,27 @@ export default function WhatsAppPage() {
       toast.error(error.message || 'Could not save WhatsApp connection');
       return;
     }
-    setStatus((prev) => ({
-      connected: true,
-      api_configured: prev?.api_configured ?? false,
-      webhook_secret_configured: prev?.webhook_secret_configured ?? false,
-      connection: data.connection,
-      connections: [
-        ...(prev?.connections || []).filter((item) => item.connection_type !== data.connection?.connection_type),
-        data.connection,
-      ],
-    }));
+    mergeSavedConnection(data.connection);
     toast.success('WhatsApp connection saved');
+  };
+
+  const saveCustomerSettings = async () => {
+    setSaving(true);
+    const { data, error } = await supabase.functions.invoke('kapso-setup', {
+      body: {
+        action: 'customer_settings',
+        customer_menu: customerMenu.trim(),
+        payment_instructions: paymentInstructions.trim(),
+      },
+    });
+    setSaving(false);
+
+    if (error) {
+      toast.error(error.message || 'Could not save customer reply settings');
+      return;
+    }
+    mergeSavedConnection(data.connection);
+    toast.success('Customer reply settings saved');
   };
 
   const disconnect = async () => {
@@ -344,27 +367,36 @@ export default function WhatsAppPage() {
           </div>
 
           {connectionType === 'customer' && (
-            <div className="grid sm:grid-cols-2 gap-3">
-              <label>
-                <span className="block text-xs font-medium text-slate-500 mb-1.5">Menu / price list</span>
-                <textarea
-                  value={customerMenu}
-                  onChange={(e) => setCustomerMenu(e.target.value)}
-                  rows={7}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-400"
-                  placeholder={'Rice bowl - ₦2500\nChicken - ₦1800\nCoke - ₦500'}
-                />
-              </label>
-              <label>
-                <span className="block text-xs font-medium text-slate-500 mb-1.5">Payment instructions</span>
-                <textarea
-                  value={paymentInstructions}
-                  onChange={(e) => setPaymentInstructions(e.target.value)}
-                  rows={7}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-400"
-                  placeholder={'Bank: GTBank\nAccount: 0123456789\nName: Hoursback Foods\nSend receipt here after payment.'}
-                />
-              </label>
+            <div className="space-y-3">
+              <div className="grid sm:grid-cols-2 gap-3">
+                <label>
+                  <span className="block text-xs font-medium text-slate-500 mb-1.5">Menu / price list</span>
+                  <textarea
+                    value={customerMenu}
+                    onChange={(e) => setCustomerMenu(e.target.value)}
+                    rows={7}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-400"
+                    placeholder={'Rice bowl - ₦2500\nChicken - ₦1800\nCoke - ₦500'}
+                  />
+                </label>
+                <label>
+                  <span className="block text-xs font-medium text-slate-500 mb-1.5">Payment instructions</span>
+                  <textarea
+                    value={paymentInstructions}
+                    onChange={(e) => setPaymentInstructions(e.target.value)}
+                    rows={7}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-400"
+                    placeholder={'Bank: GTBank\nAccount: 0123456789\nName: Hoursback Foods\nSend receipt here after payment.'}
+                  />
+                </label>
+              </div>
+              <button
+                onClick={saveCustomerSettings}
+                disabled={saving}
+                className="rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-100 disabled:opacity-60"
+              >
+                Save customer replies
+              </button>
             </div>
           )}
 

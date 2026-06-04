@@ -67,6 +67,38 @@ serve(async (req) => {
       return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
     }
 
+    if (action === "customer_settings") {
+      const customerMenu = String(body.customer_menu || "").trim();
+      const paymentInstructions = String(body.payment_instructions || "").trim();
+
+      const { data: existing } = await supabase
+        .from("kapso_connections")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("connection_type", "customer")
+        .maybeSingle();
+
+      const { data, error } = await supabase
+        .from("kapso_connections")
+        .upsert({
+          user_id: user.id,
+          connection_type: "customer",
+          phone_number_id: existing?.phone_number_id || null,
+          phone_number: existing?.phone_number || null,
+          display_name: existing?.display_name || "Customer Orders",
+          status: existing?.phone_number_id ? "connected" : "settings_saved",
+          webhook_secret_set: !!KAPSO_WEBHOOK_SECRET,
+          customer_menu: customerMenu || null,
+          payment_instructions: paymentInstructions || null,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "user_id,connection_type" })
+        .select("*")
+        .single();
+
+      if (error) throw error;
+      return new Response(JSON.stringify({ success: true, connection: data }), { headers: corsHeaders });
+    }
+
     if (action === "manual_connect") {
       const phoneNumberId = String(body.phone_number_id || "").trim();
       const phoneNumber = String(body.phone_number || "").trim();
