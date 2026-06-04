@@ -229,12 +229,20 @@ function looksLikeSalesEntry(text: string) {
 }
 
 function looksLikeSummaryQuestion(text: string) {
-  return /\b(how much|total|summary|sold most|top item|today|sales today|what sold|report)\b/i.test(text);
+  return /\b(how much|total|summary|sold most|top item|today|sales today|what sold|report|5\s*-?\s*liner?|five\s*-?\s*line)\b/i.test(text);
 }
 
 function looksLikeWorkflowRequest(text: string) {
-  return /\b(schedule|send|deliver|every day|daily|weekly|monthly|every week|report|p&l|profit and loss|pdf|email)\b/i.test(text)
-    && /\b(workflow|report|summary|p&l|profit and loss|sales)\b/i.test(text);
+  return /\b(schedule|deliver|every day|daily|weekly|monthly|every week|workflow|pdf|email|whatsapp)\b/i.test(text)
+    && /\b(workflow|report|summary|p&l|profit and loss|sales|5\s*-?\s*liner?|five\s*-?\s*line)\b/i.test(text);
+}
+
+function looksLikeProfitAndLossQuestion(text: string) {
+  return /\b(p&l|profit and loss|profit\/loss|profit loss)\b/i.test(text);
+}
+
+function looksLikeFiveLineSummary(text: string) {
+  return /\b(5\s*-?\s*liner?|five\s*-?\s*line|five\s+liner?)\b/i.test(text);
 }
 
 function parseWorkflowRequest(text: string) {
@@ -990,9 +998,8 @@ async function parseEntryWithAI(text: string) {
   return { entry_type: "note", item: null, qty: null, unit_price: null, total: null, customer: null, notes: text };
 }
 
-async function buildSalesSummary(supabase: any, userId: string) {
+async function getTodayBusinessMetrics(supabase: any, userId: string) {
   const start = getTodayStart();
-
   const { data: entries } = await supabase
     .from("bot_entries")
     .select("entry_type, parsed_data, triggered_by, created_at")
@@ -1020,15 +1027,52 @@ async function buildSalesSummary(supabase: any, userId: string) {
     .limit(1);
   const latestCloseout = closeouts?.[0];
 
+  return {
+    rows,
+    totalSales,
+    totalExpenses,
+    estimatedProfit: totalSales - totalExpenses,
+    topItem,
+    latestCloseout,
+  };
+}
+
+async function buildSalesSummary(supabase: any, userId: string) {
+  const metrics = await getTodayBusinessMetrics(supabase, userId);
+
   return [
     `Today so far:`,
-    `Sales: ₦${totalSales.toLocaleString()}`,
-    `Expenses: ₦${totalExpenses.toLocaleString()}`,
-    `Entries logged: ${rows.length}`,
-    topItem ? `Top item: ${topItem[0]} (${topItem[1]} units/entries)` : `Top item: none yet`,
-    latestCloseout
-      ? `Closeout: ${latestCloseout.status.replace(/_/g, " ")} (collected ₦${Number(latestCloseout.actual_collected_total || 0).toLocaleString()}, variance ₦${Number(latestCloseout.variance_total || 0).toLocaleString()})`
+    `Sales: ₦${metrics.totalSales.toLocaleString()}`,
+    `Expenses: ₦${metrics.totalExpenses.toLocaleString()}`,
+    `Entries logged: ${metrics.rows.length}`,
+    metrics.topItem ? `Top item: ${metrics.topItem[0]} (${metrics.topItem[1]} units/entries)` : `Top item: none yet`,
+    metrics.latestCloseout
+      ? `Closeout: ${metrics.latestCloseout.status.replace(/_/g, " ")} (collected ₦${Number(metrics.latestCloseout.actual_collected_total || 0).toLocaleString()}, variance ₦${Number(metrics.latestCloseout.variance_total || 0).toLocaleString()})`
       : `Closeout: not done yet`,
+  ].join("\n");
+}
+
+async function buildProfitAndLossSummary(supabase: any, userId: string) {
+  const metrics = await getTodayBusinessMetrics(supabase, userId);
+  return [
+    "Profit and loss today:",
+    `Revenue: ₦${metrics.totalSales.toLocaleString()}`,
+    `Expenses: ₦${metrics.totalExpenses.toLocaleString()}`,
+    `Estimated profit: ₦${metrics.estimatedProfit.toLocaleString()}`,
+    metrics.latestCloseout
+      ? `Closeout variance: ₦${Number(metrics.latestCloseout.variance_total || 0).toLocaleString()}`
+      : "Closeout variance: not closed yet",
+  ].join("\n");
+}
+
+async function buildFiveLineSummary(supabase: any, userId: string) {
+  const metrics = await getTodayBusinessMetrics(supabase, userId);
+  return [
+    `Sales: ₦${metrics.totalSales.toLocaleString()}`,
+    `Expenses: ₦${metrics.totalExpenses.toLocaleString()}`,
+    `Profit: ₦${metrics.estimatedProfit.toLocaleString()}`,
+    metrics.topItem ? `Top item: ${metrics.topItem[0]} (${metrics.topItem[1]})` : "Top item: none yet",
+    metrics.latestCloseout ? `Closeout: ${metrics.latestCloseout.status.replace(/_/g, " ")}` : "Closeout: not done yet",
   ].join("\n");
 }
 
@@ -1231,6 +1275,10 @@ serve(async (req) => {
       }
     } else if (looksLikeWorkflowRequest(text)) {
       reply = await saveWorkflowRequest(supabase, connection, message, text);
+    } else if (looksLikeProfitAndLossQuestion(text)) {
+      reply = await buildProfitAndLossSummary(supabase, connection.user_id);
+    } else if (looksLikeFiveLineSummary(text)) {
+      reply = await buildFiveLineSummary(supabase, connection.user_id);
     } else if (looksLikeSummaryQuestion(text)) {
       reply = await buildSalesSummary(supabase, connection.user_id);
     } else if (looksLikeSalesEntry(text) || text.toLowerCase().startsWith("/log ")) {

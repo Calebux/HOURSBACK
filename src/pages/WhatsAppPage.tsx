@@ -47,6 +47,16 @@ const internalCapabilities = [
     example: 'How much did we sell today?',
   },
   {
+    title: 'Get profit and loss',
+    body: 'Owners can get today’s revenue, expenses, estimated profit, and closeout variance from WhatsApp.',
+    example: 'Profit and loss',
+  },
+  {
+    title: 'Get a 5-liner',
+    body: 'Owners can request a compact five-line snapshot for quick decisions.',
+    example: 'Send me a 5-liner',
+  },
+  {
     title: 'Run end-of-day closeout',
     body: 'Staff can submit cash, POS, transfer, and expenses totals so Hoursback compares collected cash against logged sales.',
     example: 'Closeout: cash 39000, POS 12000, transfer 34000, expenses 7500',
