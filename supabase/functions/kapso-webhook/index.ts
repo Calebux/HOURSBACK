@@ -267,7 +267,41 @@ function formatNaira(amount: number) {
   return `₦${amount.toLocaleString("en-NG")}`;
 }
 
-async function parseOrderWithAI(text: string, menu?: string | null): Promise<ParsedOrder> {
+function isPickupReply(text: string) {
+  return /^(pickup|pick up|collection|collect|i will pick up|i'll pick up)$/i.test(text.trim());
+}
+
+function looksLikeAddressReply(text: string) {
+  const normalized = text.trim();
+  if (!normalized || normalized.length > 160) return false;
+  if (looksLikeMenuRequest(normalized) || extractAvailabilityItem(normalized) || looksLikeWorkflowRequest(normalized)) return false;
+  if (looksLikeOrderMessage(normalized)) return false;
+  return /[a-z]/i.test(normalized);
+}
+
+async function parseOrderWithAI(text: string, menu?: string | null, existingOrder?: any): Promise<ParsedOrder> {
+  if (existingOrder?.items?.length) {
+    if (isPickupReply(text)) {
+      return {
+        items: [],
+        delivery_address: "Pickup",
+        payment_method: null,
+        customer_name: null,
+        notes: null,
+      };
+    }
+
+    if (!existingOrder.delivery_address && looksLikeAddressReply(text)) {
+      return {
+        items: [],
+        delivery_address: text.trim(),
+        payment_method: null,
+        customer_name: null,
+        notes: null,
+      };
+    }
+  }
+
   if (!ANTHROPIC_API_KEY) {
     return { items: [{ name: text, qty: null, unit_price: null }], delivery_address: null, payment_method: null, notes: text };
   }
@@ -282,9 +316,16 @@ async function parseOrderWithAI(text: string, menu?: string | null): Promise<Par
         content: [
           "Extract a customer WhatsApp order from the message.",
           menu ? `Business menu / price list:\n${menu}` : "Business menu / price list: not configured.",
+          existingOrder ? `Open order waiting for details:\n${JSON.stringify({
+            items: existingOrder.items || [],
+            delivery_address: existingOrder.delivery_address || null,
+            payment_method: existingOrder.payment_method || null,
+            customer_name: existingOrder.customer_name || null,
+          })}` : "Open order waiting for details: none.",
           `Message: "${text}"`,
           'Return JSON only: {"items":[{"name":string,"qty":number|null,"unit_price":number|null}],"delivery_address":string|null,"payment_method":string|null,"customer_name":string|null,"notes":string|null}',
           "Use the menu prices when the ordered item clearly matches a menu item. Do not invent prices or items.",
+          "If there is an open order and the customer replies with an address, place, or pickup/collection, set delivery_address to that value and return no new items.",
           "If the customer is only answering a missing detail, return empty items and fill the detail.",
         ].join("\n"),
       }],
@@ -304,18 +345,23 @@ function orderItemsSummary(items: any[]) {
   return items.map((item) => `${item.qty ? `${item.qty} x ` : ""}${item.name}`).join(", ");
 }
 
-async function handleCustomerOrder(supabase: any, connection: any, message: ParsedMessage, text: string) {
-  const parsed = await parseOrderWithAI(text, connection.customer_menu);
+async function findOpenCustomerOrder(supabase: any, connection: any, from?: string) {
+  if (!from) return null;
   const { data: openOrders } = await supabase
     .from("kapso_orders")
     .select("*")
     .eq("user_id", connection.user_id)
-    .eq("customer_phone", message.from || "")
+    .eq("customer_phone", from)
     .eq("status", "needs_details")
     .order("created_at", { ascending: false })
     .limit(1);
 
-  const existing = openOrders?.[0];
+  return openOrders?.[0] || null;
+}
+
+async function handleCustomerOrder(supabase: any, connection: any, message: ParsedMessage, text: string, openOrder?: any) {
+  const existing = openOrder || await findOpenCustomerOrder(supabase, connection, message.from);
+  const parsed = await parseOrderWithAI(text, connection.customer_menu, existing);
   const parsedItems = Array.isArray(parsed.items) ? parsed.items.filter((item) => item?.name) : [];
   const items = parsedItems.length ? parsedItems : existing?.items || [];
   const deliveryAddress = parsed.delivery_address || existing?.delivery_address || null;
@@ -640,6 +686,16 @@ serve(async (req) => {
       return new Response(JSON.stringify({ success: true, ignored: "no text message" }), { headers });
     }
 
+    if (!idempotencyKey && message.messageId) {
+      const { error } = await supabase.from("kapso_webhook_events").insert({
+        idempotency_key: `kapso-message:${message.messageId}`,
+        event: req.headers.get("X-Webhook-Event") || payload?.event || null,
+      });
+      if (error?.code === "23505") {
+        return new Response(JSON.stringify({ success: true, duplicate: true }), { headers });
+      }
+    }
+
     const url = new URL(req.url);
     const uid = url.searchParams.get("uid");
     const mode = url.searchParams.get("mode");
@@ -720,6 +776,7 @@ serve(async (req) => {
     const activeCloseoutSession = await findActiveCloseoutSession(supabase, connection.user_id, message.from);
 
     if (connection.connection_type === "customer") {
+      const openOrder = await findOpenCustomerOrder(supabase, connection, message.from);
       const availabilityItem = extractAvailabilityItem(text);
       if (looksLikeWorkflowRequest(text)) {
         reply = await saveWorkflowRequest(supabase, connection, message, text);
@@ -727,6 +784,8 @@ serve(async (req) => {
         reply = buildAvailabilityReply(connection, availabilityItem);
       } else if (looksLikeMenuRequest(text)) {
         reply = buildMenuReply(connection);
+      } else if (openOrder) {
+        reply = await handleCustomerOrder(supabase, connection, message, text, openOrder);
       } else if (looksLikeOrderMessage(text)) {
         reply = await handleCustomerOrder(supabase, connection, message, text);
       } else {
