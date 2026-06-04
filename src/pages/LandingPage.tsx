@@ -889,6 +889,31 @@ function WhatsAppFeature() {
           </div>
         </div>
 
+        <div className="mt-8 rounded-3xl border border-[#25D366]/20 bg-white p-6 shadow-sm">
+          <div className="grid gap-6 md:grid-cols-[0.9fr_1.1fr] md:items-center">
+            <div>
+              <p className="text-xs font-semibold tracking-[0.16em] uppercase text-[#128C4A]">Example workflow</p>
+              <h3 className="mt-2 text-2xl font-bold tracking-tight text-[#202124]">A food vendor runs the day from WhatsApp.</h3>
+              <p className="mt-3 text-sm text-[#202124]/60 leading-relaxed">
+                Staff log sales as they happen, customers place orders in chat, and the owner asks for a 5-line profit check before closing.
+              </p>
+            </div>
+            <div className="grid gap-2 text-sm">
+              {[
+                ['Staff', 'Sold 12 rice bowls, 6 chicken. Transfer ₦54,000'],
+                ['Customer', 'I want 2 rice bowls delivered to Lekki'],
+                ['Owner', 'Send me a 5-liner'],
+                ['Hoursback', 'Sales, expenses, estimated profit, top item, and closeout status are ready.'],
+              ].map(([label, text]) => (
+                <div key={label} className="rounded-2xl border border-black/8 bg-[#F8F9FA] px-4 py-3">
+                  <p className="text-xs font-semibold text-[#202124]/35">{label}</p>
+                  <p className="mt-1 text-[#202124]/75">{text}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
         <div className="grid md:grid-cols-3 gap-4 mt-8">
           {examples.map((example) => (
             <div key={example.title} className="bg-white border border-black/8 rounded-2xl p-5">
@@ -1177,7 +1202,8 @@ function TestimonialsSection() {
 function FAQSection() {
   const faqs = [
     { q: "Do I need to know how to code?", a: "No. If you can fill in a form, you can deploy a workflow. Pick a template, connect your data source, set your schedule — live in under 5 minutes." },
-    { q: "What does Hoursback actually monitor?", a: "Google Sheets, websites, CRM data, financial spreadsheets, competitor pages, and any data you connect via webhook. The AI detects what changed and sends you a clear summary by email." },
+    { q: "Can Hoursback work with WhatsApp?", a: "Yes. Staff can log sales and closeout updates from WhatsApp, customers can place orders through a customer-facing number, and owners can ask for summaries like today’s sales or a 5-line profit check." },
+    { q: "What does Hoursback actually monitor?", a: "Google Sheets, websites, CRM data, financial spreadsheets, competitor pages, WhatsApp messages, and any data you connect via webhook. The AI detects what changed and sends you a clear summary by email or supported chat workflows." },
     { q: "How often does the AI run?", a: "You choose — daily, weekly, or monthly. Once deployed, the workflow runs on that schedule automatically. The report just arrives in your inbox." },
     { q: "What kinds of workflows are available?", a: "Finance metrics, sales pipelines, competitor websites, spreadsheet data, industry news, supplier prices, and more. 15+ ready-made workflows across multiple categories." },
   ];
@@ -1248,7 +1274,7 @@ function Footer() {
           <div className="md:col-span-1">
             <img src="/logo.svg" alt="Hoursback" className="h-[28px] w-auto mb-4 brightness-0 invert" />
             <p className="text-white/45 text-sm leading-relaxed">
-              AI workflows that monitor your business and deliver clear insights to your inbox — automatically, on a schedule you choose.
+              AI workflows that monitor your business, turn WhatsApp updates into structured records, and deliver clear insights to your inbox or chat.
             </p>
             <div className="mt-6">
               <p className="text-xs font-semibold text-white/40 uppercase tracking-widest mb-3">Subscribe to our newsletter</p>
