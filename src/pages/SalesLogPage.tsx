@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { ChevronLeft, Download, FileText, Camera, X, Loader2, CheckCircle2, Lock, Trash2 } from 'lucide-react';
+import { ChevronLeft, Download, FileText, Camera, X, Loader2, CheckCircle2, Lock, Trash2, MessageCircle, Sheet } from 'lucide-react';
 import { MobileNav } from '../components/MobileNav';
 import { toast } from 'sonner';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
@@ -24,6 +24,7 @@ interface BotEntry {
   } | null;
   sale_date: string | null;
   source: string | null;
+  channel?: string | null;
   created_at: string;
 }
 
@@ -47,6 +48,31 @@ function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' });
 }
 
+function inferChannel(source?: string | null) {
+  if (!source) return 'telegram';
+  if (source.startsWith('whatsapp')) return 'whatsapp';
+  if (source.startsWith('web')) return 'web';
+  return 'telegram';
+}
+
+function labelChannel(channel?: string | null) {
+  switch (channel) {
+    case 'whatsapp': return 'WhatsApp';
+    case 'web': return 'Web';
+    case 'telegram': return 'Telegram';
+    default: return channel || 'Unknown';
+  }
+}
+
+function channelClass(channel?: string | null) {
+  switch (channel) {
+    case 'whatsapp': return 'bg-emerald-50 text-emerald-700';
+    case 'web': return 'bg-blue-50 text-blue-700';
+    case 'telegram': return 'bg-sky-50 text-sky-700';
+    default: return 'bg-slate-100 text-slate-500';
+  }
+}
+
 export default function SalesLogPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -57,6 +83,7 @@ export default function SalesLogPage() {
   const [isPro, setIsPro] = useState(false);
   const [filterType, setFilterType] = useState('');
   const [filterStaff, setFilterStaff] = useState('');
+  const [filterChannel, setFilterChannel] = useState('');
 
   // Photo upload state
   const [uploadState, setUploadState] = useState<'idle' | 'parsing' | 'preview' | 'saving'>('idle');
@@ -97,13 +124,19 @@ export default function SalesLogPage() {
     [entries]
   );
 
+  const channelOptions = useMemo(() =>
+    [...new Set(entries.map(e => e.channel || inferChannel(e.source)).filter(Boolean))].sort(),
+    [entries]
+  );
+
   const filtered = useMemo(() =>
     entries.filter(e => {
       if (filterType && e.entry_type !== filterType) return false;
       if (filterStaff && e.triggered_by !== filterStaff) return false;
+      if (filterChannel && (e.channel || inferChannel(e.source)) !== filterChannel) return false;
       return true;
     }),
-    [entries, filterType, filterStaff]
+    [entries, filterType, filterStaff, filterChannel]
   );
 
   const totalAmount = useMemo(() =>
@@ -116,6 +149,7 @@ export default function SalesLogPage() {
   const monthStart = new Date();
   monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
   const thisMonth = entries.filter(e => new Date(e.created_at) >= monthStart).length;
+  const whatsappCount = entries.filter(e => (e.channel || inferChannel(e.source)) === 'whatsapp').length;
 
   const deleteEntry = async (id: string) => {
     setDeletingId(id);
@@ -153,7 +187,7 @@ export default function SalesLogPage() {
 
   const downloadCsv = () => {
     const rows = [
-      ['Date', 'Staff', 'Item', 'Qty', 'Unit Price', 'Total', 'Customer', 'Type', 'Source', 'Raw'],
+      ['Date', 'Staff', 'Item', 'Qty', 'Unit Price', 'Total', 'Customer', 'Type', 'Channel', 'Source', 'Raw'],
       ...filtered.map(e => [
         fmtDate(e.sale_date ?? e.created_at),
         e.triggered_by ?? '',
@@ -163,6 +197,7 @@ export default function SalesLogPage() {
         e.parsed_data?.total != null ? String(e.parsed_data.total) : '',
         e.parsed_data?.customer ?? '',
         e.entry_type,
+        e.channel || inferChannel(e.source),
         e.source ?? 'telegram_text',
         e.raw_text,
       ]),
@@ -406,9 +441,20 @@ export default function SalesLogPage() {
       )}
 
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+        {whatsappCount > 0 && (
+          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-start gap-3">
+            <MessageCircle className="w-5 h-5 text-emerald-600 mt-0.5 shrink-0" />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-emerald-950">WhatsApp is feeding this log</p>
+              <p className="text-xs text-emerald-700 mt-1">
+                Sales sent from WhatsApp are saved here automatically. Use Download CSV to open the same rows in Google Sheets.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="bg-white rounded-2xl border border-brand-dark/10 p-4">
             <p className="text-xs text-slate-400 mb-1">Total entries</p>
             <p className="text-2xl font-bold text-brand-dark">{entries.length}</p>
@@ -422,6 +468,10 @@ export default function SalesLogPage() {
           <div className="bg-white rounded-2xl border border-brand-dark/10 p-4">
             <p className="text-xs text-slate-400 mb-1">This month</p>
             <p className="text-2xl font-bold text-brand-dark">{thisMonth}</p>
+          </div>
+          <div className="bg-white rounded-2xl border border-brand-dark/10 p-4">
+            <p className="text-xs text-slate-400 mb-1">WhatsApp</p>
+            <p className="text-2xl font-bold text-brand-dark">{whatsappCount}</p>
           </div>
         </div>
 
@@ -519,6 +569,28 @@ export default function SalesLogPage() {
               ))}
             </select>
           )}
+          {channelOptions.length > 0 && (
+            <select
+              value={filterChannel}
+              onChange={e => setFilterChannel(e.target.value)}
+              className="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white text-slate-700 focus:outline-none focus:border-slate-400"
+            >
+              <option value="">All channels</option>
+              {channelOptions.map(channel => (
+                <option key={channel} value={channel}>{labelChannel(channel)}</option>
+              ))}
+            </select>
+          )}
+          {filtered.length > 0 && (
+            <button
+              onClick={downloadCsv}
+              className="inline-flex items-center gap-1.5 text-sm border border-emerald-200 rounded-lg px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors"
+              title="Download a CSV you can import into Google Sheets"
+            >
+              <Sheet className="w-4 h-4" />
+              Sheets CSV
+            </button>
+          )}
         </div>
 
         {/* Table */}
@@ -528,8 +600,9 @@ export default function SalesLogPage() {
             <p className="font-semibold text-brand-dark mb-1">No entries yet</p>
             <p className="text-sm text-slate-400">
               Staff can log sales by typing{' '}
-              <code className="font-mono bg-slate-100 px-1 rounded">/log</code> in your Telegram bot,
-              or scan your sales book with the button above.
+              <code className="font-mono bg-slate-100 px-1 rounded">Sold 2 rice bowls for 5000 cash</code>{' '}
+              in WhatsApp, using <code className="font-mono bg-slate-100 px-1 rounded">/log</code> in Telegram,
+              or scanning your sales book with the button above.
             </p>
           </div>
         ) : (
@@ -544,6 +617,7 @@ export default function SalesLogPage() {
                     <th className="text-right px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Qty</th>
                     <th className="text-right px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Amount</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide hidden sm:table-cell">Customer</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Channel</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Type</th>
                     <th className="px-4 py-3 w-8" />
                   </tr>
@@ -558,7 +632,7 @@ export default function SalesLogPage() {
                       <td className="px-4 py-3 text-slate-500 whitespace-nowrap">
                         {fmtDate(e.sale_date ?? e.created_at)}
                         {e.source === 'telegram_photo' || e.source === 'web_upload'
-                          ? <span className="ml-1.5 text-[10px] text-slate-300">📷</span>
+                          ? <span className="ml-1.5 text-[10px] text-slate-300">Photo</span>
                           : null
                         }
                       </td>
@@ -569,6 +643,11 @@ export default function SalesLogPage() {
                       <td className="px-4 py-3 text-right text-slate-600">{e.parsed_data?.qty ?? ''}</td>
                       <td className="px-4 py-3 text-right font-medium text-brand-dark">{fmt(e.parsed_data?.total)}</td>
                       <td className="px-4 py-3 text-slate-500 hidden sm:table-cell">{e.parsed_data?.customer ?? ''}</td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${channelClass(e.channel || inferChannel(e.source))}`}>
+                          {labelChannel(e.channel || inferChannel(e.source))}
+                        </span>
+                      </td>
                       <td className="px-4 py-3">
                         <span className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full ${
                           e.entry_type === 'sale'    ? 'bg-emerald-50 text-emerald-700' :
@@ -603,7 +682,7 @@ export default function SalesLogPage() {
                       <td className="px-4 py-3 text-right font-bold text-brand-dark">
                         {fmt(totalAmount)}
                       </td>
-                      <td colSpan={3} />
+                      <td colSpan={4} />
                     </tr>
                   </tfoot>
                 )}
