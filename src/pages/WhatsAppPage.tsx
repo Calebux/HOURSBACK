@@ -9,6 +9,7 @@ import { MobileNav } from '../components/MobileNav';
 interface KapsoConnection {
   id: string;
   status: string;
+  connection_type?: 'internal' | 'customer';
   setup_link_url: string | null;
   setup_link_expires_at: string | null;
   phone_number_id: string | null;
@@ -23,6 +24,7 @@ interface KapsoStatus {
   api_configured: boolean;
   webhook_secret_configured: boolean;
   connection: KapsoConnection | null;
+  connections?: KapsoConnection[];
 }
 
 export default function WhatsAppPage() {
@@ -34,6 +36,7 @@ export default function WhatsAppPage() {
   const [phoneNumberId, setPhoneNumberId] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [displayName, setDisplayName] = useState('WhatsApp');
+  const [connectionType, setConnectionType] = useState<'internal' | 'customer'>('internal');
 
   const webhookUrl = useMemo(() => {
     if (!user) return '';
@@ -50,12 +53,13 @@ export default function WhatsAppPage() {
       toast.error(error.message || 'Could not load WhatsApp status');
     } else {
       setStatus(data);
-      setPhoneNumberId(data?.connection?.phone_number_id || '');
-      setPhoneNumber(data?.connection?.phone_number || '');
-      setDisplayName(data?.connection?.display_name || 'WhatsApp');
+      const selected = (data?.connections || []).find((item: KapsoConnection) => item.connection_type === connectionType) || data?.connection;
+      setPhoneNumberId(selected?.phone_number_id || '');
+      setPhoneNumber(selected?.phone_number || '');
+      setDisplayName(selected?.display_name || (connectionType === 'customer' ? 'Customer Orders' : 'Internal Operations'));
     }
     setLoading(false);
-  }, [user]);
+  }, [user, connectionType]);
 
   useEffect(() => {
     if (!user) {
@@ -96,6 +100,7 @@ export default function WhatsAppPage() {
     const { data, error } = await supabase.functions.invoke('kapso-setup', {
       body: {
         action: 'manual_connect',
+        connection_type: connectionType,
         phone_number_id: phoneNumberId.trim(),
         phone_number: phoneNumber.trim(),
         display_name: displayName.trim() || 'WhatsApp',
@@ -112,6 +117,10 @@ export default function WhatsAppPage() {
       api_configured: prev?.api_configured ?? false,
       webhook_secret_configured: prev?.webhook_secret_configured ?? false,
       connection: data.connection,
+      connections: [
+        ...(prev?.connections || []).filter((item) => item.connection_type !== data.connection?.connection_type),
+        data.connection,
+      ],
     }));
     toast.success('WhatsApp connection saved');
   };
@@ -152,6 +161,7 @@ export default function WhatsAppPage() {
   }
 
   const connection = status?.connection;
+  const selectedConnection = status?.connections?.find((item) => item.connection_type === connectionType) || connection;
 
   return (
     <div className="min-h-screen bg-brand-light pb-24">
@@ -166,7 +176,7 @@ export default function WhatsAppPage() {
               <h1 className="text-base font-semibold text-brand-dark">WhatsApp Workflows</h1>
             </div>
           </div>
-          {connection?.phone_number_id && (
+          {selectedConnection?.phone_number_id && (
             <button
               onClick={disconnect}
               disabled={saving}
@@ -190,11 +200,11 @@ export default function WhatsAppPage() {
               </p>
             </div>
             <div className={`px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 ${
-              connection?.phone_number_id
+              selectedConnection?.phone_number_id
                 ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
                 : 'bg-amber-50 text-amber-700 border border-amber-100'
             }`}>
-              {connection?.phone_number_id ? 'Connected' : 'Setup needed'}
+              {selectedConnection?.phone_number_id ? 'Connected' : 'Setup needed'}
             </div>
           </div>
         </section>
@@ -212,9 +222,52 @@ export default function WhatsAppPage() {
           ))}
         </section>
 
+        <div className="flex flex-wrap gap-3">
+          <Link
+            to="/orders"
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-white border border-emerald-200 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50"
+          >
+            <MessageCircle className="w-4 h-4" />
+            View customer orders
+          </Link>
+          <Link
+            to="/data-log"
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-white border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+          >
+            View sales log
+          </Link>
+        </div>
+
+        <section className="grid md:grid-cols-2 gap-4">
+          {[
+            ['internal', 'Internal operations', 'Staff sales logs, closeout, owner summaries, and workflow requests.'],
+            ['customer', 'Customer orders', 'Customer orders, missing-detail questions, and order tracking.'],
+          ].map(([type, title, body]) => {
+            const saved = status?.connections?.find((item) => item.connection_type === type);
+            return (
+              <button
+                key={type}
+                type="button"
+                onClick={() => setConnectionType(type as 'internal' | 'customer')}
+                className={`text-left rounded-2xl border p-4 transition-colors ${
+                  connectionType === type
+                    ? 'bg-emerald-50 border-emerald-200'
+                    : 'bg-white border-brand-dark/10 hover:border-slate-300'
+                }`}
+              >
+                <p className="text-sm font-semibold text-brand-dark">{title}</p>
+                <p className="mt-1 text-xs text-slate-500 leading-relaxed">{body}</p>
+                <p className="mt-3 text-xs font-medium text-slate-400">
+                  {saved?.phone_number_id ? `Connected: ${saved.display_name || saved.phone_number || saved.phone_number_id}` : 'Not connected'}
+                </p>
+              </button>
+            );
+          })}
+        </section>
+
         <section className="bg-white rounded-3xl border border-brand-dark/10 p-6 space-y-5">
           <div>
-            <h3 className="text-lg font-semibold text-brand-dark">1. Connect your number</h3>
+            <h3 className="text-lg font-semibold text-brand-dark">1. Connect {connectionType === 'customer' ? 'customer orders' : 'internal operations'} number</h3>
             <p className="mt-1 text-sm text-slate-500">
               Use Kapso setup if `KAPSO_API_KEY` is configured, or paste a Kapso WhatsApp Business Phone Number ID manually.
             </p>
@@ -234,17 +287,17 @@ export default function WhatsAppPage() {
             )}
           </div>
 
-          {connection?.setup_link_url && (
+          {selectedConnection?.setup_link_url && (
             <a
-              href={connection.setup_link_url}
+              href={selectedConnection.setup_link_url}
               target="_blank"
               rel="noreferrer"
               className="block rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700 hover:bg-emerald-100 transition-colors"
             >
               Open Kapso setup link →
-              {connection.setup_link_expires_at && (
+              {selectedConnection.setup_link_expires_at && (
                 <span className="block mt-1 text-xs text-emerald-700/60">
-                  Expires {new Date(connection.setup_link_expires_at).toLocaleString()}
+                  Expires {new Date(selectedConnection.setup_link_expires_at).toLocaleString()}
                 </span>
               )}
             </a>
@@ -257,7 +310,7 @@ export default function WhatsAppPage() {
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-400"
-                placeholder="Shop WhatsApp"
+                placeholder={connectionType === 'customer' ? 'Customer Orders' : 'Internal Operations'}
               />
             </label>
             <label className="sm:col-span-1">
@@ -314,7 +367,7 @@ export default function WhatsAppPage() {
             <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4">
               <p className="text-xs text-slate-400 mb-1">Last webhook</p>
               <p className="text-sm font-semibold text-brand-dark">
-                {connection?.last_webhook_at ? new Date(connection.last_webhook_at).toLocaleString() : 'No messages yet'}
+                {selectedConnection?.last_webhook_at ? new Date(selectedConnection.last_webhook_at).toLocaleString() : 'No messages yet'}
               </p>
             </div>
           </div>

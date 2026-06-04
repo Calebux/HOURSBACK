@@ -48,13 +48,17 @@ serve(async (req) => {
         .from("kapso_connections")
         .select("*")
         .eq("user_id", user.id)
-        .maybeSingle();
+        .order("connection_type", { ascending: true });
+
+      const connections = data || [];
+      const primary = connections.find((item: any) => item.connection_type === "internal") || connections[0] || null;
 
       return new Response(JSON.stringify({
-        connected: !!data?.phone_number_id,
+        connected: connections.some((item: any) => !!item.phone_number_id),
         api_configured: !!getKapsoApiKey(),
         webhook_secret_configured: !!KAPSO_WEBHOOK_SECRET,
-        connection: data,
+        connection: primary,
+        connections,
       }), { headers: corsHeaders });
     }
 
@@ -67,6 +71,7 @@ serve(async (req) => {
       const phoneNumberId = String(body.phone_number_id || "").trim();
       const phoneNumber = String(body.phone_number || "").trim();
       const displayName = String(body.display_name || "WhatsApp").trim();
+      const connectionType = body.connection_type === "customer" ? "customer" : "internal";
 
       if (!phoneNumberId) {
         return new Response(JSON.stringify({ error: "phone_number_id is required" }), { status: 400, headers: corsHeaders });
@@ -76,13 +81,14 @@ serve(async (req) => {
         .from("kapso_connections")
         .upsert({
           user_id: user.id,
+          connection_type: connectionType,
           phone_number_id: phoneNumberId,
           phone_number: phoneNumber || null,
           display_name: displayName,
           status: "connected",
           webhook_secret_set: !!KAPSO_WEBHOOK_SECRET,
           updated_at: new Date().toISOString(),
-        }, { onConflict: "user_id" })
+        }, { onConflict: "user_id,connection_type" })
         .select("*")
         .single();
 
@@ -102,6 +108,7 @@ serve(async (req) => {
         .from("kapso_connections")
         .select("*")
         .eq("user_id", user.id)
+        .eq("connection_type", "internal")
         .maybeSingle();
 
       let customerId = existing?.kapso_customer_id;
@@ -124,6 +131,7 @@ serve(async (req) => {
         .from("kapso_connections")
         .upsert({
           user_id: user.id,
+          connection_type: "internal",
           kapso_customer_id: customerId,
           external_customer_id: externalCustomerId,
           setup_link_url: setupLink?.url || null,
@@ -131,7 +139,7 @@ serve(async (req) => {
           status: existing?.phone_number_id ? "connected" : "setup_pending",
           webhook_secret_set: !!KAPSO_WEBHOOK_SECRET,
           updated_at: new Date().toISOString(),
-        }, { onConflict: "user_id" })
+        }, { onConflict: "user_id,connection_type" })
         .select("*")
         .single();
 

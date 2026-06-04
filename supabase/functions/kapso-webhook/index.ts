@@ -20,6 +20,14 @@ type ParsedMessage = {
   text?: string;
 };
 
+type ParsedOrder = {
+  items?: Array<{ name: string; qty?: number | null; unit_price?: number | null }>;
+  delivery_address?: string | null;
+  payment_method?: string | null;
+  customer_name?: string | null;
+  notes?: string | null;
+};
+
 function bytesToHex(bytes: ArrayBuffer) {
   return [...new Uint8Array(bytes)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
@@ -132,8 +140,136 @@ function looksLikeSummaryQuestion(text: string) {
   return /\b(how much|total|summary|sold most|top item|today|sales today|what sold|report)\b/i.test(text);
 }
 
+function looksLikeWorkflowRequest(text: string) {
+  return /\b(schedule|send|deliver|every day|daily|weekly|monthly|every week|report|p&l|profit and loss|pdf|email)\b/i.test(text)
+    && /\b(workflow|report|summary|p&l|profit and loss|sales)\b/i.test(text);
+}
+
+function parseWorkflowRequest(text: string) {
+  const cadence = /\b(monthly|every month)\b/i.test(text)
+    ? "monthly"
+    : /\b(weekly|every week)\b/i.test(text)
+      ? "weekly"
+      : /\b(daily|every day)\b/i.test(text)
+        ? "daily"
+        : "one_off";
+  const wantsEmail = /\bemail\b/i.test(text);
+  const wantsWhatsapp = /\bwhatsapp|wa\b/i.test(text);
+  const wantsPdf = /\bpdf|document|doc\b/i.test(text);
+  const reportType = /\bp&l|profit and loss|profit\b/i.test(text) ? "profit_and_loss" : "sales_summary";
+  return { cadence, wantsEmail, wantsWhatsapp, wantsPdf, reportType };
+}
+
+async function saveWorkflowRequest(supabase: any, connection: any, message: ParsedMessage, text: string) {
+  const parsed = parseWorkflowRequest(text);
+  await supabase.from("kapso_workflow_requests").insert({
+    user_id: connection.user_id,
+    connection_id: connection.id,
+    from_number: message.from || null,
+    request_text: text,
+    parsed_intent: parsed,
+  });
+
+  return [
+    "Workflow request saved as a draft.",
+    `${parsed.cadence.replace(/_/g, " ")} ${parsed.reportType.replace(/_/g, " ")}${parsed.wantsPdf ? " as PDF" : ""}${parsed.wantsEmail ? " by email" : ""}${parsed.wantsWhatsapp ? " to WhatsApp" : ""}.`,
+    "Open Hoursback Workflows to review and activate it.",
+  ].join("\n");
+}
+
 function looksLikeCloseoutStart(text: string) {
   return /^(\/)?(close|closeout|close out|end day|eod)\b/i.test(text.trim());
+}
+
+function looksLikeOrderMessage(text: string) {
+  return /\b(order|deliver|delivery|pickup|buy|want|need|send me|i'll take|i want)\b/i.test(text)
+    || /\b(bowl|plate|pack|piece|pcs|rice|chicken|drink|coke|shawarma|pizza|burger)\b/i.test(text);
+}
+
+async function parseOrderWithAI(text: string): Promise<ParsedOrder> {
+  if (!ANTHROPIC_API_KEY) {
+    return { items: [{ name: text, qty: null, unit_price: null }], delivery_address: null, payment_method: null, notes: text };
+  }
+
+  try {
+    const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
+    const parseRes = await anthropic.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 260,
+      messages: [{
+        role: "user",
+        content: `Extract a customer WhatsApp order from this message: "${text}"\nReturn JSON only:\n{"items":[{"name":string,"qty":number|null,"unit_price":number|null}],"delivery_address":string|null,"payment_method":string|null,"customer_name":string|null,"notes":string|null}\nIf the customer is only answering a missing detail, return empty items and fill the detail.`,
+      }],
+    });
+    const raw = (parseRes.content[0] as { text: string }).text.trim();
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (jsonMatch) return JSON.parse(jsonMatch[0]);
+  } catch (err) {
+    console.error("WhatsApp order parse error:", err);
+  }
+
+  return { items: [{ name: text, qty: null, unit_price: null }], delivery_address: null, payment_method: null, notes: text };
+}
+
+function orderItemsSummary(items: any[]) {
+  if (!items?.length) return "your order";
+  return items.map((item) => `${item.qty ? `${item.qty} x ` : ""}${item.name}`).join(", ");
+}
+
+async function handleCustomerOrder(supabase: any, connection: any, message: ParsedMessage, text: string) {
+  const parsed = await parseOrderWithAI(text);
+  const { data: openOrders } = await supabase
+    .from("kapso_orders")
+    .select("*")
+    .eq("user_id", connection.user_id)
+    .eq("customer_phone", message.from || "")
+    .eq("status", "needs_details")
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  const existing = openOrders?.[0];
+  const parsedItems = Array.isArray(parsed.items) ? parsed.items.filter((item) => item?.name) : [];
+  const items = parsedItems.length ? parsedItems : existing?.items || [];
+  const deliveryAddress = parsed.delivery_address || existing?.delivery_address || null;
+  const paymentMethod = parsed.payment_method || existing?.payment_method || null;
+  const customerName = parsed.customer_name || existing?.customer_name || message.contactName || null;
+  const status = items.length && deliveryAddress ? "confirmed" : "needs_details";
+
+  const payload = {
+    user_id: connection.user_id,
+    connection_id: connection.id,
+    customer_phone: message.from || null,
+    customer_name: customerName,
+    status,
+    items,
+    delivery_address: deliveryAddress,
+    payment_method: paymentMethod,
+    notes: parsed.notes || existing?.notes || null,
+    raw_text: existing?.raw_text ? `${existing.raw_text}\n${text}` : text,
+    source_message_id: message.messageId || existing?.source_message_id || null,
+    confirmed_at: status === "confirmed" ? new Date().toISOString() : null,
+    updated_at: new Date().toISOString(),
+  };
+
+  const result = existing
+    ? await supabase.from("kapso_orders").update(payload).eq("id", existing.id).select("*").single()
+    : await supabase.from("kapso_orders").insert(payload).select("*").single();
+  if (result.error) throw result.error;
+
+  if (!items.length) {
+    return "I can help with your order. What would you like to buy?";
+  }
+  if (!deliveryAddress) {
+    return `Got it: ${orderItemsSummary(items)}.\nPlease send your delivery address or say pickup.`;
+  }
+
+  return [
+    "Order confirmed.",
+    `Items: ${orderItemsSummary(items)}`,
+    `Delivery: ${deliveryAddress}`,
+    paymentMethod ? `Payment: ${paymentMethod}` : "Payment: not specified",
+    "A staff member will follow up if anything is unclear.",
+  ].join("\n");
 }
 
 function moneyFromLabel(text: string, labels: string[]) {
@@ -406,14 +542,25 @@ serve(async (req) => {
     }
 
     const uid = new URL(req.url).searchParams.get("uid");
-    let query = supabase.from("kapso_connections").select("*").limit(1);
+    let query = supabase.from("kapso_connections").select("*").limit(2);
     query = uid
-      ? query.eq("user_id", uid)
+      ? query.eq("user_id", uid).eq("phone_number_id", message.phoneNumberId)
       : query.eq("phone_number_id", message.phoneNumberId);
 
-    const { data: connections, error: connectionError } = await query;
+    let { data: connections, error: connectionError } = await query;
     if (connectionError) throw connectionError;
     let connection = connections?.[0];
+    if (!connection && uid) {
+      const fallback = await supabase
+        .from("kapso_connections")
+        .select("*")
+        .eq("user_id", uid)
+        .order("connection_type", { ascending: true })
+        .limit(1);
+      if (fallback.error) throw fallback.error;
+      connections = fallback.data;
+      connection = connections?.[0];
+    }
     if (!connection) {
       if (!uid) {
         console.log("Kapso webhook ignored: no matching connection", { phoneNumberId: message.phoneNumberId });
@@ -465,7 +612,15 @@ serve(async (req) => {
 
     const activeCloseoutSession = await findActiveCloseoutSession(supabase, connection.user_id, message.from);
 
-    if (activeCloseoutSession && /\b(cancel|stop)\b/i.test(text)) {
+    if (connection.connection_type === "customer") {
+      if (looksLikeWorkflowRequest(text)) {
+        reply = await saveWorkflowRequest(supabase, connection, message, text);
+      } else if (looksLikeOrderMessage(text)) {
+        reply = await handleCustomerOrder(supabase, connection, message, text);
+      } else {
+        reply = "Hi. Send your order here, for example: “I want 3 rice bowls and 2 chicken delivered to Lekki.”";
+      }
+    } else if (activeCloseoutSession && /\b(cancel|stop)\b/i.test(text)) {
       await supabase
         .from("kapso_closeout_sessions")
         .update({ status: "cancelled", updated_at: new Date().toISOString() })
@@ -499,6 +654,8 @@ serve(async (req) => {
       } else {
         reply = closeoutPrompt();
       }
+    } else if (looksLikeWorkflowRequest(text)) {
+      reply = await saveWorkflowRequest(supabase, connection, message, text);
     } else if (looksLikeSummaryQuestion(text)) {
       reply = await buildSalesSummary(supabase, connection.user_id);
     } else if (looksLikeSalesEntry(text) || text.toLowerCase().startsWith("/log ")) {
