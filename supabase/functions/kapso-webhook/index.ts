@@ -34,7 +34,15 @@ function timingSafeEqual(a: string, b: string) {
 async function verifySignature(rawBody: string, signature: string | null) {
   if (!KAPSO_WEBHOOK_SECRET) return true;
   if (!signature) return false;
-  const normalizedSignature = signature.replace(/^sha256=/i, "").trim();
+  const normalizedSignature = signature.trim();
+  const signatureCandidates = normalizedSignature
+    .split(",")
+    .flatMap((part) => {
+      const trimmed = part.trim();
+      const [, value] = trimmed.match(/^(?:sha256|v1)=([^,]+)$/i) || [];
+      return [trimmed, value].filter(Boolean);
+    })
+    .map((value) => value.replace(/^sha256=/i, "").trim());
 
   const key = await crypto.subtle.importKey(
     "raw",
@@ -43,12 +51,26 @@ async function verifySignature(rawBody: string, signature: string | null) {
     false,
     ["sign"]
   );
-  const expected = bytesToHex(await crypto.subtle.sign(
-    "HMAC",
-    key,
-    new TextEncoder().encode(rawBody)
-  ));
-  return timingSafeEqual(normalizedSignature, expected);
+
+  const bodiesToCheck = [rawBody];
+  try {
+    bodiesToCheck.push(JSON.stringify(JSON.parse(rawBody)));
+  } catch {
+    // Keep raw body only when JSON parsing is not possible.
+  }
+
+  for (const body of bodiesToCheck) {
+    const digest = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(body));
+    const expectedHex = bytesToHex(digest);
+    const expectedBase64 = btoa(String.fromCharCode(...new Uint8Array(digest)));
+    if (signatureCandidates.some((candidate) =>
+      timingSafeEqual(candidate, expectedHex) || timingSafeEqual(candidate, expectedBase64)
+    )) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 function firstString(...values: unknown[]) {
