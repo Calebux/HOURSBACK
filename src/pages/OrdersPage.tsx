@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ChevronLeft, MessageCircle, RefreshCw } from 'lucide-react';
+import { CheckCircle2, ChevronLeft, MessageCircle, RefreshCw } from 'lucide-react';
+import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { MobileNav } from '../components/MobileNav';
@@ -15,6 +16,9 @@ interface Order {
   payment_method: string | null;
   payment_status?: string | null;
   paid_at?: string | null;
+  receipt_received_at?: string | null;
+  receipt_url?: string | null;
+  payment_verified_at?: string | null;
   notes: string | null;
   raw_text: string | null;
   created_at: string;
@@ -39,7 +43,9 @@ function statusClass(status: string) {
 }
 
 function paymentStatusClass(status?: string | null) {
-  return status === 'paid' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700';
+  if (status === 'verified') return 'bg-emerald-50 text-emerald-700';
+  if (status === 'receipt_sent') return 'bg-blue-50 text-blue-700';
+  return 'bg-amber-50 text-amber-700';
 }
 
 function itemSummary(items: Order['items']) {
@@ -53,6 +59,7 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('');
+  const [verifyingOrderId, setVerifyingOrderId] = useState<string | null>(null);
 
   const loadOrders = async () => {
     if (!user) return;
@@ -65,6 +72,25 @@ export default function OrdersPage() {
       .limit(200);
     setOrders((data as Order[]) || []);
     setLoading(false);
+  };
+
+  const verifyPayment = async (orderId: string) => {
+    setVerifyingOrderId(orderId);
+    const { error } = await supabase.functions.invoke('kapso-setup', {
+      body: {
+        action: 'verify_order_payment',
+        order_id: orderId,
+      },
+    });
+    setVerifyingOrderId(null);
+
+    if (error) {
+      toast.error(error.message || 'Could not confirm payment');
+      return;
+    }
+
+    toast.success('Payment confirmed and customer notified');
+    await loadOrders();
   };
 
   useEffect(() => {
@@ -164,8 +190,28 @@ export default function OrdersPage() {
                 <div className="mt-3 grid sm:grid-cols-2 gap-2 text-xs text-slate-500">
                   <p><span className="font-semibold text-slate-600">Delivery:</span> {order.delivery_address || 'missing'}</p>
                   <p><span className="font-semibold text-slate-600">Payment:</span> {order.payment_method || 'not specified'}</p>
+                  <p>
+                    <span className="font-semibold text-slate-600">Receipt:</span>{' '}
+                    {order.receipt_url ? (
+                      <a href={order.receipt_url} target="_blank" rel="noreferrer" className="text-emerald-700 underline">
+                        open receipt
+                      </a>
+                    ) : order.receipt_received_at ? 'sent' : 'not sent'}
+                  </p>
+                  {order.receipt_received_at && <p><span className="font-semibold text-slate-600">Receipt sent:</span> {fmtDate(order.receipt_received_at)}</p>}
                   {order.paid_at && <p><span className="font-semibold text-slate-600">Paid:</span> {fmtDate(order.paid_at)}</p>}
+                  {order.payment_verified_at && <p><span className="font-semibold text-slate-600">Verified:</span> {fmtDate(order.payment_verified_at)}</p>}
                 </div>
+                {order.payment_status === 'receipt_sent' && (
+                  <button
+                    onClick={() => verifyPayment(order.id)}
+                    disabled={verifyingOrderId === order.id}
+                    className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    {verifyingOrderId === order.id ? 'Confirming...' : 'Confirm payment'}
+                  </button>
+                )}
                 {order.notes && <p className="mt-2 text-xs text-slate-500">{order.notes}</p>}
                 {order.raw_text && <p className="mt-3 text-xs text-slate-400 border-t border-slate-100 pt-3">{order.raw_text}</p>}
               </article>

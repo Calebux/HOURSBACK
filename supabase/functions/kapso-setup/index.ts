@@ -4,6 +4,7 @@ import {
   createKapsoCustomer,
   createKapsoSetupLink,
   getKapsoApiKey,
+  sendKapsoText,
 } from "../_shared/kapso.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -97,6 +98,61 @@ serve(async (req) => {
 
       if (error) throw error;
       return new Response(JSON.stringify({ success: true, connection: data }), { headers: corsHeaders });
+    }
+
+    if (action === "verify_order_payment") {
+      const orderId = String(body.order_id || "").trim();
+      const deliveryNote = String(body.delivery_note || "").trim();
+      if (!orderId) {
+        return new Response(JSON.stringify({ error: "order_id is required" }), { status: 400, headers: corsHeaders });
+      }
+
+      const { data: order, error: orderError } = await supabase
+        .from("kapso_orders")
+        .select("*")
+        .eq("id", orderId)
+        .eq("user_id", user.id)
+        .single();
+      if (orderError) throw orderError;
+
+      const { data: connection, error: connectionError } = await supabase
+        .from("kapso_connections")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("connection_type", "customer")
+        .maybeSingle();
+      if (connectionError) throw connectionError;
+
+      const verifiedAt = new Date().toISOString();
+      const { data: updatedOrder, error: updateError } = await supabase
+        .from("kapso_orders")
+        .update({
+          payment_status: "verified",
+          paid_at: order.paid_at || verifiedAt,
+          payment_verified_at: verifiedAt,
+          updated_at: verifiedAt,
+        })
+        .eq("id", order.id)
+        .eq("user_id", user.id)
+        .select("*")
+        .single();
+      if (updateError) throw updateError;
+
+      let messageSent = false;
+      if (connection?.phone_number_id && order.customer_phone) {
+        const items = Array.isArray(order.items)
+          ? order.items.map((item: any) => `${item.qty ? `${item.qty} x ` : ""}${item.name}`).join(", ")
+          : "your order";
+        const message = [
+          "Payment received. Thank you.",
+          `Order: ${items}`,
+          deliveryNote || "Your delivery will be sent out shortly. We will update you if anything changes.",
+        ].join("\n");
+        await sendKapsoText(connection.phone_number_id, order.customer_phone, message);
+        messageSent = true;
+      }
+
+      return new Response(JSON.stringify({ success: true, order: updatedOrder, message_sent: messageSent }), { headers: corsHeaders });
     }
 
     if (action === "manual_connect") {

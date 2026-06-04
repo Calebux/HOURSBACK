@@ -18,6 +18,7 @@ type ParsedMessage = {
   contactName?: string;
   type?: string;
   text?: string;
+  receiptUrl?: string;
 };
 
 type ParsedOrder = {
@@ -88,6 +89,13 @@ function firstString(...values: unknown[]) {
   return undefined;
 }
 
+function findReceiptUrl(...values: unknown[]): string | undefined {
+  for (const value of values) {
+    if (typeof value === "string" && /^https?:\/\//i.test(value.trim())) return value.trim();
+  }
+  return undefined;
+}
+
 function parseKapsoMessage(payload: any): ParsedMessage | null {
   const data = payload?.data || payload;
   const msg = data?.message || data?.messages?.[0] || data;
@@ -96,7 +104,13 @@ function parseKapsoMessage(payload: any): ParsedMessage | null {
   const conversationKapso = conversation?.kapso || {};
   const text = firstString(
     msg?.text?.body,
+    msg?.image?.caption,
+    msg?.document?.caption,
+    msg?.video?.caption,
     data?.text?.body,
+    data?.image?.caption,
+    data?.document?.caption,
+    data?.video?.caption,
     typeof msg?.text === "string" ? msg.text : undefined,
     typeof data?.text === "string" ? data.text : undefined,
     msg?.kapso?.transcript?.text,
@@ -129,6 +143,27 @@ function parseKapsoMessage(payload: any): ParsedMessage | null {
     contactName: firstString(conversationKapso?.contact_name, kapso?.contact_name, data?.contact?.name, data?.profile?.name),
     type: firstString(msg?.type, data?.type) || (text ? "text" : undefined),
     text,
+    receiptUrl: findReceiptUrl(
+      msg?.image?.url,
+      msg?.image?.link,
+      msg?.document?.url,
+      msg?.document?.link,
+      msg?.video?.url,
+      msg?.video?.link,
+      msg?.media?.url,
+      msg?.media_url,
+      msg?.kapso?.media_url,
+      msg?.kapso?.attachment_url,
+      data?.image?.url,
+      data?.image?.link,
+      data?.document?.url,
+      data?.document?.link,
+      data?.media?.url,
+      data?.media_url,
+      data?.kapso?.media_url,
+      data?.attachments?.[0]?.url,
+      payload?.attachments?.[0]?.url
+    ),
   };
 }
 
@@ -188,6 +223,13 @@ function looksLikeOrderMessage(text: string) {
 
 function looksLikePaymentConfirmation(text: string) {
   return /\b(paid|payment done|sent receipt|receipt sent|i have paid|i've paid|done payment|transfer(?:red)?|bank transfer done)\b/i.test(text);
+}
+
+function looksLikeReceiptSubmission(text: string, message: ParsedMessage) {
+  const type = String(message.type || "").toLowerCase();
+  if (["image", "document", "video"].includes(type)) return true;
+  return /\b(receipt|proof|payment proof|transfer receipt|bank receipt)\b/i.test(text)
+    && /\b(sent|attached|upload|uploaded|here|proof|receipt)\b/i.test(text);
 }
 
 function looksLikeMenuRequest(text: string) {
@@ -370,7 +412,7 @@ async function findOpenCustomerOrder(supabase: any, connection: any, from?: stri
   return openOrders?.[0] || null;
 }
 
-async function findLatestUnpaidConfirmedOrder(supabase: any, connection: any, from?: string) {
+async function findLatestAwaitingReceiptOrder(supabase: any, connection: any, from?: string) {
   if (!from) return null;
   const { data: orders } = await supabase
     .from("kapso_orders")
@@ -378,40 +420,56 @@ async function findLatestUnpaidConfirmedOrder(supabase: any, connection: any, fr
     .eq("user_id", connection.user_id)
     .eq("customer_phone", from)
     .eq("status", "confirmed")
-    .neq("payment_status", "paid")
+    .in("payment_status", ["unpaid", "receipt_sent"])
     .order("created_at", { ascending: false })
     .limit(1);
 
   return orders?.[0] || null;
 }
 
-async function markLatestOrderPaid(supabase: any, connection: any, message: ParsedMessage, text: string) {
-  const order = await findLatestUnpaidConfirmedOrder(supabase, connection, message.from);
+async function promptForReceipt(supabase: any, connection: any, message: ParsedMessage) {
+  const order = await findLatestAwaitingReceiptOrder(supabase, connection, message.from);
   if (!order) {
-    return "Thanks. I could not find an unpaid confirmed order for this number. A staff member will review this payment message.";
+    return "Thanks. I could not find a confirmed order waiting for payment proof from this number. A staff member will review this message.";
   }
 
-  const paidAt = new Date().toISOString();
-  const notes = [order.notes, `Payment confirmation received from WhatsApp: ${text}`]
+  return [
+    "Thanks. Please send your payment receipt or transfer screenshot here as proof.",
+    `Order: ${orderItemsSummary(order.items || [])}`,
+    "We will confirm it and update you once payment is received.",
+  ].join("\n");
+}
+
+async function markLatestOrderReceiptSent(supabase: any, connection: any, message: ParsedMessage, text: string, payload: any) {
+  const order = await findLatestAwaitingReceiptOrder(supabase, connection, message.from);
+  if (!order) {
+    return "Receipt received. I could not match it to a confirmed unpaid order from this number, so a staff member will review it.";
+  }
+
+  const receivedAt = new Date().toISOString();
+  const notes = [order.notes, `Payment receipt received from WhatsApp${text ? `: ${text}` : ""}`]
     .filter(Boolean)
     .join("\n");
 
   const { error } = await supabase
     .from("kapso_orders")
     .update({
-      payment_status: "paid",
-      paid_at: paidAt,
+      payment_status: "receipt_sent",
+      receipt_received_at: receivedAt,
+      receipt_message_id: message.messageId || null,
+      receipt_url: message.receiptUrl || order.receipt_url || null,
+      receipt_payload: payload,
       notes,
-      updated_at: paidAt,
+      updated_at: receivedAt,
     })
     .eq("id", order.id);
 
   if (error) throw error;
 
   return [
-    "Payment noted. Thank you.",
+    "Receipt received. Thank you.",
     `Order: ${orderItemsSummary(order.items || [])}`,
-    "A staff member will verify the payment and continue processing your order.",
+    "We will confirm the payment and update you once it is received.",
   ].join("\n");
 }
 
@@ -733,13 +791,14 @@ serve(async (req) => {
     }
 
     const message = parseKapsoMessage(payload);
-    if (!message?.text || !message.phoneNumberId) {
-      console.log("Kapso webhook ignored: no text or phone number id", {
+    if (!message?.phoneNumberId || (!message.text && !looksLikeReceiptSubmission("", message))) {
+      console.log("Kapso webhook ignored: no usable message or phone number id", {
         hasText: !!message?.text,
+        type: message?.type || null,
         phoneNumberId: message?.phoneNumberId || null,
         event: event || null,
       });
-      return new Response(JSON.stringify({ success: true, ignored: "no text message" }), { headers });
+      return new Response(JSON.stringify({ success: true, ignored: "no usable message" }), { headers });
     }
 
     if (!idempotencyKey && message.messageId) {
@@ -827,7 +886,7 @@ serve(async (req) => {
     });
 
     let reply = "";
-    const text = message.text.trim();
+    const text = (message.text || "").trim();
 
     const activeCloseoutSession = await findActiveCloseoutSession(supabase, connection.user_id, message.from);
 
@@ -836,8 +895,10 @@ serve(async (req) => {
       const availabilityItem = extractAvailabilityItem(text);
       if (looksLikeWorkflowRequest(text)) {
         reply = await saveWorkflowRequest(supabase, connection, message, text);
+      } else if (looksLikeReceiptSubmission(text, message)) {
+        reply = await markLatestOrderReceiptSent(supabase, connection, message, text, payload);
       } else if (looksLikePaymentConfirmation(text)) {
-        reply = await markLatestOrderPaid(supabase, connection, message, text);
+        reply = await promptForReceipt(supabase, connection, message);
       } else if (availabilityItem) {
         reply = buildAvailabilityReply(connection, availabilityItem);
       } else if (looksLikeMenuRequest(text)) {
