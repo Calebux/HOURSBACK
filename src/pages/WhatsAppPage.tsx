@@ -40,8 +40,8 @@ export default function WhatsAppPage() {
 
   const webhookUrl = useMemo(() => {
     if (!user) return '';
-    return `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/kapso-webhook?uid=${user.id}`;
-  }, [user]);
+    return `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/kapso-webhook?uid=${user.id}&mode=${connectionType}`;
+  }, [user, connectionType]);
 
   const loadStatus = useCallback(async () => {
     if (!user) return;

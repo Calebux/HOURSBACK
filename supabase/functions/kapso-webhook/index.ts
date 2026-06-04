@@ -541,11 +541,18 @@ serve(async (req) => {
       return new Response(JSON.stringify({ success: true, ignored: "no text message" }), { headers });
     }
 
-    const uid = new URL(req.url).searchParams.get("uid");
+    const url = new URL(req.url);
+    const uid = url.searchParams.get("uid");
+    const mode = url.searchParams.get("mode");
+    const requestedMode = mode === "customer" || mode === "internal" ? mode : null;
     let query = supabase.from("kapso_connections").select("*").limit(2);
-    query = uid
-      ? query.eq("user_id", uid).eq("phone_number_id", message.phoneNumberId)
-      : query.eq("phone_number_id", message.phoneNumberId);
+    if (uid && requestedMode) {
+      query = query.eq("user_id", uid).eq("connection_type", requestedMode);
+    } else {
+      query = uid
+        ? query.eq("user_id", uid).eq("phone_number_id", message.phoneNumberId)
+        : query.eq("phone_number_id", message.phoneNumberId);
+    }
 
     let { data: connections, error: connectionError } = await query;
     if (connectionError) throw connectionError;
@@ -555,6 +562,7 @@ serve(async (req) => {
         .from("kapso_connections")
         .select("*")
         .eq("user_id", uid)
+        .eq("phone_number_id", message.phoneNumberId)
         .order("connection_type", { ascending: true })
         .limit(1);
       if (fallback.error) throw fallback.error;
