@@ -267,6 +267,13 @@ function formatNaira(amount: number) {
   return `₦${amount.toLocaleString("en-NG")}`;
 }
 
+function cleanPaymentMethod(value: string | null | undefined) {
+  const paymentMethod = String(value || "").trim();
+  if (!paymentMethod) return null;
+  if (/^(pickup|pick up|delivery|address|none|not specified)$/i.test(paymentMethod)) return null;
+  return paymentMethod;
+}
+
 function isPickupReply(text: string) {
   return /^(pickup|pick up|collection|collect|i will pick up|i'll pick up)$/i.test(text.trim());
 }
@@ -365,7 +372,7 @@ async function handleCustomerOrder(supabase: any, connection: any, message: Pars
   const parsedItems = Array.isArray(parsed.items) ? parsed.items.filter((item) => item?.name) : [];
   const items = parsedItems.length ? parsedItems : existing?.items || [];
   const deliveryAddress = parsed.delivery_address || existing?.delivery_address || null;
-  const paymentMethod = parsed.payment_method || existing?.payment_method || null;
+  const paymentMethod = cleanPaymentMethod(parsed.payment_method || existing?.payment_method);
   const customerName = parsed.customer_name || existing?.customer_name || message.contactName || null;
   const status = items.length && deliveryAddress ? "confirmed" : "needs_details";
 
@@ -409,7 +416,7 @@ async function handleCustomerOrder(supabase: any, connection: any, message: Pars
   if (paymentInstructions) {
     lines.push("Payment details:", paymentInstructions, "Please reply paid after payment.");
   } else {
-    lines.push("Payment: staff will send payment details.");
+    lines.push("Payment details are not configured yet. A staff member will send payment instructions.");
   }
   lines.push(
     "A staff member will follow up if anything is unclear.",
