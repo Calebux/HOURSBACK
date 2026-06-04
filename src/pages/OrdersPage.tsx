@@ -184,17 +184,8 @@ export default function OrdersPage() {
         }
       }
 
-      if (order.receipt_url) {
-        if (receiptWindow) {
-          receiptWindow.location.href = order.receipt_url;
-        } else {
-          window.location.href = order.receipt_url;
-        }
-        return;
-      }
-
       receiptWindow?.close();
-      toast.error('No receipt link is available for this order');
+      toast.error(order.receipt_received_at ? 'Ask the customer to resend the receipt so Hoursback can save it.' : 'No receipt is available for this order');
     } catch (err) {
       receiptWindow?.close();
       toast.error(err instanceof Error ? err.message : 'Could not open receipt');
@@ -317,7 +308,7 @@ export default function OrdersPage() {
                   {claimedAmount && <p><span className="font-semibold text-slate-600">Customer paid:</span> {claimedAmount}</p>}
                   <p>
                     <span className="font-semibold text-slate-600">Receipt:</span>{' '}
-                    {order.receipt_storage_path || order.receipt_url ? (
+                    {order.receipt_storage_path ? (
                       <button
                         onClick={() => openReceipt(order)}
                         disabled={openingReceiptId === order.id}
@@ -325,7 +316,7 @@ export default function OrdersPage() {
                       >
                         {openingReceiptId === order.id ? 'opening...' : 'open receipt'}
                       </button>
-                    ) : order.receipt_received_at ? 'sent' : 'not sent'}
+                    ) : order.receipt_received_at ? 'needs resend' : 'not sent'}
                   </p>
                   {order.receipt_received_at && <p><span className="font-semibold text-slate-600">Receipt sent:</span> {fmtDate(order.receipt_received_at)}</p>}
                   {order.paid_at && <p><span className="font-semibold text-slate-600">Paid:</span> {fmtDate(order.paid_at)}</p>}

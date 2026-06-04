@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import Anthropic from "npm:@anthropic-ai/sdk";
-import { sendKapsoText } from "../_shared/kapso.ts";
+import { getKapsoApiKey, sendKapsoText } from "../_shared/kapso.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -124,7 +124,15 @@ async function persistReceiptMedia(supabase: any, order: any, message: ParsedMes
   if (!receiptUrl) return null;
 
   try {
-    const response = await fetch(receiptUrl);
+    const apiKey = getKapsoApiKey();
+    const response = await fetch(receiptUrl, {
+      headers: apiKey
+        ? {
+            "X-API-Key": apiKey,
+            "Authorization": `Bearer ${apiKey}`,
+          }
+        : undefined,
+    });
     if (!response.ok) throw new Error(`Receipt fetch failed with ${response.status}`);
 
     const contentType = response.headers.get("content-type") || "image/jpeg";
