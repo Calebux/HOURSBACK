@@ -29,6 +29,19 @@ type ParsedOrder = {
   notes?: string | null;
 };
 
+type CustomerAIAction =
+  | "answer"
+  | "order"
+  | "payment_claim"
+  | "receipt_submitted"
+  | "workflow_request"
+  | "handoff";
+
+type CustomerAIResponse = {
+  action: CustomerAIAction;
+  reply?: string | null;
+};
+
 function bytesToHex(bytes: ArrayBuffer) {
   return [...new Uint8Array(bytes)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
@@ -473,6 +486,103 @@ async function markLatestOrderReceiptSent(supabase: any, connection: any, messag
   ].join("\n");
 }
 
+function sanitizeCustomerAIResponse(value: any): CustomerAIResponse | null {
+  const action = String(value?.action || "").trim() as CustomerAIAction;
+  if (!["answer", "order", "payment_claim", "receipt_submitted", "workflow_request", "handoff"].includes(action)) {
+    return null;
+  }
+  const reply = typeof value?.reply === "string" && value.reply.trim() ? value.reply.trim() : null;
+  return { action, reply };
+}
+
+async function getLatestCustomerOrderContext(supabase: any, connection: any, from?: string) {
+  if (!from) return null;
+  const { data: orders } = await supabase
+    .from("kapso_orders")
+    .select("id,status,payment_status,items,delivery_address,payment_method,receipt_received_at,payment_verified_at,created_at")
+    .eq("user_id", connection.user_id)
+    .eq("customer_phone", from)
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  return orders?.[0] || null;
+}
+
+async function getCustomerAIResponse(supabase: any, connection: any, message: ParsedMessage, text: string, openOrder: any): Promise<CustomerAIResponse | null> {
+  if (!ANTHROPIC_API_KEY) return null;
+
+  try {
+    const latestOrder = await getLatestCustomerOrderContext(supabase, connection, message.from);
+    const awaitingReceiptOrder = await findLatestAwaitingReceiptOrder(supabase, connection, message.from);
+    const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
+    const response = await anthropic.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 420,
+      messages: [{
+        role: "user",
+        content: [
+          "You are the WhatsApp customer-service assistant for this business.",
+          "Reply naturally and briefly, but never invent menu items, prices, payment details, delivery guarantees, discounts, opening hours, or policies that are not provided.",
+          "If the customer asks something not covered by the supplied business info, answer what you can and say a staff member will confirm the unknown part.",
+          "For payment: never say payment is received or verified. Customers can only send proof. Staff verifies payment inside Hoursback.",
+          "If the customer says they paid but sends no receipt/proof, action must be payment_claim and ask for receipt/proof.",
+          "If the customer sends a receipt/proof or media receipt, action must be receipt_submitted.",
+          "If the customer is placing or continuing an order, action must be order.",
+          "If the customer asks to schedule reports/workflows, action must be workflow_request.",
+          "For normal questions, action must be answer.",
+          "Return JSON only with this shape: {\"action\":\"answer|order|payment_claim|receipt_submitted|workflow_request|handoff\",\"reply\":string|null}",
+          "",
+          `Business menu / price list:\n${String(connection.customer_menu || "Not configured").trim()}`,
+          `Payment instructions:\n${String(connection.payment_instructions || "Not configured").trim()}`,
+          `Open order waiting for details:\n${JSON.stringify(openOrder || null)}`,
+          `Latest order from this customer:\n${JSON.stringify(latestOrder || null)}`,
+          `Order awaiting receipt/proof:\n${JSON.stringify(awaitingReceiptOrder || null)}`,
+          `Incoming message type: ${message.type || "unknown"}`,
+          `Incoming receipt URL present: ${message.receiptUrl ? "yes" : "no"}`,
+          `Customer message: ${text || "[no text]"}`,
+        ].join("\n"),
+      }],
+    });
+    const raw = (response.content[0] as { text: string }).text.trim();
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return null;
+    return sanitizeCustomerAIResponse(JSON.parse(jsonMatch[0]));
+  } catch (err) {
+    console.error("Customer AI response error:", err);
+    return null;
+  }
+}
+
+async function handleCustomerAIAction(
+  supabase: any,
+  connection: any,
+  message: ParsedMessage,
+  text: string,
+  payload: any,
+  openOrder: any,
+  ai: CustomerAIResponse | null,
+) {
+  if (!ai) return null;
+
+  if (ai.action === "workflow_request") {
+    return saveWorkflowRequest(supabase, connection, message, text);
+  }
+  if (ai.action === "receipt_submitted") {
+    return markLatestOrderReceiptSent(supabase, connection, message, text, payload);
+  }
+  if (ai.action === "payment_claim") {
+    return promptForReceipt(supabase, connection, message);
+  }
+  if (ai.action === "order") {
+    return handleCustomerOrder(supabase, connection, message, text, openOrder);
+  }
+  if ((ai.action === "answer" || ai.action === "handoff") && ai.reply) {
+    return ai.reply;
+  }
+
+  return null;
+}
+
 async function handleCustomerOrder(supabase: any, connection: any, message: ParsedMessage, text: string, openOrder?: any) {
   const existing = openOrder || await findOpenCustomerOrder(supabase, connection, message.from);
   const parsed = await parseOrderWithAI(text, connection.customer_menu, existing);
@@ -892,8 +1002,12 @@ serve(async (req) => {
 
     if (connection.connection_type === "customer") {
       const openOrder = await findOpenCustomerOrder(supabase, connection, message.from);
+      const ai = await getCustomerAIResponse(supabase, connection, message, text, openOrder);
+      const aiReply = await handleCustomerAIAction(supabase, connection, message, text, payload, openOrder, ai);
       const availabilityItem = extractAvailabilityItem(text);
-      if (looksLikeWorkflowRequest(text)) {
+      if (aiReply) {
+        reply = aiReply;
+      } else if (looksLikeWorkflowRequest(text)) {
         reply = await saveWorkflowRequest(supabase, connection, message, text);
       } else if (looksLikeReceiptSubmission(text, message)) {
         reply = await markLatestOrderReceiptSent(supabase, connection, message, text, payload);
