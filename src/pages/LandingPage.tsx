@@ -249,8 +249,25 @@ function HeroSection({ onGetStarted }: { onGetStarted: () => void }) {
           className="mt-5 text-base md:text-lg text-white/85 max-w-lg mx-auto leading-relaxed"
           style={{ textShadow: '0 1px 8px rgba(0,0,0,0.3)' }}
         >
-          Deploy AI workflows that monitor your business automatically — from spreadsheets, websites, webhooks, and team updates in chat.
+          Deploy AI workflows that monitor your business automatically — from spreadsheets, websites, webhooks, and WhatsApp messages from staff or customers.
         </motion.p>
+
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.18 }}
+          className="mt-5 flex flex-wrap items-center justify-center gap-2"
+        >
+          {['WhatsApp sales logs', 'Customer orders', '5-line profit checks'].map((item) => (
+            <span
+              key={item}
+              className="rounded-full border border-white/25 bg-white/10 px-3 py-1 text-xs font-semibold text-white/85 backdrop-blur-sm"
+              style={{ textShadow: '0 1px 6px rgba(0,0,0,0.25)' }}
+            >
+              {item}
+            </span>
+          ))}
+        </motion.div>
 
         <motion.div
           initial={{ opacity: 0, y: 12 }}
