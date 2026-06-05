@@ -103,6 +103,7 @@ export default function OrdersPage() {
   const [savingReviewId, setSavingReviewId] = useState<string | null>(null);
   const [fulfillmentOrderId, setFulfillmentOrderId] = useState<string | null>(null);
   const [openingReceiptId, setOpeningReceiptId] = useState<string | null>(null);
+  const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null);
 
   const loadOrders = async () => {
     if (!user) return;
@@ -155,6 +156,28 @@ export default function OrdersPage() {
     }
 
     toast.success('Customer asked to resend payment proof');
+    await loadOrders();
+  };
+
+  const cancelOrder = async (order: Order) => {
+    if (!confirm(`Cancel ${order.order_code || 'this request'}? The customer will be notified.`)) return;
+    setCancellingOrderId(order.id);
+    const { error } = await supabase.functions.invoke('kapso-setup', {
+      body: {
+        action: 'cancel_order',
+        order_id: order.id,
+        reason: 'Cancelled from Hoursback Orders',
+        notify_customer: true,
+      },
+    });
+    setCancellingOrderId(null);
+
+    if (error) {
+      toast.error(error.message || 'Could not cancel request');
+      return;
+    }
+
+    toast.success('Request cancelled');
     await loadOrders();
   };
 
@@ -328,6 +351,7 @@ export default function OrdersPage() {
                   const reviewedTotal = Number(order.owner_adjusted_total_amount || 0) || expectedTotal;
                   const claimedAmount = money(order.payment_claimed_amount);
                   const serviceLike = isServiceLike(order);
+                  const cashPickup = String(order.payment_method || '').toLowerCase() === 'cash on pickup';
                   return (
                     <>
                 <div className="flex items-start justify-between gap-3">
@@ -355,7 +379,7 @@ export default function OrdersPage() {
                 </div>
                 <div className="mt-3 grid sm:grid-cols-2 gap-2 text-xs text-slate-500">
                   <p><span className="font-semibold text-slate-600">Fulfillment details:</span> {order.delivery_address || 'missing'}</p>
-                  <p><span className="font-semibold text-slate-600">Payment:</span> {order.payment_method || 'not specified'}</p>
+                  <p><span className="font-semibold text-slate-600">Payment:</span> {cashPickup ? 'cash on pickup' : order.payment_method || 'not specified'}</p>
                   {itemTotal && <p><span className="font-semibold text-slate-600">{serviceLike ? 'Request subtotal' : 'Items'}:</span> {money(itemTotal)}</p>}
                   {money(order.delivery_fee_amount) && <p><span className="font-semibold text-slate-600">Delivery/service fee:</span> {money(order.delivery_fee_amount)}</p>}
                   {expectedTotal && <p><span className="font-semibold text-slate-600">Expected:</span> {money(expectedTotal)}</p>}
@@ -382,6 +406,9 @@ export default function OrdersPage() {
                   {order.paid_at && <p><span className="font-semibold text-slate-600">Paid:</span> {fmtDate(order.paid_at)}</p>}
                   {order.payment_verified_at && <p><span className="font-semibold text-slate-600">Verified:</span> {fmtDate(order.payment_verified_at)}</p>}
                   {order.fulfilled_at && <p><span className="font-semibold text-slate-600">Fulfilled:</span> {fmtDate(order.fulfilled_at)}</p>}
+                  {cashPickup && order.status !== 'fulfilled' && order.status !== 'cancelled' && (
+                    <p className="text-amber-700"><span className="font-semibold">Cash pickup:</span> collect cash before completing.</p>
+                  )}
                 </div>
                 {!!order.kapso_order_audit_logs?.length && (
                   <div className="mt-3 rounded-xl border border-slate-100 bg-white px-3 py-2">
@@ -492,7 +519,7 @@ export default function OrdersPage() {
                     </div>
                   </form>
                 )}
-                {order.payment_status === 'verified' && order.status !== 'fulfilled' && (
+                {(order.payment_status === 'verified' || cashPickup) && order.status !== 'fulfilled' && order.status !== 'cancelled' && (
                   <div className="mt-3 flex flex-wrap gap-2">
                     {[
                       ['preparing', 'Preparing'],
@@ -509,6 +536,18 @@ export default function OrdersPage() {
                         {fulfillmentOrderId === order.id ? 'Updating...' : label}
                       </button>
                     ))}
+                  </div>
+                )}
+                {order.status !== 'fulfilled' && order.status !== 'cancelled' && (
+                  <div className="mt-3">
+                    <button
+                      type="button"
+                      onClick={() => cancelOrder(order)}
+                      disabled={cancellingOrderId === order.id}
+                      className="rounded-full border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:opacity-60"
+                    >
+                      {cancellingOrderId === order.id ? 'Cancelling...' : 'Cancel request'}
+                    </button>
                   </div>
                 )}
                 {order.owner_notes && <p className="mt-2 text-xs text-slate-600"><span className="font-semibold">Owner notes:</span> {order.owner_notes}</p>}

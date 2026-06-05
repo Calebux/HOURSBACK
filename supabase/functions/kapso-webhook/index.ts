@@ -589,7 +589,63 @@ async function findAwaitingReceiptOrders(supabase: any, connection: any, from?: 
     .order("created_at", { ascending: false })
     .limit(5);
 
-  return orders || [];
+  return (orders || []).filter((order: any) => String(order.payment_method || "").toLowerCase() !== "cash on pickup");
+}
+
+async function cancelCustomerOrderByText(supabase: any, connection: any, message: ParsedMessage, text: string) {
+  const orderCode = extractOrderCode(text);
+  let query = supabase
+    .from("kapso_orders")
+    .select("*")
+    .eq("user_id", connection.user_id)
+    .eq("customer_phone", message.from || "")
+    .neq("status", "cancelled")
+    .neq("status", "fulfilled")
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  if (orderCode) query = query.eq("order_code", orderCode);
+  const { data: orders, error } = await query;
+  if (error) throw error;
+  const order = orders?.[0];
+  if (!order) {
+    return orderCode
+      ? `I could not find an active request with reference ${orderCode}. A staff member will review this.`
+      : "I could not find an active request to cancel from this number. A staff member will review this.";
+  }
+
+  const now = new Date().toISOString();
+  const { error: updateError } = await supabase
+    .from("kapso_orders")
+    .update({
+      status: "cancelled",
+      owner_notes: [order.owner_notes, `Customer cancelled from WhatsApp at ${now}.`].filter(Boolean).join("\n"),
+      updated_at: now,
+    })
+    .eq("id", order.id);
+  if (updateError) throw updateError;
+
+  await supabase.from("kapso_order_audit_logs").insert({
+    user_id: connection.user_id,
+    connection_id: connection.id,
+    order_id: order.id,
+    actor_type: "customer",
+    action: "cancelled_by_customer",
+    details: { text },
+    message_sent: true,
+  });
+
+  return [
+    "Request cancelled.",
+    order.order_code ? `Reference: ${order.order_code}` : null,
+    `Request: ${orderItemsSummary(order.items || [])}`,
+    "If you already paid, a staff member will review and follow up.",
+  ].filter(Boolean).join("\n");
+}
+
+function looksLikeCancelRequest(text: string) {
+  return /\b(cancel|cancelled|canceled|stop|drop|forget it|no longer need)\b/i.test(text)
+    && /\b(order|request|booking|appointment|reference|ref|#|[A-Z0-9]{8})\b/i.test(text);
 }
 
 async function findLatestAwaitingReceiptOrder(supabase: any, connection: any, from?: string, text = "") {
@@ -766,7 +822,9 @@ async function getCustomerAIResponse(supabase: any, connection: any, message: Pa
           "For payment: never say payment is received or verified. Customers can only send proof. Staff verifies payment inside Hoursback.",
           "Do not ask customers to type figures or payment amounts. The normal proof is a receipt screenshot/image/document.",
           "If the customer says they paid but sends no receipt/proof, action must be payment_claim and ask for a receipt screenshot/image.",
-          "If the customer sends a receipt/proof or media receipt, action must be receipt_submitted.",
+          "If the customer sends a receipt/proof or media receipt while an order is awaiting receipt/proof, action must be receipt_submitted.",
+          "If the customer sends a product photo, style reference, damaged item photo, or other non-payment image, action must be order or handoff, not receipt_submitted.",
+          "If the customer asks to cancel an order, booking, or request, action must be handoff.",
           "If the customer is placing or continuing an order, action must be order.",
           "If the customer asks to schedule reports/workflows, action must be handoff because customer mode cannot create internal workflow drafts.",
           "For normal questions, action must be answer.",
@@ -1342,6 +1400,9 @@ serve(async (req) => {
 
     if (connection.connection_type === "customer") {
       const openOrder = await findOpenCustomerOrder(supabase, connection, message.from);
+      if (looksLikeCancelRequest(text)) {
+        reply = await cancelCustomerOrderByText(supabase, connection, message, text);
+      } else {
       const ai = await getCustomerAIResponse(supabase, connection, message, text, openOrder);
       const aiReply = await handleCustomerAIAction(supabase, connection, message, text, payload, openOrder, ai);
       await logCustomerAIAction(supabase, connection, message, text, openOrder, ai, aiReply);
@@ -1367,6 +1428,7 @@ serve(async (req) => {
           "Hi. Send your order or request here, for example: “I want the black sandals in size 42 delivered to Lekki” or “Book hair styling for Friday.”",
           "You can also ask for the catalogue, price list, services, or availability.",
         ].join("\n");
+      }
       }
     } else if (activeCloseoutSession && /\b(cancel|stop)\b/i.test(text)) {
       await supabase

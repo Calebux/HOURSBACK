@@ -258,6 +258,66 @@ serve(async (req) => {
       return new Response(JSON.stringify({ success: true, order: updatedOrder, message_sent: messageSent }), { headers: corsHeaders });
     }
 
+    if (action === "cancel_order") {
+      const orderId = String(body.order_id || "").trim();
+      const notifyCustomer = body.notify_customer !== false;
+      const reason = String(body.reason || "Cancelled by owner").trim();
+      if (!orderId) {
+        return new Response(JSON.stringify({ error: "order_id is required" }), { status: 400, headers: corsHeaders });
+      }
+
+      const { data: order, error: orderError } = await supabase
+        .from("kapso_orders")
+        .select("*")
+        .eq("id", orderId)
+        .eq("user_id", user.id)
+        .single();
+      if (orderError) throw orderError;
+
+      const { data: connection, error: connectionError } = await supabase
+        .from("kapso_connections")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("connection_type", "customer")
+        .maybeSingle();
+      if (connectionError) throw connectionError;
+
+      const now = new Date().toISOString();
+      const ownerNotes = [String(order.owner_notes || "").trim(), `${reason} at ${now}.`]
+        .filter(Boolean)
+        .join("\n");
+      const { data: updatedOrder, error: updateError } = await supabase
+        .from("kapso_orders")
+        .update({
+          status: "cancelled",
+          owner_notes: ownerNotes,
+          updated_at: now,
+        })
+        .eq("id", order.id)
+        .eq("user_id", user.id)
+        .select("*")
+        .single();
+      if (updateError) throw updateError;
+
+      let messageSent = false;
+      if (notifyCustomer && connection?.phone_number_id && order.customer_phone) {
+        const items = Array.isArray(order.items)
+          ? order.items.map((item: any) => `${item.qty ? `${item.qty} x ` : ""}${item.name}`).join(", ")
+          : "your request";
+        await sendKapsoText(connection.phone_number_id, order.customer_phone, [
+          "This request has been cancelled.",
+          order.order_code ? `Reference: ${order.order_code}` : null,
+          `Request: ${items}`,
+          "If you already paid, a staff member will review and follow up.",
+        ].filter(Boolean).join("\n"));
+        messageSent = true;
+      }
+
+      await logOrderAudit(supabase, updatedOrder, "cancelled_by_owner", { reason }, messageSent);
+
+      return new Response(JSON.stringify({ success: true, order: updatedOrder, message_sent: messageSent }), { headers: corsHeaders });
+    }
+
     if (action === "update_order_review") {
       const orderId = String(body.order_id || "").trim();
       if (!orderId) {
