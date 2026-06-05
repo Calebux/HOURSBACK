@@ -313,11 +313,23 @@ function looksLikePaymentConfirmation(text: string) {
   return /\b(paid|payment done|sent receipt|receipt sent|i have paid|i've paid|done payment|transfer(?:red)?|bank transfer done)\b/i.test(text);
 }
 
-function looksLikeReceiptSubmission(text: string, message: ParsedMessage) {
+function hasMediaMessage(message: ParsedMessage) {
   const type = String(message.type || "").toLowerCase();
-  if (["image", "document", "video"].includes(type)) return true;
+  return ["image", "document", "video"].includes(type) || !!message.receiptUrl;
+}
+
+function looksLikeReceiptIntent(text: string) {
   return /\b(receipt|proof|payment proof|transfer receipt|bank receipt)\b/i.test(text)
     && /\b(sent|attached|upload|uploaded|here|proof|receipt)\b/i.test(text);
+}
+
+function looksLikeReceiptSubmission(text: string, message: ParsedMessage) {
+  return looksLikeReceiptIntent(text) || (hasMediaMessage(message) && /\b(receipt|proof|paid|payment|transfer)\b/i.test(text));
+}
+
+function looksLikeNonPaymentMediaCaption(text: string) {
+  return /\b(style|sample|reference|design|color|colour|size|damage|damaged|broken|fault|issue|photo of|picture of|this item|this product|inspiration)\b/i.test(text)
+    && !/\b(receipt|proof|paid|payment|transfer)\b/i.test(text);
 }
 
 function looksLikeMenuRequest(text: string) {
@@ -577,6 +589,37 @@ async function findOpenCustomerOrder(supabase: any, connection: any, from?: stri
   return openOrders?.[0] || null;
 }
 
+async function findLatestActiveCustomerOrder(supabase: any, connection: any, from?: string) {
+  if (!from) return null;
+  const { data: orders } = await supabase
+    .from("kapso_orders")
+    .select("*")
+    .eq("user_id", connection.user_id)
+    .eq("customer_phone", from)
+    .in("status", ["confirmed", "needs_details"])
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  return orders?.[0] || null;
+}
+
+async function findRecentDuplicateCustomerOrder(supabase: any, connection: any, message: ParsedMessage, text: string) {
+  if (!message.from || !text.trim()) return null;
+  const since = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+  const { data: orders } = await supabase
+    .from("kapso_orders")
+    .select("*")
+    .eq("user_id", connection.user_id)
+    .eq("customer_phone", message.from)
+    .neq("status", "cancelled")
+    .gte("created_at", since)
+    .order("created_at", { ascending: false })
+    .limit(5);
+
+  const normalized = text.trim().toLowerCase();
+  return (orders || []).find((order: any) => String(order.raw_text || "").trim().toLowerCase() === normalized) || null;
+}
+
 async function findAwaitingReceiptOrders(supabase: any, connection: any, from?: string) {
   if (!from) return null;
   const { data: orders } = await supabase
@@ -602,11 +645,24 @@ async function cancelCustomerOrderByText(supabase: any, connection: any, message
     .neq("status", "cancelled")
     .neq("status", "fulfilled")
     .order("created_at", { ascending: false })
-    .limit(1);
+    .limit(orderCode ? 1 : 5);
 
   if (orderCode) query = query.eq("order_code", orderCode);
   const { data: orders, error } = await query;
   if (error) throw error;
+  if (!orderCode && (orders || []).length > 1) {
+    const choices = (orders || [])
+      .slice(0, 5)
+      .map((item: any) => `${item.order_code}: ${orderItemsSummary(item.items || [])}`)
+      .join("\n");
+    return [
+      "I found more than one active request for this number.",
+      "Please cancel with the request reference so I do not cancel the wrong one.",
+      `Example: cancel ${orders[0].order_code}`,
+      "Active requests:",
+      choices,
+    ].join("\n");
+  }
   const order = orders?.[0];
   if (!order) {
     return orderCode
@@ -648,6 +704,60 @@ function looksLikeCancelRequest(text: string) {
     && /\b(order|request|booking|appointment|reference|ref|#|[A-Z0-9]{8})\b/i.test(text);
 }
 
+function looksLikeOrderEditRequest(text: string) {
+  return /\b(add|remove|change|switch|update|move|reschedule|postpone|instead|make it|can we|modify)\b/i.test(text)
+    && /\b(order|request|booking|appointment|delivery|pickup|address|time|date|tomorrow|today|monday|tuesday|wednesday|thursday|friday|saturday|sunday|item|service)\b/i.test(text);
+}
+
+async function saveOwnerReviewRequest(supabase: any, connection: any, order: any, message: ParsedMessage, text: string) {
+  const now = new Date().toISOString();
+  const ownerNotes = [
+    String(order.owner_notes || "").trim(),
+    `Customer requested a change at ${now}: ${text}`,
+  ].filter(Boolean).join("\n");
+
+  await supabase
+    .from("kapso_orders")
+    .update({
+      owner_notes: ownerNotes,
+      updated_at: now,
+    })
+    .eq("id", order.id);
+
+  await supabase.from("kapso_order_audit_logs").insert({
+    user_id: connection.user_id,
+    connection_id: connection.id,
+    order_id: order.id,
+    actor_type: "customer",
+    action: "change_requested",
+    details: { text, from_number: message.from || null },
+    message_sent: true,
+  });
+
+  return [
+    "I have noted the change request.",
+    order.order_code ? `Reference: ${order.order_code}` : null,
+    "A staff member will confirm the updated details before we proceed.",
+  ].filter(Boolean).join("\n");
+}
+
+async function handleMediaWithoutReceiptMatch(supabase: any, connection: any, message: ParsedMessage, text: string) {
+  if (!hasMediaMessage(message)) return null;
+  if (looksLikeNonPaymentMediaCaption(text)) {
+    const latestOrder = await findLatestActiveCustomerOrder(supabase, connection, message.from);
+    if (latestOrder) {
+      return saveOwnerReviewRequest(supabase, connection, latestOrder, message, text || "Customer sent a non-payment image.");
+    }
+    return "Image received. A staff member will review it and reply.";
+  }
+
+  const awaiting = await findAwaitingReceiptOrders(supabase, connection, message.from);
+  if (looksLikeReceiptIntent(text) || (!text && awaiting.length > 0)) {
+    return markLatestOrderReceiptSent(supabase, connection, message, text, { media_only: !text });
+  }
+  return null;
+}
+
 async function findLatestAwaitingReceiptOrder(supabase: any, connection: any, from?: string, text = "") {
   const orders = await findAwaitingReceiptOrders(supabase, connection, from);
   if (!orders?.length) return null;
@@ -659,6 +769,23 @@ async function findLatestAwaitingReceiptOrder(supabase: any, connection: any, fr
     return { needsOrderCode: true, orders };
   }
   return orders[0];
+}
+
+async function findCashPickupOrderByText(supabase: any, connection: any, from?: string, text = "") {
+  if (!from) return null;
+  const orderCode = extractOrderCode(text);
+  let query = supabase
+    .from("kapso_orders")
+    .select("*")
+    .eq("user_id", connection.user_id)
+    .eq("customer_phone", from)
+    .eq("status", "confirmed")
+    .eq("payment_method", "cash on pickup")
+    .order("created_at", { ascending: false })
+    .limit(1);
+  if (orderCode) query = query.eq("order_code", orderCode);
+  const { data: orders } = await query;
+  return orders?.[0] || null;
 }
 
 function ambiguousPaymentReferenceReply(prefix: string, orders: any[]) {
@@ -682,6 +809,15 @@ function ambiguousPaymentReferenceReply(prefix: string, orders: any[]) {
 async function promptForReceipt(supabase: any, connection: any, message: ParsedMessage, text = "") {
   const order = await findLatestAwaitingReceiptOrder(supabase, connection, message.from, text);
   if (!order) {
+    const cashPickupOrder = await findCashPickupOrderByText(supabase, connection, message.from, text);
+    if (cashPickupOrder) {
+      return [
+        "This request is marked for cash on pickup.",
+        cashPickupOrder.order_code ? `Reference: ${cashPickupOrder.order_code}` : null,
+        `Request: ${orderItemsSummary(cashPickupOrder.items || [])}`,
+        "Please pay when collecting. Staff will complete the request after cash is received.",
+      ].filter(Boolean).join("\n");
+    }
     return "Thanks. I could not find a confirmed request waiting for payment proof from this number. A staff member will review this message.";
   }
   if (order.needsOrderCode) {
@@ -711,6 +847,14 @@ async function promptForReceipt(supabase: any, connection: any, message: ParsedM
 async function markLatestOrderReceiptSent(supabase: any, connection: any, message: ParsedMessage, text: string, payload: any) {
   const order = await findLatestAwaitingReceiptOrder(supabase, connection, message.from, text);
   if (!order) {
+    const cashPickupOrder = await findCashPickupOrderByText(supabase, connection, message.from, text);
+    if (cashPickupOrder) {
+      return [
+        "Image received, but this request is marked for cash on pickup.",
+        cashPickupOrder.order_code ? `Reference: ${cashPickupOrder.order_code}` : null,
+        "Staff will complete it after cash is collected.",
+      ].filter(Boolean).join("\n");
+    }
     return "Receipt received. I could not match it to a confirmed unpaid request from this number, so a staff member will review it.";
   }
   if (order.needsOrderCode) {
@@ -873,6 +1017,9 @@ async function handleCustomerAIAction(
     return saveWorkflowRequest(supabase, connection, message, text);
   }
   if (ai.action === "receipt_submitted") {
+    if (hasMediaMessage(message) && looksLikeNonPaymentMediaCaption(text)) return null;
+    const awaiting = await findAwaitingReceiptOrders(supabase, connection, message.from);
+    if (!looksLikeReceiptIntent(text) && !awaiting.length) return null;
     return markLatestOrderReceiptSent(supabase, connection, message, text, payload);
   }
   if (ai.action === "payment_claim") {
@@ -913,6 +1060,19 @@ async function logCustomerAIAction(
 
 async function handleCustomerOrder(supabase: any, connection: any, message: ParsedMessage, text: string, openOrder?: any) {
   const existing = openOrder || await findOpenCustomerOrder(supabase, connection, message.from);
+  if (!existing) {
+    const duplicate = await findRecentDuplicateCustomerOrder(supabase, connection, message, text);
+    if (duplicate) {
+      return [
+        "I already have this request.",
+        duplicate.order_code ? `Reference: ${duplicate.order_code}` : null,
+        `Request: ${orderItemsSummary(duplicate.items || [])}`,
+        duplicate.status === "confirmed"
+          ? "Please send the receipt screenshot after transfer, or wait for staff to confirm any unclear details."
+          : "Please send the missing delivery, pickup, appointment, or job details.",
+      ].filter(Boolean).join("\n");
+    }
+  }
   const parsed = await parseOrderWithAI(text, connection.customer_menu, existing);
   const parsedItems = Array.isArray(parsed.items) ? parsed.items.filter((item) => item?.name) : [];
   const items = parsedItems.length ? parsedItems : existing?.items || [];
@@ -1299,7 +1459,7 @@ serve(async (req) => {
     }
 
     const message = parseKapsoMessage(payload);
-    if (!message?.phoneNumberId || (!message.text && !looksLikeReceiptSubmission("", message))) {
+    if (!message?.phoneNumberId || (!message.text && !hasMediaMessage(message))) {
       console.log("Kapso webhook ignored: no usable message or phone number id", {
         hasText: !!message?.text,
         type: message?.type || null,
@@ -1403,32 +1563,42 @@ serve(async (req) => {
       if (looksLikeCancelRequest(text)) {
         reply = await cancelCustomerOrderByText(supabase, connection, message, text);
       } else {
-      const ai = await getCustomerAIResponse(supabase, connection, message, text, openOrder);
-      const aiReply = await handleCustomerAIAction(supabase, connection, message, text, payload, openOrder, ai);
-      await logCustomerAIAction(supabase, connection, message, text, openOrder, ai, aiReply);
-      const availabilityItem = extractAvailabilityItem(text);
-      if (aiReply) {
-        reply = aiReply;
-      } else if (looksLikeWorkflowRequest(text)) {
-        reply = await saveWorkflowRequest(supabase, connection, message, text);
-      } else if (looksLikeReceiptSubmission(text, message)) {
-        reply = await markLatestOrderReceiptSent(supabase, connection, message, text, payload);
-      } else if (looksLikePaymentConfirmation(text)) {
-        reply = await promptForReceipt(supabase, connection, message, text);
-      } else if (availabilityItem) {
-        reply = buildAvailabilityReply(connection, availabilityItem);
-      } else if (looksLikeMenuRequest(text)) {
-        reply = buildMenuReply(connection);
-      } else if (openOrder) {
-        reply = await handleCustomerOrder(supabase, connection, message, text, openOrder);
-      } else if (looksLikeOrderMessage(text)) {
-        reply = await handleCustomerOrder(supabase, connection, message, text);
-      } else {
-        reply = [
-          "Hi. Send your order or request here, for example: “I want the black sandals in size 42 delivered to Lekki” or “Book hair styling for Friday.”",
-          "You can also ask for the catalogue, price list, services, or availability.",
-        ].join("\n");
-      }
+        const mediaReply = await handleMediaWithoutReceiptMatch(supabase, connection, message, text);
+        if (mediaReply) {
+          reply = mediaReply;
+        } else {
+          const latestActiveOrder = await findLatestActiveCustomerOrder(supabase, connection, message.from);
+          if (!openOrder && latestActiveOrder?.status === "confirmed" && looksLikeOrderEditRequest(text)) {
+            reply = await saveOwnerReviewRequest(supabase, connection, latestActiveOrder, message, text);
+          } else {
+            const ai = await getCustomerAIResponse(supabase, connection, message, text, openOrder);
+            const aiReply = await handleCustomerAIAction(supabase, connection, message, text, payload, openOrder, ai);
+            await logCustomerAIAction(supabase, connection, message, text, openOrder, ai, aiReply);
+            const availabilityItem = extractAvailabilityItem(text);
+            if (aiReply) {
+              reply = aiReply;
+            } else if (looksLikeWorkflowRequest(text)) {
+              reply = await saveWorkflowRequest(supabase, connection, message, text);
+            } else if (looksLikeReceiptSubmission(text, message)) {
+              reply = await markLatestOrderReceiptSent(supabase, connection, message, text, payload);
+            } else if (looksLikePaymentConfirmation(text)) {
+              reply = await promptForReceipt(supabase, connection, message, text);
+            } else if (availabilityItem) {
+              reply = buildAvailabilityReply(connection, availabilityItem);
+            } else if (looksLikeMenuRequest(text)) {
+              reply = buildMenuReply(connection);
+            } else if (openOrder) {
+              reply = await handleCustomerOrder(supabase, connection, message, text, openOrder);
+            } else if (looksLikeOrderMessage(text)) {
+              reply = await handleCustomerOrder(supabase, connection, message, text);
+            } else {
+              reply = [
+                "Hi. Send your order or request here, for example: “I want the black sandals in size 42 delivered to Lekki” or “Book hair styling for Friday.”",
+                "You can also ask for the catalogue, price list, services, or availability.",
+              ].join("\n");
+            }
+          }
+        }
       }
     } else if (activeCloseoutSession && /\b(cancel|stop)\b/i.test(text)) {
       await supabase

@@ -318,6 +318,52 @@ serve(async (req) => {
       return new Response(JSON.stringify({ success: true, order: updatedOrder, message_sent: messageSent }), { headers: corsHeaders });
     }
 
+    if (action === "mark_stale_unpaid_orders") {
+      const daysRaw = Number(body.days || 2);
+      const days = Number.isFinite(daysRaw) && daysRaw > 0 ? Math.min(daysRaw, 30) : 2;
+      const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+      const reason = `Marked stale after ${days} day${days === 1 ? "" : "s"}`;
+
+      const { data: orders, error: selectError } = await supabase
+        .from("kapso_orders")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("status", "confirmed")
+        .in("payment_status", ["unpaid", "receipt_sent"])
+        .lt("created_at", cutoff)
+        .limit(100);
+      if (selectError) throw selectError;
+
+      const rows = orders || [];
+      if (!rows.length) {
+        return new Response(JSON.stringify({ success: true, count: 0 }), { headers: corsHeaders });
+      }
+
+      const ids = rows.map((order: any) => order.id);
+      const now = new Date().toISOString();
+      const { error: updateError } = await supabase
+        .from("kapso_orders")
+        .update({
+          status: "cancelled",
+          updated_at: now,
+        })
+        .eq("user_id", user.id)
+        .in("id", ids);
+      if (updateError) throw updateError;
+
+      await supabase.from("kapso_order_audit_logs").insert(rows.map((order: any) => ({
+        user_id: order.user_id,
+        connection_id: order.connection_id || null,
+        order_id: order.id,
+        actor_type: "owner",
+        action: "marked_stale",
+        details: { reason, cutoff },
+        message_sent: false,
+      })));
+
+      return new Response(JSON.stringify({ success: true, count: rows.length }), { headers: corsHeaders });
+    }
+
     if (action === "update_order_review") {
       const orderId = String(body.order_id || "").trim();
       if (!orderId) {

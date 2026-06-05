@@ -104,6 +104,7 @@ export default function OrdersPage() {
   const [fulfillmentOrderId, setFulfillmentOrderId] = useState<string | null>(null);
   const [openingReceiptId, setOpeningReceiptId] = useState<string | null>(null);
   const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null);
+  const [markingStale, setMarkingStale] = useState(false);
 
   const loadOrders = async () => {
     if (!user) return;
@@ -178,6 +179,26 @@ export default function OrdersPage() {
     }
 
     toast.success('Request cancelled');
+    await loadOrders();
+  };
+
+  const markStaleUnpaid = async () => {
+    if (!confirm('Mark unpaid requests older than 2 days as stale/cancelled? Customers will not be notified.')) return;
+    setMarkingStale(true);
+    const { data, error } = await supabase.functions.invoke('kapso-setup', {
+      body: {
+        action: 'mark_stale_unpaid_orders',
+        days: 2,
+      },
+    });
+    setMarkingStale(false);
+
+    if (error) {
+      toast.error(error.message || 'Could not mark stale requests');
+      return;
+    }
+
+    toast.success(`${data?.count || 0} stale request${data?.count === 1 ? '' : 's'} marked`);
     await loadOrders();
   };
 
@@ -332,6 +353,13 @@ export default function OrdersPage() {
               {status ? status.replace(/_/g, ' ') : 'all requests'}
             </button>
           ))}
+          <button
+            onClick={markStaleUnpaid}
+            disabled={markingStale}
+            className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-sm font-medium text-amber-700 hover:bg-amber-100 disabled:opacity-60"
+          >
+            {markingStale ? 'Marking...' : 'Mark stale unpaid'}
+          </button>
         </div>
 
         {filtered.length === 0 ? (
