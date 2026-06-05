@@ -149,12 +149,12 @@ function day5Email(): string {
   const body = `
     <div style="background:#0c4a6e;padding:40px 40px 32px;">
       <p style="margin:0 0 12px;font-size:13px;font-weight:600;color:#38bdf8;text-transform:uppercase;letter-spacing:1px;">New feature</p>
-      <h1 style="margin:0;font-size:26px;font-weight:700;color:#ffffff;line-height:1.3;">Your team can run workflows on Telegram — 24/7</h1>
+      <h1 style="margin:0;font-size:26px;font-weight:700;color:#ffffff;line-height:1.3;">Your team can run workflows on WhatsApp — 24/7</h1>
     </div>
 
     <div style="padding:32px 40px;">
       <p style="margin:0 0 20px;font-size:15px;color:#374151;line-height:1.6;">
-        Connect a private Telegram bot to Hoursback and your staff can trigger workflows from their phone — cash reconciliations, shift handovers, escalations. You get every result by email.
+        Connect WhatsApp to Hoursback and your staff can trigger workflows from their phone — sales logs, closeouts, customer requests, receipts, and owner summaries.
       </p>
 
       <p style="margin:0 0 8px;font-size:13px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;">Commands your team gets</p>
@@ -164,16 +164,16 @@ function day5Email(): string {
 
       <div style="background:#f0f9ff;border-radius:12px;padding:16px 20px;margin-bottom:28px;">
         <p style="margin:0;font-size:13px;color:#0369a1;line-height:1.5;">
-          <strong>Takes 3 minutes to set up.</strong> Create a bot on Telegram's BotFather, paste the token into Hoursback, and your team is live.
+          <strong>Set up internal and customer-facing numbers.</strong> Staff can log operations while customers place requests and send payment proof.
         </p>
       </div>
 
       <div style="text-align:center;padding:8px 0 16px;">
-        ${ctaButton("Set up your Telegram bot", `${APP_URL}/settings`)}
+        ${ctaButton("Set up WhatsApp", `${APP_URL}/whatsapp`)}
       </div>
     </div>
   `;
-  return baseTemplate("Your team can run AI workflows on Telegram — set up in 3 minutes.", body);
+  return baseTemplate("Your team can run AI workflows on WhatsApp", body);
 }
 
 function day10Email(): string {
@@ -274,11 +274,11 @@ serve(async (req) => {
     workflowCounts[row.user_id] = (workflowCounts[row.user_id] ?? 0) + 1;
   }
 
-  // Load Telegram-connected users
-  const { data: telegramRows } = await supabase
-    .from("telegram_bots")
+  // Load WhatsApp-connected users
+  const { data: whatsappRows } = await supabase
+    .from("kapso_connections")
     .select("user_id");
-  const telegramConnected = new Set((telegramRows ?? []).map((r: { user_id: string }) => r.user_id));
+  const whatsappConnected = new Set((whatsappRows ?? []).map((r: { user_id: string }) => r.user_id));
 
   let sent = 0;
 
@@ -289,7 +289,7 @@ serve(async (req) => {
     const createdAt = new Date(user.created_at);
     const hoursSince = (Date.now() - createdAt.getTime()) / (1000 * 60 * 60);
     const hasWorkflow = (workflowCounts[user.id] ?? 0) > 0;
-    const hasTelegram = telegramConnected.has(user.id);
+    const hasWhatsApp = whatsappConnected.has(user.id);
 
     const alreadySent = (key: string) => sentSet.has(`${user.id}:${key}`);
 
@@ -312,10 +312,10 @@ serve(async (req) => {
       continue;
     }
 
-    // Email 3 — Day 5 Telegram pitch (120–168 hours, no Telegram connected)
-    if (hoursSince >= 120 && !hasTelegram && !alreadySent("day5_telegram")) {
-      const ok = await sendEmail(email, "Your team can run workflows on Telegram too", day5Email());
-      if (ok) { await record("day5_telegram"); sent++; }
+    // Email 3 — Day 5 WhatsApp pitch (120–168 hours, no WhatsApp connected)
+    if (hoursSince >= 120 && !hasWhatsApp && !alreadySent("day5_whatsapp")) {
+      const ok = await sendEmail(email, "Your team can run workflows on WhatsApp too", day5Email());
+      if (ok) { await record("day5_whatsapp"); sent++; }
       continue;
     }
 

@@ -98,8 +98,8 @@ export default function LandingPage() {
       {/* ── Sample Reports ── */}
       <SampleReportsSection />
 
-      {/* ── Telegram Strip ── */}
-      <TelegramStrip />
+      {/* ── WhatsApp operations strip ── */}
+      <WhatsAppOperationsStrip />
 
       {/* ── WhatsApp Feature ── */}
       <WhatsAppFeature />
@@ -346,7 +346,7 @@ function LogoMarquee() {
     { name: 'Google Sheets', dot: '#34A853' },
     { name: 'Claude AI', dot: '#D97706' },
     { name: 'OpenAI', dot: '#202124' },
-    { name: 'Telegram', dot: '#0088cc' },
+    { name: 'Kapso WhatsApp', dot: '#25D366' },
     { name: 'Excel', dot: '#217346' },
     { name: 'Notion', dot: '#202124' },
     { name: 'Gmail', dot: '#EA4335' },
@@ -762,15 +762,15 @@ function SampleReportsSection() {
   );
 }
 
-/* ─────────────────────────────── TELEGRAM STRIP ─────────────────────────────── */
-function TelegramStrip() {
+/* ─────────────────────────────── WHATSAPP OPERATIONS STRIP ─────────────────────────────── */
+function WhatsAppOperationsStrip() {
   const commands = [
-    { cmd: '/reconcile', desc: 'Daily cash count' },
-    { cmd: '/assign',    desc: 'Task to a staff member' },
-    { cmd: '/handover',  desc: 'End-of-shift log' },
-    { cmd: '/restock',   desc: 'Draft a supplier order' },
-    { cmd: '/escalate',  desc: 'Route an issue urgently' },
-    { cmd: '/audit',     desc: 'Step-by-step stock count' },
+    { cmd: 'Sold 3 gowns', desc: 'Log sales' },
+    { cmd: 'Profit and loss', desc: 'Owner summary' },
+    { cmd: 'Closeout',  desc: 'End-of-day check' },
+    { cmd: 'Book styling Friday', desc: 'Service booking' },
+    { cmd: 'Paid',  desc: 'Receipt workflow' },
+    { cmd: 'Send 5-liner', desc: 'Quick report' },
   ];
 
   return (
@@ -782,15 +782,15 @@ function TelegramStrip() {
           <div className="shrink-0 lg:max-w-[300px]">
             <div className="flex items-center gap-2 mb-3">
               <div className="w-8 h-8 rounded-xl bg-[#0088cc] flex items-center justify-center">
-                <Bot className="w-4 h-4 text-white" />
+                <MessageCircle className="w-4 h-4 text-white" />
               </div>
-              <p className="text-xs font-semibold tracking-[0.15em] uppercase text-[#0088cc]">Also on Telegram</p>
+              <p className="text-xs font-semibold tracking-[0.15em] uppercase text-[#0088cc]">Built around WhatsApp</p>
             </div>
             <h3 className="text-2xl font-bold text-[#202124] leading-snug">
-              Your team types a command.<br />The bot handles the rest.
+              Your team sends a message.<br />Hoursback handles the rest.
             </h3>
             <p className="mt-3 text-sm text-[#202124]/55 leading-relaxed">
-              Staff use your Telegram bot directly from their phones — no logins, no dashboards, no training needed.
+              Staff and customers use WhatsApp directly from their phones — sales logs, service bookings, receipts, and owner summaries.
             </p>
           </div>
 
@@ -1107,7 +1107,7 @@ function PricingSection({ onAuthRequired }: { onAuthRequired?: () => void }) {
               { label: 'Active workflows', free: '1', pro: 'Unlimited' },
               { label: 'AI report credits / month', free: '5', pro: 'Unlimited' },
               { label: 'Email delivery', free: true, pro: true },
-              { label: 'Telegram bot commands', free: false, pro: true },
+              { label: 'WhatsApp staff and customer workflows', free: false, pro: true },
               { label: 'Scheduled auto-runs', free: false, pro: true },
               { label: 'Custom data sources', free: false, pro: true },
               { label: 'Upload files (CSV, PDF, images)', free: false, pro: true },
@@ -1149,7 +1149,7 @@ function TestimonialsSection() {
   const testimonials = [
     { quote: "I used to spend 3–4 hours every Monday pulling reports manually. Now Hoursback does it while I sleep.", name: "Adaeze O.", role: "E-commerce Founder", avatar: "AO", color: "#4285F4" },
     { quote: "The supplier monitor caught a 15% price hike the same week it went live. Saved me more than a year of the subscription.", name: "Tunde B.", role: "Operations Manager", avatar: "TB", color: "#DA7756" },
-    { quote: "My team uses the Telegram bot for daily cash reconciliation. Results emailed to me every morning without any manual work.", name: "Emeka F.", role: "Retail Business Owner", avatar: "EF", color: "#059669" },
+    { quote: "My team sends sales and closeout updates on WhatsApp. Customers can also book services and send receipts without us chasing details.", name: "Emeka F.", role: "Retail Business Owner", avatar: "EF", color: "#059669" },
   ];
 
   return (

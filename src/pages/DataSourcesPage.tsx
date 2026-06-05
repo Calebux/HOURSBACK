@@ -166,9 +166,8 @@ export default function DataSourcesPage() {
         <div className="bg-sky-50 border border-sky-200 rounded-2xl p-5">
           <p className="text-sm font-semibold text-sky-900 mb-1">How this works</p>
           <p className="text-sm text-sky-800 leading-relaxed">
-            Register your team's Google Sheets and documents once. When staff run Telegram commands like{' '}
-            <span className="font-mono text-sky-700">/reconcile</span> or <span className="font-mono text-sky-700">/audit</span>,
-            the bot fetches data from the right sheet automatically — no URL needed every time.
+            Register your team's Google Sheets and documents once. When staff send WhatsApp workflow requests like sales summaries,
+            closeouts, or stock checks, Hoursback can use the right sheet automatically — no URL needed every time.
           </p>
           <p className="text-sm text-sky-700 mt-2">
             <strong>Workspace sources</strong> apply to everyone. <strong>Staff sources</strong> override workspace for that specific person — useful when each cashier has their own daily sheet.
@@ -215,13 +214,13 @@ export default function DataSourcesPage() {
           </div>
           <p className="text-xs text-slate-400 -mt-1">
             Personal sheets that override workspace sources for a specific staff member.
-            {staff.length === 0 && ' Connect your Telegram bot first to see your team here.'}
+            {staff.length === 0 && ' Connect WhatsApp first to see your team here.'}
           </p>
 
           {staffSources.length === 0 ? (
             <EmptySlate
               label="No staff sources yet"
-              sub={staff.length > 0 ? "Add personal sheets for staff who keep their own daily logs." : "Connect your Telegram bot first so staff can be linked here."}
+              sub={staff.length > 0 ? "Add personal sheets for staff who keep their own daily logs." : "Connect WhatsApp first so staff can be linked here."}
               onAdd={staff.length > 0 ? () => { setEditing(null); setShowModal(true); } : undefined}
             />
           ) : (
@@ -609,7 +608,7 @@ function SourceModal({ editing, staff, onClose, onSaved, userId }: {
               <div className="mt-2">
                 {staff.length === 0 ? (
                   <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-xl p-3">
-                    No staff connected yet. Staff need to join via the Telegram bot invite link first.
+                    No staff connected yet. Staff need to connect through the WhatsApp workflow first.
                   </p>
                 ) : (
                   <select

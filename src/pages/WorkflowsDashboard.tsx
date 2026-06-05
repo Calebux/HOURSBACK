@@ -10,7 +10,7 @@ import {
   Play, Plus, Clock, CheckCircle2, XCircle, Bot,
   Trash2, Copy, CheckCheck, Pencil, X, Link2, FileText,
   Loader2, MoreVertical, Pause, TrendingUp, Activity,
-  ChevronDown, ChevronUp, ExternalLink, Send, Crown, Lock
+  ChevronDown, ChevronUp, ExternalLink, Send, Lock
 } from 'lucide-react';
 import { MobileNav } from '../components/MobileNav';
 import { UserAvatar } from '../components/UserAvatar';
@@ -39,17 +39,6 @@ interface WorkflowRun {
   status: 'success' | 'failed';
   generated_output: string;
   error_message?: string;
-  created_at: string;
-}
-
-interface TelegramRun {
-  id: string;
-  workflow_key: string;
-  workflow_name: string;
-  triggered_by: string | null;
-  role: string;
-  status: 'success' | 'error';
-  result: string | null;
   created_at: string;
 }
 
@@ -212,9 +201,6 @@ export default function WorkflowsDashboard({ previewMode = false }: { previewMod
   const navigate = useNavigate();
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [runs, setRuns] = useState<WorkflowRun[]>([]);
-  const [telegramRuns, setTelegramRuns] = useState<TelegramRun[]>([]);
-  const [telegramConnected, setTelegramConnected] = useState<boolean | null>(null);
-  const [telegramMonthCount, setTelegramMonthCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [runningId, setRunningId] = useState<string | null>(null);
@@ -237,20 +223,12 @@ export default function WorkflowsDashboard({ previewMode = false }: { previewMod
     refreshPro();
     async function loadData() {
       try {
-        const monthStart = new Date();
-        monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
-        const [{ data: wData }, { data: rData }, { data: tgData }, { data: botData }, { count: monthCnt }] = await Promise.all([
+        const [{ data: wData }, { data: rData }] = await Promise.all([
           supabase.from('workflows').select('*').eq('user_id', user!.id).order('created_at', { ascending: false }),
           supabase.from('workflow_runs').select('*').eq('user_id', user!.id).order('created_at', { ascending: false }).limit(50),
-          supabase.from('telegram_runs').select('id, workflow_key, workflow_name, triggered_by, role, status, result, created_at').eq('user_id', user!.id).order('created_at', { ascending: false }).limit(10),
-          supabase.from('telegram_bots').select('bot_username').eq('user_id', user!.id).maybeSingle(),
-          supabase.from('telegram_runs').select('id', { count: 'exact', head: true }).eq('user_id', user!.id).gte('created_at', monthStart.toISOString()),
         ]);
         if (wData) setWorkflows(wData);
         if (rData) setRuns(rData);
-        if (tgData) setTelegramRuns(tgData);
-        setTelegramConnected(!!botData?.bot_username);
-        setTelegramMonthCount(monthCnt ?? 0);
       } catch (err) {
         console.error('Error loading workflows', err);
       } finally {
@@ -1012,21 +990,21 @@ export default function WorkflowsDashboard({ previewMode = false }: { previewMod
           </div>
         )}
 
-        {/* Telegram onboarding nudge — shown after first workflow if bot not connected */}
-        {!previewMode && telegramConnected === false && workflows.length >= 1 && telegramRuns.length === 0 && (
-          <div className="mb-6 bg-sky-50 border border-sky-200 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        {/* WhatsApp onboarding nudge — shown after first workflow */}
+        {!previewMode && workflows.length >= 1 && (
+          <div className="mb-6 bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="flex items-start gap-3">
-              <Send className="w-5 h-5 text-sky-500 shrink-0 mt-0.5" />
+              <Send className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
               <div>
-                <p className="font-semibold text-sky-900 text-sm">Give your team a 24/7 Telegram bot</p>
-                <p className="text-sky-700 text-xs mt-0.5">Staff can run cash reconciliations, handovers, and escalations on Telegram — you get every result by email.</p>
+                <p className="font-semibold text-emerald-950 text-sm">Run staff and customer workflows on WhatsApp</p>
+                <p className="text-emerald-800 text-xs mt-0.5">Staff can log sales and closeouts, customers can place requests, and owners can ask for summaries from WhatsApp.</p>
               </div>
             </div>
             <a
-              href="/settings"
-              className="shrink-0 bg-sky-600 text-white px-4 py-2 rounded-full text-sm font-semibold hover:bg-sky-700 transition-colors flex items-center gap-1.5 whitespace-nowrap"
+              href="/whatsapp"
+              className="shrink-0 bg-emerald-600 text-white px-4 py-2 rounded-full text-sm font-semibold hover:bg-emerald-700 transition-colors flex items-center gap-1.5 whitespace-nowrap"
             >
-              Set up bot →
+              Set up WhatsApp →
             </a>
           </div>
         )}
@@ -1185,66 +1163,22 @@ export default function WorkflowsDashboard({ previewMode = false }: { previewMod
                 <div>
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <Send className="w-4 h-4 text-sky-500" />
-                      <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Telegram Activity</h2>
+                      <Send className="w-4 h-4 text-emerald-600" />
+                      <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">WhatsApp Workflows</h2>
                     </div>
-                    <Link to="/telegram" className="text-xs text-sky-600 hover:underline font-medium">
-                      View all →
+                    <Link to="/whatsapp" className="text-xs text-emerald-700 hover:underline font-medium">
+                      Set up →
                     </Link>
                   </div>
-                  {!isPro && telegramConnected && (
-                    <div className="mb-3 space-y-1">
-                      <div className="flex items-center justify-between">
-                        <p className="text-xs text-slate-400">{telegramMonthCount}/50 runs this month</p>
-                        {telegramMonthCount >= 50 && (
-                          <ProUpgradeButton className="text-xs font-semibold text-purple-600 hover:text-purple-700 flex items-center gap-1">
-                            <Crown className="w-3 h-3" /> Upgrade
-                          </ProUpgradeButton>
-                        )}
-                      </div>
-                      <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full ${telegramMonthCount >= 50 ? 'bg-red-400' : telegramMonthCount >= 35 ? 'bg-amber-400' : 'bg-sky-400'}`}
-                          style={{ width: `${Math.min(100, Math.round((telegramMonthCount / 50) * 100))}%` }}
-                        />
+                  <div className="bg-white rounded-2xl border border-brand-dark/10 overflow-hidden">
+                    <div className="p-5 space-y-3">
+                      <p className="text-sm text-brand-dark/60">Use WhatsApp for the workflows that happen inside chat.</p>
+                      <div className="grid gap-2 text-xs text-slate-500">
+                        <Link to="/data-log" className="rounded-xl border border-slate-100 px-3 py-2 hover:bg-slate-50">Staff sales logs and closeouts</Link>
+                        <Link to="/orders" className="rounded-xl border border-slate-100 px-3 py-2 hover:bg-slate-50">Customer orders, bookings, and receipts</Link>
+                        <Link to="/whatsapp" className="rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-emerald-700 hover:bg-emerald-100">Configure WhatsApp numbers</Link>
                       </div>
                     </div>
-                  )}
-                  <div className="bg-white rounded-2xl border border-brand-dark/10 overflow-hidden">
-                    {telegramRuns.length === 0 ? (
-                      <div className="p-5 text-center space-y-2">
-                        <p className="text-sm text-brand-dark/40">No bot activity yet.</p>
-                        <a href="/settings" className="text-xs text-sky-600 hover:underline font-medium block">
-                          Set up Telegram bot →
-                        </a>
-                      </div>
-                    ) : (
-                      <div className="divide-y divide-slate-100 max-h-80 overflow-y-auto">
-                        {telegramRuns.map(run => (
-                          <div key={run.id} className="p-3.5 flex items-start gap-2.5">
-                            <div className={`mt-0.5 shrink-0 ${run.status === 'success' ? 'text-emerald-500' : 'text-red-500'}`}>
-                              {run.status === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium leading-tight truncate">{run.workflow_name}</p>
-                              <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                                {run.triggered_by && (
-                                  <span className="text-xs text-slate-500">by {run.triggered_by}</span>
-                                )}
-                                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
-                                  run.role === 'manager'
-                                    ? 'bg-purple-50 text-purple-600 border border-purple-200'
-                                    : 'bg-sky-50 text-sky-600 border border-sky-200'
-                                }`}>
-                                  {run.role}
-                                </span>
-                                <span className="text-xs text-slate-400">{timeAgo(run.created_at)}</span>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>

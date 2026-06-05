@@ -60,17 +60,17 @@ function fmtDate(iso: string) {
 }
 
 function inferChannel(source?: string | null) {
-  if (!source) return 'telegram';
+  if (!source) return 'whatsapp';
   if (source.startsWith('whatsapp')) return 'whatsapp';
   if (source.startsWith('web')) return 'web';
-  return 'telegram';
+  return 'whatsapp';
 }
 
 function labelChannel(channel?: string | null) {
   switch (channel) {
     case 'whatsapp': return 'WhatsApp';
     case 'web': return 'Web';
-    case 'telegram': return 'Telegram';
+    case 'telegram': return 'WhatsApp';
     default: return channel || 'Unknown';
   }
 }
@@ -79,7 +79,7 @@ function channelClass(channel?: string | null) {
   switch (channel) {
     case 'whatsapp': return 'bg-emerald-50 text-emerald-700';
     case 'web': return 'bg-blue-50 text-blue-700';
-    case 'telegram': return 'bg-sky-50 text-sky-700';
+    case 'telegram': return 'bg-emerald-50 text-emerald-700';
     default: return 'bg-slate-100 text-slate-500';
   }
 }
@@ -228,7 +228,7 @@ export default function SalesLogPage() {
         e.parsed_data?.customer ?? '',
         e.entry_type,
         e.channel || inferChannel(e.source),
-        e.source ?? 'telegram_text',
+        e.source ?? 'whatsapp_text',
         e.raw_text,
       ]),
     ];
@@ -350,7 +350,7 @@ export default function SalesLogPage() {
       <div className="sticky top-0 z-10 bg-white/90 backdrop-blur border-b border-slate-200">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <Link to="/telegram" className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors">
+            <Link to="/whatsapp" className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors">
               <ChevronLeft className="w-5 h-5 text-slate-500" />
             </Link>
             <div className="flex items-center gap-2">
@@ -654,8 +654,7 @@ export default function SalesLogPage() {
             <p className="text-sm text-slate-400">
               Staff can log sales by typing{' '}
               <code className="font-mono bg-slate-100 px-1 rounded">Sold 2 fittings for 5000 cash</code>{' '}
-              in WhatsApp, using <code className="font-mono bg-slate-100 px-1 rounded">/log</code> in Telegram,
-              or scanning your sales book with the button above.
+              in WhatsApp, or scanning your sales book with the button above.
             </p>
           </div>
         ) : (

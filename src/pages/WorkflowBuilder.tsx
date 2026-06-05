@@ -369,11 +369,11 @@ const workflowDescriptions: Record<string, string> = {
   'wkflow-33': 'Compares your actual weekly sales in Naira against your targets, highlights the biggest gaps, names the under-performing products or channels, and tells you exactly what to do this week to close the gap before month end.',
   'wkflow-34': 'Reads your WhatsApp lead log from Google Sheets, groups leads by temperature (hot, warm, cold), and generates ready-to-paste WhatsApp follow-up messages for each group — so no lead gets forgotten and your follow-up is consistent every week.',
   'wkflow-35': 'Analyses your customer order history to predict who is due for a reorder, who is overdue, and who is slipping away — with the likelihood score, last order date, and a specific outreach recommendation for each customer sorted by revenue at risk.',
-  // Telegram-only workflows
-  'wkflow-40': 'Staff type /sop in Telegram and describe what they\'re about to do — the bot checks it against your SOPs and tells them immediately if they\'re following the correct procedure. No more "I didn\'t know" moments.',
-  'wkflow-42': 'When you update a procedure, broadcast the change to your whole team via Telegram instantly. Staff confirm they\'ve read it — so you have a record and no-one can say they weren\'t told.',
+  // Chat workflows
+  'wkflow-40': 'Staff send an SOP question in WhatsApp and describe what they\'re about to do — Hoursback checks it against your SOPs and tells them immediately if they\'re following the correct procedure. No more "I didn\'t know" moments.',
+  'wkflow-42': 'When you update a procedure, broadcast the change to your whole team via WhatsApp. Staff confirm they\'ve read it — so you have a record and no-one can say they weren\'t told.',
   'wkflow-44': 'Staff type /reconcile at end of shift, enter their opening float, cash received, and expenses — the bot calculates the variance and logs the result. Managers get notified of any discrepancy immediately.',
-  'wkflow-47': 'Managers type /restock in Telegram and describe what\'s running low — the bot drafts a reorder message to the supplier, including product details and suggested quantity, ready to copy and send.',
+  'wkflow-47': 'Managers send a restock request in WhatsApp and describe what\'s running low — Hoursback drafts a reorder message to the supplier, including product details and suggested quantity, ready to copy and send.',
   'wkflow-48': 'Managers type /audit to start an inventory check — the bot guides them through each product category step by step, collects counts, and produces a discrepancy report at the end.',
   'wkflow-49': 'Managers type /assign and describe a task — the bot asks who it\'s for, when it\'s due, and any notes. Creates a clear assignment record that both the manager and staff member can refer back to.',
   'wkflow-51': 'Staff type /handover at the end of their shift — the bot asks what was completed, what\'s pending, any issues, and who to follow up with. Structured logs every time, no format to remember.',
@@ -442,7 +442,7 @@ const dataSourceHelp: Record<string, string> = {
   'wkflow-33': 'Your sheet should have columns for product/service name, actual sales this week (₦), and target (₦). Add a notes column for context if you have it.',
   'wkflow-34': 'Export your WhatsApp leads to a Google Sheet with columns: name, phone, lead source, last contact date, status (New/Interested/Negotiating/Cold), and any notes.',
   'wkflow-35': 'Your sheet should have columns: customer name, product ordered, order date, and order value (₦). More order history = more accurate predictions.',
-  // Telegram-optional workflows
+  // Chat-optional workflows
   'wkflow-40': 'Paste both your task log and SOP checklist directly. The more detail you include, the more accurate the compliance check.',
   'wkflow-42': 'Share published Google Docs URLs for both versions. Go to File → Share → Publish to web in each doc.',
   'wkflow-44': 'Enter the exact Naira amounts for each field. The agent will calculate variance and flag discrepancies.',
@@ -450,7 +450,7 @@ const dataSourceHelp: Record<string, string> = {
   'wkflow-48': 'System records sheet needs: item, quantity. Physical count can be pasted directly as a list or as a sheet URL.',
   'wkflow-49': 'Describe tasks clearly with any deadlines. Team roles can be pasted as a list (Name: Role) or as a Google Sheets URL.',
   'wkflow-51': 'Be specific about in-progress items — include who owns them and the next action needed for handover to work smoothly.',
-  'wkflow-53': 'Include real phone numbers or Telegram handles for each contact tier. The more context in the incident description, the better the escalation messages.',
+  'wkflow-53': 'Include real phone numbers or WhatsApp contacts for each contact tier. The more context in the incident description, the better the escalation messages.',
   // SOP
   'wkflow-41': 'Go to File → Share → Publish to web in Google Docs, then paste the published URL here. Or share a Google Sheets URL set to "Anyone with link can view".',
   // Cash & Expenses
@@ -494,7 +494,7 @@ const workflowInputs: Record<string, WorkflowInput> = {
   'wkflow-33': { label: 'Google Sheets URL (sales vs target data)', placeholder: 'https://docs.google.com/spreadsheets/d/...', type: 'url' },
   'wkflow-34': { label: 'Google Sheets URL (WhatsApp leads log)', placeholder: 'https://docs.google.com/spreadsheets/d/...', type: 'url' },
   'wkflow-35': { label: 'Google Sheets URL (customer order history)', placeholder: 'https://docs.google.com/spreadsheets/d/...', type: 'url' },
-  // Telegram-optional workflows — also deployable as scheduled email reports
+  // Chat-optional workflows — also deployable as scheduled email reports
   'wkflow-40': { label: 'Task completion log + SOP checklist', placeholder: 'Paste your task log AND your SOP checklist steps below — separate them clearly.\n\nTASK LOG:\n[paste here]\n\nSOP CHECKLIST:\n[paste steps here]', type: 'textarea' },
   'wkflow-42': { label: 'Old SOP URL + New SOP URL', placeholder: 'OLD SOP URL: https://docs.google.com/...\nNEW SOP URL: https://docs.google.com/...', type: 'textarea' },
   'wkflow-44': { label: 'End-of-day cash data', placeholder: 'Opening balance: ₦\nTotal sales: ₦\nTotal expenses: ₦\nActual closing count: ₦', type: 'textarea' },
@@ -502,7 +502,7 @@ const workflowInputs: Record<string, WorkflowInput> = {
   'wkflow-48': { label: 'System records URL + Physical count data', placeholder: 'SYSTEM RECORDS URL: https://docs.google.com/...\nPHYSICAL COUNT: (paste count data or URL)', type: 'textarea' },
   'wkflow-49': { label: 'Task list + Team roles', placeholder: 'TASKS:\n- Task 1\n- Task 2\n\nTEAM ROLES:\n- Amaka: Cashier\n- Tunde: Stockkeeper\n(or paste a Google Sheets URL)', type: 'textarea' },
   'wkflow-51': { label: 'Shift summary', placeholder: 'COMPLETED:\n- [what was done]\n\nIN PROGRESS:\n- [what\'s still ongoing]\n\nISSUES:\n- [any incidents or urgent items]', type: 'textarea' },
-  'wkflow-53': { label: 'Incident + Escalation contacts', placeholder: 'INCIDENT: [brief description]\n\nTIER 1: Name — phone/Telegram\nTIER 2: Name — phone\nTIER 3: Name — phone (decision-maker)', type: 'textarea' },
+  'wkflow-53': { label: 'Incident + Escalation contacts', placeholder: 'INCIDENT: [brief description]\n\nTIER 1: Name — phone/WhatsApp\nTIER 2: Name — phone\nTIER 3: Name — phone (decision-maker)', type: 'textarea' },
   // SOP
   'wkflow-41': { label: 'SOP or procedures document URL', placeholder: 'https://docs.google.com/document/d/.../pub  (published to web)', type: 'url' },
   // Cash & Expenses
@@ -1094,7 +1094,7 @@ export default function WorkflowBuilder() {
                               )}
                               {TELEGRAM_WORKFLOWS[p.id] && !locked && (
                                 <span className="flex items-center gap-1 text-[10px] font-bold tracking-wide uppercase px-2 py-0.5 rounded-md bg-sky-50 text-sky-600 border border-sky-100">
-                                  <Send className="w-2.5 h-2.5" /> Telegram
+                                  <Send className="w-2.5 h-2.5" /> WhatsApp
                                 </span>
                               )}
                             </div>
@@ -1134,7 +1134,7 @@ export default function WorkflowBuilder() {
                   </div>
                 )}
 
-                {/* Telegram deploy Modal */}
+                {/* WhatsApp deploy Modal */}
                 {telegramDeployId && TELEGRAM_WORKFLOWS[telegramDeployId] && (() => {
                   const tg = TELEGRAM_WORKFLOWS[telegramDeployId];
                   const sel = launchCatalog.find(p => p.id === telegramDeployId);
@@ -1146,7 +1146,7 @@ export default function WorkflowBuilder() {
                             <Send className="w-6 h-6 text-sky-600" />
                           </div>
                           <div className="flex-1 pr-4">
-                            <p className="font-bold text-slate-900 text-lg leading-snug">{sel?.title} via Telegram</p>
+                            <p className="font-bold text-slate-900 text-lg leading-snug">{sel?.title} via WhatsApp</p>
                             <p className="text-slate-500 text-sm mt-1">{tg.description}</p>
                           </div>
                           <button onClick={() => setTelegramDeployId(null)} className="text-slate-400 hover:text-slate-600 shrink-0 p-1 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">
@@ -1169,9 +1169,9 @@ export default function WorkflowBuilder() {
                         <div className="space-y-3">
                           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Setup Instructions</p>
                           <ol className="space-y-3 text-sm text-slate-600">
-                            <li className="flex items-start gap-3"><span className="bg-slate-100 text-slate-500 w-6 h-6 rounded-full flex items-center justify-center shrink-0 font-bold text-xs ring-1 ring-slate-200">1</span><div>Connect your Telegram bot in <a href="/settings" className="underline font-semibold text-slate-900 hover:text-brand-blue">Settings → Telegram</a>.</div></li>
-                            <li className="flex items-start gap-3"><span className="bg-slate-100 text-slate-500 w-6 h-6 rounded-full flex items-center justify-center shrink-0 font-bold text-xs ring-1 ring-slate-200">2</span><div>Share the {tg.role === 'manager' ? 'Manager' : tg.role === 'staff' ? 'Staff' : 'Manager or Staff'} invite link with your team.</div></li>
-                            <li className="flex items-start gap-3"><span className="bg-slate-100 text-slate-500 w-6 h-6 rounded-full flex items-center justify-center shrink-0 font-bold text-xs ring-1 ring-slate-200">3</span><div>Anyone on your team can type <span className="font-mono font-bold bg-slate-100 px-1.5 py-0.5 rounded text-slate-700">{tg.command}</span> to trigger.</div></li>
+                            <li className="flex items-start gap-3"><span className="bg-slate-100 text-slate-500 w-6 h-6 rounded-full flex items-center justify-center shrink-0 font-bold text-xs ring-1 ring-slate-200">1</span><div>Connect WhatsApp in <a href="/whatsapp" className="underline font-semibold text-slate-900 hover:text-brand-blue">WhatsApp Workflows</a>.</div></li>
+                            <li className="flex items-start gap-3"><span className="bg-slate-100 text-slate-500 w-6 h-6 rounded-full flex items-center justify-center shrink-0 font-bold text-xs ring-1 ring-slate-200">2</span><div>Use the internal number for staff and owner workflows.</div></li>
+                            <li className="flex items-start gap-3"><span className="bg-slate-100 text-slate-500 w-6 h-6 rounded-full flex items-center justify-center shrink-0 font-bold text-xs ring-1 ring-slate-200">3</span><div>Staff can send a message like <span className="font-mono font-bold bg-slate-100 px-1.5 py-0.5 rounded text-slate-700">{tg.command}</span> to trigger.</div></li>
                           </ol>
                         </div>
 
@@ -1183,7 +1183,7 @@ export default function WorkflowBuilder() {
                             Close
                           </button>
                           <a
-                            href="/settings#telegram"
+                            href="/whatsapp"
                             className="flex-1 text-center py-3 bg-brand-dark text-white rounded-xl text-sm font-semibold hover:bg-brand-dark/90 transition-colors shadow-sm"
                           >
                             Go to Settings
@@ -1234,7 +1234,7 @@ export default function WorkflowBuilder() {
                             )}
                             {isTelegramWf && !previewLocked && (
                               <span className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-md bg-sky-50 text-sky-600 border border-sky-200">
-                                <Send className="w-2.5 h-2.5" /> Telegram
+                                <Send className="w-2.5 h-2.5" /> WhatsApp
                               </span>
                             )}
                           </div>
@@ -1272,7 +1272,7 @@ export default function WorkflowBuilder() {
                               }}
                               className="w-full py-2.5 bg-sky-600 text-white rounded-xl text-sm font-semibold hover:bg-sky-700 transition-colors flex items-center justify-center gap-2"
                             >
-                              <Send className="w-4 h-4" /> Set up on Telegram
+                              <Send className="w-4 h-4" /> Set up on WhatsApp
                             </button>
                           ) : (
                             <button
