@@ -31,6 +31,28 @@ async function getAuthedUser(req: Request) {
   return user;
 }
 
+async function logOrderAudit(
+  supabase: any,
+  order: any,
+  action: string,
+  details: Record<string, unknown> = {},
+  messageSent = false,
+) {
+  try {
+    await supabase.from("kapso_order_audit_logs").insert({
+      user_id: order.user_id,
+      connection_id: order.connection_id || null,
+      order_id: order.id,
+      actor_type: "owner",
+      action,
+      details,
+      message_sent: messageSent,
+    });
+  } catch (err) {
+    console.error("Kapso order audit log failed:", err);
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -72,6 +94,10 @@ serve(async (req) => {
       const customerMenu = String(body.customer_menu || "").trim();
       const paymentInstructions = String(body.payment_instructions || "").trim();
       const ownerNotificationNumber = String(body.owner_notification_number || "").trim();
+      const businessType = String(body.business_type || "").trim();
+      const operatingHours = String(body.operating_hours || "").trim();
+      const fulfillmentRules = String(body.fulfillment_rules || "").trim();
+      const escalationInstructions = String(body.escalation_instructions || "").trim();
 
       const { data: existing } = await supabase
         .from("kapso_connections")
@@ -93,6 +119,10 @@ serve(async (req) => {
           customer_menu: customerMenu || null,
           payment_instructions: paymentInstructions || null,
           owner_notification_number: ownerNotificationNumber || null,
+          business_type: businessType || null,
+          operating_hours: operatingHours || null,
+          fulfillment_rules: fulfillmentRules || null,
+          escalation_instructions: escalationInstructions || null,
           updated_at: new Date().toISOString(),
         }, { onConflict: "user_id,connection_type" })
         .select("*")
@@ -160,6 +190,10 @@ serve(async (req) => {
         messageSent = true;
       }
 
+      await logOrderAudit(supabase, updatedOrder, "payment_verified", {
+        delivery_note: deliveryNote || null,
+      }, messageSent);
+
       return new Response(JSON.stringify({ success: true, order: updatedOrder, message_sent: messageSent }), { headers: corsHeaders });
     }
 
@@ -219,6 +253,8 @@ serve(async (req) => {
         messageSent = true;
       }
 
+      await logOrderAudit(supabase, updatedOrder, "payment_rejected", {}, messageSent);
+
       return new Response(JSON.stringify({ success: true, order: updatedOrder, message_sent: messageSent }), { headers: corsHeaders });
     }
 
@@ -248,6 +284,12 @@ serve(async (req) => {
         .single();
 
       if (error) throw error;
+      await logOrderAudit(supabase, data, "review_updated", {
+        delivery_fee_amount: Number.isFinite(deliveryFee) ? deliveryFee : null,
+        expected_total_amount: Number.isFinite(expectedTotal) ? expectedTotal : null,
+        owner_adjusted_total_amount: Number.isFinite(adjustedTotal) ? adjustedTotal : null,
+        owner_notes: ownerNotes || null,
+      }, false);
       return new Response(JSON.stringify({ success: true, order: data }), { headers: corsHeaders });
     }
 
@@ -315,6 +357,10 @@ serve(async (req) => {
         messageSent = true;
       }
 
+      await logOrderAudit(supabase, updatedOrder, "fulfillment_updated", {
+        fulfillment_status: fulfillmentStatus,
+      }, messageSent);
+
       return new Response(JSON.stringify({ success: true, order: updatedOrder, message_sent: messageSent }), { headers: corsHeaders });
     }
 
@@ -326,6 +372,10 @@ serve(async (req) => {
       const customerMenu = String(body.customer_menu || "").trim();
       const paymentInstructions = String(body.payment_instructions || "").trim();
       const ownerNotificationNumber = String(body.owner_notification_number || "").trim();
+      const businessType = String(body.business_type || "").trim();
+      const operatingHours = String(body.operating_hours || "").trim();
+      const fulfillmentRules = String(body.fulfillment_rules || "").trim();
+      const escalationInstructions = String(body.escalation_instructions || "").trim();
 
       if (!phoneNumberId) {
         return new Response(JSON.stringify({ error: "phone_number_id is required" }), { status: 400, headers: corsHeaders });
@@ -342,6 +392,10 @@ serve(async (req) => {
           customer_menu: connectionType === "customer" ? customerMenu || null : null,
           payment_instructions: connectionType === "customer" ? paymentInstructions || null : null,
           owner_notification_number: connectionType === "customer" ? ownerNotificationNumber || null : null,
+          business_type: connectionType === "customer" ? businessType || null : null,
+          operating_hours: connectionType === "customer" ? operatingHours || null : null,
+          fulfillment_rules: connectionType === "customer" ? fulfillmentRules || null : null,
+          escalation_instructions: connectionType === "customer" ? escalationInstructions || null : null,
           status: "connected",
           webhook_secret_set: !!KAPSO_WEBHOOK_SECRET,
           updated_at: new Date().toISOString(),

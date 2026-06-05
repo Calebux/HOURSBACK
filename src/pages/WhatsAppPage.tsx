@@ -18,6 +18,10 @@ interface KapsoConnection {
   customer_menu: string | null;
   payment_instructions: string | null;
   owner_notification_number: string | null;
+  business_type: string | null;
+  operating_hours: string | null;
+  fulfillment_rules: string | null;
+  escalation_instructions: string | null;
   last_webhook_at: string | null;
   webhook_secret_set: boolean;
 }
@@ -108,6 +112,10 @@ export default function WhatsAppPage() {
   const [customerMenu, setCustomerMenu] = useState('');
   const [paymentInstructions, setPaymentInstructions] = useState('');
   const [ownerNotificationNumber, setOwnerNotificationNumber] = useState('');
+  const [businessType, setBusinessType] = useState('');
+  const [operatingHours, setOperatingHours] = useState('');
+  const [fulfillmentRules, setFulfillmentRules] = useState('');
+  const [escalationInstructions, setEscalationInstructions] = useState('');
   const [connectionType, setConnectionType] = useState<'internal' | 'customer'>('internal');
 
   const webhookUrl = useMemo(() => {
@@ -132,6 +140,10 @@ export default function WhatsAppPage() {
       setCustomerMenu(selected?.customer_menu || '');
       setPaymentInstructions(selected?.payment_instructions || '');
       setOwnerNotificationNumber(selected?.owner_notification_number || '');
+      setBusinessType(selected?.business_type || '');
+      setOperatingHours(selected?.operating_hours || '');
+      setFulfillmentRules(selected?.fulfillment_rules || '');
+      setEscalationInstructions(selected?.escalation_instructions || '');
     }
     setLoading(false);
   }, [user, connectionType]);
@@ -199,6 +211,10 @@ export default function WhatsAppPage() {
         customer_menu: customerMenu.trim(),
         payment_instructions: paymentInstructions.trim(),
         owner_notification_number: ownerNotificationNumber.trim(),
+        business_type: businessType.trim(),
+        operating_hours: operatingHours.trim(),
+        fulfillment_rules: fulfillmentRules.trim(),
+        escalation_instructions: escalationInstructions.trim(),
       },
     });
     setSaving(false);
@@ -219,6 +235,10 @@ export default function WhatsAppPage() {
         customer_menu: customerMenu.trim(),
         payment_instructions: paymentInstructions.trim(),
         owner_notification_number: ownerNotificationNumber.trim(),
+        business_type: businessType.trim(),
+        operating_hours: operatingHours.trim(),
+        fulfillment_rules: fulfillmentRules.trim(),
+        escalation_instructions: escalationInstructions.trim(),
       },
     });
     setSaving(false);
@@ -252,6 +272,10 @@ export default function WhatsAppPage() {
       setCustomerMenu('');
       setPaymentInstructions('');
       setOwnerNotificationNumber('');
+      setBusinessType('');
+      setOperatingHours('');
+      setFulfillmentRules('');
+      setEscalationInstructions('');
       toast.success('WhatsApp disconnected');
     }
   };
@@ -477,6 +501,26 @@ export default function WhatsAppPage() {
             <div className="space-y-3">
               <div className="grid sm:grid-cols-2 gap-3">
                 <label>
+                  <span className="block text-xs font-medium text-slate-500 mb-1.5">Business type</span>
+                  <input
+                    value={businessType}
+                    onChange={(e) => setBusinessType(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-400"
+                    placeholder="e.g. Fashion retail, repair shop, salon, clinic, logistics"
+                  />
+                </label>
+                <label>
+                  <span className="block text-xs font-medium text-slate-500 mb-1.5">Operating hours</span>
+                  <input
+                    value={operatingHours}
+                    onChange={(e) => setOperatingHours(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-400"
+                    placeholder="e.g. Mon-Sat, 9am-6pm. Closed Sundays."
+                  />
+                </label>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <label>
                   <span className="block text-xs font-medium text-slate-500 mb-1.5">Catalogue / service list / price list</span>
                   <textarea
                     value={customerMenu}
@@ -494,6 +538,28 @@ export default function WhatsAppPage() {
                     rows={7}
                     className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-400"
                     placeholder={'Bank: GTBank\nAccount: 0123456789\nName: Your Business Name\nSend receipt here after payment.'}
+                  />
+                </label>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <label>
+                  <span className="block text-xs font-medium text-slate-500 mb-1.5">Fulfillment rules</span>
+                  <textarea
+                    value={fulfillmentRules}
+                    onChange={(e) => setFulfillmentRules(e.target.value)}
+                    rows={4}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-400"
+                    placeholder={'Delivery within Lekki is ₦2500.\nPickup is available after payment.\nRepairs take 24-48 hours after inspection.'}
+                  />
+                </label>
+                <label>
+                  <span className="block text-xs font-medium text-slate-500 mb-1.5">Escalation instructions</span>
+                  <textarea
+                    value={escalationInstructions}
+                    onChange={(e) => setEscalationInstructions(e.target.value)}
+                    rows={4}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-400"
+                    placeholder={'If price is unclear, tell the customer staff will confirm.\nIf refund, complaint, discount, or urgent issue comes up, hand off to staff.'}
                   />
                 </label>
               </div>

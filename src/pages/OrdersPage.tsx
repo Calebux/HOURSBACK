@@ -11,6 +11,7 @@ interface Order {
   customer_phone: string | null;
   customer_name: string | null;
   status: string;
+  request_type?: string | null;
   items: Array<{ name: string; qty?: number | null; unit_price?: number | null }>;
   delivery_address: string | null;
   payment_method: string | null;
@@ -35,6 +36,13 @@ interface Order {
   notes: string | null;
   raw_text: string | null;
   created_at: string;
+  kapso_order_audit_logs?: Array<{
+    id: string;
+    action: string;
+    actor_type: string;
+    message_sent: boolean;
+    created_at: string;
+  }>;
 }
 
 function fmtDate(iso: string) {
@@ -97,9 +105,10 @@ export default function OrdersPage() {
     setLoading(true);
     const { data } = await supabase
       .from('kapso_orders')
-      .select('*')
+      .select('*, kapso_order_audit_logs(id, action, actor_type, message_sent, created_at)')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
+      .order('created_at', { referencedTable: 'kapso_order_audit_logs', ascending: false })
       .limit(200);
     setOrders((data as Order[]) || []);
     setLoading(false);
@@ -234,11 +243,16 @@ export default function OrdersPage() {
   );
 
   const requestType = (order: Order) => {
+    if (order.request_type) {
+      return order.request_type.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
+    }
     const text = `${itemSummary(order.items)} ${order.delivery_address || ''} ${order.notes || ''} ${order.raw_text || ''}`.toLowerCase();
     if (/\b(book|booking|appointment|schedule|slot|friday|monday|tuesday|wednesday|thursday|saturday|sunday)\b/.test(text)) return 'Booking';
     if (/\b(repair|fix|installation|install|service|consultation|fitting|alteration|styling)\b/.test(text)) return 'Service';
     return 'Order';
   };
+
+  const actionLabel = (action: string) => action.replace(/_/g, ' ');
 
   if (loading) {
     return (
@@ -364,6 +378,20 @@ export default function OrdersPage() {
                   {order.payment_verified_at && <p><span className="font-semibold text-slate-600">Verified:</span> {fmtDate(order.payment_verified_at)}</p>}
                   {order.fulfilled_at && <p><span className="font-semibold text-slate-600">Fulfilled:</span> {fmtDate(order.fulfilled_at)}</p>}
                 </div>
+                {!!order.kapso_order_audit_logs?.length && (
+                  <div className="mt-3 rounded-xl border border-slate-100 bg-white px-3 py-2">
+                    <p className="text-xs font-semibold text-slate-500">Recent owner actions</p>
+                    <div className="mt-1 space-y-1">
+                      {order.kapso_order_audit_logs.slice(0, 3).map((log) => (
+                        <p key={log.id} className="text-xs text-slate-500">
+                          <span className="font-medium text-slate-700">{actionLabel(log.action)}</span>
+                          {' '}· {fmtDate(log.created_at)}
+                          {log.message_sent ? ' · customer notified' : ''}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <form
                   className="mt-3 grid gap-2 rounded-xl border border-slate-100 bg-slate-50 p-3 sm:grid-cols-3"
                   onSubmit={(event) => {

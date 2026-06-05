@@ -536,6 +536,20 @@ function orderItemsSummary(items: any[]) {
   return items.map((item) => `${item.qty ? `${item.qty} x ` : ""}${item.name}`).join(", ");
 }
 
+function classifyRequestType(text: string, items: any[] = [], deliveryAddress?: string | null) {
+  const combined = [
+    text,
+    deliveryAddress || "",
+    ...(items || []).map((item) => item?.name || ""),
+  ].join(" ").toLowerCase();
+
+  if (/\b(repair|fix|screen|fault|broken|diagnose|diagnosis)\b/.test(combined)) return "repair";
+  if (/\b(book|booking|appointment|schedule|slot|reserve|reservation)\b/.test(combined)) return "booking";
+  if (/\b(service|consultation|install|installation|fitting|alteration|styling|cleaning)\b/.test(combined)) return "service";
+  if (/\b(quote|quotation|estimate|invoice)\b/.test(combined)) return "quote";
+  return "order";
+}
+
 async function findOpenCustomerOrder(supabase: any, connection: any, from?: string) {
   if (!from) return null;
   const { data: openOrders } = await supabase
@@ -736,8 +750,12 @@ async function getCustomerAIResponse(supabase: any, connection: any, message: Pa
           "For normal questions, action must be answer.",
           "Return JSON only with this shape: {\"action\":\"answer|order|payment_claim|receipt_submitted|workflow_request|handoff\",\"reply\":string|null}",
           "",
+          `Business type:\n${String(connection.business_type || "Not configured").trim()}`,
+          `Operating hours:\n${String(connection.operating_hours || "Not configured").trim()}`,
           `Business catalogue / service list / price list:\n${String(connection.customer_menu || "Not configured").trim()}`,
+          `Fulfillment rules:\n${String(connection.fulfillment_rules || "Not configured").trim()}`,
           `Payment instructions:\n${String(connection.payment_instructions || "Not configured").trim()}`,
+          `Escalation instructions:\n${String(connection.escalation_instructions || "Not configured").trim()}`,
           `Open order waiting for details:\n${JSON.stringify(openOrder || null)}`,
           `Latest order from this customer:\n${JSON.stringify(latestOrder || null)}`,
           `Order awaiting receipt/proof:\n${JSON.stringify(awaitingReceiptOrder || null)}`,
@@ -822,6 +840,7 @@ async function handleCustomerOrder(supabase: any, connection: any, message: Pars
   const paymentMethod = cleanPaymentMethod(parsed.payment_method || existing?.payment_method);
   const customerName = parsed.customer_name || existing?.customer_name || message.contactName || null;
   const status = items.length && deliveryAddress ? "confirmed" : "needs_details";
+  const requestType = existing?.request_type || classifyRequestType(text, items, deliveryAddress);
   const orderCode = existing?.order_code || generateOrderCode();
   const deliveryFee = deliveryAddress
     ? deliveryFeeFromMenu(connection.customer_menu, deliveryAddress) ?? existing?.delivery_fee_amount ?? null
@@ -837,6 +856,7 @@ async function handleCustomerOrder(supabase: any, connection: any, message: Pars
     customer_phone: message.from || null,
     customer_name: customerName,
     status,
+    request_type: requestType,
     items,
     delivery_address: deliveryAddress,
     payment_method: paymentMethod,
