@@ -7,15 +7,17 @@ export function MobileNav() {
   const links = [
     { to: '/home', icon: Home, label: 'Home', exact: true },
     { to: '/capture', icon: ClipboardList, label: 'Capture', exact: true },
-    { to: '/operations', icon: Inbox, label: 'Ops', exact: false },
+    { to: '/operations', icon: Inbox, label: 'Ops', exact: false, alsoActive: ['/orders', '/data-log', '/data-sources'] },
     { to: '/reports', icon: FileText, label: 'Reports', exact: true },
     { to: '/account', icon: User, label: 'Account', exact: true },
   ];
 
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex md:hidden z-50 safe-area-pb">
-      {links.map(({ to, icon: Icon, label, exact }) => {
-        const active = exact ? pathname === to : pathname.startsWith(to);
+      {links.map(({ to, icon: Icon, label, exact, alsoActive }) => {
+        const active = exact
+          ? pathname === to
+          : pathname.startsWith(to) || Boolean(alsoActive?.some(path => pathname.startsWith(path)));
         return (
           <Link
             key={to}

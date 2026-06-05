@@ -39,6 +39,7 @@ interface WorkbookValidationState {
 
 const HUB_WORKFLOW_ID = 'wkflow-hub';
 const POPULAR_WORKFLOW_IDS = new Set(['wkflow-hub', 'wkflow-55', 'wkflow-14', 'wkflow-7', 'wkflow-5']);
+const WORKFLOW_CATEGORIES = ['All', 'Most popular', 'Finance', 'Sales', 'Marketing', 'Operations', 'HR/People', 'Research', 'Creator', 'Executive', 'Legal/Compliance'];
 
 const HUB_SUBSETS: HubSubsetDefinition[] = [
   {
@@ -1001,10 +1002,15 @@ export default function WorkflowBuilder() {
 
             {/* Category filter */}
             <div className="flex gap-2 flex-wrap">
-              {['All', 'Most popular', 'Finance', 'Sales', 'Marketing', 'Operations', 'HR/People', 'Research', 'Creator', 'Executive', 'Legal/Compliance'].map(cat => (
+              {WORKFLOW_CATEGORIES.map(cat => (
                 <button
                   key={cat}
-                  onClick={() => setActiveCategory(cat)}
+                  onClick={() => {
+                    setActiveCategory(cat);
+                    setSelectedWorkflow('');
+                    setHoveredWorkflow('');
+                    setTelegramDeployId(null);
+                  }}
                   className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
                     activeCategory === cat
                       ? 'bg-brand-dark text-white border-brand-dark'
