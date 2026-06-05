@@ -2,7 +2,10 @@ const BASE_URL = process.env.SMOKE_BASE_URL || 'https://www.hoursback.xyz';
 
 const routes = [
   '/',
-  '/auth/callback?code=smoke-test&next=%2Fworkflows',
+  '/auth/callback?code=smoke-test&next=%2Fhome',
+  '/home',
+  '/capture',
+  '/operations',
   '/workflows',
   '/whatsapp',
   '/orders',
