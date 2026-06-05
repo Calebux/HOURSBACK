@@ -32,6 +32,25 @@ interface StaffMember {
   role: string;
 }
 
+interface LedgerPreviewEntry {
+  entry_type: string;
+  sale_date?: string | null;
+  item?: string | null;
+  qty?: number | null;
+  total?: number | null;
+  customer?: string | null;
+}
+
+interface VerifyResult {
+  ok: boolean;
+  preview?: string;
+  rowCount?: number | null;
+  importableEntries?: number;
+  importPreview?: LedgerPreviewEntry[];
+  importedEntries?: number;
+  error?: string;
+}
+
 // ── Constants ────────────────────────────────────────────────────────────────
 
 const WORKFLOW_SLOTS = [
@@ -75,6 +94,8 @@ export default function DataSourcesPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<DataSource | null>(null);
+  const [importingId, setImportingId] = useState<string | null>(null);
+  const [previewBySourceId, setPreviewBySourceId] = useState<Record<string, VerifyResult>>({});
 
   async function load() {
     const [{ data: s }, { data: st }] = await Promise.all([
@@ -99,12 +120,13 @@ export default function DataSourcesPage() {
         body: { url: source.url, source_id: source.id },
       });
       if (res.data?.ok) {
+        setPreviewBySourceId(prev => ({ ...prev, [source.id]: res.data as VerifyResult }));
         setSources(prev => prev.map(s => s.id === source.id
           ? { ...s, verified: true, verified_at: new Date().toISOString() }
           : s
         ));
-        const msg = res.data.importedEntries
-          ? `Connected — imported ${res.data.importedEntries} ledger ${res.data.importedEntries === 1 ? 'entry' : 'entries'}`
+        const msg = res.data.importableEntries
+          ? `Connected — ${res.data.importableEntries} ledger ${res.data.importableEntries === 1 ? 'row is' : 'rows are'} ready to review`
           : res.data.rowCount != null
             ? `Connected — ${res.data.rowCount} rows found`
             : 'Connected successfully';
@@ -116,6 +138,30 @@ export default function DataSourcesPage() {
       toast.error('Verification failed');
     } finally {
       setVerifyingId(null);
+    }
+  }
+
+  async function handleImport(source: DataSource) {
+    setImportingId(source.id);
+    try {
+      const res = await supabase.functions.invoke('verify-data-source', {
+        body: { url: source.url, source_id: source.id, import_ledger: true },
+      });
+      if (res.data?.ok) {
+        setPreviewBySourceId(prev => ({ ...prev, [source.id]: res.data as VerifyResult }));
+        const imported = Number(res.data.importedEntries || 0);
+        if (imported > 0) {
+          toast.success(`Imported ${imported} ledger ${imported === 1 ? 'entry' : 'entries'}`);
+        } else {
+          toast.warning('No importable ledger rows found. Check that your sheet has an amount column.');
+        }
+      } else {
+        toast.error(res.data?.error || 'Import failed');
+      }
+    } catch {
+      toast.error('Import failed');
+    } finally {
+      setImportingId(null);
     }
   }
 
@@ -197,10 +243,13 @@ export default function DataSourcesPage() {
                   key={source.id}
                   source={source}
                   onVerify={handleVerify}
+                  onImport={handleImport}
                   onEdit={s => { setEditing(s); setShowModal(true); }}
                   onDelete={handleDelete}
                   verifyingId={verifyingId}
+                  importingId={importingId}
                   deletingId={deletingId}
+                  preview={previewBySourceId[source.id]}
                 />
               ))}
             </div>
@@ -232,10 +281,13 @@ export default function DataSourcesPage() {
                   key={source.id}
                   source={source}
                   onVerify={handleVerify}
+                  onImport={handleImport}
                   onEdit={s => { setEditing(s); setShowModal(true); }}
                   onDelete={handleDelete}
                   verifyingId={verifyingId}
+                  importingId={importingId}
                   deletingId={deletingId}
+                  preview={previewBySourceId[source.id]}
                 />
               ))}
             </div>
@@ -298,16 +350,20 @@ export default function DataSourcesPage() {
 
 // ── Source Card ───────────────────────────────────────────────────────────────
 
-function SourceCard({ source, onVerify, onEdit, onDelete, verifyingId, deletingId }: {
+function SourceCard({ source, onVerify, onImport, onEdit, onDelete, verifyingId, importingId, deletingId, preview }: {
   source: DataSource;
   onVerify: (s: DataSource) => void;
+  onImport: (s: DataSource) => void;
   onEdit: (s: DataSource) => void;
   onDelete: (id: string) => void;
   verifyingId: string | null;
+  importingId: string | null;
   deletingId: string | null;
+  preview?: VerifyResult;
 }) {
   const meta = slotMeta(source.workflow_slot);
   const isVerifying = verifyingId === source.id;
+  const isImporting = importingId === source.id;
   const isDeleting = deletingId === source.id;
 
   const shortUrl = source.url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/edit.*$/, '').substring(0, 50);
@@ -358,7 +414,7 @@ function SourceCard({ source, onVerify, onEdit, onDelete, verifyingId, deletingI
           <button
             onClick={() => onVerify(source)}
             disabled={isVerifying}
-            title="Verify connection"
+            title="Verify and preview"
             className="p-1.5 rounded-lg text-slate-400 hover:text-brand-blue hover:bg-slate-100 transition-colors disabled:opacity-40"
           >
             <RefreshCw className={`w-4 h-4 ${isVerifying ? 'animate-spin' : ''}`} />
@@ -380,6 +436,42 @@ function SourceCard({ source, onVerify, onEdit, onDelete, verifyingId, deletingI
           </button>
         </div>
       </div>
+      {preview?.ok && (
+        <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50 p-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs font-semibold text-brand-dark">
+                {preview.importableEntries || 0} ledger {preview.importableEntries === 1 ? 'row' : 'rows'} ready
+              </p>
+              <p className="mt-0.5 text-[11px] text-slate-500">
+                Review the parsed sample before importing. Import replaces previous ledger rows from this source.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => onImport(source)}
+              disabled={isImporting || !preview.importableEntries}
+              className="inline-flex w-fit items-center gap-1.5 rounded-full bg-brand-dark px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-dark/90 disabled:opacity-50"
+            >
+              {isImporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Database className="h-3.5 w-3.5" />}
+              {isImporting ? 'Importing...' : 'Import to ledger'}
+            </button>
+          </div>
+          {!!preview.importPreview?.length && (
+            <div className="mt-3 overflow-hidden rounded-lg border border-slate-200 bg-white">
+              {preview.importPreview.map((entry, index) => (
+                <div key={`${entry.entry_type}-${entry.item}-${index}`} className={`grid grid-cols-[1fr_auto] gap-3 px-3 py-2 text-xs ${index > 0 ? 'border-t border-slate-100' : ''}`}>
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-brand-dark">{entry.item || entry.customer || 'Ledger entry'}</p>
+                    <p className="mt-0.5 truncate text-slate-500">{entry.entry_type}{entry.sale_date ? ` · ${new Date(entry.sale_date).toLocaleDateString()}` : ''}</p>
+                  </div>
+                  <p className="font-semibold text-brand-dark">₦{Number(entry.total || 0).toLocaleString('en-NG')}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -420,7 +512,7 @@ function SourceModal({ editing, staff, onClose, onSaved, userId }: {
   const [staffChatId, setStaffChatId] = useState<string>(editing?.staff_chat_id?.toString() ?? '');
   const [isSaving, setIsSaving] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
-  const [verifyResult, setVerifyResult] = useState<{ ok: boolean; preview?: string; rowCount?: number | null; importedEntries?: number; error?: string } | null>(null);
+  const [verifyResult, setVerifyResult] = useState<VerifyResult | null>(null);
 
   const selectedStaff = staff.find(s => s.chat_id.toString() === staffChatId);
 
@@ -462,26 +554,14 @@ function SourceModal({ editing, staff, onClose, onSaved, userId }: {
         verified_at: verifyResult?.ok ? new Date().toISOString() : (editing?.verified_at ?? null),
       };
 
-      const importVerifiedSource = async (sourceId: string) => {
-        if (!verifyResult?.ok) return null;
-        const res = await supabase.functions.invoke('verify-data-source', { body: { url: payload.url, source_id: sourceId } });
-        if (res.error || res.data?.ok === false) {
-          toast.warning(res.data?.error || res.error?.message || 'Source saved, but ledger import did not finish');
-          return null;
-        }
-        return res.data as { importedEntries?: number };
-      };
-
       if (editing) {
         const { error } = await supabase.from('data_sources').update(payload).eq('id', editing.id);
         if (error) throw error;
-        const imported = await importVerifiedSource(editing.id);
-        toast.success(imported?.importedEntries ? `Data source updated — imported ${imported.importedEntries} ledger ${imported.importedEntries === 1 ? 'entry' : 'entries'}` : 'Data source updated');
+        toast.success('Data source updated');
       } else {
-        const { data, error } = await supabase.from('data_sources').insert(payload).select('id').single();
+        const { error } = await supabase.from('data_sources').insert(payload);
         if (error) throw error;
-        const imported = data?.id ? await importVerifiedSource(data.id) : null;
-        toast.success(imported?.importedEntries ? `Data source added — imported ${imported.importedEntries} ledger ${imported.importedEntries === 1 ? 'entry' : 'entries'}` : 'Data source added');
+        toast.success(verifyResult?.ok && verifyResult.importableEntries ? 'Data source added. Review it on the list, then import to ledger.' : 'Data source added');
       }
       onSaved();
     } catch (err: any) {
@@ -546,6 +626,21 @@ function SourceModal({ editing, staff, onClose, onSaved, userId }: {
                       Connected
                       {verifyResult.rowCount != null && ` — ${verifyResult.rowCount} data rows found`}
                     </span>
+                    {verifyResult.importableEntries != null && (
+                      <p className="mb-2 text-emerald-700">
+                        {verifyResult.importableEntries} ledger {verifyResult.importableEntries === 1 ? 'row' : 'rows'} recognized. Save the source, review the sample, then import from the source card.
+                      </p>
+                    )}
+                    {!!verifyResult.importPreview?.length && (
+                      <div className="mb-2 overflow-hidden rounded-lg border border-emerald-200 bg-white">
+                        {verifyResult.importPreview.map((entry, index) => (
+                          <div key={`${entry.entry_type}-${entry.item}-${index}`} className={`grid grid-cols-[1fr_auto] gap-2 px-2 py-1.5 ${index > 0 ? 'border-t border-emerald-100' : ''}`}>
+                            <span className="truncate text-emerald-900">{entry.item || entry.customer || 'Ledger entry'} · {entry.entry_type}</span>
+                            <span className="font-semibold text-emerald-900">₦{Number(entry.total || 0).toLocaleString('en-NG')}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     {verifyResult.preview && (
                       <pre className="font-mono text-emerald-600 whitespace-pre-wrap text-[11px] opacity-80 mt-1 line-clamp-3">{verifyResult.preview}</pre>
                     )}

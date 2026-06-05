@@ -144,6 +144,17 @@ function importableEntries(csvText: string, sourceId: string) {
     .filter(Boolean);
 }
 
+function previewEntry(entry: ReturnType<typeof importableEntries>[number]) {
+  return {
+    entry_type: entry!.entry_type,
+    sale_date: entry!.sale_date,
+    item: entry!.parsed_data.item,
+    qty: entry!.parsed_data.qty,
+    total: entry!.parsed_data.total,
+    customer: entry!.parsed_data.customer,
+  };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -164,12 +175,14 @@ serve(async (req) => {
 
   if (authError || !user) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
 
-  const { url, source_id } = await req.json();
+  const { url, source_id, import_ledger } = await req.json();
   if (!url) return new Response(JSON.stringify({ error: "URL required" }), { status: 400, headers: corsHeaders });
 
   try {
     let preview = "";
     let rowCount: number | null = null;
+    let importableEntriesCount = 0;
+    let importPreview: ReturnType<typeof previewEntry>[] = [];
     let importedEntries = 0;
 
     if (url.includes("docs.google.com/spreadsheets")) {
@@ -187,8 +200,11 @@ serve(async (req) => {
       rowCount = Math.max(0, lines.length - 1); // minus header row
       preview = lines.slice(0, 4).join("\n");
 
-      if (source_id) {
-        const entries = importableEntries(text, source_id);
+      const entries = source_id ? importableEntries(text, source_id) : importableEntries(text, "preview");
+      importableEntriesCount = entries.length;
+      importPreview = entries.slice(0, 5).map(previewEntry);
+
+      if (source_id && import_ledger === true) {
         await supabase
           .from("bot_entries")
           .delete()
@@ -245,7 +261,7 @@ serve(async (req) => {
         .eq("user_id", user.id);
     }
 
-    return new Response(JSON.stringify({ ok: true, preview, rowCount, importedEntries }), {
+    return new Response(JSON.stringify({ ok: true, preview, rowCount, importableEntries: importableEntriesCount, importPreview, importedEntries }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err: any) {
