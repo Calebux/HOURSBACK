@@ -96,7 +96,11 @@ serve(async (req) => {
     }
 
     if (action === "disconnect") {
-      await supabase.from("kapso_connections").delete().eq("user_id", user.id);
+      const connectionType = body.connection_type === "customer" ? "customer" : body.connection_type === "internal" ? "internal" : null;
+      let query = supabase.from("kapso_connections").delete().eq("user_id", user.id);
+      if (connectionType) query = query.eq("connection_type", connectionType);
+      const { error } = await query;
+      if (error) throw error;
       return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
     }
 

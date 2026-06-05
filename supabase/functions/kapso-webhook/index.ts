@@ -1539,9 +1539,10 @@ serve(async (req) => {
         .from("kapso_connections")
         .insert({
           user_id: uid,
+          connection_type: requestedMode || "internal",
           phone_number_id: message.phoneNumberId,
           phone_number: message.to || null,
-          display_name: "Kapso WhatsApp",
+          display_name: requestedMode === "customer" ? "Customer Requests" : "Kapso WhatsApp",
           status: "connected",
           webhook_secret_set: !!KAPSO_WEBHOOK_SECRET,
           last_webhook_at: new Date().toISOString(),
@@ -1551,6 +1552,20 @@ serve(async (req) => {
 
       if (createConnectionError) throw createConnectionError;
       connection = createdConnection;
+    }
+
+    if (
+      uid
+      && requestedMode
+      && connection.phone_number_id
+      && connection.phone_number_id !== message.phoneNumberId
+    ) {
+      console.log("Kapso webhook ignored: phone number id mismatch for mode", {
+        mode: requestedMode,
+        expectedPhoneNumberId: connection.phone_number_id,
+        incomingPhoneNumberId: message.phoneNumberId,
+      });
+      return new Response(JSON.stringify({ success: true, ignored: "phone number mismatch" }), { headers });
     }
 
     await supabase.from("kapso_connections").update({

@@ -133,7 +133,7 @@ export default function WhatsAppPage() {
       toast.error(error.message || 'Could not load WhatsApp status');
     } else {
       setStatus(data);
-      const selected = (data?.connections || []).find((item: KapsoConnection) => item.connection_type === connectionType) || data?.connection;
+      const selected = (data?.connections || []).find((item: KapsoConnection) => item.connection_type === connectionType);
       setPhoneNumberId(selected?.phone_number_id || '');
       setPhoneNumber(selected?.phone_number || '');
       setDisplayName(selected?.display_name || (connectionType === 'customer' ? 'Customer Requests' : 'Internal Operations'));
@@ -168,30 +168,24 @@ export default function WhatsAppPage() {
       toast.error(error.message || 'Could not create setup link');
       return;
     }
-    setStatus((prev) => ({
-      connected: !!data.connection?.phone_number_id,
-      api_configured: prev?.api_configured ?? true,
-      webhook_secret_configured: prev?.webhook_secret_configured ?? false,
-      connection: data.connection.connection_type === 'internal' ? data.connection : prev?.connection || data.connection,
-      connections: [
-        ...(prev?.connections || []).filter((item) => item.connection_type !== data.connection.connection_type),
-        data.connection,
-      ],
-    }));
+    mergeSavedConnection(data.connection);
     toast.success('WhatsApp setup link created');
   };
 
   const mergeSavedConnection = (connection: KapsoConnection) => {
-    setStatus((prev) => ({
-      connected: prev?.connected || !!connection.phone_number_id,
-      api_configured: prev?.api_configured ?? false,
-      webhook_secret_configured: prev?.webhook_secret_configured ?? false,
-      connection: connection.connection_type === 'internal' ? connection : prev?.connection || connection,
-      connections: [
+    setStatus((prev) => {
+      const nextConnections = [
         ...(prev?.connections || []).filter((item) => item.connection_type !== connection.connection_type),
         connection,
-      ],
-    }));
+      ];
+      return {
+        connected: nextConnections.some((item) => !!item.phone_number_id),
+        api_configured: prev?.api_configured ?? false,
+        webhook_secret_configured: prev?.webhook_secret_configured ?? false,
+        connection: nextConnections.find((item) => item.connection_type === 'internal') || nextConnections[0] || null,
+        connections: nextConnections,
+      };
+    });
   };
 
   const saveManualConnection = async () => {
@@ -252,20 +246,22 @@ export default function WhatsAppPage() {
   };
 
   const disconnect = async () => {
-    if (!confirm('Disconnect WhatsApp from this workspace?')) return;
+    if (!confirm(`Disconnect ${connectionType === 'customer' ? 'customer requests' : 'internal operations'} WhatsApp from this workspace?`)) return;
     setSaving(true);
     const { error } = await supabase.functions.invoke('kapso-setup', {
-      body: { action: 'disconnect' },
+      body: { action: 'disconnect', connection_type: connectionType },
     });
     setSaving(false);
     if (error) {
       toast.error(error.message || 'Could not disconnect WhatsApp');
     } else {
+      const nextConnections = (status?.connections || []).filter((item) => item.connection_type !== connectionType);
       setStatus((prev) => ({
-        connected: false,
+        connected: nextConnections.some((item) => !!item.phone_number_id),
         api_configured: prev?.api_configured ?? false,
         webhook_secret_configured: prev?.webhook_secret_configured ?? false,
-        connection: null,
+        connection: nextConnections.find((item) => item.connection_type === 'internal') || nextConnections[0] || null,
+        connections: nextConnections,
       }));
       setPhoneNumberId('');
       setPhoneNumber('');
@@ -293,8 +289,7 @@ export default function WhatsAppPage() {
     );
   }
 
-  const connection = status?.connection;
-  const selectedConnection = status?.connections?.find((item) => item.connection_type === connectionType) || connection;
+  const selectedConnection = status?.connections?.find((item) => item.connection_type === connectionType) || null;
   const activeCapabilities = connectionType === 'internal' ? internalCapabilities : customerCapabilities;
 
   return (

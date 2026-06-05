@@ -109,14 +109,18 @@ export default function OrdersPage() {
   const loadOrders = async () => {
     if (!user) return;
     setLoading(true);
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('kapso_orders')
       .select('*, kapso_order_audit_logs(id, action, actor_type, message_sent, created_at)')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .order('created_at', { referencedTable: 'kapso_order_audit_logs', ascending: false })
       .limit(200);
-    setOrders((data as Order[]) || []);
+    if (error) {
+      toast.error(error.message || 'Could not load WhatsApp requests');
+    } else {
+      setOrders((data as Order[]) || []);
+    }
     setLoading(false);
   };
 
