@@ -596,18 +596,30 @@ async function findLatestAwaitingReceiptOrder(supabase: any, connection: any, fr
   return orders[0];
 }
 
+function ambiguousPaymentReferenceReply(prefix: string, orders: any[]) {
+  const visibleOrders = orders.slice(0, 3);
+  const choices = visibleOrders
+    .map((item: any) => `${item.order_code}: ${orderItemsSummary(item.items || [])}`)
+    .join("\n");
+  const firstCode = visibleOrders[0]?.order_code;
+
+  return [
+    prefix,
+    "Reply with the request reference so I match the payment correctly.",
+    firstCode ? `Example: paid ${firstCode}` : null,
+    "Unpaid requests:",
+    choices,
+    orders.length > visibleOrders.length ? `There ${orders.length - visibleOrders.length === 1 ? "is" : "are"} ${orders.length - visibleOrders.length} older unpaid request${orders.length - visibleOrders.length === 1 ? "" : "s"} too.` : null,
+  ].filter(Boolean).join("\n");
+}
+
 async function promptForReceipt(supabase: any, connection: any, message: ParsedMessage, text = "") {
   const order = await findLatestAwaitingReceiptOrder(supabase, connection, message.from, text);
   if (!order) {
     return "Thanks. I could not find a confirmed request waiting for payment proof from this number. A staff member will review this message.";
   }
   if (order.needsOrderCode) {
-    const choices = order.orders.map((item: any) => `${item.order_code}: ${orderItemsSummary(item.items || [])}`).join("\n");
-    return [
-      "I found more than one unpaid request for this number.",
-      "Please resend payment proof with the reference:",
-      choices,
-    ].join("\n");
+    return ambiguousPaymentReferenceReply("I found more than one unpaid request for this number.", order.orders);
   }
 
   const claimedAmount = parseClaimedPaymentAmount(text);
@@ -636,12 +648,7 @@ async function markLatestOrderReceiptSent(supabase: any, connection: any, messag
     return "Receipt received. I could not match it to a confirmed unpaid request from this number, so a staff member will review it.";
   }
   if (order.needsOrderCode) {
-    const choices = order.orders.map((item: any) => `${item.order_code}: ${orderItemsSummary(item.items || [])}`).join("\n");
-    return [
-      "Receipt received, but I found more than one unpaid request for this number.",
-      "Please resend the receipt with the reference:",
-      choices,
-    ].join("\n");
+    return ambiguousPaymentReferenceReply("Receipt received, but I found more than one unpaid request for this number.", order.orders);
   }
 
   const receivedAt = new Date().toISOString();
