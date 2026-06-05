@@ -27,7 +27,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
     const [session, setSession] = useState<Session | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [isPro, setIsPro] = useState(() => localStorage.getItem('has_pro_access') === 'true');
+    const [isPro, setIsPro] = useState(false);
 
     // Keep a ref so visibility handler always sees the latest user
     const userRef = useRef<User | null>(null);
@@ -39,13 +39,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (!uid) return;
         const profile = await getProfile(uid, em);
         if (profile) {
-            const pro = profile.subscription_status === 'pro';
-            setIsPro(pro);
-            if (pro) {
-                localStorage.setItem('has_pro_access', 'true');
-            } else {
-                localStorage.removeItem('has_pro_access');
-            }
+            setIsPro(profile.subscription_status === 'pro');
         }
     }, []);
 
@@ -90,7 +84,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }, [refreshPro]);
 
     const signOut = async () => {
-        localStorage.removeItem('has_pro_access');
         setIsPro(false);
         await supabase.auth.signOut();
     };

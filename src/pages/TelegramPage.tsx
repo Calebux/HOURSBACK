@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 import { ProUpgradeButton } from '../components/ProUpgradeButton';
 import {
   ChevronLeft, Send, CheckCircle2, XCircle, Download,
-  Search, ChevronDown, ChevronUp, Users, Activity, Crown
+  Search, ChevronDown, ChevronUp, Users, Activity, Crown, FileText, BarChart2
 } from 'lucide-react';
 import { MobileNav } from '../components/MobileNav';
 
@@ -69,6 +69,8 @@ export default function TelegramPage() {
   const [loading, setLoading] = useState(true);
   const [botUsername, setBotUsername] = useState('');
   const [staffCount, setStaffCount] = useState(0);
+  const [salesSummaryEnabled, setSalesSummaryEnabled] = useState(true);
+  const [summaryToggling, setSummaryToggling] = useState(false);
   const [search, setSearch] = useState('');
   const [filterWorkflow, setFilterWorkflow] = useState('');
   const [filterRole, setFilterRole] = useState('');
@@ -85,11 +87,12 @@ export default function TelegramPage() {
           .select('id, workflow_key, workflow_name, triggered_by, role, status, result, error_message, created_at')
           .eq('user_id', user!.id)
           .order('created_at', { ascending: false }),
-        supabase.from('telegram_bots').select('bot_username').eq('user_id', user!.id).maybeSingle(),
+        supabase.from('telegram_bots').select('bot_username, sales_summary_enabled').eq('user_id', user!.id).maybeSingle(),
         supabase.from('telegram_connections').select('id', { count: 'exact', head: true }).eq('user_id', user!.id),
       ]);
       if (runsData) setRuns(runsData);
       if (botData?.bot_username) setBotUsername(botData.bot_username);
+      setSalesSummaryEnabled(botData?.sales_summary_enabled !== false);
       setStaffCount(sc ?? 0);
       setLoading(false);
     }
@@ -127,6 +130,17 @@ export default function TelegramPage() {
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginated = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+  const toggleSalesSummary = async () => {
+    setSummaryToggling(true);
+    const next = !salesSummaryEnabled;
+    const { error } = await supabase
+      .from('telegram_bots')
+      .update({ sales_summary_enabled: next })
+      .eq('user_id', user!.id);
+    if (!error) setSalesSummaryEnabled(next);
+    setSummaryToggling(false);
+  };
 
   // Reset page when filters change
   const handleFilterChange = (setter: (v: string) => void) => (v: string) => {
@@ -199,6 +213,50 @@ export default function TelegramPage() {
             <p className="text-2xl font-bold text-brand-dark">{monthCount}</p>
           </div>
         </div>
+
+        {/* Sales Log link */}
+        <Link
+          to="/data-log"
+          className="flex items-center justify-between bg-white rounded-2xl border border-brand-dark/10 px-4 py-3 hover:border-emerald-300 transition-colors group"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center">
+              <FileText className="w-4 h-4 text-emerald-600" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-brand-dark">Sales Log</p>
+              <p className="text-xs text-slate-400">View entries logged via /log command</p>
+            </div>
+          </div>
+          <ChevronDown className="w-4 h-4 text-slate-400 -rotate-90 group-hover:text-emerald-500 transition-colors" />
+        </Link>
+
+        {/* Daily Sales Summary toggle */}
+        {botUsername && (
+          <div className="bg-white rounded-2xl border border-brand-dark/10 px-4 py-3 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-sky-50 flex items-center justify-center">
+                <BarChart2 className="w-4 h-4 text-sky-500" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-brand-dark">Daily Sales Summary</p>
+                <p className="text-xs text-slate-400">Bot messages managers at shift end with today's totals</p>
+              </div>
+            </div>
+            <button
+              onClick={toggleSalesSummary}
+              disabled={summaryToggling}
+              className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${
+                salesSummaryEnabled ? 'bg-emerald-500' : 'bg-slate-200'
+              } disabled:opacity-60`}
+              aria-label="Toggle daily sales summary"
+            >
+              <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                salesSummaryEnabled ? 'translate-x-5' : 'translate-x-0'
+              }`} />
+            </button>
+          </div>
+        )}
 
         {/* Usage bar — free tier only */}
         {!isPro && (

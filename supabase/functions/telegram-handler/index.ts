@@ -166,10 +166,221 @@ TIER 3 CONTACT: ${i.tier3}
 For each tier produce: the exact message to send (WhatsApp/SMS-ready), the response deadline before escalating to the next tier, and what action is expected. Tier 1: direct and concise. Tier 2: include incident summary + what Tier 1 attempted. Tier 3: full incident brief for decision-maker action.`,
     sheetPrompt: `The staff member has shared a spreadsheet with incident and/or escalation contact information. Find the incident description and the escalation contacts (Tier 1, Tier 2, Tier 3). Generate a full escalation communication plan: for each tier produce the exact message to send (WhatsApp/SMS-ready), the response deadline before escalating to the next tier, and what action is expected.`,
   },
+
+  // ── Business Growth Skills ────────────────────────────────────────────────
+
+  csm: {
+    name: "Customer Health Check",
+    commands: ["/csm", "customer health", "churn risk", "customer success"],
+    steps: [
+      { key: "customer",   ask: "👤 *Customer Health Check*\n\nCustomer/client name and what do they buy from you?\n\n_💡 Have customer data in a sheet? Send the link instead._" },
+      { key: "revenue",    ask: "Their monthly value (₦) and how long have they been a customer?" },
+      { key: "engagement", ask: "When did you last speak with them, and how was the interaction?" },
+      { key: "signals",    ask: "Any warning signs? (late payments, complaints, fewer orders, gone quiet)\n\nType *none* if everything seems fine." },
+    ],
+    buildPrompt: (i) => `Analyse this customer's health and churn risk.
+Customer: ${i.customer}
+Revenue & tenure: ${i.revenue}
+Last engagement: ${i.engagement}
+Warning signals: ${i.signals}
+
+Score their health (Green/Yellow/Red) with reasons. Give a churn risk rating (Low/Medium/High/Critical). Recommend 3 specific actions to take in the next 7 days. Be direct and practical. Use ₦ for amounts.`,
+    sheetPrompt: `The user has shared customer data. Analyse health across all customers: score each Green/Yellow/Red, flag churn risks, and list the top 3 customers needing immediate attention with specific recommended actions.`,
+  },
+
+  pipeline: {
+    name: "Sales Pipeline Review",
+    commands: ["/pipeline", "pipeline review", "sales pipeline", "revenue ops", "revops"],
+    steps: [
+      { key: "total",    ask: "📊 *Sales Pipeline Review*\n\nTotal value of all open deals (₦)?\n\n_💡 Have your pipeline in a sheet? Send the link._" },
+      { key: "target",   ask: "Your monthly or quarterly revenue target (₦)?" },
+      { key: "deals",    ask: "List your top 3–5 open deals: name, value (₦), stage, days since last contact:" },
+      { key: "concerns", ask: "Which deals are you most worried about, and why? Type *none* if all look healthy." },
+    ],
+    buildPrompt: (i) => `Analyse this sales pipeline and produce a health report.
+Total pipeline: ₦${i.total}
+Revenue target: ₦${i.target}
+Top deals: ${i.deals}
+Concerns: ${i.concerns}
+
+Calculate the pipeline coverage ratio (pipeline ÷ target). Flag concentration risk if any single deal >30% of total. Identify stalled deals. Give a pipeline health rating (Healthy/At Risk/Critical) and 3 specific actions to take this week to protect or accelerate revenue.`,
+    sheetPrompt: `The user has shared pipeline data. Calculate: total pipeline value, coverage ratio vs target, stage distribution, stalled deals (no activity >14 days), and concentration risks. Give a pipeline health rating and 3 specific actions to close more deals this week.`,
+  },
+
+  rfp: {
+    name: "RFP & Bid Analyser",
+    commands: ["/rfp", "rfp analysis", "bid response", "bid analysis", "proposal analysis"],
+    steps: [
+      { key: "requirements", ask: "📋 *RFP & Bid Analyser*\n\nPaste the RFP requirements or describe what the client is asking for:\n\n_💡 Have the RFP in a doc or sheet? Send the link._" },
+      { key: "offering",     ask: "Briefly describe your product or service — what do you provide?" },
+      { key: "strengths",    ask: "Your 3 strongest differentiators vs competitors for this bid:" },
+      { key: "gaps",         ask: "Any requirements you can't fully meet? Type *none* if you cover everything." },
+    ],
+    buildPrompt: (i) => `Analyse this RFP and give a bid strategy.
+Requirements: ${i.requirements}
+Our offering: ${i.offering}
+Our strengths: ${i.strengths}
+Gaps: ${i.gaps}
+
+Estimate our coverage score (%). Give a Bid / Conditional Bid / No-Bid recommendation with reasoning. For a Bid: write the 3 strongest selling points to lead with. For gaps: suggest how to handle or mitigate each. Output a 1-page bid strategy summary.`,
+    sheetPrompt: `The user has shared RFP or bid data. Analyse the requirements, estimate coverage, give a Bid/No-Bid recommendation, identify the strongest selling points, and suggest how to handle any gaps.`,
+  },
+
+  proposal: {
+    name: "Contract & Proposal Writer",
+    commands: ["/proposal", "write proposal", "draft contract", "write contract", "draft agreement"],
+    steps: [
+      { key: "doc_type", ask: "📄 *Contract & Proposal Writer*\n\nWhat type of document do you need?\n(proposal / contract / NDA / retainer agreement / SOW)" },
+      { key: "parties",  ask: "Client name and your business name:" },
+      { key: "scope",    ask: "Describe the scope of work in 2–3 sentences — what exactly will you deliver?" },
+      { key: "terms",    ask: "Total value (₦) and timeline? (e.g. ₦500,000 over 3 months)" },
+    ],
+    buildPrompt: (i) => `Draft a professional ${i.doc_type} for this engagement.
+Document type: ${i.doc_type}
+Parties: ${i.parties}
+Scope: ${i.scope}
+Terms: ${i.terms}
+
+Generate a complete, professional document with all standard clauses: scope of services, payment terms (50% upfront, 50% on completion), intellectual property, confidentiality (2 years), warranties, termination (30-day notice), and dispute resolution. Use ₦ for Nigerian currency. Flag any [REQUIRED] fields the parties must fill in. Write it ready to send — professional, legally sensible, and clear.`,
+    sheetPrompt: `The user has shared engagement details. Draft a professional contract or proposal document with all standard clauses. Flag any missing information as [REQUIRED].`,
+  },
+
+  // ── C-Level Advisory Skills ───────────────────────────────────────────────
+
+  ceo: {
+    name: "CEO Strategic Advisor",
+    commands: ["/ceo", "ceo advice", "strategic advice", "strategy question", "strategic decision"],
+    steps: [
+      { key: "challenge",   ask: "🎯 *CEO Strategic Advisor*\n\nWhat strategic decision or challenge are you facing?\n\n_Be specific — the more context you give, the better the advice._" },
+      { key: "options",     ask: "What are your 2–3 main options or paths forward?" },
+      { key: "constraints", ask: "What is your biggest constraint right now? (cash, time, team, market, competitors)" },
+    ],
+    buildPrompt: (i) => `You are an experienced CEO advisor. Give strategic counsel on this situation.
+Challenge: ${i.challenge}
+Options being considered: ${i.options}
+Key constraint: ${i.constraints}
+
+Structure your response as:
+*Bottom Line* (1 sentence — the most important thing to know)
+*Recommended Path* — which option and why
+*Next 30 Days* — 3 specific actions
+*Biggest Risk* — what could go wrong and how to prevent it
+*The Better Question* — one reframe if the framing itself is the problem
+
+Be direct. Don't hedge. Treat them like a founder who needs real advice, not reassurance.`,
+    sheetPrompt: `The user has shared strategic context. Analyse as a CEO advisor: give a Bottom Line recommendation, 3 actions for the next 30 days, the biggest risk, and a reframe question if relevant.`,
+  },
+
+  cfo: {
+    name: "CFO Financial Advisor",
+    commands: ["/cfo", "cfo advice", "financial advice", "finance strategy", "financial question"],
+    steps: [
+      { key: "question", ask: "💰 *CFO Financial Advisor*\n\nWhat is your financial question or challenge?\n(burn rate, fundraising, pricing, profitability, cash flow...)" },
+      { key: "metrics",  ask: "Monthly revenue (₦) and monthly total expenses (₦)?" },
+      { key: "runway",   ask: "How many months of cash runway do you have? And what is your biggest financial concern?" },
+    ],
+    buildPrompt: (i) => `You are an experienced CFO advisor. Analyse this financial situation.
+Question: ${i.question}
+Monthly revenue & expenses: ${i.metrics}
+Runway & main concern: ${i.runway}
+
+Calculate implied monthly burn and profit/loss margin. Address the specific financial question. Give:
+*Current Financial Position* — 2-3 sentences
+*The Key Number* — the one metric that matters most right now
+*3 Financial Actions* — specific, numbered, actionable steps for the next 30 days
+*Cash Risk Flag* — if runway <6 months, escalate clearly
+*One CFO Insight* — something they probably aren't tracking but should be
+
+Use ₦ for all amounts. Be direct and specific.`,
+    sheetPrompt: `The user has shared financial data. As a CFO advisor, analyse their financial position: calculate burn rate, runway, and profitability. Flag any cash risks and give 3 specific financial actions for the next 30 days.`,
+  },
+
+  cto: {
+    name: "CTO Tech Advisor",
+    commands: ["/cto", "cto advice", "tech advice", "technology strategy", "build vs buy", "technical decision"],
+    steps: [
+      { key: "decision",    ask: "⚙️ *CTO Tech Advisor*\n\nWhat is the technical decision or challenge you're facing?" },
+      { key: "context",     ask: "Briefly describe your current tech stack and engineering team size:" },
+      { key: "constraints", ask: "Your main constraint? (budget, time-to-market, technical debt, expertise, scale)" },
+    ],
+    buildPrompt: (i) => `You are an experienced CTO advisor. Give technical counsel on this situation.
+Decision/challenge: ${i.decision}
+Tech stack & team: ${i.context}
+Main constraint: ${i.constraints}
+
+Structure your response as:
+*Recommendation* — clear stance with reasoning
+*Build vs Buy* (if relevant) — the tradeoff in this specific context
+*Technical Risks* — top 2-3 risks and how to mitigate them
+*3 Next Steps* — specific, sequenced technical actions
+*The Question to Ask Your Team* — one diagnostic question that will reveal the real constraint
+
+Be opinionated. Give a real recommendation, not a list of options.`,
+    sheetPrompt: `The user has shared technical context. As a CTO advisor, give a clear technical recommendation addressing the core challenge. Include build vs buy analysis if relevant, top risks, and 3 specific next steps.`,
+  },
+
+  founder: {
+    name: "Founder Coach",
+    commands: ["/founder", "founder coach", "leadership advice", "founder advice", "coaching"],
+    steps: [
+      { key: "struggle", ask: "🧠 *Founder Coach*\n\nWhat are you struggling with as a founder or leader right now?\n\n_Be honest — this conversation is private._" },
+      { key: "outcome",  ask: "What does success look like for you in the next 30–90 days? What would feel like a win?" },
+    ],
+    buildPrompt: (i) => `You are an experienced founder coach. This founder needs real guidance.
+What they're struggling with: ${i.struggle}
+Desired outcome: ${i.outcome}
+
+Give honest, direct coaching — not motivational fluff. Structure your response as:
+*What's Really Happening* — name the real pattern beneath the surface
+*The Shift Required* — one mindset or behavioural change that unlocks progress
+*3 Practical Steps* — specific actions for this week
+*The Hard Truth* — one uncomfortable thing they probably know but haven't acted on
+*One Question* — a coaching question to sit with
+
+Be warm but direct. Speak as a trusted advisor, not a cheerleader.`,
+    sheetPrompt: `The user has shared founder/leadership context. Give honest coaching: identify the real pattern, recommend one key shift, give 3 practical steps, share one hard truth, and leave a coaching question.`,
+  },
+
+  board: {
+    name: "Virtual Board Meeting",
+    commands: ["/board", "board meeting", "board advice", "virtual board", "board session"],
+    steps: [
+      { key: "decision", ask: "🏛️ *Virtual Board Meeting*\n\nWhat key decision needs the board's input?\n\n_Describe the situation clearly — the board needs full context._" },
+      { key: "context",  ask: "Company stage, monthly revenue (₦), and team size?" },
+      { key: "options",  ask: "Your top 2–3 options being considered:" },
+    ],
+    buildPrompt: (i) => `Simulate a virtual board meeting with three board lenses: CEO/Strategy, CFO/Finance, and COO/Operations.
+Decision: ${i.decision}
+Company context: ${i.context}
+Options on the table: ${i.options}
+
+Structure the output as:
+
+*📋 Board Meeting — Decision Brief*
+Decision: [restate clearly]
+
+*CEO Lens (Strategy & Market)*
+Analysis and stance on each option
+
+*CFO Lens (Financial & Risk)*
+Analysis and stance on each option
+
+*COO Lens (Operations & Execution)*
+Analysis and stance on each option
+
+*Board Consensus*
+Which option do 2+ board members recommend, and why?
+
+*Decision*
+Recommended path + the 3 most critical conditions for success.
+
+Be specific. Reference the actual numbers and options provided. Each lens should have a distinct voice.`,
+    sheetPrompt: `The user has shared strategic and financial context for a board decision. Simulate a board meeting with CEO, CFO, and COO lenses, producing analysis and a consensus recommendation.`,
+  },
 };
 
 // Commands restricted to manager role only
-const MANAGER_ONLY = new Set(["assign", "escalate", "sop", "sopupdate"]);
+const MANAGER_ONLY = new Set(["assign", "escalate", "sop", "sopupdate", "csm", "pipeline", "rfp", "proposal", "ceo", "cfo", "cto", "founder", "board"]);
 
 const WELCOME_STAFF = `👋 *Welcome! You're connected as Staff.*
 
@@ -179,6 +390,7 @@ Here's what you can do:
 📋 /handover — Shift handover log
 📦 /restock — Supplier outreach
 🔍 /audit — Inventory audit
+📝 /log — Log a sale or expense
 
 Type /help at any time to see this list.
 Type /cancel to stop any workflow.`;
@@ -187,6 +399,7 @@ const WELCOME_MANAGER = `👋 *Welcome! You're connected as Manager.*
 
 You have access to all commands:
 
+*Operations*
 💰 /reconcile — Daily cash reconciliation
 📋 /handover — Shift handover log
 📦 /restock — Supplier outreach
@@ -195,6 +408,20 @@ You have access to all commands:
 🚨 /escalate — Escalation router
 ✅ /sop — SOP compliance check
 📄 /sopupdate — SOP update notifier
+📝 /log — Log a sale or expense
+
+*Business Growth*
+👤 /csm — Customer health & churn risk
+📊 /pipeline — Sales pipeline review
+📋 /rfp — RFP & bid analyser
+📄 /proposal — Contract & proposal writer
+
+*Advisory*
+🎯 /ceo — CEO strategic advisor
+💰 /cfo — CFO financial advisor
+⚙️ /cto — CTO tech advisor
+🧠 /founder — Founder coach
+🏛️ /board — Virtual board meeting
 
 Type /help to see this list.
 Type /cancel to stop any workflow.`;
@@ -443,12 +670,153 @@ serve(async (req) => {
   }
 
   const message = update?.message;
+  const chatId: number = message?.chat?.id ?? 0;
+  const firstName: string = message?.from?.first_name || "there";
+  const telegramUsername: string = message?.from?.username || "";
+
+  // ── Photo message → Sales book scanner (Pro only) ─────────────────────────
+  if (message?.photo?.length && chatId) {
+    // Check pro status
+    const { data: proCheck } = await supabase
+      .from("profiles")
+      .select("subscription_status")
+      .eq("id", userId)
+      .single();
+    const isProPhoto = proCheck?.subscription_status === "pro";
+
+    if (!isProPhoto) {
+      await sendMessage(botToken, chatId,
+        `📸 *Sales Book Scanner is a Pro feature.*\n\nUpgrade at hoursback.xyz to scan your sales book photos and auto-log every entry.`
+      );
+      return new Response("OK");
+    }
+
+    // Check registration
+    const { data: photoConn } = await supabase
+      .from("telegram_connections")
+      .select("role, first_name")
+      .eq("chat_id", chatId)
+      .eq("user_id", userId)
+      .single();
+
+    if (!photoConn) {
+      await sendMessage(botToken, chatId, UNREGISTERED);
+      return new Response("OK");
+    }
+
+    await sendMessage(botToken, chatId, "📖 Reading your sales book...");
+
+    try {
+      // Get largest photo variant
+      const photos = message.photo as Array<{ file_id: string; width: number; height: number }>;
+      const largest = photos[photos.length - 1];
+
+      // Get download path from Telegram
+      const fileRes = await fetch(`https://api.telegram.org/bot${botToken}/getFile?file_id=${largest.file_id}`);
+      const fileData = await fileRes.json();
+      if (!fileData.ok) throw new Error("Could not retrieve file from Telegram");
+      const filePath: string = fileData.result.file_path;
+
+      // Download the image bytes
+      const imageRes = await fetch(`https://api.telegram.org/file/bot${botToken}/${filePath}`);
+      const imageBuffer = await imageRes.arrayBuffer();
+      const imageBytes = new Uint8Array(imageBuffer);
+      // Convert to base64 in chunks to avoid stack overflow on large images
+      let imageBase64 = "";
+      const chunkSize = 8192;
+      for (let i = 0; i < imageBytes.length; i += chunkSize) {
+        imageBase64 += String.fromCharCode(...imageBytes.subarray(i, i + chunkSize));
+      }
+      imageBase64 = btoa(imageBase64);
+      const mediaType = filePath.endsWith(".png") ? "image/png" : "image/jpeg";
+
+      // Vision parse with Claude
+      const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
+      const visionRes = await anthropic.messages.create({
+        model: "claude-sonnet-4-6",
+        max_tokens: 1500,
+        messages: [{
+          role: "user",
+          content: [
+            {
+              type: "image",
+              source: { type: "base64", media_type: mediaType as "image/jpeg" | "image/png", data: imageBase64 },
+            },
+            {
+              type: "text",
+              text: `This is a photo of a physical sales ledger or record book. Extract every line item you can read.
+
+Return a JSON array only, no explanation:
+[{"entry_type":"sale"|"expense"|"note","item":string|null,"qty":number|null,"unit_price":number|null,"total":number|null,"customer":string|null,"notes":string|null,"sale_date":"YYYY-MM-DD"|null}]
+
+Rules:
+- entry_type: "sale" for sales/revenue, "expense" for costs, "note" for anything else
+- sale_date: if a date is visible (e.g. "April 11", "11/4"), convert to YYYY-MM-DD using year ${new Date().getFullYear()}; otherwise null
+- Only extract what is clearly readable — do not guess or invent data
+- If no entries are readable, return []`,
+            },
+          ],
+        }],
+      });
+
+      const visionText = (visionRes.content[0] as { text: string }).text.trim();
+      const jsonMatch = visionText.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) throw new Error("No structured data returned");
+
+      const entries: Array<Record<string, unknown>> = JSON.parse(jsonMatch[0]);
+
+      if (!entries.length) {
+        await sendMessage(botToken, chatId,
+          `📸 I couldn't read any entries from that photo.\n\n*Tips for a better scan:*\n• Make sure the page is well-lit and flat\n• Hold the camera directly above the book\n• Avoid shadows and blurriness\n\nYou can also type entries manually with /log`
+        );
+        return new Response("OK");
+      }
+
+      // Insert all rows to bot_entries
+      const rows = entries.map((e) => ({
+        user_id: userId,
+        chat_id: chatId,
+        triggered_by: firstName,
+        role: photoConn.role,
+        raw_text: "[photo scan]",
+        entry_type: (e.entry_type as string) || "sale",
+        parsed_data: e,
+        sale_date: e.sale_date ? new Date(e.sale_date as string).toISOString() : null,
+        source: "telegram_photo",
+      }));
+
+      await supabase.from("bot_entries").insert(rows);
+
+      // Build confirmation reply
+      const lines: string[] = [
+        `✅ *Found ${entries.length} ${entries.length === 1 ? "entry" : "entries"} in your sales book*`,
+        ``,
+      ];
+      for (const e of entries) {
+        const icon = e.entry_type === "expense" ? "💸" : "📦";
+        const itemStr = e.item ? String(e.item) : "Item";
+        const qtyStr = e.qty ? ` ×${e.qty}` : "";
+        const totalStr = e.total ? ` — ₦${Number(e.total).toLocaleString()}` : "";
+        const custStr = e.customer ? ` — ${e.customer}` : "";
+        lines.push(`${icon} ${itemStr}${qtyStr}${totalStr}${custStr}`);
+      }
+      lines.push(``);
+      lines.push(`_All ${entries.length} ${entries.length === 1 ? "entry" : "entries"} saved to your Sales Log._`);
+      lines.push(`_Something wrong? Type /log to correct individual entries._`);
+
+      await sendMessage(botToken, chatId, lines.join("\n"));
+    } catch (err: any) {
+      console.error("Photo scan error:", err);
+      await sendMessage(botToken, chatId,
+        `❌ Couldn't read your sales book photo. Make sure the image is clear and try again.\n\nYou can also type entries manually with /log`
+      );
+    }
+    return new Response("OK");
+  }
+
   if (!message?.text) return new Response("OK");
 
-  const chatId: number = message.chat.id;
   const text: string = message.text.trim();
-  const firstName: string = message.from?.first_name || "there";
-  const telegramUsername: string = message.from?.username || "";
 
   // Load business profile for context
   const { data: profile } = await supabase
@@ -520,11 +888,11 @@ serve(async (req) => {
 
   const { data: proRow } = await supabase
     .from("profiles")
-    .select("subscription_expires_at")
+    .select("subscription_status")
     .eq("id", userId)
     .single();
 
-  const isPro = proRow?.subscription_expires_at && new Date(proRow.subscription_expires_at) > new Date();
+  const isPro = proRow?.subscription_status === "pro";
 
   if (!isPro) {
     const { count } = await supabase
@@ -914,6 +1282,61 @@ serve(async (req) => {
     }, { onConflict: "chat_id,user_id" });
 
     await sendMessage(botToken, chatId, wf.steps[0].ask);
+    return new Response("OK");
+  }
+
+  // ── /log — quick sale/expense logging ────────────────────────────────────
+  if (text === "/log" || text.toLowerCase().startsWith("/log ")) {
+    const logText = text.startsWith("/log ") ? text.slice(5).trim() : "";
+
+    if (!logText) {
+      await sendMessage(botToken, chatId,
+        `📝 *Log a sale or expense*\n\nWhat did you sell or spend?\n\n_Examples:_\n• \`5 bags of rice ₦15,000 to Amaka\`\n• \`spent ₦2,000 on fuel\`\n• \`sold 3 bottles of oil for ₦4,500\``
+      );
+      return new Response("OK");
+    }
+
+    // Parse with Claude
+    const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
+    let parsedData: Record<string, unknown> = {};
+    try {
+      const parseRes = await anthropic.messages.create({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 200,
+        messages: [{
+          role: "user",
+          content: `Extract from this message: "${logText}"\nReturn JSON only, no explanation:\n{"entry_type":"sale"|"expense"|"note","item":string|null,"qty":number|null,"unit_price":number|null,"total":number|null,"customer":string|null,"notes":string|null}\nIf a field is not mentioned, use null.`,
+        }],
+      });
+      const raw = (parseRes.content[0] as { text: string }).text.trim();
+      const jsonMatch = raw.match(/\{[\s\S]*\}/);
+      if (jsonMatch) parsedData = JSON.parse(jsonMatch[0]);
+    } catch {
+      parsedData = { entry_type: "note", item: null, qty: null, unit_price: null, total: null, customer: null, notes: logText };
+    }
+
+    const entryType = (parsedData.entry_type as string) || "sale";
+
+    await supabase.from("bot_entries").insert({
+      user_id: userId,
+      chat_id: chatId,
+      triggered_by: firstName,
+      role: userRole,
+      raw_text: logText,
+      entry_type: entryType,
+      parsed_data: parsedData,
+      source: "telegram_text",
+    });
+
+    // Build confirmation reply
+    const typeLabel = entryType === "expense" ? "Expense" : entryType === "note" ? "Note" : "Sale";
+    const lines: string[] = [`✅ *Logged*`, ``, `[Type] ${typeLabel}`];
+    if (parsedData.item)     lines.push(`[Item] ${parsedData.item}${parsedData.qty ? ` × ${parsedData.qty}` : ""}`);
+    if (parsedData.total)    lines.push(`[Amount] ₦${Number(parsedData.total).toLocaleString()}`);
+    if (parsedData.customer) lines.push(`[Customer] ${parsedData.customer}`);
+    if (!parsedData.item && !parsedData.total) lines.push(`[Note] ${logText}`);
+
+    await sendMessage(botToken, chatId, lines.join("\n"));
     return new Response("OK");
   }
 

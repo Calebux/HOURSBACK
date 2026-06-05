@@ -12,7 +12,7 @@ export default function AdminDashboard() {
     const [isLoading, setIsLoading] = useState(true);
     const [isAdmin, setIsAdmin] = useState(false);
     const [playbooks, setPlaybooks] = useState<Playbook[]>([]);
-    const [stats, setStats] = useState({ totalUsers: 0, totalPlaybooks: 0, totalCompletions: 0 });
+    const [stats, setStats] = useState<{ totalUsers: number | null; totalPlaybooks: number; totalCompletions: number | null }>({ totalUsers: null, totalPlaybooks: 0, totalCompletions: null });
 
     useEffect(() => {
         if (authLoading) return;
@@ -131,7 +131,7 @@ export default function AdminDashboard() {
                         </div>
                         <div>
                             <p className="text-sm text-slate-500 font-medium tracking-wide uppercase">Total Users</p>
-                            <p className="text-3xl font-bold">{stats.totalUsers.toLocaleString()}</p>
+                            <p className="text-3xl font-bold">{stats.totalUsers != null ? stats.totalUsers.toLocaleString() : '—'}</p>
                         </div>
                     </div>
                     <div className="bg-white p-6 rounded-3xl border border-brand-dark/10 shadow-antigravity-xs flex items-center gap-4">
@@ -149,7 +149,7 @@ export default function AdminDashboard() {
                         </div>
                         <div>
                             <p className="text-sm text-slate-500 font-medium tracking-wide uppercase">Total Completions</p>
-                            <p className="text-3xl font-bold">{stats.totalCompletions.toLocaleString()}</p>
+                            <p className="text-3xl font-bold">{stats.totalCompletions != null ? stats.totalCompletions.toLocaleString() : '—'}</p>
                         </div>
                     </div>
                 </div>

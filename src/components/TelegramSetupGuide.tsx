@@ -53,6 +53,16 @@ const BOT_COMMANDS = [
   { command: '/assign', emoji: '👥', desc: 'Assign tasks with owner and deadline' },
   { command: '/escalate', emoji: '🚨', desc: 'Routes urgent issues to right person' },
   { command: '/sopupdate', emoji: '📢', desc: 'Broadcast procedure changes to team' },
+  { command: '/log',      emoji: '📝', desc: 'Log a sale or expense instantly' },
+  { command: '/csm',     emoji: '👤', desc: 'Customer health & churn risk check' },
+  { command: '/pipeline',emoji: '📊', desc: 'Sales pipeline review & health score' },
+  { command: '/rfp',     emoji: '📋', desc: 'RFP & bid analysis + strategy' },
+  { command: '/proposal',emoji: '📄', desc: 'Draft a contract or proposal' },
+  { command: '/ceo',     emoji: '🎯', desc: 'CEO strategic advisor' },
+  { command: '/cfo',     emoji: '💰', desc: 'CFO financial advisor' },
+  { command: '/cto',     emoji: '⚙️', desc: 'CTO tech advisor' },
+  { command: '/founder', emoji: '🧠', desc: 'Founder coaching & leadership' },
+  { command: '/board',   emoji: '🏛️', desc: 'Virtual board meeting simulation' },
 ];
 
 // Simulated chat bubble components

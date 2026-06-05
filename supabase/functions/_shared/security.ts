@@ -71,7 +71,17 @@ export function sanitizeUrl(input: unknown): string | null {
       /^172\.(1[6-9]|2\d|3[01])\./.test(h) ||
       h.endsWith(".local") ||
       h.endsWith(".internal") ||
-      h.endsWith(".localhost")
+      h.endsWith(".localhost") ||
+      // IPv6 loopback and private ranges
+      h === "::1" ||
+      /^\[::1\]/.test(h) ||
+      /^\[?fc/i.test(h) ||   // fc00::/7
+      /^\[?fd/i.test(h) ||   // fd00::/8
+      /^\[?fe80/i.test(h) || // fe80::/10 link-local
+      // Decimal/octal/hex IP representations (e.g. http://2130706433/ = 127.0.0.1)
+      /^\d{8,10}$/.test(h) ||   // pure decimal
+      /^0x[0-9a-f]+$/i.test(h) || // hex
+      /^0\d+$/.test(h)          // octal
     ) return null;
     return url.toString();
   } catch {

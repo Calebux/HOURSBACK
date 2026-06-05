@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Mail, Lock, Loader2, AlertCircle, User as UserIcon } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { updateProfile } from '../lib/api';
 import { validatePassword } from '../lib/validation';
 import { toast } from 'sonner';
 
@@ -66,14 +65,6 @@ export function AuthModal({ isOpen, onClose, defaultView = 'signin' }: AuthModal
                     return;
                 }
 
-                // If the user already bought Pro and has it in local storage, sync it with their new account
-                if (localStorage.getItem('has_pro_access') === 'true' && signUpData.user) {
-                    try {
-                        await updateProfile(signUpData.user.id, { subscription_status: 'pro' });
-                    } catch (e) {
-                        console.error("Failed to sync pro status on signup", e);
-                    }
-                }
                 onClose();
             } else if (view === 'reset') {
                 const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
@@ -84,21 +75,12 @@ export function AuthModal({ isOpen, onClose, defaultView = 'signin' }: AuthModal
                 onClose();
                 return;
             } else {
-                const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+                const { error: signInError } = await supabase.auth.signInWithPassword({
                     email,
                     password,
                 });
 
                 if (signInError) throw signInError;
-
-                // Sync local storage Pro status for returning users who paid while logged out
-                if (localStorage.getItem('has_pro_access') === 'true' && signInData?.user) {
-                    try {
-                        await updateProfile(signInData.user.id, { subscription_status: 'pro' });
-                    } catch (e) {
-                        console.error("Failed to sync pro status on signin", e);
-                    }
-                }
                 onClose();
             }
         } catch (err: unknown) {

@@ -339,11 +339,10 @@ export async function getAdminStats() {
 
     if (progressError) console.error('Error fetching completions', progressError);
 
-    // Fallbacks for MVP presentation if RLS blocks the real counts
     return {
-        totalUsers: userCount && userCount > 0 ? userCount : 1240,
-        totalPlaybooks: playbookCount || 0,
-        totalCompletions: progressData && progressData.length > 0 ? progressData.length : 850
+        totalUsers: userCount ?? null,
+        totalPlaybooks: playbookCount ?? 0,
+        totalCompletions: progressData?.length ?? null,
     };
 }
 
