@@ -184,6 +184,51 @@ export default function HomePage() {
     };
   }, [entries, requests, workflows, runs, sources, connections]);
 
+  const setupSteps = useMemo(() => {
+    const hasCapture = stats.connectedChannels.length > 0 || sources.length > 0;
+    const hasActivity = entries.length > 0 || requests.length > 0 || stats.verifiedSources.length > 0;
+    const hasOperations = stats.openRequests.length > 0 || stats.receipts.length > 0 || entries.length > 0;
+    const hasOutput = runs.length > 0 || stats.activeWorkflows.length > 0;
+
+    const steps = [
+      {
+        title: 'Connect a capture source',
+        body: 'Start with WhatsApp, manual entry, a spreadsheet, upload, or webhook.',
+        done: hasCapture,
+        to: '/capture',
+        action: 'Choose source',
+        icon: Radio,
+      },
+      {
+        title: 'Add first business activity',
+        body: 'Log a sale, import a sheet, upload a receipt, or capture a customer request.',
+        done: hasActivity,
+        to: hasCapture ? '/operations' : '/capture',
+        action: hasCapture ? 'Add activity' : 'Set up capture',
+        icon: Plus,
+      },
+      {
+        title: 'Review operations',
+        body: 'Check customer requests, sales, expenses, receipts, and follow-ups.',
+        done: hasOperations,
+        to: '/operations',
+        action: 'Open operations',
+        icon: Inbox,
+      },
+      {
+        title: 'Create a report or automation',
+        body: 'Turn the activity you capture into summaries, PDFs, emails, and scheduled updates.',
+        done: hasOutput,
+        to: hasActivity ? '/reports' : '/workflows/new',
+        action: hasActivity ? 'View reports' : 'Create automation',
+        icon: Bot,
+      },
+    ];
+
+    const nextIndex = steps.findIndex((step) => !step.done);
+    return { steps, nextIndex };
+  }, [entries.length, requests.length, runs.length, sources.length, stats]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-brand-light flex items-center justify-center">
@@ -240,6 +285,64 @@ export default function HomePage() {
                 Create automation
               </Link>
             </div>
+          </div>
+        </section>
+
+        <section className="rounded-3xl border border-brand-dark/10 bg-white p-5">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-brand-dark">Start here</p>
+              <p className="mt-1 text-xs text-slate-500">Follow the next open step. Completed steps stay checked as your business data grows.</p>
+            </div>
+            {setupSteps.nextIndex >= 0 ? (
+              <Link
+                to={setupSteps.steps[setupSteps.nextIndex].to}
+                className="inline-flex w-fit items-center gap-1.5 rounded-full bg-brand-dark px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark/90"
+              >
+                {setupSteps.steps[setupSteps.nextIndex].action}
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            ) : (
+              <Link
+                to="/operations"
+                className="inline-flex w-fit items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-100"
+              >
+                Continue operating
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            )}
+          </div>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-4">
+            {setupSteps.steps.map((step, index) => {
+              const Icon = step.icon;
+              const isNext = setupSteps.nextIndex === index;
+              return (
+                <Link
+                  key={step.title}
+                  to={step.to}
+                  className={`rounded-2xl border p-4 transition ${
+                    step.done
+                      ? 'border-emerald-100 bg-emerald-50/60'
+                      : isNext
+                        ? 'border-brand-dark/20 bg-slate-50 shadow-sm'
+                        : 'border-slate-100 bg-white hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className={`rounded-xl p-2 ${
+                      step.done ? 'bg-emerald-100 text-emerald-700' : isNext ? 'bg-brand-dark text-white' : 'bg-slate-100 text-slate-500'
+                    }`}>
+                      {step.done ? <CheckCircle2 className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
+                    </div>
+                    {isNext && <span className="rounded-full bg-brand-dark px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">Next</span>}
+                  </div>
+                  <p className="mt-3 text-sm font-semibold text-brand-dark">{step.title}</p>
+                  <p className="mt-1 min-h-[48px] text-xs leading-relaxed text-slate-500">{step.body}</p>
+                  <span className="mt-3 inline-flex text-xs font-semibold text-emerald-700">{step.done ? 'Done' : step.action}</span>
+                </Link>
+              );
+            })}
           </div>
         </section>
 
