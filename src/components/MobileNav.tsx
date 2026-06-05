@@ -1,12 +1,13 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Bot, FileText, User, Search } from 'lucide-react';
+import { ClipboardList, FileText, Home, Inbox, User } from 'lucide-react';
 
 export function MobileNav() {
   const { pathname } = useLocation();
 
   const links = [
-    { to: '/workflows', icon: Bot, label: 'Workflows', exact: true },
-    { to: '/workflows/new', icon: Search, label: 'Browse', exact: false },
+    { to: '/home', icon: Home, label: 'Home', exact: true },
+    { to: '/capture', icon: ClipboardList, label: 'Capture', exact: true },
+    { to: '/orders', icon: Inbox, label: 'Ops', exact: false },
     { to: '/reports', icon: FileText, label: 'Reports', exact: true },
     { to: '/account', icon: User, label: 'Account', exact: true },
   ];

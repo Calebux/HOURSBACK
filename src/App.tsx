@@ -11,6 +11,7 @@ import WorkflowsDashboard from './pages/WorkflowsDashboard';
 import ReportsPage from './pages/ReportsPage';
 import AccountPage from './pages/AccountPage';
 import AuthCallbackPage from './pages/AuthCallbackPage';
+import HomePage from './pages/HomePage';
 
 // Lazily loaded — not needed on first paint
 const WorkflowBuilder    = lazy(() => import('./pages/WorkflowBuilder'));
@@ -26,6 +27,7 @@ const ComparisonPage     = lazy(() => import('./pages/ComparisonPage'));
 const CaseStudiesPage    = lazy(() => import('./pages/CaseStudiesPage'));
 const HowItLearnsPage    = lazy(() => import('./pages/HowItLearnsPage'));
 const SettingsPage       = lazy(() => import('./pages/SettingsPage'));
+const CapturePage        = lazy(() => import('./pages/CapturePage'));
 const WhatsAppPage       = lazy(() => import('./pages/WhatsAppPage'));
 const OrdersPage         = lazy(() => import('./pages/OrdersPage'));
 const DataSourcesPage    = lazy(() => import('./pages/DataSourcesPage'));
@@ -72,12 +74,13 @@ function AppWithOnboarding() {
       <ToastProvider />
       <Suspense fallback={<PageLoader />}>
         <Routes>
-          <Route path="/" element={isLoading ? <PageLoader /> : user ? <Navigate to="/workflows" replace /> : <LandingPage />} />
+          <Route path="/" element={isLoading ? <PageLoader /> : user ? <Navigate to="/home" replace /> : <LandingPage />} />
           <Route path="/auth/callback" element={<AuthCallbackPage />} />
+          <Route path="/home" element={<HomePage />} />
           <Route path="/playbooks" element={<PlaybooksPage />} />
           <Route path="/playbooks/:slug" element={<PlaybookViewerPage />} />
           <Route path="/crash-course" element={<CrashCoursePage />} />
-          <Route path="/workspace" element={<Navigate to="/workflows" replace />} />
+          <Route path="/workspace" element={<Navigate to="/home" replace />} />
           <Route path="/workflows" element={<WorkflowsDashboard />} />
           <Route path="/workflow-preview" element={<WorkflowsDashboard previewMode />} />
           <Route path="/hub-preview" element={<Navigate to="/workflow-preview" replace />} />
@@ -93,6 +96,7 @@ function AppWithOnboarding() {
           <Route path="/case-studies" element={<CaseStudiesPage />} />
           <Route path="/how-it-learns" element={<HowItLearnsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/capture" element={<CapturePage />} />
           <Route path="/telegram" element={<Navigate to="/whatsapp" replace />} />
           <Route path="/whatsapp" element={<WhatsAppPage />} />
           <Route path="/orders" element={<OrdersPage />} />

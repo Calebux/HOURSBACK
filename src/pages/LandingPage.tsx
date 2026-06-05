@@ -51,7 +51,7 @@ export default function LandingPage() {
           <div className="flex items-center gap-3">
             {user ? (
               <>
-                <button onClick={() => navigate('/workflows')} className="hidden sm:block text-sm text-[#202124]/70 hover:text-[#202124] transition-colors">Dashboard</button>
+                <button onClick={() => navigate('/home')} className="hidden sm:block text-sm text-[#202124]/70 hover:text-[#202124] transition-colors">Dashboard</button>
                 <button onClick={() => signOut()} className="hidden sm:block text-sm text-[#202124]/70 hover:text-[#202124] transition-colors">Sign out</button>
               </>
             ) : (
@@ -75,7 +75,7 @@ export default function LandingPage() {
               <button onClick={() => { document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' }); setMobileMenuOpen(false); }} className="block text-[#202124]/70">Pricing</button>
               <button onClick={() => { document.getElementById('workflows')?.scrollIntoView({ behavior: 'smooth' }); setMobileMenuOpen(false); }} className="block text-[#202124]/70">Workflows</button>
               {user
-                ? <button onClick={() => { navigate('/workflows'); setMobileMenuOpen(false); }} className="block text-[#202124]/70">Dashboard</button>
+                ? <button onClick={() => { navigate('/home'); setMobileMenuOpen(false); }} className="block text-[#202124]/70">Dashboard</button>
                 : <button onClick={() => { openSignup(); setMobileMenuOpen(false); }} className="w-full py-2 bg-[#202124] text-white rounded-full font-medium">Get started</button>
               }
             </div>

@@ -168,36 +168,36 @@ export default function SettingsPage() {
 
                         <hr className="border-slate-100" />
 
-                        {/* WhatsApp Workflows */}
+                        {/* Capture Channels */}
                         <section className="space-y-4">
                             <div>
                                 <h2 className="text-xl font-semibold flex items-center gap-2">
                                     <Send className="w-5 h-5 text-slate-400" />
-                                    WhatsApp Workflows
+                                    Capture Channels
                                 </h2>
                                 <p className="text-sm text-brand-dark/70 mt-1">
-                                    Connect WhatsApp for staff sales logs, owner summaries, customer requests, service bookings, receipts, and payment review.
+                                    Bring business activity into Hoursback through chat, manual entry, spreadsheets, scans, and webhook automations.
                                 </p>
                             </div>
 
                             <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 space-y-4">
                                 <div>
-                                    <p className="font-semibold text-emerald-950">WhatsApp is now the primary chat channel</p>
+                                    <p className="font-semibold text-emerald-950">WhatsApp is one capture channel</p>
                                     <p className="text-sm text-emerald-800 mt-1">
-                                        Set up an internal number for staff operations and a customer-facing number for orders, bookings, service requests, receipts, and payment review.
+                                        Set up WhatsApp if your team or customers already work there. You can still use manual entry, uploads, spreadsheets, data sources, and webhooks for businesses that do not run on WhatsApp.
                                     </p>
                                 </div>
                                 <div className="flex flex-wrap gap-2 text-xs text-emerald-800">
-                                    {['Staff sales logs', 'Daily summaries', 'Customer requests', 'Receipt verification', 'P&L and 5-liners'].map((item) => (
+                                    {['Manual entries', 'Photo scans', 'Spreadsheets', 'Webhooks', 'WhatsApp capture'].map((item) => (
                                         <span key={item} className="rounded-full border border-emerald-200 bg-white px-3 py-1 font-medium">{item}</span>
                                     ))}
                                 </div>
                                 <Link
-                                    to="/whatsapp"
+                                    to="/capture"
                                     className="inline-flex items-center gap-2 px-6 py-2.5 bg-brand-dark text-white rounded-full text-sm font-semibold hover:bg-brand-dark/90 transition-colors"
                                 >
                                     <Send className="w-4 h-4" />
-                                    Set up WhatsApp
+                                    Manage capture
                                 </Link>
                             </div>
                         </section>
