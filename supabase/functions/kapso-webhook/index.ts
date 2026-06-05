@@ -305,8 +305,8 @@ function looksLikeCloseoutStart(text: string) {
 }
 
 function looksLikeOrderMessage(text: string) {
-  return /\b(order|deliver|delivery|pickup|buy|want|need|send me|i'll take|i want)\b/i.test(text)
-    || /\b(bowl|plate|pack|piece|pcs|rice|chicken|drink|coke|shawarma|pizza|burger)\b/i.test(text);
+  return /\b(order|book|booking|appointment|deliver|delivery|pickup|pick up|buy|purchase|want|need|send me|i'll take|i want|reserve|request|quote|invoice)\b/i.test(text)
+    || /\b(size|colour|color|service|repair|consultation|installation|subscription|package|unit|piece|pcs|pack|item|product)\b/i.test(text);
 }
 
 function looksLikePaymentConfirmation(text: string) {
@@ -321,7 +321,7 @@ function looksLikeReceiptSubmission(text: string, message: ParsedMessage) {
 }
 
 function looksLikeMenuRequest(text: string) {
-  return /\b(menu|price list|pricelist|prices|how much|what do you sell|what do you have|available items|list of items)\b/i.test(text);
+  return /\b(menu|catalogue|catalog|service list|price list|pricelist|prices|how much|what do you sell|what services|what do you offer|what do you have|available items|available services|list of items|list of services)\b/i.test(text);
 }
 
 function extractAvailabilityItem(text: string) {
@@ -365,27 +365,27 @@ function menuHasItem(menu: string | null | undefined, item: string) {
 function buildMenuReply(connection: any) {
   const menu = String(connection.customer_menu || "").trim();
   if (!menu) {
-    return "The menu is not configured yet. Please tell us what you would like and a staff member will confirm availability.";
+    return "The catalogue or service list is not configured yet. Please tell us what you need and a staff member will confirm availability.";
   }
 
   return [
-    "Here is our menu:",
+    "Here is our catalogue / price list:",
     menu,
-    "Send your order with delivery or pickup details when ready.",
+    "Send your order or request with delivery, pickup, appointment, or job details when ready.",
   ].join("\n");
 }
 
 function buildAvailabilityReply(connection: any, item: string) {
   const menu = String(connection.customer_menu || "").trim();
   if (!menu) {
-    return `I need a staff member to confirm ${item}. The menu is not configured yet.`;
+    return `I need a staff member to confirm ${item}. The catalogue or service list is not configured yet.`;
   }
 
   if (menuHasItem(menu, item)) {
-    return `Yes, ${item} is on the menu. Send the quantity and delivery or pickup details to place your order.`;
+    return `Yes, ${item} is listed. Send the quantity and delivery, pickup, appointment, or job details to continue.`;
   }
 
-  return `I cannot find ${item} on the current menu. Here is what is listed:\n${menu}`;
+  return `I cannot find ${item} on the current catalogue or service list. Here is what is listed:\n${menu}`;
 }
 
 function orderTotal(items: Array<{ unit_price?: number | null; qty?: number | null }>) {
@@ -505,8 +505,8 @@ async function parseOrderWithAI(text: string, menu?: string | null, existingOrde
       messages: [{
         role: "user",
         content: [
-          "Extract a customer WhatsApp order from the message.",
-          menu ? `Business menu / price list:\n${menu}` : "Business menu / price list: not configured.",
+          "Extract a customer WhatsApp order, booking, product request, or service request from the message.",
+          menu ? `Business catalogue / service list / price list:\n${menu}` : "Business catalogue / service list / price list: not configured.",
           existingOrder ? `Open order waiting for details:\n${JSON.stringify({
             items: existingOrder.items || [],
             delivery_address: existingOrder.delivery_address || null,
@@ -515,8 +515,8 @@ async function parseOrderWithAI(text: string, menu?: string | null, existingOrde
           })}` : "Open order waiting for details: none.",
           `Message: "${text}"`,
           'Return JSON only: {"items":[{"name":string,"qty":number|null,"unit_price":number|null}],"delivery_address":string|null,"payment_method":string|null,"customer_name":string|null,"notes":string|null}',
-          "Use the menu prices when the ordered item clearly matches a menu item. Do not invent prices or items.",
-          "If there is an open order and the customer replies with an address, place, or pickup/collection, set delivery_address to that value and return no new items.",
+          "Use the saved catalogue/service prices when the requested product or service clearly matches a listed item. Do not invent prices, products, or services.",
+          "If there is an open order and the customer replies with an address, place, pickup/collection, appointment time, or job detail, set delivery_address to that value and return no new items.",
           "If the customer is only answering a missing detail, return empty items and fill the detail.",
         ].join("\n"),
       }],
@@ -725,8 +725,8 @@ async function getCustomerAIResponse(supabase: any, connection: any, message: Pa
         role: "user",
         content: [
           "You are the WhatsApp customer-service assistant for this business.",
-          "Reply naturally and briefly, but never invent menu items, prices, payment details, delivery guarantees, discounts, opening hours, or policies that are not provided.",
-          "Do not add emojis or decorative symbols. If showing the menu, preserve the saved menu text as closely as possible.",
+          "Reply naturally and briefly, but never invent products, services, prices, payment details, delivery guarantees, appointment slots, discounts, opening hours, or policies that are not provided.",
+          "Do not add emojis or decorative symbols. If showing the catalogue, service list, or price list, preserve the saved text as closely as possible.",
           "If the customer asks something not covered by the supplied business info, answer what you can and say a staff member will confirm the unknown part.",
           "For payment: never say payment is received or verified. Customers can only send proof. Staff verifies payment inside Hoursback.",
           "If the customer says they paid but sends no receipt/proof, action must be payment_claim and ask for receipt/proof.",
@@ -736,7 +736,7 @@ async function getCustomerAIResponse(supabase: any, connection: any, message: Pa
           "For normal questions, action must be answer.",
           "Return JSON only with this shape: {\"action\":\"answer|order|payment_claim|receipt_submitted|workflow_request|handoff\",\"reply\":string|null}",
           "",
-          `Business menu / price list:\n${String(connection.customer_menu || "Not configured").trim()}`,
+          `Business catalogue / service list / price list:\n${String(connection.customer_menu || "Not configured").trim()}`,
           `Payment instructions:\n${String(connection.payment_instructions || "Not configured").trim()}`,
           `Open order waiting for details:\n${JSON.stringify(openOrder || null)}`,
           `Latest order from this customer:\n${JSON.stringify(latestOrder || null)}`,
@@ -1313,8 +1313,8 @@ serve(async (req) => {
         reply = await handleCustomerOrder(supabase, connection, message, text);
       } else {
         reply = [
-          "Hi. Send your order here, for example: “I want 3 rice bowls and 2 chicken delivered to Lekki.”",
-          "You can also ask for the menu or ask if an item is available.",
+          "Hi. Send your order or request here, for example: “I want the black sandals in size 42 delivered to Lekki” or “Book hair styling for Friday.”",
+          "You can also ask for the catalogue, price list, services, or availability.",
         ].join("\n");
       }
     } else if (activeCloseoutSession && /\b(cancel|stop)\b/i.test(text)) {
@@ -1382,7 +1382,7 @@ serve(async (req) => {
       if (parsed.customer) lines.push(`Customer: ${parsed.customer}`);
       reply = lines.join("\n");
     } else {
-      reply = "Received. Send a sales update like “Sold 5 jollof, 3 chicken. Transfer ₦42,000” or ask “How much did we sell today?”";
+      reply = "Received. Send a sales update like “Sold 3 gowns, 2 fittings. Transfer ₦42,000” or ask “How much did we sell today?”";
     }
 
     if (message.from && reply) {

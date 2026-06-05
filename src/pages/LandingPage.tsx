@@ -258,7 +258,7 @@ function HeroSection({ onGetStarted }: { onGetStarted: () => void }) {
           transition={{ duration: 0.6, delay: 0.18 }}
           className="mt-5 flex flex-wrap items-center justify-center gap-2"
         >
-          {['WhatsApp sales logs', 'Customer orders', '5-line profit checks'].map((item) => (
+          {['WhatsApp sales logs', 'Orders & service requests', '5-line profit checks'].map((item) => (
             <span
               key={item}
               className="rounded-full border border-white/25 bg-white/10 px-3 py-1 text-xs font-semibold text-white/85 backdrop-blur-sm"
@@ -825,8 +825,8 @@ function WhatsAppFeature() {
       body: 'Ask “How much did we sell today?” or “What changed this week?” and get a plain-English answer from business data.',
     },
     {
-      title: 'Customer order intake',
-      body: 'Capture order details from WhatsApp chats, confirm the request, and route the next action to your team.',
+      title: 'Orders and service requests',
+      body: 'Capture product orders, service bookings, repair requests, and delivery details from WhatsApp chats, then route the next action to your team.',
     },
   ];
 
@@ -845,10 +845,10 @@ function WhatsAppFeature() {
               Add WhatsApp to the workflows your business already runs.
             </h2>
             <p className="mt-4 text-sm md:text-base text-[#202124]/60 leading-relaxed">
-              Hoursback can use WhatsApp as an input and delivery channel for the businesses that already run operations there — sales logs, staff reminders, customer orders, and owner summaries.
+              Hoursback can use WhatsApp as an input and delivery channel for the businesses that already run operations there — sales logs, staff reminders, customer orders, service requests, and owner summaries.
             </p>
             <div className="mt-6 flex flex-wrap gap-2">
-              {['Sales logs', 'Staff reminders', 'Customer orders', 'Daily summaries'].map((item) => (
+              {['Sales logs', 'Staff reminders', 'Orders & requests', 'Daily summaries'].map((item) => (
                 <span key={item} className="px-3 py-1.5 rounded-full bg-white border border-black/8 text-xs font-semibold text-[#202124]/55">
                   {item}
                 </span>
@@ -873,17 +873,17 @@ function WhatsAppFeature() {
             </div>
             <div className="p-5 space-y-3">
               <div className="ml-auto max-w-[82%] rounded-2xl rounded-tr-md bg-[#DCF8C6] px-4 py-3">
-                <p className="text-sm text-[#202124]/80">Sold 5 jollof, 3 chicken, 2 coke. Transfer ₦42,000.</p>
+                <p className="text-sm text-[#202124]/80">Sold 3 gowns, 2 fittings, 1 alteration. Transfer ₦42,000.</p>
               </div>
               <div className="max-w-[88%] rounded-2xl rounded-tl-md bg-[#F1F3F4] px-4 py-3">
                 <p className="text-sm font-medium text-[#202124]">Logged. Total today is now ₦128,500.</p>
-                <p className="mt-1 text-xs text-[#202124]/50">Top item: Jollof · 23 units</p>
+                <p className="mt-1 text-xs text-[#202124]/50">Top item: Gowns · 12 units</p>
               </div>
               <div className="ml-auto max-w-[72%] rounded-2xl rounded-tr-md bg-[#DCF8C6] px-4 py-3">
                 <p className="text-sm text-[#202124]/80">What sold most today?</p>
               </div>
               <div className="max-w-[90%] rounded-2xl rounded-tl-md bg-[#F1F3F4] px-4 py-3">
-                <p className="text-sm text-[#202124]/75">Jollof is leading with 23 units. Coke is down 35% from yesterday. Two staff have not submitted closing reports yet.</p>
+                <p className="text-sm text-[#202124]/75">Gowns are leading with 12 units. Alterations are down 20% from yesterday. Two staff have not submitted closing reports yet.</p>
               </div>
             </div>
           </div>
@@ -893,15 +893,15 @@ function WhatsAppFeature() {
           <div className="grid gap-6 md:grid-cols-[0.9fr_1.1fr] md:items-center">
             <div>
               <p className="text-xs font-semibold tracking-[0.16em] uppercase text-[#128C4A]">Example workflow</p>
-              <h3 className="mt-2 text-2xl font-bold tracking-tight text-[#202124]">A food vendor runs the day from WhatsApp.</h3>
+              <h3 className="mt-2 text-2xl font-bold tracking-tight text-[#202124]">A local business runs the day from WhatsApp.</h3>
               <p className="mt-3 text-sm text-[#202124]/60 leading-relaxed">
-                Staff log sales as they happen, customers place orders in chat, and the owner asks for a 5-line profit check before closing.
+                Staff log sales as they happen, customers request products or services in chat, and the owner asks for a 5-line profit check before closing.
               </p>
             </div>
             <div className="grid gap-2 text-sm">
               {[
-                ['Staff', 'Sold 12 rice bowls, 6 chicken. Transfer ₦54,000'],
-                ['Customer', 'I want 2 rice bowls delivered to Lekki'],
+                ['Staff', 'Sold 4 dresses, 2 alterations. Transfer ₦54,000'],
+                ['Customer', 'I want the black sandals in size 42 delivered to Lekki'],
                 ['Owner', 'Send me a 5-liner'],
                 ['Hoursback', 'Sales, expenses, estimated profit, top item, and closeout status are ready.'],
               ].map(([label, text]) => (
@@ -1202,7 +1202,7 @@ function TestimonialsSection() {
 function FAQSection() {
   const faqs = [
     { q: "Do I need to know how to code?", a: "No. If you can fill in a form, you can deploy a workflow. Pick a template, connect your data source, set your schedule — live in under 5 minutes." },
-    { q: "Can Hoursback work with WhatsApp?", a: "Yes. Staff can log sales and closeout updates from WhatsApp, customers can place orders through a customer-facing number, and owners can ask for summaries like today’s sales or a 5-line profit check." },
+    { q: "Can Hoursback work with WhatsApp?", a: "Yes. Staff can log sales and closeout updates from WhatsApp, customers can place orders, bookings, or service requests through a customer-facing number, and owners can ask for summaries like today’s sales or a 5-line profit check." },
     { q: "What does Hoursback actually monitor?", a: "Google Sheets, websites, CRM data, financial spreadsheets, competitor pages, WhatsApp messages, and any data you connect via webhook. The AI detects what changed and sends you a clear summary by email or supported chat workflows." },
     { q: "How often does the AI run?", a: "You choose — daily, weekly, or monthly. Once deployed, the workflow runs on that schedule automatically. The report just arrives in your inbox." },
     { q: "What kinds of workflows are available?", a: "Finance metrics, sales pipelines, competitor websites, spreadsheet data, industry news, supplier prices, and more. 15+ ready-made workflows across multiple categories." },

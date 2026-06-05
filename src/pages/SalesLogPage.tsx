@@ -653,7 +653,7 @@ export default function SalesLogPage() {
             <p className="font-semibold text-brand-dark mb-1">No entries yet</p>
             <p className="text-sm text-slate-400">
               Staff can log sales by typing{' '}
-              <code className="font-mono bg-slate-100 px-1 rounded">Sold 2 rice bowls for 5000 cash</code>{' '}
+              <code className="font-mono bg-slate-100 px-1 rounded">Sold 2 fittings for 5000 cash</code>{' '}
               in WhatsApp, using <code className="font-mono bg-slate-100 px-1 rounded">/log</code> in Telegram,
               or scanning your sales book with the button above.
             </p>

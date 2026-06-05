@@ -34,7 +34,7 @@ const internalCapabilities = [
   {
     title: 'Log sales',
     body: 'Staff can send plain sales updates and Hoursback structures them into the Sales Log.',
-    example: 'Sold 5 jollof, 3 chicken. Transfer ₦42,000',
+    example: 'Sold 3 gowns and 2 fittings. Transfer ₦42,000',
   },
   {
     title: 'Log expenses and notes',
@@ -68,21 +68,21 @@ const internalCapabilities = [
   },
   {
     title: 'Route customer work separately',
-    body: 'Keep staff operations on the internal number and customer ordering on the customer-facing number.',
-    example: 'Use customer mode for menu, orders, receipts, and payment verification',
+    body: 'Keep staff operations on the internal number and customer orders, bookings, and service requests on the customer-facing number.',
+    example: 'Use customer mode for catalogue questions, requests, receipts, and payment verification',
   },
 ];
 
 const customerCapabilities = [
   {
-    title: 'Answer menu questions',
-    body: 'Customers can ask for the menu, price list, or whether an item is available.',
-    example: 'Do you have moi moi?',
+    title: 'Answer catalogue and service questions',
+    body: 'Customers can ask for the catalogue, price list, services, or whether an item is available.',
+    example: 'Do you have size 42 black sandals?',
   },
   {
-    title: 'Take orders',
-    body: 'Hoursback captures items, quantities, pickup or delivery details, and order notes.',
-    example: 'I want 3 rice bowls and 2 chicken delivered to Lekki',
+    title: 'Take orders and requests',
+    body: 'Hoursback captures items or services, quantities, pickup, delivery, appointment, or job details.',
+    example: 'I want 2 black sandals delivered to Lekki',
   },
   {
     title: 'Request payment proof',
@@ -321,9 +321,9 @@ export default function WhatsAppPage() {
 
         <section className="grid md:grid-cols-3 gap-4">
           {[
-            ['Text sales', '“Sold 5 jollof, 3 chicken. Transfer ₦42,000”'],
+            ['Text sales', '“Sold 3 gowns, 2 fittings. Transfer ₦42,000”'],
             ['Ask summaries', '“How much did we sell today?”'],
-            ['Customer orders', 'Capture order details and route next actions.'],
+            ['Orders & requests', 'Capture order, booking, and service details.'],
           ].map(([title, body]) => (
             <div key={title} className="bg-white rounded-2xl border border-brand-dark/10 p-4">
               <p className="text-sm font-semibold text-brand-dark">{title}</p>
@@ -338,7 +338,7 @@ export default function WhatsAppPage() {
             className="inline-flex items-center justify-center gap-2 rounded-full bg-white border border-emerald-200 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50"
           >
             <MessageCircle className="w-4 h-4" />
-            View customer orders
+            View customer requests
           </Link>
           <Link
             to="/data-log"
@@ -351,7 +351,7 @@ export default function WhatsAppPage() {
         <section className="grid md:grid-cols-2 gap-4">
           {[
             ['internal', 'Internal operations', 'Staff sales logs, closeout, owner summaries, and workflow requests.'],
-            ['customer', 'Customer orders', 'Customer orders, missing-detail questions, and order tracking.'],
+            ['customer', 'Customer requests', 'Product orders, bookings, service requests, missing-detail questions, and tracking.'],
           ].map(([type, title, body]) => {
             const saved = status?.connections?.find((item) => item.connection_type === type);
             return (
@@ -388,7 +388,7 @@ export default function WhatsAppPage() {
             <p className="mt-1 text-sm text-slate-500 leading-relaxed">
               {connectionType === 'internal'
                 ? 'Use this number for owner and staff operations. It turns daily business messages into logs, summaries, closeouts, and workflow requests.'
-                : 'Use this number for customer conversations. It handles menu questions, order capture, receipt collection, and owner review handoff.'}
+                : 'Use this number for customer conversations. It handles catalogue questions, product orders, service requests, receipt collection, and owner review handoff.'}
             </p>
           </div>
 
@@ -407,7 +407,7 @@ export default function WhatsAppPage() {
 
         <section className="bg-white rounded-3xl border border-brand-dark/10 p-6 space-y-5">
           <div>
-            <h3 className="text-lg font-semibold text-brand-dark">1. Connect {connectionType === 'customer' ? 'customer orders' : 'internal operations'} number</h3>
+            <h3 className="text-lg font-semibold text-brand-dark">1. Connect {connectionType === 'customer' ? 'customer requests' : 'internal operations'} number</h3>
             <p className="mt-1 text-sm text-slate-500">
               Use Kapso setup if `KAPSO_API_KEY` is configured, or paste a Kapso WhatsApp Business Phone Number ID manually.
             </p>
@@ -477,13 +477,13 @@ export default function WhatsAppPage() {
             <div className="space-y-3">
               <div className="grid sm:grid-cols-2 gap-3">
                 <label>
-                  <span className="block text-xs font-medium text-slate-500 mb-1.5">Menu / price list</span>
+                  <span className="block text-xs font-medium text-slate-500 mb-1.5">Catalogue / service list / price list</span>
                   <textarea
                     value={customerMenu}
                     onChange={(e) => setCustomerMenu(e.target.value)}
                     rows={7}
                     className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-400"
-                    placeholder={'Rice bowl - ₦2500\nChicken - ₦1800\nCoke - ₦500'}
+                    placeholder={'Black sandals - ₦18000\nHair styling - ₦12000\nPhone screen repair - ₦35000\nDelivery within Lekki - ₦2500'}
                   />
                 </label>
                 <label>
@@ -493,7 +493,7 @@ export default function WhatsAppPage() {
                     onChange={(e) => setPaymentInstructions(e.target.value)}
                     rows={7}
                     className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-400"
-                    placeholder={'Bank: GTBank\nAccount: 0123456789\nName: Hoursback Foods\nSend receipt here after payment.'}
+                    placeholder={'Bank: GTBank\nAccount: 0123456789\nName: Your Business Name\nSend receipt here after payment.'}
                   />
                 </label>
               </div>
