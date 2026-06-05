@@ -462,6 +462,15 @@ function isPickupReply(text: string) {
   return /^(pickup|pick up|collection|collect|i will pick up|i'll pick up)$/i.test(text.trim());
 }
 
+function allowsCashOnPickup(connection: any) {
+  const combined = [
+    connection.fulfillment_rules || "",
+    connection.payment_instructions || "",
+    connection.customer_menu || "",
+  ].join("\n");
+  return /\b(cash on pickup|cash at pickup|pay on pickup|pay at pickup|cash on collection|pay on collection|pay cash when collecting)\b/i.test(combined);
+}
+
 function looksLikeAddressReply(text: string) {
   const normalized = text.trim();
   if (!normalized || normalized.length > 160) return false;
@@ -605,8 +614,9 @@ function ambiguousPaymentReferenceReply(prefix: string, orders: any[]) {
 
   return [
     prefix,
-    "Reply with the request reference so I match the payment correctly.",
-    firstCode ? `Example: paid ${firstCode}` : null,
+    "Please send the receipt again with the request reference in the caption so I match it correctly.",
+    firstCode ? `Example caption: ${firstCode}` : null,
+    "If you cannot add a caption, reply with just the reference first, then send the receipt.",
     "Unpaid requests:",
     choices,
     orders.length > visibleOrders.length ? `There ${orders.length - visibleOrders.length === 1 ? "is" : "are"} ${orders.length - visibleOrders.length} older unpaid request${orders.length - visibleOrders.length === 1 ? "" : "s"} too.` : null,
@@ -638,7 +648,7 @@ async function promptForReceipt(supabase: any, connection: any, message: ParsedM
     order.order_code ? `Reference: ${order.order_code}` : null,
     `Request: ${orderItemsSummary(order.items || [])}`,
     claimedAmount ? `Amount noted: ${formatNaira(claimedAmount)}.` : null,
-    "We will confirm it and update you once payment is received.",
+    "You do not need to type the amount. Staff will confirm the receipt and update you.",
   ].filter(Boolean).join("\n");
 }
 
@@ -754,7 +764,8 @@ async function getCustomerAIResponse(supabase: any, connection: any, message: Pa
           "Do not add emojis or decorative symbols. If showing the catalogue, service list, or price list, preserve the saved text as closely as possible.",
           "If the customer asks something not covered by the supplied business info, answer what you can and say a staff member will confirm the unknown part.",
           "For payment: never say payment is received or verified. Customers can only send proof. Staff verifies payment inside Hoursback.",
-          "If the customer says they paid but sends no receipt/proof, action must be payment_claim and ask for receipt/proof.",
+          "Do not ask customers to type figures or payment amounts. The normal proof is a receipt screenshot/image/document.",
+          "If the customer says they paid but sends no receipt/proof, action must be payment_claim and ask for a receipt screenshot/image.",
           "If the customer sends a receipt/proof or media receipt, action must be receipt_submitted.",
           "If the customer is placing or continuing an order, action must be order.",
           "If the customer asks to schedule reports/workflows, action must be handoff because customer mode cannot create internal workflow drafts.",
@@ -848,7 +859,10 @@ async function handleCustomerOrder(supabase: any, connection: any, message: Pars
   const parsedItems = Array.isArray(parsed.items) ? parsed.items.filter((item) => item?.name) : [];
   const items = parsedItems.length ? parsedItems : existing?.items || [];
   const deliveryAddress = parsed.delivery_address || existing?.delivery_address || null;
-  const paymentMethod = cleanPaymentMethod(parsed.payment_method || existing?.payment_method);
+  const requestedCashPickup = /\bcash\b/i.test(text) && isPickupDelivery(deliveryAddress);
+  const paymentMethod = requestedCashPickup && allowsCashOnPickup(connection)
+    ? "cash on pickup"
+    : cleanPaymentMethod(parsed.payment_method || existing?.payment_method);
   const customerName = parsed.customer_name || existing?.customer_name || message.contactName || null;
   const status = items.length && deliveryAddress ? "confirmed" : "needs_details";
   const requestType = existing?.request_type || classifyRequestType(text, items, deliveryAddress);
@@ -894,6 +908,7 @@ async function handleCustomerOrder(supabase: any, connection: any, message: Pars
 
   const total = Number(expectedTotal || orderTotal(items) || 0) || null;
   const paymentInstructions = String(connection.payment_instructions || "").trim();
+  const cashPickupAllowed = isPickupDelivery(deliveryAddress) && allowsCashOnPickup(connection);
   const lines = [
     "Request confirmed.",
     `Reference: ${orderCode}`,
@@ -902,9 +917,14 @@ async function handleCustomerOrder(supabase: any, connection: any, message: Pars
   ];
   if (deliveryFee) lines.push(`Delivery/service fee: ${formatNaira(Number(deliveryFee))}`);
   if (total) lines.push(`Total: ${formatNaira(total)}`);
-  if (paymentMethod) lines.push(`Payment: ${paymentMethod}`);
-  if (paymentInstructions) {
-    lines.push("Payment details:", paymentInstructions, `Please reply paid after payment and include reference ${orderCode}.`);
+  if (paymentMethod && paymentMethod !== "cash on pickup") lines.push(`Payment: ${paymentMethod}`);
+  if (paymentMethod === "cash on pickup" || cashPickupAllowed) {
+    lines.push("Payment: cash on pickup is available for this request.");
+    if (paymentInstructions) {
+      lines.push("To pay before pickup instead, use:", paymentInstructions, "Then send the receipt screenshot here.");
+    }
+  } else if (paymentInstructions) {
+    lines.push("Payment details:", paymentInstructions, "After transfer, send the receipt screenshot here as proof.");
   } else {
     lines.push("Payment details are not configured yet. A staff member will send payment instructions.");
   }

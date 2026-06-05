@@ -90,8 +90,8 @@ const customerCapabilities = [
   },
   {
     title: 'Request payment proof',
-    body: 'The assistant sends saved payment instructions and asks the customer to send a receipt.',
-    example: 'Paid',
+    body: 'The assistant sends saved payment instructions and asks the customer to send a receipt screenshot.',
+    example: 'Customer sends transfer screenshot',
   },
   {
     title: 'Store receipts for review',
@@ -537,7 +537,7 @@ export default function WhatsAppPage() {
                     onChange={(e) => setPaymentInstructions(e.target.value)}
                     rows={7}
                     className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-400"
-                    placeholder={'Bank: GTBank\nAccount: 0123456789\nName: Your Business Name\nSend receipt here after payment.'}
+                    placeholder={'Bank: GTBank\nAccount: 0123456789\nName: Your Business Name\nAfter transfer, send the receipt screenshot here.'}
                   />
                 </label>
               </div>
@@ -549,7 +549,7 @@ export default function WhatsAppPage() {
                     onChange={(e) => setFulfillmentRules(e.target.value)}
                     rows={4}
                     className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-400"
-                    placeholder={'Delivery within Lekki is ₦2500.\nPickup is available after payment.\nRepairs take 24-48 hours after inspection.'}
+                    placeholder={'Delivery within Lekki is ₦2500.\nPickup is available after payment.\nCash on pickup is allowed.\nRepairs take 24-48 hours after inspection.'}
                   />
                 </label>
                 <label>
