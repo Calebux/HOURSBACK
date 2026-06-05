@@ -123,7 +123,7 @@ export default function OrdersPage() {
   const verifyPayment = async (orderId: string, form?: HTMLFormElement) => {
     const formData = form ? new FormData(form) : null;
     setVerifyingOrderId(orderId);
-    const { error } = await supabase.functions.invoke('kapso-setup', {
+    const { data, error } = await supabase.functions.invoke('kapso-setup', {
       body: {
         action: 'verify_order_payment',
         order_id: orderId,
@@ -137,13 +137,17 @@ export default function OrdersPage() {
       return;
     }
 
-    toast.success('Payment confirmed and customer notified');
+    if (data?.message_sent === false) {
+      toast.warning('Payment confirmed, but the WhatsApp message was not sent');
+    } else {
+      toast.success('Payment confirmed and customer notified');
+    }
     await loadOrders();
   };
 
   const rejectPayment = async (orderId: string) => {
     setRejectingOrderId(orderId);
-    const { error } = await supabase.functions.invoke('kapso-setup', {
+    const { data, error } = await supabase.functions.invoke('kapso-setup', {
       body: {
         action: 'reject_order_payment',
         order_id: orderId,
@@ -156,14 +160,18 @@ export default function OrdersPage() {
       return;
     }
 
-    toast.success('Customer asked to resend payment proof');
+    if (data?.message_sent === false) {
+      toast.warning('Receipt rejected, but the WhatsApp message was not sent');
+    } else {
+      toast.success('Customer asked to resend payment proof');
+    }
     await loadOrders();
   };
 
   const cancelOrder = async (order: Order) => {
     if (!confirm(`Cancel ${order.order_code || 'this request'}? The customer will be notified.`)) return;
     setCancellingOrderId(order.id);
-    const { error } = await supabase.functions.invoke('kapso-setup', {
+    const { data, error } = await supabase.functions.invoke('kapso-setup', {
       body: {
         action: 'cancel_order',
         order_id: order.id,
@@ -178,7 +186,11 @@ export default function OrdersPage() {
       return;
     }
 
-    toast.success('Request cancelled');
+    if (data?.message_sent === false) {
+      toast.warning('Request cancelled, but the WhatsApp message was not sent');
+    } else {
+      toast.success('Request cancelled and customer notified');
+    }
     await loadOrders();
   };
 
@@ -228,7 +240,7 @@ export default function OrdersPage() {
 
   const updateFulfillment = async (orderId: string, fulfillmentStatus: string) => {
     setFulfillmentOrderId(orderId);
-    const { error } = await supabase.functions.invoke('kapso-setup', {
+    const { data, error } = await supabase.functions.invoke('kapso-setup', {
       body: {
         action: 'update_order_fulfillment',
         order_id: orderId,
@@ -242,7 +254,11 @@ export default function OrdersPage() {
       return;
     }
 
-    toast.success('Customer notified');
+    if (data?.message_sent === false) {
+      toast.warning('Fulfillment updated, but the WhatsApp message was not sent');
+    } else {
+      toast.success('Customer notified');
+    }
     await loadOrders();
   };
 

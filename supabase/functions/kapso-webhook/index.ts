@@ -145,6 +145,9 @@ async function persistReceiptMedia(supabase: any, order: any, message: ParsedMes
     }
 
     const contentType = response.headers.get("content-type") || "image/jpeg";
+    if (!/^image\//i.test(contentType) && !/application\/pdf/i.test(contentType)) {
+      throw new Error(`Unsupported receipt content type: ${contentType}`);
+    }
     const arrayBuffer = await response.arrayBuffer();
     if (arrayBuffer.byteLength > maxReceiptBytes) {
       throw new Error("Receipt file is larger than 8MB");
@@ -1468,7 +1471,7 @@ serve(async (req) => {
       }
     }
 
-    const event = firstString(req.headers.get("X-Webhook-Event"), payload?.event);
+    const event = firstString(req.headers.get("X-Webhook-Event"), payload?.event)?.toLowerCase();
     if (event && event !== "whatsapp.message.received") {
       return new Response(JSON.stringify({ success: true, ignored: true }), { headers });
     }
@@ -1483,7 +1486,8 @@ serve(async (req) => {
       });
       return new Response(JSON.stringify({ success: true, ignored: "no usable message" }), { headers });
     }
-    if (message.direction && message.direction !== "inbound" && message.direction !== "received") {
+    const messageDirection = message.direction?.toLowerCase();
+    if (messageDirection && messageDirection !== "inbound" && messageDirection !== "received") {
       return new Response(JSON.stringify({ success: true, ignored: "non-inbound message" }), { headers });
     }
 
