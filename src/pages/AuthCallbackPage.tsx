@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 
-const DEFAULT_REDIRECT = '/workflows';
+const DEFAULT_REDIRECT = '/home';
 
 function getSafeRedirect(value: string | null) {
   if (!value || !value.startsWith('/') || value.startsWith('//')) {

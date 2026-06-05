@@ -7,7 +7,7 @@ export function MobileNav() {
   const links = [
     { to: '/home', icon: Home, label: 'Home', exact: true },
     { to: '/capture', icon: ClipboardList, label: 'Capture', exact: true },
-    { to: '/orders', icon: Inbox, label: 'Ops', exact: false },
+    { to: '/operations', icon: Inbox, label: 'Ops', exact: false },
     { to: '/reports', icon: FileText, label: 'Reports', exact: true },
     { to: '/account', icon: User, label: 'Account', exact: true },
   ];

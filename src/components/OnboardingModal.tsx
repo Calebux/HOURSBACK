@@ -47,7 +47,7 @@ const METRICS = [
 const STEP_HEADERS = [
   { icon: <Building2 className="w-5 h-5" />, title: 'Your business', sub: "Help the AI understand what you do so every report is relevant to you." },
   { icon: <BarChart3 className="w-5 h-5" />, title: 'What you track', sub: "The AI will always watch and explain these metrics in your reports." },
-  { icon: <Target className="w-5 h-5" />, title: 'Give the AI context', sub: "This gets injected into every workflow run — takes 30 seconds." },
+  { icon: <Target className="w-5 h-5" />, title: 'Give the AI context', sub: 'This keeps reports, replies, and automations relevant to your business.' },
 ];
 
 export function OnboardingModal({ userId, onComplete, onDismiss }: OnboardingModalProps) {

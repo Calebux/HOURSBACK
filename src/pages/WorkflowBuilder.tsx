@@ -1169,7 +1169,7 @@ export default function WorkflowBuilder() {
                         <div className="space-y-3">
                           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Setup Instructions</p>
                           <ol className="space-y-3 text-sm text-slate-600">
-                            <li className="flex items-start gap-3"><span className="bg-slate-100 text-slate-500 w-6 h-6 rounded-full flex items-center justify-center shrink-0 font-bold text-xs ring-1 ring-slate-200">1</span><div>Connect WhatsApp in <a href="/whatsapp" className="underline font-semibold text-slate-900 hover:text-brand-blue">WhatsApp Workflows</a>.</div></li>
+                            <li className="flex items-start gap-3"><span className="bg-slate-100 text-slate-500 w-6 h-6 rounded-full flex items-center justify-center shrink-0 font-bold text-xs ring-1 ring-slate-200">1</span><div>Connect WhatsApp in <a href="/whatsapp" className="underline font-semibold text-slate-900 hover:text-brand-blue">WhatsApp Capture</a>.</div></li>
                             <li className="flex items-start gap-3"><span className="bg-slate-100 text-slate-500 w-6 h-6 rounded-full flex items-center justify-center shrink-0 font-bold text-xs ring-1 ring-slate-200">2</span><div>Use the internal number for staff and owner workflows.</div></li>
                             <li className="flex items-start gap-3"><span className="bg-slate-100 text-slate-500 w-6 h-6 rounded-full flex items-center justify-center shrink-0 font-bold text-xs ring-1 ring-slate-200">3</span><div>Staff can send a message like <span className="font-mono font-bold bg-slate-100 px-1.5 py-0.5 rounded text-slate-700">{tg.command}</span> to trigger.</div></li>
                           </ol>

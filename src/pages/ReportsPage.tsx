@@ -172,16 +172,16 @@ export default function ReportsPage() {
     <div className="min-h-screen bg-brand-light text-brand-dark">
       <nav className="border-b border-brand-dark/10 bg-brand-light/80 backdrop-blur-md sticky top-0 z-50">
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-center">
+          <Link to="/home" className="flex items-center">
             <img src="/logo.svg" alt="Hoursback" className="h-[36px] w-auto" />
           </Link>
           <div className="flex items-center gap-4">
-            <Link to="/workflows/new" className="hidden sm:flex text-sm font-medium text-brand-dark/60 hover:text-brand-dark transition-colors px-3 py-1.5">
-              Browse
+            <Link to="/capture" className="hidden sm:flex text-sm font-medium text-brand-dark/60 hover:text-brand-dark transition-colors px-3 py-1.5">
+              Capture
             </Link>
-            <Link to="/workflows" className="hidden sm:flex items-center gap-1.5 text-sm font-medium text-brand-dark/60 hover:text-brand-dark transition-colors px-3 py-1.5">
+            <Link to="/operations" className="hidden sm:flex items-center gap-1.5 text-sm font-medium text-brand-dark/60 hover:text-brand-dark transition-colors px-3 py-1.5">
               <Bot className="w-4 h-4" />
-              Workflows
+              Operations
             </Link>
             <Link to="/reports" className="hidden sm:flex items-center gap-1.5 text-sm font-medium text-[#DA7756] bg-[#DA7756]/10 px-3 py-1.5 rounded-full">
               <FileText className="w-4 h-4" />
@@ -198,7 +198,7 @@ export default function ReportsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-bold mb-1">Reports</h1>
-            <p className="text-brand-dark/60">All AI-generated outputs from your workflows.</p>
+            <p className="text-brand-dark/60">Reports from sales logs, customer requests, receipts, and automations.</p>
           </div>
           {workflows.length > 0 && (
             <div className="flex items-center gap-2">
@@ -219,10 +219,10 @@ export default function ReportsPage() {
           <div className="bg-white rounded-3xl p-12 text-center border border-brand-dark/10">
             <FileText className="w-12 h-12 text-slate-300 mx-auto mb-4" />
             <h3 className="text-lg font-medium mb-2">No reports yet</h3>
-            <p className="text-brand-dark/60 mb-6">Reports appear here after your workflows run.</p>
-            <Link to="/workflows">
+            <p className="text-brand-dark/60 mb-6">Reports appear here after your records or automations produce summaries.</p>
+            <Link to="/operations">
               <button className="bg-brand-dark text-white px-5 py-2 rounded-full text-sm font-medium">
-                Go to Workflows
+                Go to Operations
               </button>
             </Link>
           </div>

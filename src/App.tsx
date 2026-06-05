@@ -28,6 +28,7 @@ const CaseStudiesPage    = lazy(() => import('./pages/CaseStudiesPage'));
 const HowItLearnsPage    = lazy(() => import('./pages/HowItLearnsPage'));
 const SettingsPage       = lazy(() => import('./pages/SettingsPage'));
 const CapturePage        = lazy(() => import('./pages/CapturePage'));
+const OperationsPage     = lazy(() => import('./pages/OperationsPage'));
 const WhatsAppPage       = lazy(() => import('./pages/WhatsAppPage'));
 const OrdersPage         = lazy(() => import('./pages/OrdersPage'));
 const DataSourcesPage    = lazy(() => import('./pages/DataSourcesPage'));
@@ -59,7 +60,7 @@ function AppWithOnboarding() {
 
   const handleOnboardingComplete = (_: OnboardingData) => {
     setShowOnboarding(false);
-    navigate('/workflows/new');
+    navigate('/home');
   };
 
   const handleOnboardingDismiss = () => {
@@ -97,6 +98,7 @@ function AppWithOnboarding() {
           <Route path="/how-it-learns" element={<HowItLearnsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/capture" element={<CapturePage />} />
+          <Route path="/operations" element={<OperationsPage />} />
           <Route path="/telegram" element={<Navigate to="/whatsapp" replace />} />
           <Route path="/whatsapp" element={<WhatsAppPage />} />
           <Route path="/orders" element={<OrdersPage />} />

@@ -201,7 +201,7 @@ export default function HomePage() {
           </Link>
           <div className="hidden md:flex items-center gap-2 text-sm">
             <Link to="/capture" className="px-3 py-1.5 rounded-full text-slate-600 hover:bg-slate-100">Capture</Link>
-            <Link to="/data-log" className="px-3 py-1.5 rounded-full text-slate-600 hover:bg-slate-100">Operations</Link>
+            <Link to="/operations" className="px-3 py-1.5 rounded-full text-slate-600 hover:bg-slate-100">Operations</Link>
             <Link to="/reports" className="px-3 py-1.5 rounded-full text-slate-600 hover:bg-slate-100">Reports</Link>
             <Link to="/workflows" className="px-3 py-1.5 rounded-full text-slate-600 hover:bg-slate-100">Automations</Link>
           </div>
@@ -349,7 +349,7 @@ export default function HomePage() {
         <section className="grid gap-4 md:grid-cols-4">
           {[
             { title: 'Capture', body: 'Bring in WhatsApp messages, manual entries, uploads, spreadsheets, and webhook events.', icon: ClipboardList, to: '/capture' },
-            { title: 'Operate', body: 'Manage requests, sales, expenses, closeout, receipts, and payment review.', icon: MessageCircle, to: '/orders' },
+            { title: 'Operate', body: 'Manage requests, sales, expenses, closeout, receipts, and payment review.', icon: MessageCircle, to: '/operations' },
             { title: 'Report', body: 'Review generated outputs and export polished reports for decisions.', icon: FileText, to: '/reports' },
             { title: 'Automate', body: 'Schedule recurring monitoring, summaries, and business workflows.', icon: Bot, to: '/workflows' },
           ].map(({ title, body, icon: Icon, to }) => (

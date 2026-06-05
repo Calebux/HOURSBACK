@@ -84,7 +84,7 @@ export default function LandingPage() {
       </nav>
 
       {/* ── Hero ── */}
-      <HeroSection onGetStarted={user ? () => navigate('/workflows/new') : openSignup} />
+      <HeroSection onGetStarted={user ? () => navigate('/home') : openSignup} />
 
       {/* ── Logo Marquee ── */}
       <LogoMarquee />
@@ -120,7 +120,7 @@ export default function LandingPage() {
       <FAQSection />
 
       {/* ── CTA Banner ── */}
-      <CTABanner onGetStarted={user ? () => navigate('/workflows/new') : openSignup} />
+      <CTABanner onGetStarted={user ? () => navigate('/home') : openSignup} />
 
       {/* ── Footer ── */}
       <Footer />

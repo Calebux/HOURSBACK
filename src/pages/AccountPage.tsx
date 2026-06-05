@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { updateProfile } from '../lib/api';
-import { Bot, FileText, User, LogOut, Crown, CheckCircle2, Clock, RefreshCw, Building2, Pencil, X, Check } from 'lucide-react';
+import { Bot, FileText, Home, User, LogOut, Crown, CheckCircle2, Clock, RefreshCw, Building2, Pencil, X, Check } from 'lucide-react';
 import { MobileNav } from '../components/MobileNav';
 import { UserAvatar } from '../components/UserAvatar';
 import { ProUpgradeButton } from '../components/ProUpgradeButton';
@@ -100,12 +100,12 @@ export default function AccountPage() {
       {/* Nav */}
       <nav className="border-b border-brand-dark/10 bg-brand-light/80 backdrop-blur-md sticky top-0 z-50">
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-center">
+          <Link to="/home" className="flex items-center">
             <img src="/logo.svg" alt="Hoursback" className="h-[36px] w-auto" />
           </Link>
           <div className="hidden md:flex items-center gap-4">
-            <Link to="/workflows" className="flex items-center gap-1.5 text-sm font-medium text-brand-dark/60 hover:text-brand-dark transition-colors px-3 py-1.5">
-              <Bot className="w-4 h-4" /> Workflows
+            <Link to="/home" className="flex items-center gap-1.5 text-sm font-medium text-brand-dark/60 hover:text-brand-dark transition-colors px-3 py-1.5">
+              <Home className="w-4 h-4" /> Home
             </Link>
             <Link to="/reports" className="flex items-center gap-1.5 text-sm font-medium text-brand-dark/60 hover:text-brand-dark transition-colors px-3 py-1.5">
               <FileText className="w-4 h-4" /> Reports
@@ -236,7 +236,7 @@ export default function AccountPage() {
           <Link to="/workflows" className="flex items-center justify-between px-6 py-4 hover:bg-slate-50 transition-colors">
             <div className="flex items-center gap-3">
               <Bot className="w-4 h-4 text-slate-400" />
-              <span className="text-sm font-medium">My Workflows</span>
+              <span className="text-sm font-medium">Automations</span>
             </div>
             <span className="text-slate-300">›</span>
           </Link>

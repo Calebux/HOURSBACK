@@ -1164,7 +1164,7 @@ export default function WorkflowsDashboard({ previewMode = false }: { previewMod
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                       <Send className="w-4 h-4 text-emerald-600" />
-                      <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">WhatsApp Workflows</h2>
+                      <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">WhatsApp Capture</h2>
                     </div>
                     <Link to="/whatsapp" className="text-xs text-emerald-700 hover:underline font-medium">
                       Set up →
@@ -1172,10 +1172,10 @@ export default function WorkflowsDashboard({ previewMode = false }: { previewMod
                   </div>
                   <div className="bg-white rounded-2xl border border-brand-dark/10 overflow-hidden">
                     <div className="p-5 space-y-3">
-                      <p className="text-sm text-brand-dark/60">Use WhatsApp for the workflows that happen inside chat.</p>
+                      <p className="text-sm text-brand-dark/60">Use WhatsApp as one capture channel for chat-based work.</p>
                       <div className="grid gap-2 text-xs text-slate-500">
-                        <Link to="/data-log" className="rounded-xl border border-slate-100 px-3 py-2 hover:bg-slate-50">Staff sales logs and closeouts</Link>
-                        <Link to="/orders" className="rounded-xl border border-slate-100 px-3 py-2 hover:bg-slate-50">Customer orders, bookings, and receipts</Link>
+                        <Link to="/operations" className="rounded-xl border border-slate-100 px-3 py-2 hover:bg-slate-50">Staff sales, requests, receipts, and closeouts</Link>
+                        <Link to="/capture" className="rounded-xl border border-slate-100 px-3 py-2 hover:bg-slate-50">All capture channels</Link>
                         <Link to="/whatsapp" className="rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-emerald-700 hover:bg-emerald-100">Configure WhatsApp numbers</Link>
                       </div>
                     </div>
