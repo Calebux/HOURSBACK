@@ -53,6 +53,16 @@ async function logOrderAudit(
   }
 }
 
+async function safeSendKapsoText(phoneNumberId: string, to: string, text: string) {
+  try {
+    await sendKapsoText(phoneNumberId, to, text);
+    return true;
+  } catch (err) {
+    console.error("Kapso customer notification failed:", err);
+    return false;
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -152,6 +162,12 @@ serve(async (req) => {
           { status: 400, headers: corsHeaders }
         );
       }
+      if (order.status !== "confirmed" || order.payment_status !== "receipt_sent") {
+        return new Response(
+          JSON.stringify({ error: "Only confirmed requests with a pending receipt can be marked paid." }),
+          { status: 400, headers: corsHeaders }
+        );
+      }
 
       const { data: connection, error: connectionError } = await supabase
         .from("kapso_connections")
@@ -186,8 +202,7 @@ serve(async (req) => {
           `Request: ${items}`,
           deliveryNote || "We are processing your request now and will update you if anything changes.",
         ].join("\n");
-        await sendKapsoText(connection.phone_number_id, order.customer_phone, message);
-        messageSent = true;
+        messageSent = await safeSendKapsoText(connection.phone_number_id, order.customer_phone, message);
       }
 
       await logOrderAudit(supabase, updatedOrder, "payment_verified", {
@@ -210,6 +225,12 @@ serve(async (req) => {
         .eq("user_id", user.id)
         .single();
       if (orderError) throw orderError;
+      if (order.status !== "confirmed" || order.payment_status !== "receipt_sent") {
+        return new Response(
+          JSON.stringify({ error: "Only confirmed requests with a pending receipt can be rejected." }),
+          { status: 400, headers: corsHeaders }
+        );
+      }
 
       const { data: connection, error: connectionError } = await supabase
         .from("kapso_connections")
@@ -244,13 +265,12 @@ serve(async (req) => {
         const items = Array.isArray(order.items)
           ? order.items.map((item: any) => `${item.qty ? `${item.qty} x ` : ""}${item.name}`).join(", ")
           : "your request";
-        await sendKapsoText(connection.phone_number_id, order.customer_phone, [
+        messageSent = await safeSendKapsoText(connection.phone_number_id, order.customer_phone, [
           "We could not verify the payment receipt yet.",
           `Request: ${items}`,
           order.order_code ? `Reference: ${order.order_code}` : null,
           "Please resend a clear receipt or contact staff for help.",
         ].filter(Boolean).join("\n"));
-        messageSent = true;
       }
 
       await logOrderAudit(supabase, updatedOrder, "payment_rejected", {}, messageSent);
@@ -273,6 +293,9 @@ serve(async (req) => {
         .eq("user_id", user.id)
         .single();
       if (orderError) throw orderError;
+      if (order.status === "cancelled" || order.status === "fulfilled") {
+        return new Response(JSON.stringify({ error: "Cancelled or fulfilled requests cannot be cancelled again." }), { status: 400, headers: corsHeaders });
+      }
 
       const { data: connection, error: connectionError } = await supabase
         .from("kapso_connections")
@@ -304,13 +327,12 @@ serve(async (req) => {
         const items = Array.isArray(order.items)
           ? order.items.map((item: any) => `${item.qty ? `${item.qty} x ` : ""}${item.name}`).join(", ")
           : "your request";
-        await sendKapsoText(connection.phone_number_id, order.customer_phone, [
+        messageSent = await safeSendKapsoText(connection.phone_number_id, order.customer_phone, [
           "This request has been cancelled.",
           order.order_code ? `Reference: ${order.order_code}` : null,
           `Request: ${items}`,
           "If you already paid, a staff member will review and follow up.",
         ].filter(Boolean).join("\n"));
-        messageSent = true;
       }
 
       await logOrderAudit(supabase, updatedOrder, "cancelled_by_owner", { reason }, messageSent);
@@ -374,13 +396,16 @@ serve(async (req) => {
       const expectedTotal = body.expected_total_amount === "" || body.expected_total_amount == null ? null : Number(body.expected_total_amount);
       const adjustedTotal = body.owner_adjusted_total_amount === "" || body.owner_adjusted_total_amount == null ? null : Number(body.owner_adjusted_total_amount);
       const ownerNotes = String(body.owner_notes || "").trim();
+      if ([deliveryFee, expectedTotal, adjustedTotal].some((value) => value !== null && (!Number.isFinite(value) || value < 0))) {
+        return new Response(JSON.stringify({ error: "Amounts must be valid non-negative numbers." }), { status: 400, headers: corsHeaders });
+      }
 
       const { data, error } = await supabase
         .from("kapso_orders")
         .update({
-          delivery_fee_amount: Number.isFinite(deliveryFee) ? deliveryFee : null,
-          expected_total_amount: Number.isFinite(expectedTotal) ? expectedTotal : null,
-          owner_adjusted_total_amount: Number.isFinite(adjustedTotal) ? adjustedTotal : null,
+          delivery_fee_amount: deliveryFee,
+          expected_total_amount: expectedTotal,
+          owner_adjusted_total_amount: adjustedTotal,
           owner_notes: ownerNotes || null,
           updated_at: new Date().toISOString(),
         })
@@ -391,9 +416,9 @@ serve(async (req) => {
 
       if (error) throw error;
       await logOrderAudit(supabase, data, "review_updated", {
-        delivery_fee_amount: Number.isFinite(deliveryFee) ? deliveryFee : null,
-        expected_total_amount: Number.isFinite(expectedTotal) ? expectedTotal : null,
-        owner_adjusted_total_amount: Number.isFinite(adjustedTotal) ? adjustedTotal : null,
+        delivery_fee_amount: deliveryFee,
+        expected_total_amount: expectedTotal,
+        owner_adjusted_total_amount: adjustedTotal,
         owner_notes: ownerNotes || null,
       }, false);
       return new Response(JSON.stringify({ success: true, order: data }), { headers: corsHeaders });
@@ -416,6 +441,9 @@ serve(async (req) => {
         .eq("user_id", user.id)
         .single();
       if (orderError) throw orderError;
+      if (order.status === "cancelled" || order.status === "fulfilled") {
+        return new Response(JSON.stringify({ error: "Cancelled or fulfilled requests cannot be updated." }), { status: 400, headers: corsHeaders });
+      }
 
       const { data: connection, error: connectionError } = await supabase
         .from("kapso_connections")
@@ -456,11 +484,10 @@ serve(async (req) => {
             : fulfillmentStatus === "out_for_delivery"
               ? "Your request is out for delivery."
               : "Your request has been completed. Thank you.";
-        await sendKapsoText(connection.phone_number_id, order.customer_phone, [
+        messageSent = await safeSendKapsoText(connection.phone_number_id, order.customer_phone, [
           statusLine,
           `Request: ${items}`,
         ].join("\n"));
-        messageSent = true;
       }
 
       await logOrderAudit(supabase, updatedOrder, "fulfillment_updated", {

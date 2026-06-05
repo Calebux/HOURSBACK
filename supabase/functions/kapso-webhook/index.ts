@@ -17,6 +17,7 @@ type ParsedMessage = {
   to?: string;
   contactName?: string;
   type?: string;
+  direction?: string;
   text?: string;
   receiptUrl?: string;
 };
@@ -137,8 +138,17 @@ async function persistReceiptMedia(supabase: any, order: any, message: ParsedMes
     });
     if (!response.ok) throw new Error(`Receipt fetch failed with ${response.status}`);
 
+    const maxReceiptBytes = 8 * 1024 * 1024;
+    const contentLength = Number(response.headers.get("content-length") || 0);
+    if (contentLength > maxReceiptBytes) {
+      throw new Error("Receipt file is larger than 8MB");
+    }
+
     const contentType = response.headers.get("content-type") || "image/jpeg";
     const arrayBuffer = await response.arrayBuffer();
+    if (arrayBuffer.byteLength > maxReceiptBytes) {
+      throw new Error("Receipt file is larger than 8MB");
+    }
     const ext = extensionForContentType(contentType);
     const messageId = String(message.messageId || crypto.randomUUID()).replace(/[^a-zA-Z0-9_-]/g, "_");
     const path = `${order.user_id}/${order.id}/${messageId}.${ext}`;
@@ -212,6 +222,7 @@ function parseKapsoMessage(payload: any): ParsedMessage | null {
     to: firstString(msg?.to, data?.to, kapso?.to),
     contactName: firstString(conversationKapso?.contact_name, kapso?.contact_name, data?.contact?.name, data?.profile?.name),
     type: firstString(msg?.type, data?.type) || (text ? "text" : undefined),
+    direction: firstString(kapso?.direction, data?.direction, msg?.direction, conversationKapso?.direction),
     text,
     receiptUrl: findReceiptUrl(
       msg?.image?.url,
@@ -621,7 +632,7 @@ async function findRecentDuplicateCustomerOrder(supabase: any, connection: any, 
 }
 
 async function findAwaitingReceiptOrders(supabase: any, connection: any, from?: string) {
-  if (!from) return null;
+  if (!from) return [];
   const { data: orders } = await supabase
     .from("kapso_orders")
     .select("*")
@@ -1471,6 +1482,9 @@ serve(async (req) => {
         event: event || null,
       });
       return new Response(JSON.stringify({ success: true, ignored: "no usable message" }), { headers });
+    }
+    if (message.direction && message.direction !== "inbound" && message.direction !== "received") {
+      return new Response(JSON.stringify({ success: true, ignored: "non-inbound message" }), { headers });
     }
 
     if (!idempotencyKey && message.messageId) {
