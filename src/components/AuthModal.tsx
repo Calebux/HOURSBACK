@@ -26,7 +26,7 @@ export function AuthModal({ isOpen, onClose, defaultView = 'signin' }: AuthModal
         setError(null);
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
-            options: { redirectTo: `${authCallbackUrl}?next=/workflows` },
+            options: { redirectTo: `${authCallbackUrl}?next=/home` },
         });
         if (error) {
             setError(error.message);
@@ -54,7 +54,7 @@ export function AuthModal({ isOpen, onClose, defaultView = 'signin' }: AuthModal
                         data: {
                             full_name: fullName,
                         },
-                        emailRedirectTo: `${authCallbackUrl}?next=/workflows`,
+                        emailRedirectTo: `${authCallbackUrl}?next=/home`,
                     }
                 });
                 if (signUpError) throw signUpError;

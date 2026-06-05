@@ -3,34 +3,76 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const BUSINESS_TIME_ZONE = Deno.env.get("BUSINESS_TIME_ZONE") || "Africa/Lagos";
 
 const DAY_ABBR: Record<number, string> = {
   0: "sun", 1: "mon", 2: "tue", 3: "wed", 4: "thu", 5: "fri", 6: "sat",
 };
 
-async function sendMessage(botToken: string, chatId: number, text: string) {
-  await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+function isAuthorized(req: Request): boolean {
+  const authHeader = req.headers.get("Authorization") || "";
+  const bearer = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+  return bearer.length > 0 && bearer === SUPABASE_SERVICE_ROLE_KEY;
+}
+
+async function sendMessage(botToken: string, chatId: number, text: string): Promise<boolean> {
+  const res = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ chat_id: chatId, text, parse_mode: "Markdown" }),
+    body: JSON.stringify({ chat_id: chatId, text }),
   });
+  if (!res.ok) {
+    console.error("Telegram summary send failed:", res.status, await res.text());
+    return false;
+  }
+  return true;
+}
+
+function zonedParts(date: Date) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: BUSINESS_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    weekday: "short",
+    hour: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value || "";
+  const weekday = get("weekday").slice(0, 3).toLowerCase();
+  return {
+    dateKey: `${get("year")}-${get("month")}-${get("day")}`,
+    hour: get("hour"),
+    weekday,
+  };
+}
+
+function entryDateKey(entry: { sale_date?: string | null; created_at?: string | null }) {
+  const raw = entry.sale_date || entry.created_at;
+  if (!raw) return "";
+  return zonedParts(new Date(raw)).dateKey;
 }
 
 serve(async (req) => {
   if (req.method !== "POST" && req.method !== "GET") {
-    return new Response("OK", { status: 200 });
+    return new Response("Method not allowed", { status: 405 });
+  }
+
+  if (!isAuthorized(req)) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
   const now = new Date();
-  const currentHour = String(now.getUTCHours()).padStart(2, "0");
-  const todayAbbr = DAY_ABBR[now.getUTCDay()];
-  const todayDate = now.toISOString().split("T")[0]; // YYYY-MM-DD
-
-  // Day start / end in UTC for querying today's entries
-  const dayStart = `${todayDate}T00:00:00.000Z`;
-  const dayEnd   = `${todayDate}T23:59:59.999Z`;
+  const today = zonedParts(now);
+  const currentHour = today.hour;
+  const todayAbbr = today.weekday || DAY_ABBR[now.getUTCDay()];
+  const todayDate = today.dateKey;
+  const recentCutoff = new Date(now.getTime() - 36 * 60 * 60 * 1000).toISOString();
 
   // Find all bots with summary enabled
   const { data: bots } = await supabase
@@ -62,12 +104,13 @@ serve(async (req) => {
     if (alreadySent) continue;
 
     // Get today's bot_entries for this workspace
-    const { data: entries } = await supabase
+    const { data: rawEntries } = await supabase
       .from("bot_entries")
-      .select("entry_type, parsed_data, triggered_by")
+      .select("entry_type, parsed_data, triggered_by, sale_date, created_at")
       .eq("user_id", bot.user_id)
-      .gte("created_at", dayStart)
-      .lte("created_at", dayEnd);
+      .or(`created_at.gte.${recentCutoff},sale_date.gte.${todayDate}`);
+
+    const entries = (rawEntries ?? []).filter((entry) => entryDateKey(entry) === todayDate);
 
     // Find manager connections to message
     const { data: managers } = await supabase
@@ -79,8 +122,8 @@ serve(async (req) => {
     if (!managers?.length) continue;
 
     // Build summary
-    const sales    = (entries ?? []).filter(e => e.entry_type === "sale");
-    const expenses = (entries ?? []).filter(e => e.entry_type === "expense");
+    const sales    = entries.filter(e => e.entry_type === "sale");
+    const expenses = entries.filter(e => e.entry_type === "expense");
 
     const totalSales    = sales.reduce((s, e) => s + (e.parsed_data?.total ?? 0), 0);
     const totalExpenses = expenses.reduce((s, e) => s + (e.parsed_data?.total ?? 0), 0);
@@ -109,6 +152,7 @@ serve(async (req) => {
 
     const dateLabel = now.toLocaleDateString("en-GB", {
       weekday: "long", day: "numeric", month: "short", year: "numeric",
+      timeZone: BUSINESS_TIME_ZONE,
     });
 
     const fmt = (n: number) => `₦${n.toLocaleString("en-US")}`;
@@ -116,36 +160,40 @@ serve(async (req) => {
     let message: string;
 
     if (!entries?.length) {
-      message = `📊 *Daily Sales Summary*\n_${dateLabel}_\n\nNo entries logged today.\n\nRemind your team to use /log or send a photo of the sales book.`;
+      message = `Daily Sales Summary\n${dateLabel}\n\nNo entries logged today.\n\nRemind your team to use /log or send a photo of the sales book.`;
     } else {
       const lines = [
-        `📊 *Daily Sales Summary*`,
-        `_${dateLabel}_`,
+        `Daily Sales Summary`,
+        `${dateLabel}`,
         ``,
-        `💰 Sales: *${fmt(totalSales)}* (${sales.length} ${sales.length === 1 ? "entry" : "entries"})`,
-        `💸 Expenses: ${fmt(totalExpenses)} (${expenses.length})`,
-        `📈 Net: *${fmt(net)}*`,
+        `Sales: ${fmt(totalSales)} (${sales.length} ${sales.length === 1 ? "entry" : "entries"})`,
+        `Expenses: ${fmt(totalExpenses)} (${expenses.length})`,
+        `Net: ${fmt(net)}`,
       ];
 
       if (topItems.length) {
-        lines.push(``, `*Top items:*`);
+        lines.push(``, `Top items:`);
         for (const [item, total] of topItems) {
           lines.push(`• ${item} — ${fmt(total)}`);
         }
       }
 
       if (staffLines) {
-        lines.push(``, `*Logged by:*`, staffLines);
+        lines.push(``, `Logged by:`, staffLines);
       }
 
-      lines.push(``, `_View full log → hoursback.xyz/data-log_`);
+      lines.push(``, `View full log: https://www.hoursback.xyz/data-log`);
       message = lines.join("\n");
     }
 
     // Send to all managers
+    let delivered = 0;
     for (const mgr of managers) {
-      await sendMessage(bot.bot_token, mgr.chat_id as number, message);
+      const ok = await sendMessage(bot.bot_token, mgr.chat_id as number, message);
+      if (ok) delivered++;
     }
+
+    if (delivered === 0) continue;
 
     // Mark as sent
     await supabase.from("sales_summary_checks").insert({

@@ -785,7 +785,14 @@ Rules:
         source: "telegram_photo",
       }));
 
-      await supabase.from("bot_entries").insert(rows);
+      const { error: insertError } = await supabase.from("bot_entries").insert(rows);
+      if (insertError) {
+        console.error("Photo scan save error:", insertError);
+        await sendMessage(botToken, chatId,
+          "I could read the photo, but I couldn't save the entries to your Sales Log. Please try again or type /log for the important entries."
+        );
+        return new Response("OK");
+      }
 
       // Build confirmation reply
       const lines: string[] = [
@@ -1317,7 +1324,7 @@ Rules:
 
     const entryType = (parsedData.entry_type as string) || "sale";
 
-    await supabase.from("bot_entries").insert({
+    const { error: insertError } = await supabase.from("bot_entries").insert({
       user_id: userId,
       chat_id: chatId,
       triggered_by: firstName,
@@ -1327,6 +1334,12 @@ Rules:
       parsed_data: parsedData,
       source: "telegram_text",
     });
+
+    if (insertError) {
+      console.error("Log save error:", insertError);
+      await sendMessage(botToken, chatId, "I couldn't save that entry to your Sales Log. Please try again.");
+      return new Response("OK");
+    }
 
     // Build confirmation reply
     const typeLabel = entryType === "expense" ? "Expense" : entryType === "note" ? "Note" : "Sale";

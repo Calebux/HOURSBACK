@@ -1,4 +1,5 @@
 -- Allow users to delete their own bot_entries
+DROP POLICY IF EXISTS "Users can delete own entries" ON bot_entries;
 CREATE POLICY "Users can delete own entries"
   ON bot_entries FOR DELETE USING (auth.uid() = user_id);
 
@@ -12,22 +13,33 @@ CREATE TABLE IF NOT EXISTS sales_summary_checks (
 );
 
 ALTER TABLE sales_summary_checks ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Service role manages sales summary checks"
-  ON sales_summary_checks FOR ALL USING (true);
+DROP POLICY IF EXISTS "Service role manages sales summary checks" ON sales_summary_checks;
+-- No user policies: service role only.
 
 -- Opt-in column on telegram_bots (default on so existing users get it)
 ALTER TABLE telegram_bots
   ADD COLUMN IF NOT EXISTS sales_summary_enabled BOOLEAN DEFAULT true;
 
 -- Hourly cron — same pattern as handover watcher
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'telegram-sales-summary-hourly') THEN
+    PERFORM cron.unschedule('telegram-sales-summary-hourly');
+  END IF;
+END;
+$$;
+
 SELECT cron.schedule(
   'telegram-sales-summary-hourly',
   '0 * * * *',
   $$
   SELECT net.http_post(
     url := current_setting('app.supabase_url') || '/functions/v1/telegram-sales-summary',
-    headers := '{"Content-Type": "application/json"}'::jsonb,
-    body := '{}'::jsonb
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'Authorization', 'Bearer ' || current_setting('app.service_role_key')
+    ),
+    body := '{"trigger":"cron"}'::jsonb
   ) AS request_id;
   $$
 );

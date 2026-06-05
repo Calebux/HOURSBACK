@@ -60,17 +60,20 @@ function fmtDate(iso: string) {
 }
 
 function inferChannel(source?: string | null) {
-  if (!source) return 'whatsapp';
+  if (!source) return 'unknown';
   if (source.startsWith('whatsapp')) return 'whatsapp';
+  if (source.startsWith('telegram')) return 'telegram';
   if (source.startsWith('web')) return 'web';
-  return 'whatsapp';
+  if (source.startsWith('data_source')) return 'data_source';
+  return 'unknown';
 }
 
 function labelChannel(channel?: string | null) {
   switch (channel) {
     case 'whatsapp': return 'WhatsApp';
     case 'web': return 'Web';
-    case 'telegram': return 'WhatsApp';
+    case 'telegram': return 'Telegram';
+    case 'data_source': return 'Data source';
     default: return channel || 'Unknown';
   }
 }
@@ -79,7 +82,8 @@ function channelClass(channel?: string | null) {
   switch (channel) {
     case 'whatsapp': return 'bg-emerald-50 text-emerald-700';
     case 'web': return 'bg-blue-50 text-blue-700';
-    case 'telegram': return 'bg-emerald-50 text-emerald-700';
+    case 'telegram': return 'bg-sky-50 text-sky-700';
+    case 'data_source': return 'bg-amber-50 text-amber-700';
     default: return 'bg-slate-100 text-slate-500';
   }
 }
@@ -139,11 +143,11 @@ export default function SalesLogPage() {
     // Check pro status
     supabase
       .from('profiles')
-      .select('subscription_expires_at')
+      .select('subscription_status')
       .eq('id', user.id)
       .single()
       .then(({ data }) => {
-        setIsPro(!!data?.subscription_expires_at && new Date(data.subscription_expires_at) > new Date());
+        setIsPro(data?.subscription_status === 'pro');
       });
     loadEntries();
     loadCloseout();

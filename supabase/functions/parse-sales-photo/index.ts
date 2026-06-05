@@ -5,6 +5,7 @@ import Anthropic from "npm:@anthropic-ai/sdk";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY")!;
+const MAX_IMAGE_BASE64_LENGTH = 7_000_000; // roughly 5 MB of binary image data
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -55,6 +56,15 @@ serve(async (req) => {
 
     if (!image_base64) {
       return new Response(JSON.stringify({ error: "image_base64 is required" }), { status: 400, headers: corsHeaders });
+    }
+    if (typeof image_base64 !== "string" || image_base64.length > MAX_IMAGE_BASE64_LENGTH) {
+      return new Response(
+        JSON.stringify({ error: "Image is too large. Please upload a clearer compressed photo under 5 MB." }),
+        { status: 413, headers: corsHeaders }
+      );
+    }
+    if (!["image/jpeg", "image/png", "image/webp", "image/gif"].includes(media_type)) {
+      return new Response(JSON.stringify({ error: "Unsupported image type" }), { status: 400, headers: corsHeaders });
     }
 
     // Vision parse with Claude
