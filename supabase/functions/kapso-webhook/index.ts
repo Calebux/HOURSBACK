@@ -709,6 +709,10 @@ function looksLikeOrderEditRequest(text: string) {
     && /\b(order|request|booking|appointment|delivery|pickup|address|time|date|tomorrow|today|monday|tuesday|wednesday|thursday|friday|saturday|sunday|item|service)\b/i.test(text);
 }
 
+function looksLikeRefundRequest(text: string) {
+  return /\b(refund|reverse|reversal|chargeback|money back|return my money)\b/i.test(text);
+}
+
 async function saveOwnerReviewRequest(supabase: any, connection: any, order: any, message: ParsedMessage, text: string) {
   const now = new Date().toISOString();
   const ownerNotes = [
@@ -741,7 +745,7 @@ async function saveOwnerReviewRequest(supabase: any, connection: any, order: any
   ].filter(Boolean).join("\n");
 }
 
-async function handleMediaWithoutReceiptMatch(supabase: any, connection: any, message: ParsedMessage, text: string) {
+async function handleMediaWithoutReceiptMatch(supabase: any, connection: any, message: ParsedMessage, text: string, payload: any) {
   if (!hasMediaMessage(message)) return null;
   if (looksLikeNonPaymentMediaCaption(text)) {
     const latestOrder = await findLatestActiveCustomerOrder(supabase, connection, message.from);
@@ -753,7 +757,7 @@ async function handleMediaWithoutReceiptMatch(supabase: any, connection: any, me
 
   const awaiting = await findAwaitingReceiptOrders(supabase, connection, message.from);
   if (looksLikeReceiptIntent(text) || (!text && awaiting.length > 0)) {
-    return markLatestOrderReceiptSent(supabase, connection, message, text, { media_only: !text });
+    return markLatestOrderReceiptSent(supabase, connection, message, text, payload);
   }
   return null;
 }
@@ -1562,8 +1566,15 @@ serve(async (req) => {
       const openOrder = await findOpenCustomerOrder(supabase, connection, message.from);
       if (looksLikeCancelRequest(text)) {
         reply = await cancelCustomerOrderByText(supabase, connection, message, text);
+      } else if (looksLikeRefundRequest(text)) {
+        const latestActiveOrder = await findLatestActiveCustomerOrder(supabase, connection, message.from);
+        if (latestActiveOrder) {
+          reply = await saveOwnerReviewRequest(supabase, connection, latestActiveOrder, message, text);
+        } else {
+          reply = "A staff member will review your refund request and follow up.";
+        }
       } else {
-        const mediaReply = await handleMediaWithoutReceiptMatch(supabase, connection, message, text);
+        const mediaReply = await handleMediaWithoutReceiptMatch(supabase, connection, message, text, payload);
         if (mediaReply) {
           reply = mediaReply;
         } else {
@@ -1642,6 +1653,12 @@ serve(async (req) => {
       reply = await buildFiveLineSummary(supabase, connection.user_id, connection.business_timezone);
     } else if (looksLikeSummaryQuestion(text)) {
       reply = await buildSalesSummary(supabase, connection.user_id, connection.business_timezone);
+    } else if (looksLikeOrderMessage(text) && !looksLikeSalesEntry(text)) {
+      reply = [
+        "This WhatsApp number is for staff operations.",
+        "Please use the business customer number for orders, bookings, and customer requests.",
+        "Staff can use this line for sales logs, closeout, P&L, 5-line summaries, and workflow requests.",
+      ].join("\n");
     } else if (looksLikeSalesEntry(text) || text.toLowerCase().startsWith("/log ")) {
       const logText = text.toLowerCase().startsWith("/log ") ? text.slice(5).trim() : text;
       const parsed = await parseEntryWithAI(logText);

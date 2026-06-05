@@ -334,7 +334,7 @@ serve(async (req) => {
         .limit(100);
       if (selectError) throw selectError;
 
-      const rows = orders || [];
+      const rows = (orders || []).filter((order: any) => String(order.payment_method || "").toLowerCase() !== "cash on pickup");
       if (!rows.length) {
         return new Response(JSON.stringify({ success: true, count: 0 }), { headers: corsHeaders });
       }
