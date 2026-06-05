@@ -990,16 +990,6 @@ export default function WorkflowBuilder() {
               </button>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-4">
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Workflow legend</p>
-              <div className="flex flex-wrap gap-2 text-xs">
-                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 font-medium text-slate-600">All: every available automation</span>
-                <span className="rounded-full border border-amber-100 bg-amber-50 px-3 py-1.5 font-medium text-amber-700">Most popular: common starting points</span>
-                <span className="rounded-full border border-purple-100 bg-purple-50 px-3 py-1.5 font-medium text-purple-700">Pro: requires upgrade</span>
-                <span className="rounded-full border border-sky-100 bg-sky-50 px-3 py-1.5 font-medium text-sky-700">WhatsApp: runs from chat</span>
-              </div>
-            </div>
-
             {/* Category filter */}
             <div className="flex gap-2 flex-wrap">
               {WORKFLOW_CATEGORIES.map(cat => (
