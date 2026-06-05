@@ -59,6 +59,10 @@ interface KapsoConnection {
   connection_type?: string | null;
   phone_number_id?: string | null;
   last_webhook_at?: string | null;
+  customer_menu?: string | null;
+  payment_instructions?: string | null;
+  fulfillment_rules?: string | null;
+  owner_notification_number?: string | null;
 }
 
 function startOfToday() {
@@ -132,7 +136,7 @@ export default function HomePage() {
         .eq('user_id', user.id),
       supabase
         .from('kapso_connections')
-        .select('connection_type,phone_number_id,last_webhook_at')
+        .select('connection_type,phone_number_id,last_webhook_at,customer_menu,payment_instructions,fulfillment_rules,owner_notification_number')
         .eq('user_id', user.id),
     ]);
 
@@ -234,6 +238,57 @@ export default function HomePage() {
     const nextIndex = steps.findIndex((step) => !step.done);
     return { steps, nextIndex };
   }, [entries.length, requests.length, runs.length, sources.length, stats]);
+
+  const customerLaunchSteps = useMemo(() => {
+    const customerConnection = connections.find((connection) => connection.connection_type === 'customer');
+    const hasCustomerNumber = !!customerConnection?.phone_number_id;
+    const hasCatalogue = !!customerConnection?.customer_menu?.trim();
+    const hasPayment = !!customerConnection?.payment_instructions?.trim();
+    const hasRules = !!customerConnection?.fulfillment_rules?.trim();
+    const hasTestMessage = !!customerConnection?.last_webhook_at;
+    const hasReceiptFlow = requests.some((request) => request.payment_status === 'receipt_sent' || request.payment_status === 'verified');
+
+    const steps = [
+      {
+        title: 'Connect customer WhatsApp number',
+        body: 'Use this for customer orders, bookings, service requests, catalogue questions, and receipts.',
+        done: hasCustomerNumber,
+        to: '/whatsapp',
+        action: 'Connect number',
+      },
+      {
+        title: 'Add catalogue or service list',
+        body: 'Add products, services, prices, delivery fees, appointment rules, and availability notes.',
+        done: hasCatalogue,
+        to: '/whatsapp',
+        action: 'Add list',
+      },
+      {
+        title: 'Add payment and fulfillment rules',
+        body: 'Set bank details, cash-on-pickup rules, delivery/service fees, and staff handoff instructions.',
+        done: hasPayment && hasRules,
+        to: '/whatsapp',
+        action: 'Add rules',
+      },
+      {
+        title: 'Send a real test message',
+        body: 'Ask for the menu, place a request, say paid, and send a receipt from a phone you control.',
+        done: hasTestMessage,
+        to: '/whatsapp',
+        action: 'Test customer chat',
+      },
+      {
+        title: 'Verify receipt workflow',
+        body: 'Confirm a receipt appears in Orders, verify it, and make sure the customer gets the update.',
+        done: hasReceiptFlow,
+        to: '/orders',
+        action: 'Open orders',
+      },
+    ];
+    const nextIndex = steps.findIndex((step) => !step.done);
+    const completed = steps.filter((step) => step.done).length;
+    return { steps, nextIndex, completed };
+  }, [connections, requests]);
 
   if (loading) {
     return (
@@ -345,6 +400,51 @@ export default function HomePage() {
                   </div>
                   <p className="mt-3 text-sm font-semibold text-brand-dark">{step.title}</p>
                   <p className="mt-1 min-h-[48px] text-xs leading-relaxed text-slate-500">{step.body}</p>
+                  <span className="mt-3 inline-flex text-xs font-semibold text-emerald-700">{step.done ? 'Done' : step.action}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="rounded-3xl border border-emerald-100 bg-white p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-brand-dark">Customer request go-live checklist</p>
+              <p className="mt-1 max-w-2xl text-xs leading-relaxed text-slate-500">
+                Use this when you want customers to order, book, ask questions, and send receipts from WhatsApp. Businesses that do not run customer work on WhatsApp can keep using Capture, Operations, Reports, and Data Sources.
+              </p>
+            </div>
+            <div className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700">
+              {customerLaunchSteps.completed}/{customerLaunchSteps.steps.length} ready
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-3 lg:grid-cols-5">
+            {customerLaunchSteps.steps.map((step, index) => {
+              const isNext = customerLaunchSteps.nextIndex === index;
+              return (
+                <Link
+                  key={step.title}
+                  to={step.to}
+                  className={`rounded-2xl border p-4 transition ${
+                    step.done
+                      ? 'border-emerald-100 bg-emerald-50/70'
+                      : isNext
+                        ? 'border-brand-dark/20 bg-slate-50 shadow-sm'
+                        : 'border-slate-100 bg-white hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className={`inline-flex h-7 w-7 items-center justify-center rounded-xl text-xs font-bold ${
+                      step.done ? 'bg-emerald-100 text-emerald-700' : isNext ? 'bg-brand-dark text-white' : 'bg-slate-100 text-slate-500'
+                    }`}>
+                      {step.done ? <CheckCircle2 className="h-4 w-4" /> : index + 1}
+                    </span>
+                    {isNext && <span className="rounded-full bg-brand-dark px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">Next</span>}
+                  </div>
+                  <p className="mt-3 text-sm font-semibold text-brand-dark">{step.title}</p>
+                  <p className="mt-1 min-h-[64px] text-xs leading-relaxed text-slate-500">{step.body}</p>
                   <span className="mt-3 inline-flex text-xs font-semibold text-emerald-700">{step.done ? 'Done' : step.action}</span>
                 </Link>
               );

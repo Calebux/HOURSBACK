@@ -1,0 +1,88 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const root = join(__dirname, '..');
+const webhook = readFileSync(join(root, 'supabase/functions/kapso-webhook/index.ts'), 'utf8');
+const ordersPage = readFileSync(join(root, 'src/pages/OrdersPage.tsx'), 'utf8');
+const kapsoSetup = readFileSync(join(root, 'supabase/functions/kapso-setup/index.ts'), 'utf8');
+const whatsappPage = readFileSync(join(root, 'src/pages/WhatsAppPage.tsx'), 'utf8');
+
+const checks = [
+  {
+    name: 'Webhook signature verification rejects invalid signatures',
+    source: webhook,
+    patterns: ['verifySignature(rawBody', 'Invalid signature'],
+  },
+  {
+    name: 'Duplicate customer orders are detected before creating another order',
+    source: webhook,
+    patterns: ['findRecentDuplicateCustomerOrder', 'I already have this request'],
+  },
+  {
+    name: 'Multiple unpaid requests require an order reference before matching receipt',
+    source: webhook,
+    patterns: ['ambiguousPaymentReferenceReply', 'more than one unpaid request', 'Example caption'],
+  },
+  {
+    name: 'Customers are asked for receipt proof instead of typed payment figures',
+    source: webhook,
+    patterns: ['You do not need to type the amount', 'receipt or transfer screenshot'],
+  },
+  {
+    name: 'Cash-on-pickup requests do not demand transfer receipt proof',
+    source: webhook,
+    patterns: ['findCashPickupOrderByText', 'cash on pickup', 'Please pay when collecting'],
+  },
+  {
+    name: 'Non-payment media is not treated as a payment receipt',
+    source: webhook,
+    patterns: ['looksLikeNonPaymentMediaCaption', 'Image received. A staff member will review it'],
+  },
+  {
+    name: 'Refunds are routed to staff review, not auto-handled',
+    source: webhook,
+    patterns: ['looksLikeRefundRequest', 'refund request', 'staff member will review'],
+  },
+  {
+    name: 'Order cancellation needs a reference when more than one request is active',
+    source: webhook,
+    patterns: ['cancelCustomerOrderByText', 'more than one active request', 'Please cancel with the request reference'],
+  },
+  {
+    name: 'Order edits after confirmation are saved for owner review',
+    source: webhook,
+    patterns: ['looksLikeOrderEditRequest', 'saveOwnerReviewRequest', 'staff member will confirm the updated details'],
+  },
+  {
+    name: 'Receipt media storage failures block payment verification',
+    source: `${ordersPage}\n${kapsoSetup}`,
+    patterns: ['receipt_storage_path', 'Receipt file is not available', 'receipt_storage_status', 'Waiting for saved receipt'],
+  },
+  {
+    name: 'Customer WhatsApp setup exposes launch checklist and test prompts',
+    source: whatsappPage,
+    patterns: ['Go-live checklist', 'Test messages to send from a phone you control', 'Payment instructions saved'],
+  },
+];
+
+const failures = [];
+
+for (const check of checks) {
+  const missing = check.patterns.filter((pattern) => !check.source.includes(pattern));
+  if (missing.length) {
+    failures.push({ name: check.name, missing });
+  }
+}
+
+if (failures.length) {
+  console.error('WhatsApp edge-case regression check failed:');
+  for (const failure of failures) {
+    console.error(`- ${failure.name}`);
+    console.error(`  Missing: ${failure.missing.join(', ')}`);
+  }
+  process.exit(1);
+}
+
+console.log(`WhatsApp edge-case regression check passed (${checks.length} checks).`);

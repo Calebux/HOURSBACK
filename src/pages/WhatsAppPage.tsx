@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Copy, ExternalLink, Loader2, MessageCircle, Trash2 } from 'lucide-react';
+import { CheckCircle2, ChevronLeft, Copy, ExternalLink, Loader2, MessageCircle, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -291,6 +291,34 @@ export default function WhatsAppPage() {
 
   const selectedConnection = status?.connections?.find((item) => item.connection_type === connectionType) || null;
   const activeCapabilities = connectionType === 'internal' ? internalCapabilities : customerCapabilities;
+  const customerReadyChecks = [
+    {
+      title: 'Customer number connected',
+      done: !!selectedConnection?.phone_number_id,
+      body: 'Kapso phone number ID is saved for this customer-facing channel.',
+    },
+    {
+      title: 'Catalogue or service list saved',
+      done: !!customerMenu.trim(),
+      body: 'Customers can ask what you sell, what services you offer, prices, and availability.',
+    },
+    {
+      title: 'Payment instructions saved',
+      done: !!paymentInstructions.trim(),
+      body: 'Confirmed requests can receive bank/payment details and receipt instructions.',
+    },
+    {
+      title: 'Fulfillment rules saved',
+      done: !!fulfillmentRules.trim(),
+      body: 'Pickup, delivery, service fees, cash-on-pickup, timelines, and handoff rules are clear.',
+    },
+    {
+      title: 'Webhook has received a test',
+      done: !!selectedConnection?.last_webhook_at,
+      body: 'Send a menu question, request, paid message, and receipt from a real phone before launch.',
+    },
+  ];
+  const customerReadyCount = customerReadyChecks.filter((item) => item.done).length;
 
   return (
     <div className="min-h-screen bg-brand-light pb-24">
@@ -423,6 +451,62 @@ export default function WhatsAppPage() {
             ))}
           </div>
         </section>
+
+        {connectionType === 'customer' && (
+          <section className="bg-white rounded-3xl border border-emerald-100 p-6 space-y-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-xs font-semibold tracking-[0.18em] uppercase text-emerald-600 mb-2">Go-live checklist</p>
+                <h3 className="text-lg font-semibold text-brand-dark">Make customer WhatsApp safe to launch</h3>
+                <p className="mt-1 text-sm text-slate-500 leading-relaxed">
+                  Complete these before using the number publicly. They cover the common failure points: missing menu, missing payment details, missing fulfillment rules, and untested receipt flow.
+                </p>
+              </div>
+              <div className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700">
+                {customerReadyCount}/{customerReadyChecks.length} ready
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-5 gap-3">
+              {customerReadyChecks.map((item, index) => (
+                <div
+                  key={item.title}
+                  className={`rounded-2xl border p-4 ${
+                    item.done ? 'border-emerald-100 bg-emerald-50/70' : 'border-slate-100 bg-slate-50'
+                  }`}
+                >
+                  <div className={`inline-flex h-7 w-7 items-center justify-center rounded-xl text-xs font-bold ${
+                    item.done ? 'bg-emerald-100 text-emerald-700' : 'bg-white text-slate-500 border border-slate-200'
+                  }`}>
+                    {item.done ? <CheckCircle2 className="h-4 w-4" /> : index + 1}
+                  </div>
+                  <p className="mt-3 text-sm font-semibold text-brand-dark">{item.title}</p>
+                  <p className="mt-1 text-xs leading-relaxed text-slate-500">{item.body}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-sm font-semibold text-brand-dark">Test messages to send from a phone you control</p>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                {[
+                  'Please send your catalogue or service list',
+                  'Do you have [one item from your list]?',
+                  'I want [item/service] delivered to [area] or pickup',
+                  'Paid, I will send the receipt now',
+                  'Send a receipt screenshot with the request reference',
+                  'Cancel my request [reference]',
+                  'Can I change the delivery address?',
+                  'I need a refund',
+                ].map((message) => (
+                  <div key={message} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600">
+                    {message}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
 
         <section className="bg-white rounded-3xl border border-brand-dark/10 p-6 space-y-5">
           <div>
