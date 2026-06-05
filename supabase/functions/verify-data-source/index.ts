@@ -6,6 +6,144 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+type ParsedCsvRow = Record<string, string>;
+
+function parseCsv(text: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let value = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i += 1) {
+    const char = text[i];
+    const next = text[i + 1];
+
+    if (char === '"' && inQuotes && next === '"') {
+      value += '"';
+      i += 1;
+      continue;
+    }
+
+    if (char === '"') {
+      inQuotes = !inQuotes;
+      continue;
+    }
+
+    if (char === "," && !inQuotes) {
+      row.push(value.trim());
+      value = "";
+      continue;
+    }
+
+    if ((char === "\n" || char === "\r") && !inQuotes) {
+      if (char === "\r" && next === "\n") i += 1;
+      row.push(value.trim());
+      if (row.some(Boolean)) rows.push(row);
+      row = [];
+      value = "";
+      continue;
+    }
+
+    value += char;
+  }
+
+  row.push(value.trim());
+  if (row.some(Boolean)) rows.push(row);
+  return rows;
+}
+
+function normalizeHeader(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+}
+
+function rowsFromCsv(text: string): ParsedCsvRow[] {
+  const rows = parseCsv(text);
+  const headers = rows[0]?.map(normalizeHeader) ?? [];
+  if (!headers.length) return [];
+
+  return rows.slice(1).map((cells) => {
+    const record: ParsedCsvRow = {};
+    headers.forEach((header, index) => {
+      if (header) record[header] = cells[index] ?? "";
+    });
+    return record;
+  });
+}
+
+function firstValue(row: ParsedCsvRow, names: string[]) {
+  for (const name of names) {
+    const value = row[name];
+    if (value != null && String(value).trim() !== "") return String(value).trim();
+  }
+  return "";
+}
+
+function parseAmount(value: string) {
+  const cleaned = value.replace(/[^\d.-]/g, "");
+  if (!cleaned) return null;
+  const parsed = Number(cleaned);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function parseDate(value: string) {
+  if (!value) return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toISOString();
+}
+
+function classifyEntry(row: ParsedCsvRow, total: number | null) {
+  const typeText = firstValue(row, ["entry_type", "type", "category", "transaction_type", "kind"]).toLowerCase();
+  if (/\b(expense|cost|debit|outflow|purchase|spent|spend)\b/.test(typeText)) return "expense";
+  if (/\b(note|memo)\b/.test(typeText)) return "note";
+  if (total != null && total < 0) return "expense";
+  return "sale";
+}
+
+function importableEntries(csvText: string, sourceId: string) {
+  return rowsFromCsv(csvText)
+    .map((row, index) => {
+      const total = parseAmount(firstValue(row, [
+        "total",
+        "total_amount",
+        "amount",
+        "sales",
+        "sale",
+        "revenue",
+        "income",
+        "paid",
+        "payment",
+      ]));
+      if (total == null) return null;
+
+      const qty = parseAmount(firstValue(row, ["qty", "quantity", "units", "count"]));
+      const unitPrice = parseAmount(firstValue(row, ["unit_price", "price", "rate"]));
+      const saleDate = parseDate(firstValue(row, ["sale_date", "date", "created_at", "day", "timestamp"]));
+      const entryType = classifyEntry(row, total);
+      const item = firstValue(row, ["item", "item_or_service", "product", "service", "description", "name"]);
+      const customer = firstValue(row, ["customer", "customer_or_student", "client", "buyer", "name"]);
+      const notes = firstValue(row, ["notes", "note", "memo", "status"]);
+
+      return {
+        entry_type: entryType,
+        sale_date: saleDate,
+        parsed_data: {
+          entry_type: entryType,
+          item: item || null,
+          qty,
+          unit_price: unitPrice,
+          total: Math.abs(total),
+          customer: customer || null,
+          notes: notes || null,
+          data_source_id: sourceId,
+          data_source_row: index + 2,
+        },
+        raw_text: JSON.stringify(row),
+      };
+    })
+    .filter(Boolean);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -32,6 +170,7 @@ serve(async (req) => {
   try {
     let preview = "";
     let rowCount: number | null = null;
+    let importedEntries = 0;
 
     if (url.includes("docs.google.com/spreadsheets")) {
       // Export as CSV
@@ -47,6 +186,34 @@ serve(async (req) => {
       const lines = text.trim().split("\n").filter(Boolean);
       rowCount = Math.max(0, lines.length - 1); // minus header row
       preview = lines.slice(0, 4).join("\n");
+
+      if (source_id) {
+        const entries = importableEntries(text, source_id);
+        await supabase
+          .from("bot_entries")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("source", "data_source")
+          .filter("parsed_data->>data_source_id", "eq", source_id);
+
+        if (entries.length) {
+          const rows = entries.map((entry) => ({
+            user_id: user.id,
+            chat_id: 0,
+            triggered_by: "Data source import",
+            role: "system",
+            raw_text: entry!.raw_text,
+            entry_type: entry!.entry_type,
+            parsed_data: entry!.parsed_data,
+            sale_date: entry!.sale_date,
+            source: "data_source",
+            channel: "data_source",
+          }));
+          const { error: insertError } = await supabase.from("bot_entries").insert(rows);
+          if (insertError) throw insertError;
+          importedEntries = rows.length;
+        }
+      }
     } else if (url.includes("docs.google.com/document")) {
       const exportUrl = url.replace(/\/edit.*$/, "/export?format=txt");
       const res = await fetch(exportUrl, { signal: AbortSignal.timeout(10000) });
@@ -78,7 +245,7 @@ serve(async (req) => {
         .eq("user_id", user.id);
     }
 
-    return new Response(JSON.stringify({ ok: true, preview, rowCount }), {
+    return new Response(JSON.stringify({ ok: true, preview, rowCount, importedEntries }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err: any) {

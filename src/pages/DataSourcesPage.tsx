@@ -103,9 +103,11 @@ export default function DataSourcesPage() {
           ? { ...s, verified: true, verified_at: new Date().toISOString() }
           : s
         ));
-        const msg = res.data.rowCount != null
-          ? `Connected — ${res.data.rowCount} rows found`
-          : 'Connected successfully';
+        const msg = res.data.importedEntries
+          ? `Connected — imported ${res.data.importedEntries} ledger ${res.data.importedEntries === 1 ? 'entry' : 'entries'}`
+          : res.data.rowCount != null
+            ? `Connected — ${res.data.rowCount} rows found`
+            : 'Connected successfully';
         toast.success(msg);
       } else {
         toast.error(res.data?.error || 'Could not reach that URL');
@@ -418,7 +420,7 @@ function SourceModal({ editing, staff, onClose, onSaved, userId }: {
   const [staffChatId, setStaffChatId] = useState<string>(editing?.staff_chat_id?.toString() ?? '');
   const [isSaving, setIsSaving] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
-  const [verifyResult, setVerifyResult] = useState<{ ok: boolean; preview?: string; rowCount?: number | null; error?: string } | null>(null);
+  const [verifyResult, setVerifyResult] = useState<{ ok: boolean; preview?: string; rowCount?: number | null; importedEntries?: number; error?: string } | null>(null);
 
   const selectedStaff = staff.find(s => s.chat_id.toString() === staffChatId);
 
@@ -460,14 +462,26 @@ function SourceModal({ editing, staff, onClose, onSaved, userId }: {
         verified_at: verifyResult?.ok ? new Date().toISOString() : (editing?.verified_at ?? null),
       };
 
+      const importVerifiedSource = async (sourceId: string) => {
+        if (!verifyResult?.ok) return null;
+        const res = await supabase.functions.invoke('verify-data-source', { body: { url: payload.url, source_id: sourceId } });
+        if (res.error || res.data?.ok === false) {
+          toast.warning(res.data?.error || res.error?.message || 'Source saved, but ledger import did not finish');
+          return null;
+        }
+        return res.data as { importedEntries?: number };
+      };
+
       if (editing) {
         const { error } = await supabase.from('data_sources').update(payload).eq('id', editing.id);
         if (error) throw error;
-        toast.success('Data source updated');
+        const imported = await importVerifiedSource(editing.id);
+        toast.success(imported?.importedEntries ? `Data source updated — imported ${imported.importedEntries} ledger ${imported.importedEntries === 1 ? 'entry' : 'entries'}` : 'Data source updated');
       } else {
-        const { error } = await supabase.from('data_sources').insert(payload);
+        const { data, error } = await supabase.from('data_sources').insert(payload).select('id').single();
         if (error) throw error;
-        toast.success('Data source added');
+        const imported = data?.id ? await importVerifiedSource(data.id) : null;
+        toast.success(imported?.importedEntries ? `Data source added — imported ${imported.importedEntries} ledger ${imported.importedEntries === 1 ? 'entry' : 'entries'}` : 'Data source added');
       }
       onSaved();
     } catch (err: any) {

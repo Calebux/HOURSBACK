@@ -26,6 +26,7 @@ interface BotEntry {
   entry_type: string;
   parsed_data?: { total?: number | null } | null;
   created_at: string;
+  sale_date?: string | null;
 }
 
 interface CustomerRequest {
@@ -105,9 +106,9 @@ export default function HomePage() {
     const [entriesRes, requestsRes, workflowsRes, runsRes, sourcesRes, connectionsRes] = await Promise.all([
       supabase
         .from('bot_entries')
-        .select('entry_type, parsed_data, created_at')
+        .select('entry_type, parsed_data, created_at, sale_date')
         .eq('user_id', user.id)
-        .gte('created_at', today)
+        .or(`created_at.gte.${today},sale_date.gte.${today}`)
         .limit(500),
       supabase
         .from('kapso_orders')
@@ -159,10 +160,15 @@ export default function HomePage() {
   }, [user, navigate]);
 
   const stats = useMemo(() => {
-    const sales = entries
+    const todayStart = new Date(startOfToday()).getTime();
+    const todaysEntries = entries.filter((entry) => {
+      const effectiveDate = entry.sale_date || entry.created_at;
+      return new Date(effectiveDate).getTime() >= todayStart;
+    });
+    const sales = todaysEntries
       .filter((entry) => entry.entry_type === 'sale')
       .reduce((sum, entry) => sum + Number(entry.parsed_data?.total || 0), 0);
-    const expenses = entries
+    const expenses = todaysEntries
       .filter((entry) => entry.entry_type === 'expense')
       .reduce((sum, entry) => sum + Number(entry.parsed_data?.total || 0), 0);
     const openRequests = requests.filter((request) => !['fulfilled', 'cancelled'].includes(request.status));
