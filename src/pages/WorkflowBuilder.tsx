@@ -38,6 +38,7 @@ interface WorkbookValidationState {
 }
 
 const HUB_WORKFLOW_ID = 'wkflow-hub';
+const POPULAR_WORKFLOW_IDS = new Set(['wkflow-hub', 'wkflow-55', 'wkflow-14', 'wkflow-7', 'wkflow-5']);
 
 const HUB_SUBSETS: HubSubsetDefinition[] = [
   {
@@ -914,11 +915,25 @@ export default function WorkflowBuilder() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-brand-dark flex flex-col">
-      <nav className="bg-white border-b border-brand-dark/10 px-6 py-4 flex items-center gap-4">
-        <Link to="/workflows" className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-          <ArrowLeft className="w-5 h-5" />
-        </Link>
-        <div className="flex items-center gap-2 flex-1 justify-center max-w-2xl mx-auto">
+      <nav className="bg-white border-b border-brand-dark/10 px-6 py-4">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Link to="/workflows" className="p-2 hover:bg-slate-100 rounded-full transition-colors" aria-label="Back to automations">
+              <ArrowLeft className="w-5 h-5" />
+            </Link>
+            <Link to="/home" className="hidden sm:flex items-center">
+              <img src="/logo.svg" alt="Hoursback" className="h-[32px] w-auto" />
+            </Link>
+          </div>
+          <div className="hidden items-center gap-2 text-sm lg:flex">
+            <Link to="/capture" className="rounded-full px-3 py-1.5 text-slate-600 hover:bg-slate-100">Capture</Link>
+            <Link to="/operations" className="rounded-full px-3 py-1.5 text-slate-600 hover:bg-slate-100">Operations</Link>
+            <Link to="/reports" className="rounded-full px-3 py-1.5 text-slate-600 hover:bg-slate-100">Reports</Link>
+            <Link to="/workflows" className="rounded-full bg-[#DA7756]/10 px-3 py-1.5 font-medium text-[#DA7756]">Automations</Link>
+          </div>
+        </div>
+
+        <div className="mt-4 flex items-center justify-center gap-2">
           {[
             { s: 1, label: 'Select AI' },
             { s: 2, label: 'Set Trigger' },
@@ -942,7 +957,6 @@ export default function WorkflowBuilder() {
             </div>
           ))}
         </div>
-        <div className="w-9" /> {/* Spacer to balance back button */}
       </nav>
 
       <div className="container mx-auto max-w-6xl px-6 py-12 flex-1">
@@ -975,52 +989,19 @@ export default function WorkflowBuilder() {
               </button>
             </div>
 
-            {/* Featured / Start here */}
-            <div className="space-y-3">
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Start here — most popular</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                {[
-                  { id: 'wkflow-hub', title: 'Workflow Bundle',        category: 'Operations', color: '#0f766e', free: false, desc: 'One workbook, one oversight layer, multiple reports. Choose renewal reminders, class fee follow-ups, attendance risk, revenue forecasting, and more.' },
-                  { id: 'wkflow-55', title: '5-Line Profit Check',     category: 'Finance',   color: '#4285F4', free: true, desc: 'Upload your bank statement or paste your sales & expense sheet. Get a complete 5-Line Income Statement — Revenue, COGS, Gross Profit, Operating Expenses, Net Profit — with plain-English interpretation and flags for theft risk, vendor price hikes, and pricing opportunities you\'re leaving on the table.' },
-                  { id: 'wkflow-14', title: 'Weekly Cash Flow Report', category: 'Finance',   color: '#10b981', free: true, desc: 'Reads your Google Sheets income & expense data. Delivers a weekly cash position summary every Monday — so you always know your runway before the week starts.' },
-                  { id: 'wkflow-7',  title: 'Industry News Digest',    category: 'Research',  color: '#6366f1', free: true, desc: 'Monitors news in your niche every week and curates the trends you actually need to know — without spending hours reading through noise.' },
-                  { id: 'wkflow-5',  title: 'Competitor Monitor',      category: 'Marketing', color: '#f59e0b', free: true, desc: 'Watches competitor websites for price changes, new launches, and messaging shifts. Weekly alert so you\'re never caught off guard.' },
-                ].map(wf => (
-                    <div
-                      key={wf.id}
-                      onClick={() => {
-                        setSelectedWorkflow(wf.id);
-                        setTelegramDeployId(null);
-                        if (!wf.free && !hasPro) return;
-                        setStep(2);
-                      }}
-                      onMouseEnter={() => setHoveredWorkflow(wf.id)}
-                      className="bg-white border border-slate-200 rounded-2xl p-5 cursor-pointer transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:-translate-y-0.5 hover:border-slate-300 group flex flex-col h-full relative overflow-hidden"
-                    >
-                      <div className="absolute top-0 left-0 right-0 h-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ backgroundColor: wf.color }} />
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-bold tracking-wide uppercase px-2 py-0.5 rounded-md" style={{ backgroundColor: `${wf.color}15`, color: wf.color }}>{wf.category}</span>
-                          <span className={`text-[10px] font-bold tracking-wide uppercase px-2 py-0.5 rounded-md border ${wf.free ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-purple-50 text-purple-700 border-purple-100'}`}>
-                            {wf.free ? 'Free' : 'Pro'}
-                          </span>
-                        </div>
-                        <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-brand-dark group-hover:translate-x-1 transition-all" />
-                      </div>
-                      <p className="font-bold text-base text-slate-900 leading-snug mb-2 group-hover:text-brand-blue transition-colors">{wf.title}</p>
-                      <p className="text-sm text-slate-500 leading-relaxed line-clamp-3">{wf.desc}</p>
-                    </div>
-                ))}
+            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Workflow legend</p>
+              <div className="flex flex-wrap gap-2 text-xs">
+                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 font-medium text-slate-600">All: every available automation</span>
+                <span className="rounded-full border border-amber-100 bg-amber-50 px-3 py-1.5 font-medium text-amber-700">Most popular: common starting points</span>
+                <span className="rounded-full border border-purple-100 bg-purple-50 px-3 py-1.5 font-medium text-purple-700">Pro: requires upgrade</span>
+                <span className="rounded-full border border-sky-100 bg-sky-50 px-3 py-1.5 font-medium text-sky-700">WhatsApp: runs from chat</span>
               </div>
-            </div>
-
-            <div className="border-t border-slate-100 pt-2">
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">All workflows</p>
             </div>
 
             {/* Category filter */}
             <div className="flex gap-2 flex-wrap">
-              {['All', 'Finance', 'Sales', 'Marketing', 'Operations', 'HR/People', 'Research', 'Creator', 'Executive', 'Legal/Compliance'].map(cat => (
+              {['All', 'Most popular', 'Finance', 'Sales', 'Marketing', 'Operations', 'HR/People', 'Research', 'Creator', 'Executive', 'Legal/Compliance'].map(cat => (
                 <button
                   key={cat}
                   onClick={() => setActiveCategory(cat)}
@@ -1044,10 +1025,15 @@ export default function WorkflowBuilder() {
                 onMouseLeave={() => setHoveredWorkflow('')}
               >
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {launchCatalog.filter(p => (activeCategory === 'All' || p.category === activeCategory) && p.id !== 'wkflow-custom').map(p => {
+                  {launchCatalog.filter(p => {
+                    if (p.id === 'wkflow-custom') return false;
+                    if (activeCategory === 'Most popular') return POPULAR_WORKFLOW_IDS.has(p.id);
+                    return activeCategory === 'All' || p.category === activeCategory;
+                  }).map(p => {
                     const locked = p.isPro && !hasPro;
                     const color = getCategoryColor(p.category);
                     const isSelected = selectedWorkflow === p.id;
+                    const isPopular = POPULAR_WORKFLOW_IDS.has(p.id);
                     return (
                       <div
                         key={p.id}
@@ -1090,6 +1076,11 @@ export default function WorkflowBuilder() {
                               {p.isPro && (
                                 <span className={`flex items-center gap-1 text-[10px] font-bold tracking-wide uppercase px-2 py-0.5 rounded-md ${locked ? 'bg-slate-100 text-slate-500' : 'bg-purple-50 text-purple-700 border border-purple-100'}`}>
                                   {locked && <Lock className="w-2.5 h-2.5" />} Pro
+                                </span>
+                              )}
+                              {isPopular && (
+                                <span className="flex items-center gap-1 text-[10px] font-bold tracking-wide uppercase px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-100">
+                                  Most popular
                                 </span>
                               )}
                               {TELEGRAM_WORKFLOWS[p.id] && !locked && (

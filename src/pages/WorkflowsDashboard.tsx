@@ -10,7 +10,7 @@ import {
   Play, Plus, Clock, CheckCircle2, XCircle, Bot,
   Trash2, Copy, CheckCheck, Pencil, X, Link2, FileText,
   Loader2, MoreVertical, Pause, TrendingUp, Activity,
-  ChevronDown, ChevronUp, ExternalLink, Send, Lock
+  ChevronDown, ChevronUp, ExternalLink, Send
 } from 'lucide-react';
 import { MobileNav } from '../components/MobileNav';
 import { UserAvatar } from '../components/UserAvatar';
@@ -898,7 +898,7 @@ export default function WorkflowsDashboard({ previewMode = false }: { previewMod
       {/* Nav */}
       <nav className="border-b border-brand-dark/10 bg-brand-light/80 backdrop-blur-md sticky top-0 z-50">
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-center">
+          <Link to="/home" className="flex items-center">
             <img src="/logo.svg" alt="Hoursback" className="h-[36px] w-auto" />
           </Link>
           <div className="flex items-center gap-4">
@@ -910,11 +910,17 @@ export default function WorkflowsDashboard({ previewMode = false }: { previewMod
               </>
             ) : (
               <>
+                <Link to="/capture" className="hidden sm:flex items-center gap-1.5 text-sm font-medium text-brand-dark/60 hover:text-brand-dark transition-colors px-3 py-1.5">
+                  Capture
+                </Link>
+                <Link to="/operations" className="hidden sm:flex items-center gap-1.5 text-sm font-medium text-brand-dark/60 hover:text-brand-dark transition-colors px-3 py-1.5">
+                  Operations
+                </Link>
                 <Link to="/workflows/new" className="hidden sm:flex items-center gap-1.5 text-sm font-medium text-brand-dark/60 hover:text-brand-dark transition-colors px-3 py-1.5">
-                  <Plus className="w-4 h-4" /> Browse
+                  <Plus className="w-4 h-4" /> Create
                 </Link>
                 <Link to="/workflows" className="hidden sm:flex items-center gap-1.5 text-sm font-medium text-[#DA7756] bg-[#DA7756]/10 px-3 py-1.5 rounded-full">
-                  <Bot className="w-4 h-4" /> Workflows
+                  <Bot className="w-4 h-4" /> Automations
                 </Link>
                 <Link to="/reports" className="hidden sm:flex items-center gap-1.5 text-sm font-medium text-brand-dark/60 hover:text-brand-dark transition-colors px-3 py-1.5">
                   <FileText className="w-4 h-4" /> Reports
@@ -942,41 +948,6 @@ export default function WorkflowsDashboard({ previewMode = false }: { previewMod
           </Link>
         </div>
 
-        {/* Pro teaser strip — shown when user has < 3 workflows */}
-        {!previewMode && !isPro && workflows.length < 3 && (
-          <div className="mb-6 space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="font-semibold text-slate-900 text-sm">Unlock powerful Pro workflows</p>
-                <p className="text-slate-500 text-xs mt-0.5">₦9,900/month · Cancel anytime</p>
-              </div>
-              <ProUpgradeButton className="shrink-0 bg-purple-600 text-white px-4 py-2 rounded-full text-sm font-semibold hover:bg-purple-700 transition-colors flex items-center gap-1.5 whitespace-nowrap">
-                Upgrade to Pro →
-              </ProUpgradeButton>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                { id: 'wkflow-44', name: 'Daily Cash Reconciliation Bot', subtitle: 'Bot logs float, sales, expenses and calculates variance automatically' },
-                { id: 'wkflow-1', name: 'Weekly CEO Briefing', subtitle: 'Reads your business data and writes a weekly executive summary' },
-                { id: 'wkflow-53', name: 'Escalation Router', subtitle: 'Routes urgent issues to the right person automatically' },
-                { id: 'wkflow-2', name: 'Sales Pipeline Health', subtitle: 'Alerts you to stalled deals and changes in probability' },
-              ].map(wf => (
-                <Link key={wf.id} to="/workflows/new">
-                  <div className="bg-white border border-slate-200 rounded-xl p-3 hover:border-purple-300 hover:bg-purple-50/30 transition-all cursor-pointer">
-                    <div className="flex items-start gap-2">
-                      <Lock className="w-3.5 h-3.5 text-purple-400 shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-xs font-semibold text-slate-800 leading-tight">{wf.name}</p>
-                        <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">{wf.subtitle}</p>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Contextual upgrade — user is at the 3-workflow limit */}
         {!previewMode && !isPro && workflows.length >= 3 && (
           <div className="mb-6 bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
@@ -986,40 +957,6 @@ export default function WorkflowsDashboard({ previewMode = false }: { previewMod
             </div>
             <ProUpgradeButton className="shrink-0 bg-amber-600 text-white px-4 py-2 rounded-full text-sm font-semibold hover:bg-amber-700 transition-colors flex items-center gap-1.5 whitespace-nowrap">
               Unlock more workflows →
-            </ProUpgradeButton>
-          </div>
-        )}
-
-        {/* WhatsApp onboarding nudge — shown after first workflow */}
-        {!previewMode && workflows.length >= 1 && (
-          <div className="mb-6 bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <div className="flex items-start gap-3">
-              <Send className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-semibold text-emerald-950 text-sm">Run staff and customer workflows on WhatsApp</p>
-                <p className="text-emerald-800 text-xs mt-0.5">Staff can log sales and closeouts, customers can place requests, and owners can ask for summaries from WhatsApp.</p>
-              </div>
-            </div>
-            <a
-              href="/whatsapp"
-              className="shrink-0 bg-emerald-600 text-white px-4 py-2 rounded-full text-sm font-semibold hover:bg-emerald-700 transition-colors flex items-center gap-1.5 whitespace-nowrap"
-            >
-              Set up WhatsApp →
-            </a>
-          </div>
-        )}
-
-        {/* Milestone banner — after 10 runs, nudge with hours saved */}
-        {!previewMode && !isPro && runs.length >= 10 && workflows.length < 3 && (
-          <div className="mb-6 bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <div>
-              <p className="font-semibold text-emerald-900 text-sm">
-                Your workflows have run {runs.length} times — you're saving ~{Math.round(runs.length * 0.5)} hours
-              </p>
-              <p className="text-emerald-700 text-xs mt-0.5">Go Pro to unlock advanced workflows and multiply those savings.</p>
-            </div>
-            <ProUpgradeButton className="shrink-0 bg-emerald-600 text-white px-4 py-2 rounded-full text-sm font-semibold hover:bg-emerald-700 transition-colors flex items-center gap-1.5 whitespace-nowrap">
-              Upgrade to Pro →
             </ProUpgradeButton>
           </div>
         )}
