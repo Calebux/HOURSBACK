@@ -16,6 +16,11 @@ const checks = [
     patterns: ['verifySignature(rawBody', 'Invalid signature'],
   },
   {
+    name: 'Production webhook fails closed without a configured secret',
+    source: webhook,
+    patterns: ['KAPSO_ALLOW_UNSIGNED_WEBHOOKS', 'Webhook signature secret is not configured'],
+  },
+  {
     name: 'Duplicate customer orders are detected before creating another order',
     source: webhook,
     patterns: ['findRecentDuplicateCustomerOrder', 'I already have this request'],
@@ -59,6 +64,31 @@ const checks = [
     name: 'Receipt media storage failures block payment verification',
     source: `${ordersPage}\n${kapsoSetup}`,
     patterns: ['receipt_storage_path', 'Receipt file is not available', 'receipt_storage_status', 'Waiting for saved receipt'],
+  },
+  {
+    name: 'Verified customer orders are synced into the Sales Log once',
+    source: `${kapsoSetup}`,
+    patterns: ['syncVerifiedOrderToSalesLog', 'source_order_id', 'whatsapp_customer_order', 'sales_log_synced'],
+  },
+  {
+    name: 'Internal WhatsApp can generate saved reports from business records',
+    source: webhook,
+    patterns: ['generateWhatsAppBusinessReport', 'WhatsApp Reports', 'workflow_runs', 'Open Reports to download the PDF version'],
+  },
+  {
+    name: 'Recurring report requests remain workflow drafts instead of one-off reports',
+    source: webhook,
+    patterns: ['looksLikeRecurringWorkflowRequest', 'return false', 'Workflow request saved as a draft'],
+  },
+  {
+    name: 'WhatsApp reports include Sheet-imported rows by sale_date',
+    source: webhook,
+    patterns: ['sale_date.gte', '.or(`created_at.gte.', 'limit(5000)'],
+  },
+  {
+    name: 'Empty report periods do not create blank reports',
+    source: webhook,
+    patterns: ['I found no records for', 'Connect or refresh a Google Sheet', 'Send this month’s P&L report'],
   },
   {
     name: 'Customer WhatsApp setup exposes launch checklist and test prompts',

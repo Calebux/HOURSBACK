@@ -331,13 +331,13 @@ export default function HomePage() {
           <Link to="/home" className="flex items-center">
             <img src="/logo.svg" alt="Hoursback" className="h-[32px] w-auto" />
           </Link>
-          <div className="hidden md:flex items-center gap-2 text-sm">
-            <Link to="/capture" className="px-3 py-1.5 rounded-full text-slate-600 hover:bg-slate-100">Capture</Link>
-            <Link to="/operations" className="px-3 py-1.5 rounded-full text-slate-600 hover:bg-slate-100">Operations</Link>
-            <Link to="/reports" className="px-3 py-1.5 rounded-full text-slate-600 hover:bg-slate-100">Reports</Link>
-            <Link to="/workflows" className="px-3 py-1.5 rounded-full text-slate-600 hover:bg-slate-100">Automations</Link>
-          </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
+            <div className="hidden md:flex items-center gap-2 text-sm">
+              <Link to="/capture" className="px-3 py-1.5 rounded-full text-slate-600 hover:bg-slate-100">Capture</Link>
+              <Link to="/operations" className="px-3 py-1.5 rounded-full text-slate-600 hover:bg-slate-100">Operations</Link>
+              <Link to="/reports" className="px-3 py-1.5 rounded-full text-slate-600 hover:bg-slate-100">Reports</Link>
+              <Link to="/workflows" className="px-3 py-1.5 rounded-full text-slate-600 hover:bg-slate-100">Automations</Link>
+            </div>
             <button
               onClick={() => void load()}
               className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-500 hover:text-brand-dark"

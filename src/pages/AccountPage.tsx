@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { updateProfile } from '../lib/api';
-import { Bot, FileText, Home, User, LogOut, Crown, CheckCircle2, Clock, RefreshCw, Building2, Pencil, X, Check } from 'lucide-react';
+import { Bot, ClipboardList, FileText, Home, User, LogOut, Crown, CheckCircle2, Clock, RefreshCw, Building2, Pencil, X, Check, Download } from 'lucide-react';
 import { MobileNav } from '../components/MobileNav';
 import { UserAvatar } from '../components/UserAvatar';
 import { ProUpgradeButton } from '../components/ProUpgradeButton';
@@ -35,6 +35,7 @@ export default function AccountPage() {
   const [businessProfile, setBusinessProfile] = useState<BusinessProfile | null>(null);
   const [editingChallenge, setEditingChallenge] = useState(false);
   const [challengeDraft, setChallengeDraft] = useState('');
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     if (!user) { navigate('/'); return; }
@@ -82,6 +83,81 @@ export default function AccountPage() {
     navigate('/');
   };
 
+  const loadTable = async (table: string, orderColumn = 'created_at') => {
+    const query = supabase.from(table).select('*').eq('user_id', user!.id);
+    const { data, error } = await query.order(orderColumn, { ascending: false });
+    if (error) return { error: error.message, rows: [] };
+    return { rows: data || [] };
+  };
+
+  const exportAccountData = async () => {
+    if (!user) return;
+    setExporting(true);
+    try {
+      const [
+        profileResult,
+        workflows,
+        workflowRuns,
+        dataSources,
+        salesLog,
+        orders,
+        closeouts,
+        connections,
+        messages,
+        auditLogs,
+        analyticsEvents,
+      ] = await Promise.all([
+        supabase.from('profiles').select('id,email,subscription_status,created_at,business_profile').eq('id', user.id).maybeSingle(),
+        loadTable('workflows'),
+        loadTable('workflow_runs'),
+        loadTable('data_sources'),
+        loadTable('bot_entries'),
+        loadTable('kapso_orders'),
+        loadTable('kapso_closeouts'),
+        loadTable('kapso_connections'),
+        loadTable('kapso_messages'),
+        loadTable('kapso_order_audit_logs'),
+        loadTable('app_analytics_events'),
+      ]);
+
+      const exportPayload = {
+        exported_at: new Date().toISOString(),
+        account: {
+          id: user.id,
+          email: user.email,
+          profile: profileResult.data || null,
+          profile_error: profileResult.error?.message || null,
+        },
+        business_profile: businessProfile,
+        workflows,
+        workflow_runs: workflowRuns,
+        data_sources: dataSources,
+        sales_log: salesLog,
+        customer_requests: orders,
+        whatsapp_closeouts: closeouts,
+        whatsapp_connections: connections,
+        whatsapp_messages: messages,
+        order_audit_logs: auditLogs,
+        analytics_events: analyticsEvents,
+        note: 'Receipt files are stored privately in Supabase Storage. This export includes receipt metadata and storage paths, not the binary receipt files.',
+      };
+
+      const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `hoursback-account-export-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('Account export downloaded');
+    } catch (err) {
+      console.error(err);
+      toast.error('Could not export account data');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-brand-light flex items-center justify-center">
@@ -108,8 +184,17 @@ export default function AccountPage() {
             <Link to="/home" className="flex items-center gap-1.5 text-sm font-medium text-brand-dark/60 hover:text-brand-dark transition-colors px-3 py-1.5">
               <Home className="w-4 h-4" /> Home
             </Link>
+            <Link to="/capture" className="flex items-center gap-1.5 text-sm font-medium text-brand-dark/60 hover:text-brand-dark transition-colors px-3 py-1.5">
+              <ClipboardList className="w-4 h-4" /> Capture
+            </Link>
+            <Link to="/operations" className="flex items-center gap-1.5 text-sm font-medium text-brand-dark/60 hover:text-brand-dark transition-colors px-3 py-1.5">
+              <Bot className="w-4 h-4" /> Operations
+            </Link>
             <Link to="/reports" className="flex items-center gap-1.5 text-sm font-medium text-brand-dark/60 hover:text-brand-dark transition-colors px-3 py-1.5">
               <FileText className="w-4 h-4" /> Reports
+            </Link>
+            <Link to="/workflows" className="text-sm font-medium text-brand-dark/60 hover:text-brand-dark transition-colors px-3 py-1.5">
+              Automations
             </Link>
             <Link to="/account" className="flex items-center gap-1.5 text-sm font-medium text-[#DA7756] bg-[#DA7756]/10 px-3 py-1.5 rounded-full">
               <User className="w-4 h-4" /> Account
@@ -252,6 +337,25 @@ export default function AccountPage() {
                   <p className="mt-1 text-xs text-slate-600">{value}</p>
                 </div>
               ))}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl border border-brand-dark/10 shadow-sm p-6 mb-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-slate-700">Backup and export</p>
+              <p className="mt-1 text-xs leading-relaxed text-slate-400">
+                Download orders, sales log, data sources, workflows, WhatsApp records, audit logs, and analytics milestones as JSON.
+              </p>
+            </div>
+            <button
+              onClick={exportAccountData}
+              disabled={exporting}
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-60"
+            >
+              <Download className="h-4 w-4" />
+              {exporting ? 'Exporting...' : 'Export data'}
+            </button>
           </div>
         </div>
 

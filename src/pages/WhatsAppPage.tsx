@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { CheckCircle2, ChevronLeft, Copy, ExternalLink, Loader2, MessageCircle, Trash2 } from 'lucide-react';
+import { CheckCircle2, ChevronLeft, Copy, ExternalLink, Loader2, Lock, MessageCircle, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { MobileNav } from '../components/MobileNav';
 import { track } from '../lib/analytics';
+import { ProUpgradeButton } from '../components/ProUpgradeButton';
 
 interface KapsoConnection {
   id: string;
@@ -53,8 +54,13 @@ const internalCapabilities = [
   },
   {
     title: 'Get profit and loss',
-    body: 'Owners can get today’s revenue, expenses, estimated profit, and closeout variance from WhatsApp.',
+    body: 'Owners can get revenue, expenses, estimated profit, and closeout variance from WhatsApp.',
     example: 'Profit and loss',
+  },
+  {
+    title: 'Generate full reports',
+    body: 'Managers can turn connected Sheets, Sales Log, manual entries, and verified customer orders into a saved report from WhatsApp.',
+    example: 'Send this week’s P&L report to my email',
   },
   {
     title: 'Get a 5-liner',
@@ -102,7 +108,7 @@ const customerCapabilities = [
 ];
 
 export default function WhatsAppPage() {
-  const { user } = useAuth();
+  const { user, isPro } = useAuth();
   const navigate = useNavigate();
   const [status, setStatus] = useState<KapsoStatus | null>(null);
   const [loading, setLoading] = useState(true);
@@ -304,6 +310,7 @@ export default function WhatsAppPage() {
   }
 
   const selectedConnection = status?.connections?.find((item) => item.connection_type === connectionType) || null;
+  const customerModeLocked = connectionType === 'customer' && !isPro;
   const activeCapabilities = connectionType === 'internal' ? internalCapabilities : customerCapabilities;
   const customerReadyChecks = [
     {
@@ -415,6 +422,7 @@ export default function WhatsAppPage() {
             ['customer', 'Customer requests', 'Product orders, bookings, service requests, missing-detail questions, and tracking.'],
           ].map(([type, title, body]) => {
             const saved = status?.connections?.find((item) => item.connection_type === type);
+            const locked = type === 'customer' && !isPro;
             return (
               <button
                 key={type}
@@ -429,12 +437,33 @@ export default function WhatsAppPage() {
                 <p className="text-sm font-semibold text-brand-dark">{title}</p>
                 <p className="mt-1 text-xs text-slate-500 leading-relaxed">{body}</p>
                 <p className="mt-3 text-xs font-medium text-slate-400">
-                  {saved?.phone_number_id ? `Connected: ${saved.display_name || saved.phone_number || saved.phone_number_id}` : 'Not connected'}
+                  {locked ? 'Pro required' : saved?.phone_number_id ? `Connected: ${saved.display_name || saved.phone_number || saved.phone_number_id}` : 'Not connected'}
                 </p>
               </button>
             );
           })}
         </section>
+
+        {customerModeLocked && (
+          <section className="rounded-3xl border border-purple-100 bg-purple-50 p-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-3">
+                <div className="rounded-2xl bg-white p-3 text-purple-700">
+                  <Lock className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold text-purple-950">Customer WhatsApp is Pro</h3>
+                  <p className="mt-1 text-sm leading-relaxed text-purple-700">
+                    Free users can test internal WhatsApp capture. Customer orders, bookings, AI replies, receipts, and payment verification require Pro.
+                  </p>
+                </div>
+              </div>
+              <ProUpgradeButton className="shrink-0 rounded-full bg-purple-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-purple-700">
+                Upgrade
+              </ProUpgradeButton>
+            </div>
+          </section>
+        )}
 
         <section className="bg-white rounded-3xl border border-brand-dark/10 p-6 space-y-4">
           <div>
@@ -533,7 +562,7 @@ export default function WhatsAppPage() {
           <div className="flex flex-col sm:flex-row gap-3">
             <button
               onClick={generateSetupLink}
-              disabled={saving || !status?.api_configured}
+              disabled={saving || !status?.api_configured || customerModeLocked}
               className="inline-flex items-center justify-center gap-2 rounded-full bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <ExternalLink className="w-4 h-4" />}
@@ -667,7 +696,7 @@ export default function WhatsAppPage() {
               </label>
               <button
                 onClick={saveCustomerSettings}
-                disabled={saving}
+                disabled={saving || customerModeLocked}
                 className="rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-100 disabled:opacity-60"
               >
                 Save customer replies
@@ -677,7 +706,7 @@ export default function WhatsAppPage() {
 
           <button
             onClick={saveManualConnection}
-            disabled={saving}
+            disabled={saving || customerModeLocked}
             className="rounded-full bg-brand-dark px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-dark/90 disabled:opacity-60"
           >
             Save connection

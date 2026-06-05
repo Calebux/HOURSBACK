@@ -1,11 +1,12 @@
 import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
+  Bot,
   Camera,
-  ChevronLeft,
   ClipboardList,
   Database,
   FileSpreadsheet,
+  FileText,
   Link2,
   MessageCircle,
   PenLine,
@@ -15,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { MobileNav } from '../components/MobileNav';
+import { UserAvatar } from '../components/UserAvatar';
 import { useEffect } from 'react';
 
 const captureChannels = [
@@ -79,19 +81,30 @@ export default function CapturePage() {
   return (
     <div className="min-h-screen bg-brand-light pb-24">
       <div className="sticky top-0 z-10 bg-white/90 backdrop-blur border-b border-slate-200">
-        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link to="/home" className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors">
-              <ChevronLeft className="w-5 h-5 text-slate-500" />
-            </Link>
-            <div className="flex items-center gap-2">
-              <ClipboardList className="w-4 h-4 text-emerald-600" />
-              <h1 className="text-base font-semibold text-brand-dark">Capture</h1>
-            </div>
-          </div>
-          <Link to="/home" className="hidden sm:inline-flex rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50">
-            Command center
+        <div className="container mx-auto px-6 py-4 flex items-center justify-between">
+          <Link to="/home" className="flex items-center">
+            <img src="/logo.svg" alt="Hoursback" className="h-[36px] w-auto" />
           </Link>
+          <div className="flex items-center gap-4">
+            <Link to="/capture" className="hidden sm:flex items-center gap-1.5 text-sm font-medium text-[#DA7756] bg-[#DA7756]/10 px-3 py-1.5 rounded-full">
+              <ClipboardList className="w-4 h-4" />
+              Capture
+            </Link>
+            <Link to="/operations" className="hidden sm:flex items-center gap-1.5 text-sm font-medium text-brand-dark/60 hover:text-brand-dark transition-colors px-3 py-1.5">
+              <Bot className="w-4 h-4" />
+              Operations
+            </Link>
+            <Link to="/reports" className="hidden sm:flex items-center gap-1.5 text-sm font-medium text-brand-dark/60 hover:text-brand-dark transition-colors px-3 py-1.5">
+              <FileText className="w-4 h-4" />
+              Reports
+            </Link>
+            <Link to="/workflows" className="hidden sm:flex text-sm font-medium text-brand-dark/60 hover:text-brand-dark transition-colors px-3 py-1.5">
+              Automations
+            </Link>
+            <Link to="/account" title="Account">
+              <UserAvatar user={user} size="sm" />
+            </Link>
+          </div>
         </div>
       </div>
 

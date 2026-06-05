@@ -81,7 +81,7 @@ export default function TermsPage() {
 
           <section>
             <h2 className="text-xl font-semibold text-brand-dark mb-3">9. Termination</h2>
-            <p>We reserve the right to suspend or terminate your account if you violate these terms. You may cancel your account at any time by contacting us. Upon termination, your data will be deleted within 30 days.</p>
+            <p>We reserve the right to suspend or terminate your account if you violate these terms. You may cancel your account at any time by contacting support@hoursback.xyz. Upon termination, your data will be deleted within 30 days except where retention is required by law.</p>
           </section>
 
           <section>
@@ -91,7 +91,7 @@ export default function TermsPage() {
 
           <section>
             <h2 className="text-xl font-semibold text-brand-dark mb-3">11. Contact</h2>
-            <p>For any questions about these terms, contact us at <a href="mailto:petersoncaleb275@gmail.com" className="text-[#4285F4] hover:underline">petersoncaleb275@gmail.com</a>.</p>
+            <p>For any questions about these terms, contact us at <a href="mailto:support@hoursback.xyz" className="text-[#4285F4] hover:underline">support@hoursback.xyz</a>.</p>
           </section>
         </div>
       </div>

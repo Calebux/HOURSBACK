@@ -1,8 +1,8 @@
 # Hoursback
 
 Hoursback is a React/Vite app backed by Supabase Auth, Database, Storage, and
-Edge Functions. It supports AI workflow automation, Telegram workflows,
-reports, and paid Pro access.
+Edge Functions. It supports AI workflow automation, channel-neutral business
+capture, WhatsApp/Kapso operations, reports, and paid Pro access.
 
 ## Local Setup
 
@@ -88,6 +88,9 @@ Legacy admin/debug scripts live in `quarantine/admin-debug-scripts`. They are
 kept for historical context only. Do not run them against production without a
 fresh review.
 
+Telegram code remains in the repository for historical context and migration
+reference, but the active customer/staff chat channel is WhatsApp via Kapso.
+
 ## WhatsApp/Kapso
 
 The WhatsApp feature uses Kapso as the transport layer.
@@ -101,5 +104,24 @@ ANTHROPIC_API_KEY
 ```
 
 Set up a workspace at `/whatsapp`, then register the displayed webhook URL in
-Kapso for `whatsapp.message.received` events. Inbound WhatsApp sales updates are
-stored in the existing Sales Log.
+Kapso for `whatsapp.message.received` events. Internal WhatsApp sales updates are
+stored in the existing Sales Log. Customer-facing WhatsApp orders, bookings,
+service requests, receipts, and payment verification are Pro features.
+
+Production webhook safety:
+
+- Set `KAPSO_WEBHOOK_SECRET` in Supabase before enabling the webhook.
+- Unsigned webhooks are rejected by default.
+- Only set `KAPSO_ALLOW_UNSIGNED_WEBHOOKS=true` for local testing.
+
+## Backup and Export
+
+Owners can export account data from `/account`. The export includes workflows,
+data sources, Sales Log rows, customer requests, WhatsApp records, closeouts,
+audit logs, and analytics milestones as JSON. Receipt files stay in private
+Supabase Storage; the export includes receipt metadata and storage paths.
+
+## Support
+
+Use `support@hoursback.xyz` for setup failures, data export/deletion requests,
+receipt issues, webhook secret problems, or AI reply review.

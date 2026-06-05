@@ -7,6 +7,9 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY") || "";
 const KAPSO_WEBHOOK_SECRET = Deno.env.get("KAPSO_WEBHOOK_SECRET") || "";
+const KAPSO_ALLOW_UNSIGNED_WEBHOOKS = Deno.env.get("KAPSO_ALLOW_UNSIGNED_WEBHOOKS") === "true";
+const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") || "";
+const APP_URL = Deno.env.get("APP_URL") || "https://www.hoursback.xyz";
 
 const headers = { "Content-Type": "application/json" };
 
@@ -55,7 +58,7 @@ function timingSafeEqual(a: string, b: string) {
 }
 
 async function verifySignature(rawBody: string, signature: string | null) {
-  if (!KAPSO_WEBHOOK_SECRET) return true;
+  if (!KAPSO_WEBHOOK_SECRET) return KAPSO_ALLOW_UNSIGNED_WEBHOOKS;
   if (!signature) return false;
   const normalizedSignature = signature.trim();
   const signatureCandidates = normalizedSignature
@@ -94,6 +97,35 @@ async function verifySignature(rawBody: string, signature: string | null) {
   }
 
   return false;
+}
+
+async function logAnalyticsEvent(
+  supabase: any,
+  userId: string | null,
+  eventName: string,
+  properties: Record<string, unknown> = {},
+  source = "webhook",
+) {
+  try {
+    await supabase.from("app_analytics_events").insert({
+      user_id: userId,
+      event_name: eventName,
+      properties,
+      source,
+    });
+  } catch (err) {
+    console.error("Analytics event log failed:", err);
+  }
+}
+
+async function getProfile(supabase: any, userId: string) {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("subscription_status")
+    .eq("id", userId)
+    .maybeSingle();
+  if (error) throw error;
+  return data || null;
 }
 
 function firstString(...values: unknown[]) {
@@ -263,6 +295,18 @@ function looksLikeSummaryQuestion(text: string) {
 function looksLikeWorkflowRequest(text: string) {
   return /\b(schedule|deliver|every day|daily|weekly|monthly|every week|workflow|pdf|email|whatsapp)\b/i.test(text)
     && /\b(workflow|report|summary|p&l|profit and loss|sales|5\s*-?\s*liner?|five\s*-?\s*line)\b/i.test(text);
+}
+
+function looksLikeRecurringWorkflowRequest(text: string) {
+  return /\b(every day|every week|every month|daily|weekly|monthly|schedule|recurring|automatically|auto|deliver every)\b/i.test(text)
+    && /\b(report|summary|p&l|profit and loss|sales|workflow|email|whatsapp|pdf)\b/i.test(text);
+}
+
+function looksLikeReportGenerationRequest(text: string) {
+  if (looksLikeRecurringWorkflowRequest(text)) return false;
+  if (looksLikeFiveLineSummary(text) && !/\b(report|pdf|email|generate|create|send)\b/i.test(text)) return false;
+  return /\b(report|pdf|email|send|generate|create|p&l|profit and loss|profit\/loss|profit loss|sales summary|5\s*-?\s*liner?|five\s*-?\s*line)\b/i.test(text)
+    && /\b(report|pdf|email|p&l|profit|sales|summary|5\s*-?\s*liner?|five\s*-?\s*line)\b/i.test(text);
 }
 
 function looksLikeProfitAndLossQuestion(text: string) {
@@ -912,6 +956,12 @@ async function markLatestOrderReceiptSent(supabase: any, connection: any, messag
     .eq("id", order.id);
 
   if (error) throw error;
+  await logAnalyticsEvent(supabase, connection.user_id, "receipt_received", {
+    order_id: order.id,
+    order_code: order.order_code || null,
+    receipt_saved: receiptSaved,
+    receipt_storage_status: receiptSaved ? "saved" : "failed",
+  });
 
   const ownerNumber = String(connection.owner_notification_number || "").trim();
   if (ownerNumber && connection.phone_number_id) {
@@ -1134,6 +1184,14 @@ async function handleCustomerOrder(supabase: any, connection: any, message: Pars
     ? await supabase.from("kapso_orders").update(payload).eq("id", existing.id).select("*").single()
     : await supabase.from("kapso_orders").insert(payload).select("*").single();
   if (result.error) throw result.error;
+  if (!existing) {
+    await logAnalyticsEvent(supabase, connection.user_id, "customer_order_created", {
+      order_id: result.data.id,
+      order_code: result.data.order_code || null,
+      request_type: result.data.request_type || null,
+      status: result.data.status,
+    });
+  }
 
   if (!items.length) {
     return "I can help with your order or request. What would you like?";
@@ -1441,6 +1499,374 @@ async function buildFiveLineSummary(supabase: any, userId: string, timeZone?: st
   ].join("\n");
 }
 
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function markdownToEmailHtml(markdown: string) {
+  const inline = (text: string) => escapeHtml(text)
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.+?)\*/g, "<em>$1</em>")
+    .replace(/`([^`]+)`/g, '<code style="background:#e2e8f0;padding:1px 4px;border-radius:3px;font-size:12px;font-family:monospace;">$1</code>');
+
+  const lines = markdown.split(/\r?\n/);
+  const html: string[] = [];
+  let inList = false;
+  const closeList = () => {
+    if (inList) {
+      html.push("</ul>");
+      inList = false;
+    }
+  };
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      closeList();
+      continue;
+    }
+    if (trimmed.startsWith("## ")) {
+      closeList();
+      html.push(`<h2 style="font-size:18px;font-weight:700;color:#0f172a;margin:22px 0 8px;">${inline(trimmed.slice(3))}</h2>`);
+      continue;
+    }
+    if (trimmed.startsWith("# ")) {
+      closeList();
+      html.push(`<h1 style="font-size:22px;font-weight:800;color:#0f172a;margin:24px 0 8px;">${inline(trimmed.slice(2))}</h1>`);
+      continue;
+    }
+    const bullet = trimmed.match(/^[-*]\s+(.+)/);
+    if (bullet) {
+      if (!inList) {
+        html.push('<ul style="margin:8px 0;padding-left:20px;">');
+        inList = true;
+      }
+      html.push(`<li style="margin:5px 0;color:#334155;line-height:1.7;">${inline(bullet[1])}</li>`);
+      continue;
+    }
+    closeList();
+    html.push(`<p style="margin:8px 0;color:#334155;line-height:1.75;font-size:15px;">${inline(trimmed)}</p>`);
+  }
+  closeList();
+  return html.join("\n");
+}
+
+function parseReportRange(text: string) {
+  const now = new Date();
+  const end = new Date(now);
+  const start = new Date(now);
+  let label = "Today";
+
+  if (/\b(yesterday)\b/i.test(text)) {
+    start.setDate(now.getDate() - 1);
+    start.setHours(0, 0, 0, 0);
+    end.setDate(now.getDate() - 1);
+    end.setHours(23, 59, 59, 999);
+    label = "Yesterday";
+  } else if (/\b(week|weekly|last 7 days|7 days)\b/i.test(text)) {
+    start.setDate(now.getDate() - 6);
+    start.setHours(0, 0, 0, 0);
+    label = "Last 7 days";
+  } else if (/\b(month|monthly|this month)\b/i.test(text)) {
+    start.setDate(1);
+    start.setHours(0, 0, 0, 0);
+    label = "This month";
+  } else {
+    start.setHours(0, 0, 0, 0);
+    label = "Today";
+  }
+
+  return { start, end, label };
+}
+
+function entryDate(entry: any) {
+  return new Date(entry.sale_date || entry.created_at);
+}
+
+async function collectReportMetrics(supabase: any, userId: string, text: string) {
+  const range = parseReportRange(text);
+  const lowerBound = range.start.toISOString();
+
+  const { data: entries, error } = await supabase
+    .from("bot_entries")
+    .select("entry_type,parsed_data,raw_text,source,channel,sale_date,created_at")
+    .eq("user_id", userId)
+    .or(`created_at.gte.${lowerBound},sale_date.gte.${lowerBound}`)
+    .order("created_at", { ascending: false })
+    .limit(5000);
+  if (error) throw error;
+
+  const rows = (entries || []).filter((entry: any) => {
+    const date = entryDate(entry);
+    return date >= range.start && date <= range.end;
+  });
+  const sales = rows.filter((entry: any) => entry.entry_type === "sale");
+  const expenses = rows.filter((entry: any) => entry.entry_type === "expense");
+  const revenue = sales.reduce((sum: number, entry: any) => sum + Number(entry.parsed_data?.total || 0), 0);
+  const expenseTotal = expenses.reduce((sum: number, entry: any) => sum + Number(entry.parsed_data?.total || 0), 0);
+  const itemCounts = new Map<string, { qty: number; revenue: number }>();
+
+  for (const entry of sales) {
+    const item = String(entry.parsed_data?.item || "Unspecified");
+    const current = itemCounts.get(item) || { qty: 0, revenue: 0 };
+    current.qty += Number(entry.parsed_data?.qty || 1);
+    current.revenue += Number(entry.parsed_data?.total || 0);
+    itemCounts.set(item, current);
+  }
+
+  const topItems = [...itemCounts.entries()]
+    .sort((a, b) => b[1].revenue - a[1].revenue)
+    .slice(0, 5)
+    .map(([item, value]) => ({ item, ...value }));
+
+  const channels = rows.reduce((acc: Record<string, number>, entry: any) => {
+    const key = entry.channel || (String(entry.source || "").startsWith("data_source") ? "data_source" : entry.source || "unknown");
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
+
+  return {
+    range,
+    rows,
+    sales,
+    expenses,
+    revenue,
+    expenseTotal,
+    profit: revenue - expenseTotal,
+    topItems,
+    channels,
+  };
+}
+
+function deterministicReport(metrics: any, reportType: string) {
+  const lines = [
+    `# ${reportType === "profit_and_loss" ? "Profit and Loss Report" : "Sales Report"} - ${metrics.range.label}`,
+    "",
+    "## At a glance",
+    `- Revenue: ₦${metrics.revenue.toLocaleString("en-NG")}`,
+    `- Expenses: ₦${metrics.expenseTotal.toLocaleString("en-NG")}`,
+    `- Estimated profit: ₦${metrics.profit.toLocaleString("en-NG")}`,
+    `- Entries reviewed: ${metrics.rows.length}`,
+    `- Sales entries: ${metrics.sales.length}`,
+    `- Expense entries: ${metrics.expenses.length}`,
+    "",
+    "## Top items or services",
+    metrics.topItems.length
+      ? metrics.topItems.map((item: any) => `- ${item.item}: ₦${item.revenue.toLocaleString("en-NG")} (${item.qty} entries/units)`).join("\n")
+      : "- No item-level sales found for this period.",
+    "",
+    "## Data coverage",
+    `- Channels used: ${Object.entries(metrics.channels).map(([key, count]) => `${key} (${count})`).join(", ") || "none"}`,
+    "- This report uses records captured in Hoursback from Sheets/imports, manual entries, WhatsApp logs, scans, and verified customer orders.",
+    "",
+    "## Recommendations",
+    metrics.rows.length
+      ? "- Review any high-value expenses and confirm uncategorized sales items before making final financial decisions."
+      : "- Connect a Google Sheet or add sales entries before relying on this report.",
+  ];
+  return lines.join("\n");
+}
+
+async function generateReportWithAI(metrics: any, reportType: string) {
+  const fallback = deterministicReport(metrics, reportType);
+  if (!ANTHROPIC_API_KEY || !metrics.rows.length) return fallback;
+
+  try {
+    const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
+    const sample = metrics.rows.slice(0, 80).map((entry: any) => ({
+      type: entry.entry_type,
+      item: entry.parsed_data?.item || null,
+      total: entry.parsed_data?.total || null,
+      qty: entry.parsed_data?.qty || null,
+      customer: entry.parsed_data?.customer || null,
+      source: entry.channel || entry.source || null,
+      date: entry.sale_date || entry.created_at,
+    }));
+    const result = await anthropic.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 1000,
+      messages: [{
+        role: "user",
+        content: [
+          `Write a concise ${reportType === "profit_and_loss" ? "profit and loss" : "sales"} report for a business owner.`,
+          "Use Markdown headings and bullets. No emoji. Do not invent numbers.",
+          "Use these verified totals exactly:",
+          JSON.stringify({
+            period: metrics.range.label,
+            revenue: metrics.revenue,
+            expenses: metrics.expenseTotal,
+            estimated_profit: metrics.profit,
+            entries_reviewed: metrics.rows.length,
+            sales_entries: metrics.sales.length,
+            expense_entries: metrics.expenses.length,
+            top_items: metrics.topItems,
+            channels: metrics.channels,
+          }),
+          "Sample rows for context:",
+          JSON.stringify(sample),
+          "Sections: At a glance, What changed or stands out, Top items/services, Risks or gaps, Recommended actions, Data coverage.",
+        ].join("\n"),
+      }],
+    });
+    const text = (result.content[0] as { text: string }).text.trim();
+    return text || fallback;
+  } catch (err) {
+    console.error("WhatsApp report generation failed:", err);
+    return fallback;
+  }
+}
+
+async function getOrCreateWhatsAppReportWorkflow(supabase: any, userId: string) {
+  const { data: existing, error: existingError } = await supabase
+    .from("workflows")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("name", "WhatsApp Reports")
+    .eq("category", "WhatsApp Report")
+    .order("created_at", { ascending: true })
+    .limit(1);
+  if (existingError) throw existingError;
+  if (existing?.[0]) return existing[0];
+
+  const { data, error } = await supabase
+    .from("workflows")
+    .insert({
+      user_id: userId,
+      name: "WhatsApp Reports",
+      category: "WhatsApp Report",
+      status: "active",
+      trigger_config: { type: "whatsapp_command" },
+      data_source_config: { source: "bot_entries" },
+      agent_config: { kind: "business_report" },
+      action_config: { type: "whatsapp" },
+    })
+    .select("*")
+    .single();
+  if (error?.code === "23505") {
+    const retry = await supabase
+      .from("workflows")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("name", "WhatsApp Reports")
+      .eq("category", "WhatsApp Report")
+      .order("created_at", { ascending: true })
+      .limit(1);
+    if (retry.error) throw retry.error;
+    if (retry.data?.[0]) return retry.data[0];
+  }
+  if (error) throw error;
+  return data;
+}
+
+async function saveWhatsAppReportRun(supabase: any, userId: string, output: string) {
+  const workflow = await getOrCreateWhatsAppReportWorkflow(supabase, userId);
+  const { data, error } = await supabase
+    .from("workflow_runs")
+    .insert({
+      workflow_id: workflow.id,
+      user_id: userId,
+      status: "success",
+      generated_output: output,
+    })
+    .select("*")
+    .single();
+  if (error) throw error;
+  return { workflow, run: data };
+}
+
+async function sendReportEmail(supabase: any, userId: string, subject: string, output: string) {
+  if (!RESEND_API_KEY) return false;
+  const { data: userData } = await supabase.auth.admin.getUserById(userId);
+  const email = userData?.user?.email;
+  if (!email) return false;
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<body style="margin:0;padding:0;background:#f1f5f9;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:24px 0;">
+  <tr><td align="center">
+    <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;">
+      <tr><td style="background:#0f172a;border-radius:16px 16px 0 0;padding:28px 32px 26px;">
+        <p style="margin:0 0 10px;color:#64748b;font-size:10px;font-family:Arial,Helvetica,sans-serif;letter-spacing:2px;text-transform:uppercase;font-weight:700;">HOURSBACK · WHATSAPP REPORT</p>
+        <h1 style="margin:0;color:#f8fafc;font-size:24px;font-family:Arial,Helvetica,sans-serif;font-weight:800;line-height:1.25;">${escapeHtml(subject)}</h1>
+      </td></tr>
+      <tr><td style="background:linear-gradient(90deg,#10b981 0%,#3b82f6 50%,#8b5cf6 100%);height:3px;font-size:0;line-height:0;">&nbsp;</td></tr>
+      <tr><td style="background:#ffffff;padding:28px;font-family:-apple-system,Helvetica,sans-serif;font-size:15px;line-height:1.7;color:#1e293b;border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0;">
+        ${markdownToEmailHtml(output)}
+      </td></tr>
+      <tr><td style="background:#f8fafc;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 16px 16px;padding:16px 28px;text-align:center;">
+        <p style="margin:0;font-family:-apple-system,Helvetica,sans-serif;font-size:12px;color:#94a3b8;">
+          Delivered by <a href="${APP_URL}" style="color:#3b82f6;text-decoration:none;font-weight:600;">Hoursback</a>
+          &nbsp;·&nbsp; <a href="${APP_URL}/reports" style="color:#94a3b8;text-decoration:none;">Open reports</a>
+        </p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+</body>
+</html>`;
+
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      from: "Hoursback Reports <reports@hoursback.xyz>",
+      to: email,
+      subject,
+      html,
+    }),
+  });
+  if (!res.ok) {
+    console.error("WhatsApp report email failed:", await res.text());
+    return false;
+  }
+  return true;
+}
+
+async function generateWhatsAppBusinessReport(supabase: any, connection: any, text: string) {
+  const reportType = looksLikeProfitAndLossQuestion(text) ? "profit_and_loss" : "sales_summary";
+  const wantsEmail = /\b(email|mail|inbox)\b/i.test(text);
+  const wantsPdf = /\b(pdf|document|download)\b/i.test(text);
+  const metrics = await collectReportMetrics(supabase, connection.user_id, text);
+  if (!metrics.rows.length) {
+    return [
+      `I found no records for ${metrics.range.label.toLowerCase()}.`,
+      "Connect or refresh a Google Sheet in Data Sources, add manual entries, or log sales on WhatsApp first.",
+      "You can also ask for a wider range, for example: “Send this month’s P&L report”.",
+      `${APP_URL}/data-sources`,
+    ].join("\n");
+  }
+  const output = await generateReportWithAI(metrics, reportType);
+  const { run } = await saveWhatsAppReportRun(supabase, connection.user_id, output);
+  const subject = `${reportType === "profit_and_loss" ? "Profit and Loss" : "Sales"} Report - ${metrics.range.label}`;
+  const emailed = wantsEmail ? await sendReportEmail(supabase, connection.user_id, subject, output) : false;
+  await logAnalyticsEvent(supabase, connection.user_id, "whatsapp_report_generated", {
+    run_id: run.id,
+    report_type: reportType,
+    period: metrics.range.label,
+    rows: metrics.rows.length,
+    revenue: metrics.revenue,
+    expenses: metrics.expenseTotal,
+    emailed,
+    wants_pdf: wantsPdf,
+  });
+
+  return [
+    `${subject} generated.`,
+    `Revenue: ₦${metrics.revenue.toLocaleString("en-NG")}`,
+    `Expenses: ₦${metrics.expenseTotal.toLocaleString("en-NG")}`,
+    `Estimated profit: ₦${metrics.profit.toLocaleString("en-NG")}`,
+    `Entries reviewed: ${metrics.rows.length}`,
+    emailed ? "Email sent." : wantsEmail ? "Email could not be sent. Open Reports to view it." : null,
+    wantsPdf ? "Open Reports to download the PDF version." : null,
+    `${APP_URL}/reports`,
+  ].filter(Boolean).join("\n");
+}
+
 serve(async (req) => {
   if (req.method !== "POST") return new Response("Not found", { status: 404 });
 
@@ -1449,6 +1875,10 @@ serve(async (req) => {
   try {
     const rawBody = await req.text();
     const payload = JSON.parse(rawBody);
+    if (!KAPSO_WEBHOOK_SECRET && !KAPSO_ALLOW_UNSIGNED_WEBHOOKS) {
+      console.error("Kapso webhook rejected: KAPSO_WEBHOOK_SECRET is not configured");
+      return new Response(JSON.stringify({ error: "Webhook signature secret is not configured" }), { status: 500, headers });
+    }
     const signature = firstString(
       req.headers.get("X-Webhook-Signature"),
       req.headers.get("X-Kapso-Signature"),
@@ -1576,6 +2006,22 @@ serve(async (req) => {
       updated_at: new Date().toISOString(),
     }).eq("id", connection.id);
 
+    const profile = await getProfile(supabase, connection.user_id);
+    if (connection.connection_type === "customer" && profile?.subscription_status !== "pro") {
+      await logAnalyticsEvent(supabase, connection.user_id, "customer_webhook_blocked_free_plan", {
+        phone_number_id: message.phoneNumberId,
+        message_id: message.messageId || null,
+      });
+      return new Response(JSON.stringify({ success: true, ignored: "customer WhatsApp requires Pro" }), { headers });
+    }
+
+    await logAnalyticsEvent(supabase, connection.user_id, "webhook_received", {
+      connection_type: connection.connection_type || "internal",
+      message_type: message.type || null,
+      has_text: !!message.text,
+      has_media: hasMediaMessage(message),
+    });
+
     await supabase.from("kapso_messages").insert({
       user_id: connection.user_id,
       connection_id: connection.id,
@@ -1678,6 +2124,8 @@ serve(async (req) => {
       } else {
         reply = closeoutPrompt();
       }
+    } else if (looksLikeReportGenerationRequest(text)) {
+      reply = await generateWhatsAppBusinessReport(supabase, connection, text);
     } else if (looksLikeWorkflowRequest(text)) {
       reply = await saveWorkflowRequest(supabase, connection, message, text);
     } else if (looksLikeProfitAndLossQuestion(text)) {
@@ -1707,6 +2155,11 @@ serve(async (req) => {
         source: "whatsapp_text",
         channel: "whatsapp",
       });
+      await logAnalyticsEvent(supabase, connection.user_id, "sales_log_entry_created", {
+        source: "whatsapp_text",
+        entry_type: entryType,
+        has_total: !!parsed.total,
+      });
 
       const lines = [`Logged from WhatsApp.`];
       lines.push(`Type: ${entryType === "expense" ? "Expense" : entryType === "note" ? "Note" : "Sale"}`);
@@ -1735,6 +2188,11 @@ serve(async (req) => {
         });
       } catch (err) {
         console.error("Kapso reply failed after inbound processing:", err);
+        await logAnalyticsEvent(supabase, connection.user_id, "kapso_reply_failed", {
+          connection_type: connection.connection_type || "internal",
+          message_id: message.messageId || null,
+          error: err instanceof Error ? err.message : "Kapso reply failed",
+        });
       }
     }
 

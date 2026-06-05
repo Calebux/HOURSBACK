@@ -68,7 +68,7 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="text-xl font-semibold text-brand-dark mb-3">6. Your Rights</h2>
-            <p>You have the right to access, correct, or delete your personal data. To exercise any of these rights, contact us at <a href="mailto:petersoncaleb275@gmail.com" className="text-[#4285F4] hover:underline">petersoncaleb275@gmail.com</a>.</p>
+            <p>You have the right to access, export, correct, or delete your personal data. You can download an account export from the Account page. To exercise any of these rights, contact us at <a href="mailto:support@hoursback.xyz" className="text-[#4285F4] hover:underline">support@hoursback.xyz</a>.</p>
           </section>
 
           <section>
@@ -77,13 +77,18 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-brand-dark mb-3">8. Changes to This Policy</h2>
+            <h2 className="text-xl font-semibold text-brand-dark mb-3">8. Customer Notice</h2>
+            <p>If you use Hoursback with a customer-facing WhatsApp number, you should tell your customers that messages, order or service details, and payment proof sent to that number may be processed by Hoursback and its providers to respond, record requests, store receipts, and help your team fulfil the request.</p>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-semibold text-brand-dark mb-3">9. Changes to This Policy</h2>
             <p>We may update this policy from time to time. We will notify you of significant changes by email or by displaying a notice in the app.</p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-brand-dark mb-3">9. Contact</h2>
-            <p>For any privacy-related questions, contact us at <a href="mailto:petersoncaleb275@gmail.com" className="text-[#4285F4] hover:underline">petersoncaleb275@gmail.com</a>.</p>
+            <h2 className="text-xl font-semibold text-brand-dark mb-3">10. Contact</h2>
+            <p>For any privacy-related questions, contact us at <a href="mailto:support@hoursback.xyz" className="text-[#4285F4] hover:underline">support@hoursback.xyz</a>.</p>
           </section>
         </div>
       </div>

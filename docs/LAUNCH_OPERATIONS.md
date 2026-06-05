@@ -10,6 +10,7 @@ Use this before and during customer rollout.
 - Stuck unpaid: review confirmed unpaid requests older than 48 hours.
 - Setup incomplete: review customer WhatsApp connections with missing phone number ID, catalogue, payment instructions, or fulfillment rules.
 - Edge functions: check Supabase logs for `kapso-webhook`, `kapso-setup`, `parse-sales-photo`, and scheduled functions after every deploy.
+- Webhook safety: production rejects unsigned webhooks unless `KAPSO_ALLOW_UNSIGNED_WEBHOOKS=true` is explicitly set for local testing.
 
 ## Support Workflow
 
@@ -24,12 +25,15 @@ Use this before and during customer rollout.
 
 - Free: starter workflows, basic capture/testing, and limited AI usage.
 - Pro: customer-facing WhatsApp, receipt workflows, photo scanner, recurring summaries, PDFs/email delivery, and expanded AI usage.
+- Customer-facing WhatsApp is enforced server-side in `kapso-setup` and ignored by `kapso-webhook` for non-Pro accounts.
 
 ## Exports
 
 - Sales Log exports CSV from `/data-log`.
 - Customer Requests exports CSV from `/orders`.
 - Reports can be downloaded from the reports area when generated.
+- Account exports JSON from `/account`, including workflows, data sources, Sales Log, customer requests, WhatsApp records, closeouts, audit logs, and analytics milestones.
+- Receipt files remain in private Supabase Storage; exports include receipt metadata and storage paths.
 
 ## Analytics Milestones
 
@@ -41,6 +45,12 @@ Track:
 - `whatsapp_customer_settings_saved`
 - `customer_launch_checklist_clicked`
 - `first_webhook_received`
+- `webhook_received`
+- `customer_order_created`
+- `receipt_received`
 - `customer_order_verified`
+- `sales_log_entry_created`
+- `kapso_reply_failed`
 - `customer_orders_exported`
 
+Server-side milestone rows are stored in `app_analytics_events`.

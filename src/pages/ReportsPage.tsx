@@ -187,6 +187,9 @@ export default function ReportsPage() {
               <FileText className="w-4 h-4" />
               Reports
             </Link>
+            <Link to="/workflows" className="hidden sm:flex text-sm font-medium text-brand-dark/60 hover:text-brand-dark transition-colors px-3 py-1.5">
+              Automations
+            </Link>
             <Link to="/account" title="Account">
               <UserAvatar user={user} size="sm" />
             </Link>

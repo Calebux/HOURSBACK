@@ -63,6 +63,105 @@ async function safeSendKapsoText(phoneNumberId: string, to: string, text: string
   }
 }
 
+async function getProfile(supabase: any, userId: string) {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("subscription_status")
+    .eq("id", userId)
+    .maybeSingle();
+  if (error) throw error;
+  return data || null;
+}
+
+function isProProfile(profile: any) {
+  return profile?.subscription_status === "pro";
+}
+
+function requireProForCustomerMode(profile: any, connectionType: string) {
+  if (connectionType !== "customer" || isProProfile(profile)) return null;
+  return new Response(
+    JSON.stringify({ error: "Customer-facing WhatsApp is a Pro feature. Internal WhatsApp setup is available on Free." }),
+    { status: 403, headers: corsHeaders },
+  );
+}
+
+function orderItemsSummary(items: any[]) {
+  if (!items?.length) return "your request";
+  return items.map((item) => `${item.qty ? `${item.qty} x ` : ""}${item.name}`).join(", ");
+}
+
+function orderTotal(items: any[]) {
+  const total = (items || []).reduce((sum, item) => {
+    const qty = Number(item.qty || 1);
+    const price = Number(item.unit_price || 0);
+    return price > 0 ? sum + qty * price : sum;
+  }, 0);
+  return total > 0 ? total : null;
+}
+
+async function logAnalyticsEvent(
+  supabase: any,
+  userId: string | null,
+  eventName: string,
+  properties: Record<string, unknown> = {},
+  source = "server",
+) {
+  try {
+    await supabase.from("app_analytics_events").insert({
+      user_id: userId,
+      event_name: eventName,
+      properties,
+      source,
+    });
+  } catch (err) {
+    console.error("Analytics event log failed:", err);
+  }
+}
+
+async function syncVerifiedOrderToSalesLog(supabase: any, order: any) {
+  const items = Array.isArray(order.items) ? order.items : [];
+  const total = Number(
+    order.owner_adjusted_total_amount
+    || order.expected_total_amount
+    || orderTotal(items)
+    || 0,
+  );
+  if (!total || total <= 0) return false;
+
+  const paidAt = order.paid_at || order.payment_verified_at || new Date().toISOString();
+  const parsedData = {
+    item: orderItemsSummary(items),
+    qty: null,
+    unit_price: null,
+    total,
+    customer: order.customer_name || order.customer_phone || null,
+    notes: [
+      order.order_code ? `Reference: ${order.order_code}` : null,
+      order.request_type ? `Type: ${order.request_type}` : null,
+      order.delivery_address ? `Fulfillment: ${order.delivery_address}` : null,
+    ].filter(Boolean).join(" | ") || null,
+    sale_date: paidAt.slice(0, 10),
+  };
+
+  const { error } = await supabase.from("bot_entries").insert({
+    user_id: order.user_id,
+    chat_id: 0,
+    triggered_by: order.customer_name || order.customer_phone || "WhatsApp customer",
+    role: "customer",
+    raw_text: order.raw_text || `Verified WhatsApp request ${order.order_code || order.id}`,
+    entry_type: "sale",
+    parsed_data: parsedData,
+    sale_date: paidAt,
+    source: "whatsapp_customer_order",
+    channel: "whatsapp",
+    source_order_id: order.id,
+  });
+
+  if (error?.code === "23505") return true;
+  if (error) throw error;
+  return true;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -73,6 +172,7 @@ serve(async (req) => {
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const profile = await getProfile(supabase, user.id);
     const body = await req.json().catch(() => ({}));
     const action = body.action || "status";
 
@@ -105,6 +205,9 @@ serve(async (req) => {
     }
 
     if (action === "customer_settings") {
+      const proResponse = requireProForCustomerMode(profile, "customer");
+      if (proResponse) return proResponse;
+
       const customerMenu = String(body.customer_menu || "").trim();
       const paymentInstructions = String(body.payment_instructions || "").trim();
       const ownerNotificationNumber = String(body.owner_notification_number || "").trim();
@@ -143,6 +246,12 @@ serve(async (req) => {
         .single();
 
       if (error) throw error;
+      await logAnalyticsEvent(supabase, user.id, "whatsapp_customer_settings_saved", {
+        has_customer_menu: !!customerMenu,
+        has_payment_instructions: !!paymentInstructions,
+        has_fulfillment_rules: !!fulfillmentRules,
+        has_owner_notification_number: !!ownerNotificationNumber,
+      }, "edge");
       return new Response(JSON.stringify({ success: true, connection: data }), { headers: corsHeaders });
     }
 
@@ -198,9 +307,7 @@ serve(async (req) => {
 
       let messageSent = false;
       if (connection?.phone_number_id && order.customer_phone) {
-        const items = Array.isArray(order.items)
-          ? order.items.map((item: any) => `${item.qty ? `${item.qty} x ` : ""}${item.name}`).join(", ")
-          : "your request";
+        const items = Array.isArray(order.items) ? orderItemsSummary(order.items) : "your request";
         const message = [
           "Payment received. Thank you.",
           `Request: ${items}`,
@@ -212,8 +319,16 @@ serve(async (req) => {
       await logOrderAudit(supabase, updatedOrder, "payment_verified", {
         delivery_note: deliveryNote || null,
       }, messageSent);
+      const salesLogSynced = await syncVerifiedOrderToSalesLog(supabase, updatedOrder);
+      await logAnalyticsEvent(supabase, user.id, "customer_order_verified", {
+        order_id: updatedOrder.id,
+        order_code: updatedOrder.order_code || null,
+        request_type: updatedOrder.request_type || null,
+        message_sent: messageSent,
+        sales_log_synced: salesLogSynced,
+      }, "edge");
 
-      return new Response(JSON.stringify({ success: true, order: updatedOrder, message_sent: messageSent }), { headers: corsHeaders });
+      return new Response(JSON.stringify({ success: true, order: updatedOrder, message_sent: messageSent, sales_log_synced: salesLogSynced }), { headers: corsHeaders });
     }
 
     if (action === "reject_order_payment") {
@@ -266,9 +381,7 @@ serve(async (req) => {
 
       let messageSent = false;
       if (connection?.phone_number_id && order.customer_phone) {
-        const items = Array.isArray(order.items)
-          ? order.items.map((item: any) => `${item.qty ? `${item.qty} x ` : ""}${item.name}`).join(", ")
-          : "your request";
+        const items = Array.isArray(order.items) ? orderItemsSummary(order.items) : "your request";
         messageSent = await safeSendKapsoText(connection.phone_number_id, order.customer_phone, [
           "We could not verify the payment receipt yet.",
           `Request: ${items}`,
@@ -328,9 +441,7 @@ serve(async (req) => {
 
       let messageSent = false;
       if (notifyCustomer && connection?.phone_number_id && order.customer_phone) {
-        const items = Array.isArray(order.items)
-          ? order.items.map((item: any) => `${item.qty ? `${item.qty} x ` : ""}${item.name}`).join(", ")
-          : "your request";
+        const items = Array.isArray(order.items) ? orderItemsSummary(order.items) : "your request";
         messageSent = await safeSendKapsoText(connection.phone_number_id, order.customer_phone, [
           "This request has been cancelled.",
           order.order_code ? `Reference: ${order.order_code}` : null,
@@ -478,9 +589,7 @@ serve(async (req) => {
 
       let messageSent = false;
       if (connection?.phone_number_id && order.customer_phone) {
-        const items = Array.isArray(order.items)
-          ? order.items.map((item: any) => `${item.qty ? `${item.qty} x ` : ""}${item.name}`).join(", ")
-          : "your request";
+        const items = Array.isArray(order.items) ? orderItemsSummary(order.items) : "your request";
         const statusLine = fulfillmentStatus === "preparing"
           ? "Your request is now being prepared."
           : fulfillmentStatus === "ready_for_pickup"
@@ -506,6 +615,8 @@ serve(async (req) => {
       const phoneNumber = String(body.phone_number || "").trim();
       const displayName = String(body.display_name || "WhatsApp").trim();
       const connectionType = body.connection_type === "customer" ? "customer" : "internal";
+      const proResponse = requireProForCustomerMode(profile, connectionType);
+      if (proResponse) return proResponse;
       const customerMenu = String(body.customer_menu || "").trim();
       const paymentInstructions = String(body.payment_instructions || "").trim();
       const ownerNotificationNumber = String(body.owner_notification_number || "").trim();
@@ -541,11 +652,19 @@ serve(async (req) => {
         .single();
 
       if (error) throw error;
+      await logAnalyticsEvent(supabase, user.id, "whatsapp_connection_saved", {
+        connection_type: connectionType,
+        has_customer_menu: !!customerMenu,
+        has_payment_instructions: !!paymentInstructions,
+        has_fulfillment_rules: !!fulfillmentRules,
+      }, "edge");
       return new Response(JSON.stringify({ success: true, connection: data }), { headers: corsHeaders });
     }
 
     if (action === "generate_setup_link") {
       const connectionType = body.connection_type === "customer" ? "customer" : "internal";
+      const proResponse = requireProForCustomerMode(profile, connectionType);
+      if (proResponse) return proResponse;
       if (!getKapsoApiKey()) {
         return new Response(
           JSON.stringify({ error: "KAPSO_API_KEY is not configured in Supabase secrets" }),
@@ -593,6 +712,9 @@ serve(async (req) => {
         .single();
 
       if (error) throw error;
+      await logAnalyticsEvent(supabase, user.id, "whatsapp_setup_link_created", {
+        connection_type: connectionType,
+      }, "edge");
       return new Response(JSON.stringify({ success: true, connection: data }), { headers: corsHeaders });
     }
 

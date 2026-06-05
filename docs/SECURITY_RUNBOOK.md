@@ -64,3 +64,6 @@ Production setup:
 3. Register the `/functions/v1/kapso-webhook?uid=<user_id>` URL in Kapso.
 4. Subscribe to `whatsapp.message.received`.
 5. Send a test WhatsApp message and confirm it appears in the Sales Log.
+
+Unsigned webhooks are rejected by default. Only set
+`KAPSO_ALLOW_UNSIGNED_WEBHOOKS=true` for local testing, never for production.
