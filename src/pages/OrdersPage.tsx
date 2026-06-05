@@ -74,6 +74,10 @@ function itemSummary(items: Order['items']) {
   return items.map((item) => `${item.qty ? `${item.qty} x ` : ''}${item.name}`).join(', ');
 }
 
+function isServiceLike(order: Order) {
+  return ['booking', 'service', 'repair', 'quote'].includes(String(order.request_type || '').toLowerCase());
+}
+
 function orderTotal(items: Order['items']) {
   const total = items.reduce((sum, item) => {
     const qty = Number(item.qty || 1);
@@ -323,6 +327,7 @@ export default function OrdersPage() {
                   const expectedTotal = Number(order.expected_total_amount || 0) || itemTotal;
                   const reviewedTotal = Number(order.owner_adjusted_total_amount || 0) || expectedTotal;
                   const claimedAmount = money(order.payment_claimed_amount);
+                  const serviceLike = isServiceLike(order);
                   return (
                     <>
                 <div className="flex items-start justify-between gap-3">
@@ -351,7 +356,7 @@ export default function OrdersPage() {
                 <div className="mt-3 grid sm:grid-cols-2 gap-2 text-xs text-slate-500">
                   <p><span className="font-semibold text-slate-600">Fulfillment details:</span> {order.delivery_address || 'missing'}</p>
                   <p><span className="font-semibold text-slate-600">Payment:</span> {order.payment_method || 'not specified'}</p>
-                  {itemTotal && <p><span className="font-semibold text-slate-600">Items:</span> {money(itemTotal)}</p>}
+                  {itemTotal && <p><span className="font-semibold text-slate-600">{serviceLike ? 'Request subtotal' : 'Items'}:</span> {money(itemTotal)}</p>}
                   {money(order.delivery_fee_amount) && <p><span className="font-semibold text-slate-600">Delivery/service fee:</span> {money(order.delivery_fee_amount)}</p>}
                   {expectedTotal && <p><span className="font-semibold text-slate-600">Expected:</span> {money(expectedTotal)}</p>}
                   {reviewedTotal && reviewedTotal !== expectedTotal && <p><span className="font-semibold text-slate-600">Reviewed total:</span> {money(reviewedTotal)}</p>}
@@ -462,7 +467,7 @@ export default function OrdersPage() {
                       <input
                         name="delivery_note"
                         className="mt-1 w-full rounded-lg border border-emerald-200 bg-white px-2 py-1.5 text-xs outline-none focus:border-emerald-500"
-                        placeholder="e.g. Your item is ready for pickup, or your technician will arrive by 2pm."
+                        placeholder="e.g. Your request is confirmed, your item is ready for pickup, or your technician will arrive by 2pm."
                       />
                     </label>
                     <div className="mt-2 flex flex-wrap gap-2">

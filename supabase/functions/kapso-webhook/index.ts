@@ -536,6 +536,10 @@ function orderItemsSummary(items: any[]) {
   return items.map((item) => `${item.qty ? `${item.qty} x ` : ""}${item.name}`).join(", ");
 }
 
+function requestSummaryLabel(requestType?: string | null) {
+  return ["booking", "service", "repair", "quote"].includes(String(requestType || "")) ? "Request" : "Items";
+}
+
 function classifyRequestType(text: string, items: any[] = [], deliveryAddress?: string | null) {
   const combined = [
     text,
@@ -886,7 +890,7 @@ async function handleCustomerOrder(supabase: any, connection: any, message: Pars
   const lines = [
     "Request confirmed.",
     `Reference: ${orderCode}`,
-    `Items: ${orderItemsSummary(items)}`,
+    `${requestSummaryLabel(requestType)}: ${orderItemsSummary(items)}`,
     `Fulfillment details: ${deliveryAddress}`,
   ];
   if (deliveryFee) lines.push(`Delivery/service fee: ${formatNaira(Number(deliveryFee))}`);
