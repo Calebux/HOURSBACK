@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { CheckCircle2, ChevronLeft, MessageCircle, RefreshCw } from 'lucide-react';
+import { CheckCircle2, ChevronLeft, MessageCircle, RefreshCw, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -87,6 +87,7 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('');
   const [verifyingOrderId, setVerifyingOrderId] = useState<string | null>(null);
+  const [rejectingOrderId, setRejectingOrderId] = useState<string | null>(null);
   const [savingReviewId, setSavingReviewId] = useState<string | null>(null);
   const [fulfillmentOrderId, setFulfillmentOrderId] = useState<string | null>(null);
   const [openingReceiptId, setOpeningReceiptId] = useState<string | null>(null);
@@ -104,12 +105,14 @@ export default function OrdersPage() {
     setLoading(false);
   };
 
-  const verifyPayment = async (orderId: string) => {
+  const verifyPayment = async (orderId: string, form?: HTMLFormElement) => {
+    const formData = form ? new FormData(form) : null;
     setVerifyingOrderId(orderId);
     const { error } = await supabase.functions.invoke('kapso-setup', {
       body: {
         action: 'verify_order_payment',
         order_id: orderId,
+        delivery_note: String(formData?.get('delivery_note') || ''),
       },
     });
     setVerifyingOrderId(null);
@@ -120,6 +123,25 @@ export default function OrdersPage() {
     }
 
     toast.success('Payment confirmed and customer notified');
+    await loadOrders();
+  };
+
+  const rejectPayment = async (orderId: string) => {
+    setRejectingOrderId(orderId);
+    const { error } = await supabase.functions.invoke('kapso-setup', {
+      body: {
+        action: 'reject_order_payment',
+        order_id: orderId,
+      },
+    });
+    setRejectingOrderId(null);
+
+    if (error) {
+      toast.error(error.message || 'Could not reject receipt');
+      return;
+    }
+
+    toast.success('Customer asked to resend payment proof');
     await loadOrders();
   };
 
@@ -143,7 +165,7 @@ export default function OrdersPage() {
       return;
     }
 
-    toast.success('Order review saved');
+    toast.success('Request review saved');
     await loadOrders();
   };
 
@@ -211,6 +233,13 @@ export default function OrdersPage() {
     [orders, filter]
   );
 
+  const requestType = (order: Order) => {
+    const text = `${itemSummary(order.items)} ${order.delivery_address || ''} ${order.notes || ''} ${order.raw_text || ''}`.toLowerCase();
+    if (/\b(book|booking|appointment|schedule|slot|friday|monday|tuesday|wednesday|thursday|saturday|sunday)\b/.test(text)) return 'Booking';
+    if (/\b(repair|fix|installation|install|service|consultation|fitting|alteration|styling)\b/.test(text)) return 'Service';
+    return 'Order';
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-brand-light flex items-center justify-center">
@@ -229,7 +258,7 @@ export default function OrdersPage() {
             </Link>
             <div className="flex items-center gap-2">
               <MessageCircle className="w-4 h-4 text-emerald-500" />
-              <h1 className="text-base font-semibold text-brand-dark">WhatsApp Orders</h1>
+              <h1 className="text-base font-semibold text-brand-dark">WhatsApp Requests</h1>
             </div>
           </div>
           <button
@@ -246,7 +275,7 @@ export default function OrdersPage() {
         <section className="bg-white rounded-2xl border border-brand-dark/10 p-4">
           <p className="text-sm font-semibold text-brand-dark">Customer-facing WhatsApp</p>
           <p className="mt-1 text-xs text-slate-500">
-            Orders sent to your customer number are captured here. Confirmed orders include items and delivery details.
+            Product orders, bookings, repairs, service requests, receipts, and payment checks from your customer number are captured here.
           </p>
         </section>
 
@@ -259,14 +288,14 @@ export default function OrdersPage() {
                 filter === status ? 'bg-brand-dark text-white' : 'bg-white border border-slate-200 text-slate-500 hover:text-brand-dark'
               }`}
             >
-              {status ? status.replace(/_/g, ' ') : 'all'}
+              {status ? status.replace(/_/g, ' ') : 'all requests'}
             </button>
           ))}
         </div>
 
         {filtered.length === 0 ? (
           <div className="bg-white rounded-2xl border border-brand-dark/10 p-10 text-center">
-            <p className="font-semibold text-brand-dark">No orders yet</p>
+            <p className="font-semibold text-brand-dark">No customer requests yet</p>
             <p className="mt-1 text-sm text-slate-400">
               Ask a customer to message your customer-facing WhatsApp number.
             </p>
@@ -294,6 +323,9 @@ export default function OrdersPage() {
                     <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${statusClass(order.status)}`}>
                       {order.status.replace(/_/g, ' ')}
                     </span>
+                    <span className="rounded-full bg-purple-50 px-2 py-0.5 text-xs font-semibold text-purple-700">
+                      {requestType(order)}
+                    </span>
                     <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${paymentStatusClass(order.payment_status)}`}>
                       {order.payment_status || 'unpaid'}
                     </span>
@@ -303,10 +335,10 @@ export default function OrdersPage() {
                   </div>
                 </div>
                 <div className="mt-3 grid sm:grid-cols-2 gap-2 text-xs text-slate-500">
-                  <p><span className="font-semibold text-slate-600">Delivery:</span> {order.delivery_address || 'missing'}</p>
+                  <p><span className="font-semibold text-slate-600">Fulfillment details:</span> {order.delivery_address || 'missing'}</p>
                   <p><span className="font-semibold text-slate-600">Payment:</span> {order.payment_method || 'not specified'}</p>
                   {itemTotal && <p><span className="font-semibold text-slate-600">Items:</span> {money(itemTotal)}</p>}
-                  {money(order.delivery_fee_amount) && <p><span className="font-semibold text-slate-600">Delivery fee:</span> {money(order.delivery_fee_amount)}</p>}
+                  {money(order.delivery_fee_amount) && <p><span className="font-semibold text-slate-600">Delivery/service fee:</span> {money(order.delivery_fee_amount)}</p>}
                   {expectedTotal && <p><span className="font-semibold text-slate-600">Expected:</span> {money(expectedTotal)}</p>}
                   {reviewedTotal && reviewedTotal !== expectedTotal && <p><span className="font-semibold text-slate-600">Reviewed total:</span> {money(reviewedTotal)}</p>}
                   {claimedAmount && <p><span className="font-semibold text-slate-600">Customer paid:</span> {claimedAmount}</p>}
@@ -324,7 +356,7 @@ export default function OrdersPage() {
                   </p>
                   {order.receipt_storage_status === 'failed' && (
                     <p className="text-amber-700">
-                      <span className="font-semibold">Receipt issue:</span> customer should resend with order code {order.order_code || 'shown above'}
+                      <span className="font-semibold">Receipt issue:</span> customer should resend with reference {order.order_code || 'shown above'}
                     </p>
                   )}
                   {order.receipt_received_at && <p><span className="font-semibold text-slate-600">Receipt sent:</span> {fmtDate(order.receipt_received_at)}</p>}
@@ -340,7 +372,7 @@ export default function OrdersPage() {
                   }}
                 >
                   <label className="text-xs font-medium text-slate-500">
-                    Delivery fee
+                    Delivery/service fee
                     <input
                       name="delivery_fee_amount"
                       type="number"
@@ -390,22 +422,50 @@ export default function OrdersPage() {
                   </button>
                 </form>
                 {order.payment_status === 'receipt_sent' && (
-                  <button
-                    onClick={() => verifyPayment(order.id)}
-                    disabled={verifyingOrderId === order.id || !order.receipt_storage_path}
-                    className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
-                    title={!order.receipt_storage_path ? 'Ask the customer to resend the receipt before confirming payment' : undefined}
+                  <form
+                    className="mt-3 rounded-xl border border-emerald-100 bg-emerald-50/50 p-3"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      void verifyPayment(order.id, event.currentTarget);
+                    }}
                   >
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    {verifyingOrderId === order.id ? 'Confirming...' : order.receipt_storage_path ? 'Confirm payment' : 'Waiting for saved receipt'}
-                  </button>
+                    <label className="block text-xs font-medium text-emerald-800">
+                      Customer update after payment confirmation
+                      <input
+                        name="delivery_note"
+                        className="mt-1 w-full rounded-lg border border-emerald-200 bg-white px-2 py-1.5 text-xs outline-none focus:border-emerald-500"
+                        placeholder="e.g. Your item is ready for pickup, or your technician will arrive by 2pm."
+                      />
+                    </label>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <button
+                        type="submit"
+                        disabled={verifyingOrderId === order.id || !order.receipt_storage_path}
+                        className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
+                        title={!order.receipt_storage_path ? 'Ask the customer to resend the receipt before confirming payment' : undefined}
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        {verifyingOrderId === order.id ? 'Confirming...' : order.receipt_storage_path ? 'Confirm payment' : 'Waiting for saved receipt'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => rejectPayment(order.id)}
+                        disabled={rejectingOrderId === order.id}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:opacity-60"
+                      >
+                        <XCircle className="w-3.5 h-3.5" />
+                        {rejectingOrderId === order.id ? 'Rejecting...' : 'Reject receipt'}
+                      </button>
+                    </div>
+                  </form>
                 )}
                 {order.payment_status === 'verified' && order.status !== 'fulfilled' && (
                   <div className="mt-3 flex flex-wrap gap-2">
                     {[
                       ['preparing', 'Preparing'],
+                      ['ready_for_pickup', 'Ready for pickup'],
                       ['out_for_delivery', 'Out for delivery'],
-                      ['delivered', 'Delivered'],
+                      ['completed', 'Completed'],
                     ].map(([value, label]) => (
                       <button
                         key={value}

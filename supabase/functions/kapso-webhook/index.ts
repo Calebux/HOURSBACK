@@ -581,13 +581,13 @@ async function findLatestAwaitingReceiptOrder(supabase: any, connection: any, fr
 async function promptForReceipt(supabase: any, connection: any, message: ParsedMessage, text = "") {
   const order = await findLatestAwaitingReceiptOrder(supabase, connection, message.from, text);
   if (!order) {
-    return "Thanks. I could not find a confirmed order waiting for payment proof from this number. A staff member will review this message.";
+    return "Thanks. I could not find a confirmed request waiting for payment proof from this number. A staff member will review this message.";
   }
   if (order.needsOrderCode) {
     const choices = order.orders.map((item: any) => `${item.order_code}: ${orderItemsSummary(item.items || [])}`).join("\n");
     return [
-      "I found more than one unpaid order for this number.",
-      "Please resend payment proof with the order code:",
+      "I found more than one unpaid request for this number.",
+      "Please resend payment proof with the reference:",
       choices,
     ].join("\n");
   }
@@ -605,8 +605,8 @@ async function promptForReceipt(supabase: any, connection: any, message: ParsedM
 
   return [
     "Thanks. Please send your payment receipt or transfer screenshot here as proof.",
-    order.order_code ? `Order code: ${order.order_code}` : null,
-    `Order: ${orderItemsSummary(order.items || [])}`,
+    order.order_code ? `Reference: ${order.order_code}` : null,
+    `Request: ${orderItemsSummary(order.items || [])}`,
     claimedAmount ? `Amount noted: ${formatNaira(claimedAmount)}.` : null,
     "We will confirm it and update you once payment is received.",
   ].filter(Boolean).join("\n");
@@ -615,13 +615,13 @@ async function promptForReceipt(supabase: any, connection: any, message: ParsedM
 async function markLatestOrderReceiptSent(supabase: any, connection: any, message: ParsedMessage, text: string, payload: any) {
   const order = await findLatestAwaitingReceiptOrder(supabase, connection, message.from, text);
   if (!order) {
-    return "Receipt received. I could not match it to a confirmed unpaid order from this number, so a staff member will review it.";
+    return "Receipt received. I could not match it to a confirmed unpaid request from this number, so a staff member will review it.";
   }
   if (order.needsOrderCode) {
     const choices = order.orders.map((item: any) => `${item.order_code}: ${orderItemsSummary(item.items || [])}`).join("\n");
     return [
-      "Receipt received, but I found more than one unpaid order for this number.",
-      "Please resend the receipt with the order code:",
+      "Receipt received, but I found more than one unpaid request for this number.",
+      "Please resend the receipt with the reference:",
       choices,
     ].join("\n");
   }
@@ -666,8 +666,8 @@ async function markLatestOrderReceiptSent(supabase: any, connection: any, messag
       const expectedTotal = order.owner_adjusted_total_amount || order.expected_total_amount || expectedOrderTotal(order.items || [], order.delivery_fee_amount || null);
       const ownerLines = [
         "New payment receipt received.",
-        order.order_code ? `Order code: ${order.order_code}` : null,
-        `Order: ${orderItemsSummary(order.items || [])}`,
+        order.order_code ? `Reference: ${order.order_code}` : null,
+        `Request: ${orderItemsSummary(order.items || [])}`,
         expectedTotal ? `Expected: ${formatNaira(Number(expectedTotal))}` : null,
         claimedAmount || order.payment_claimed_amount ? `Customer paid: ${formatNaira(Number(claimedAmount || order.payment_claimed_amount))}` : null,
         receiptSaved ? "Receipt: saved in Hoursback" : "Receipt: needs resend or manual review",
@@ -681,11 +681,11 @@ async function markLatestOrderReceiptSent(supabase: any, connection: any, messag
 
   return [
     receiptSaved ? "Receipt received. Thank you." : "Receipt received, but we could not save the image for review.",
-    order.order_code ? `Order code: ${order.order_code}` : null,
-    `Order: ${orderItemsSummary(order.items || [])}`,
+    order.order_code ? `Reference: ${order.order_code}` : null,
+    `Request: ${orderItemsSummary(order.items || [])}`,
     receiptSaved
       ? "We will confirm the payment and update you once it is received."
-      : "Please resend the receipt with the order code so a staff member can verify payment.",
+      : "Please resend the receipt with the reference so a staff member can verify payment.",
   ].filter(Boolean).join("\n");
 }
 
@@ -855,25 +855,25 @@ async function handleCustomerOrder(supabase: any, connection: any, message: Pars
   if (result.error) throw result.error;
 
   if (!items.length) {
-    return "I can help with your order. What would you like to buy?";
+    return "I can help with your order or request. What would you like?";
   }
   if (!deliveryAddress) {
-    return `Got it: ${orderItemsSummary(items)}.\nPlease send your delivery address or say pickup.`;
+    return `Got it: ${orderItemsSummary(items)}.\nPlease send your delivery, pickup, appointment, or job details.`;
   }
 
   const total = Number(expectedTotal || orderTotal(items) || 0) || null;
   const paymentInstructions = String(connection.payment_instructions || "").trim();
   const lines = [
-    "Order confirmed.",
-    `Order code: ${orderCode}`,
+    "Request confirmed.",
+    `Reference: ${orderCode}`,
     `Items: ${orderItemsSummary(items)}`,
-    `Delivery: ${deliveryAddress}`,
+    `Fulfillment details: ${deliveryAddress}`,
   ];
-  if (deliveryFee) lines.push(`Delivery fee: ${formatNaira(Number(deliveryFee))}`);
+  if (deliveryFee) lines.push(`Delivery/service fee: ${formatNaira(Number(deliveryFee))}`);
   if (total) lines.push(`Total: ${formatNaira(total)}`);
   if (paymentMethod) lines.push(`Payment: ${paymentMethod}`);
   if (paymentInstructions) {
-    lines.push("Payment details:", paymentInstructions, `Please reply paid after payment and include order code ${orderCode}.`);
+    lines.push("Payment details:", paymentInstructions, `Please reply paid after payment and include reference ${orderCode}.`);
   } else {
     lines.push("Payment details are not configured yet. A staff member will send payment instructions.");
   }

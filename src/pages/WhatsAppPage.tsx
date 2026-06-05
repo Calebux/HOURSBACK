@@ -128,7 +128,7 @@ export default function WhatsAppPage() {
       const selected = (data?.connections || []).find((item: KapsoConnection) => item.connection_type === connectionType) || data?.connection;
       setPhoneNumberId(selected?.phone_number_id || '');
       setPhoneNumber(selected?.phone_number || '');
-      setDisplayName(selected?.display_name || (connectionType === 'customer' ? 'Customer Orders' : 'Internal Operations'));
+      setDisplayName(selected?.display_name || (connectionType === 'customer' ? 'Customer Requests' : 'Internal Operations'));
       setCustomerMenu(selected?.customer_menu || '');
       setPaymentInstructions(selected?.payment_instructions || '');
       setOwnerNotificationNumber(selected?.owner_notification_number || '');
@@ -450,7 +450,7 @@ export default function WhatsAppPage() {
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-400"
-                placeholder={connectionType === 'customer' ? 'Customer Orders' : 'Internal Operations'}
+                placeholder={connectionType === 'customer' ? 'Customer Requests' : 'Internal Operations'}
               />
             </label>
             <label className="sm:col-span-1">

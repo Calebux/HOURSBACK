@@ -87,7 +87,7 @@ serve(async (req) => {
           connection_type: "customer",
           phone_number_id: existing?.phone_number_id || null,
           phone_number: existing?.phone_number || null,
-          display_name: existing?.display_name || "Customer Orders",
+          display_name: existing?.display_name || "Customer Requests",
           status: existing?.phone_number_id ? "connected" : "settings_saved",
           webhook_secret_set: !!KAPSO_WEBHOOK_SECRET,
           customer_menu: customerMenu || null,
@@ -150,13 +150,72 @@ serve(async (req) => {
       if (connection?.phone_number_id && order.customer_phone) {
         const items = Array.isArray(order.items)
           ? order.items.map((item: any) => `${item.qty ? `${item.qty} x ` : ""}${item.name}`).join(", ")
-          : "your order";
+          : "your request";
         const message = [
           "Payment received. Thank you.",
-          `Order: ${items}`,
-          deliveryNote || "Your delivery will be sent out shortly. We will update you if anything changes.",
+          `Request: ${items}`,
+          deliveryNote || "We are processing your request now and will update you if anything changes.",
         ].join("\n");
         await sendKapsoText(connection.phone_number_id, order.customer_phone, message);
+        messageSent = true;
+      }
+
+      return new Response(JSON.stringify({ success: true, order: updatedOrder, message_sent: messageSent }), { headers: corsHeaders });
+    }
+
+    if (action === "reject_order_payment") {
+      const orderId = String(body.order_id || "").trim();
+      if (!orderId) {
+        return new Response(JSON.stringify({ error: "order_id is required" }), { status: 400, headers: corsHeaders });
+      }
+
+      const { data: order, error: orderError } = await supabase
+        .from("kapso_orders")
+        .select("*")
+        .eq("id", orderId)
+        .eq("user_id", user.id)
+        .single();
+      if (orderError) throw orderError;
+
+      const { data: connection, error: connectionError } = await supabase
+        .from("kapso_connections")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("connection_type", "customer")
+        .maybeSingle();
+      if (connectionError) throw connectionError;
+
+      const now = new Date().toISOString();
+      const existingNotes = String(order.owner_notes || "").trim();
+      const ownerNotes = [existingNotes, `Payment receipt rejected at ${now}; customer asked to resend proof.`]
+        .filter(Boolean)
+        .join("\n");
+      const { data: updatedOrder, error: updateError } = await supabase
+        .from("kapso_orders")
+        .update({
+          payment_status: "unpaid",
+          payment_verified_at: null,
+          paid_at: null,
+          owner_notes: ownerNotes,
+          updated_at: now,
+        })
+        .eq("id", order.id)
+        .eq("user_id", user.id)
+        .select("*")
+        .single();
+      if (updateError) throw updateError;
+
+      let messageSent = false;
+      if (connection?.phone_number_id && order.customer_phone) {
+        const items = Array.isArray(order.items)
+          ? order.items.map((item: any) => `${item.qty ? `${item.qty} x ` : ""}${item.name}`).join(", ")
+          : "your request";
+        await sendKapsoText(connection.phone_number_id, order.customer_phone, [
+          "We could not verify the payment receipt yet.",
+          `Request: ${items}`,
+          order.order_code ? `Reference: ${order.order_code}` : null,
+          "Please resend a clear receipt or contact staff for help.",
+        ].filter(Boolean).join("\n"));
         messageSent = true;
       }
 
@@ -198,7 +257,7 @@ serve(async (req) => {
       if (!orderId) {
         return new Response(JSON.stringify({ error: "order_id is required" }), { status: 400, headers: corsHeaders });
       }
-      if (!["preparing", "out_for_delivery", "delivered"].includes(fulfillmentStatus)) {
+      if (!["preparing", "ready_for_pickup", "out_for_delivery", "delivered", "completed"].includes(fulfillmentStatus)) {
         return new Response(JSON.stringify({ error: "Invalid fulfillment_status" }), { status: 400, headers: corsHeaders });
       }
 
@@ -223,7 +282,7 @@ serve(async (req) => {
         fulfillment_status: fulfillmentStatus,
         updated_at: now,
       };
-      if (fulfillmentStatus === "delivered") {
+      if (["delivered", "completed"].includes(fulfillmentStatus)) {
         updatePayload.status = "fulfilled";
         updatePayload.fulfilled_at = now;
       }
@@ -241,15 +300,17 @@ serve(async (req) => {
       if (connection?.phone_number_id && order.customer_phone) {
         const items = Array.isArray(order.items)
           ? order.items.map((item: any) => `${item.qty ? `${item.qty} x ` : ""}${item.name}`).join(", ")
-          : "your order";
+          : "your request";
         const statusLine = fulfillmentStatus === "preparing"
-          ? "Your order is now being prepared."
-          : fulfillmentStatus === "out_for_delivery"
-            ? "Your order is out for delivery."
-            : "Your order has been marked delivered. Thank you.";
+          ? "Your request is now being prepared."
+          : fulfillmentStatus === "ready_for_pickup"
+            ? "Your request is ready for pickup."
+            : fulfillmentStatus === "out_for_delivery"
+              ? "Your request is out for delivery."
+              : "Your request has been completed. Thank you.";
         await sendKapsoText(connection.phone_number_id, order.customer_phone, [
           statusLine,
-          `Order: ${items}`,
+          `Request: ${items}`,
         ].join("\n"));
         messageSent = true;
       }
