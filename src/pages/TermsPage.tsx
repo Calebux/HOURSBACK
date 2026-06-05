@@ -12,7 +12,7 @@ export default function TermsPage() {
 
       <div className="container mx-auto px-6 py-16 max-w-3xl">
         <h1 className="text-4xl font-bold mb-2">Terms of Service</h1>
-        <p className="text-brand-dark/50 mb-12">Last updated: March 2026</p>
+        <p className="text-brand-dark/50 mb-12">Last updated: June 2026</p>
 
         <div className="space-y-8 text-brand-dark/80 leading-relaxed">
 
@@ -23,7 +23,7 @@ export default function TermsPage() {
 
           <section>
             <h2 className="text-xl font-semibold text-brand-dark mb-3">2. Description of Service</h2>
-            <p>Hoursback provides AI-powered workflow automation tools that monitor data sources and deliver insights to your email inbox. We use third-party AI providers (Anthropic Claude) to process your data and generate reports.</p>
+            <p>Hoursback provides AI-powered workflow automation tools that capture business activity from data sources, WhatsApp, uploads, and manual entries, then turn that activity into operations, reports, summaries, and customer/staff replies. We use third-party providers, including Anthropic Claude, Supabase, Kapso, Resend, Flutterwave, and analytics tools, to operate the service.</p>
           </section>
 
           <section>
@@ -32,6 +32,7 @@ export default function TermsPage() {
               <li>You must provide a valid email address to create an account.</li>
               <li>You are responsible for maintaining the security of your account credentials.</li>
               <li>You may not share your account with others or use it for any unlawful purpose.</li>
+              <li>You are responsible for making sure any WhatsApp number, customer data, receipt, media file, or business data you connect or process through Hoursback is used with proper authority and consent.</li>
               <li>You must be at least 18 years old to use this service.</li>
             </ul>
           </section>
@@ -42,6 +43,8 @@ export default function TermsPage() {
             <ul className="list-disc pl-6 mt-2 space-y-1">
               <li>Monitor or scrape websites in violation of their terms of service.</li>
               <li>Process or collect personal data without appropriate consent.</li>
+              <li>Use WhatsApp automation to send spam, misleading messages, unauthorised marketing, illegal content, or messages that violate WhatsApp/Kapso policies.</li>
+              <li>Upload payment proof, receipts, or customer media that you do not have permission to process.</li>
               <li>Attempt to reverse-engineer, hack, or disrupt the platform.</li>
               <li>Use the service for any illegal activity.</li>
               <li>Resell or redistribute the service without written permission.</li>
@@ -52,7 +55,9 @@ export default function TermsPage() {
             <h2 className="text-xl font-semibold text-brand-dark mb-3">5. Subscriptions and Billing</h2>
             <ul className="list-disc pl-6 space-y-1">
               <li>The Free plan is available at no cost with access to selected workflows.</li>
+              <li>Free accounts may be limited to starter workflows, basic capture/testing, limited AI usage, and limited WhatsApp setup/testing.</li>
               <li>The Pro plan is billed monthly at ₦9,900/month or ₦7,900/month (billed annually at ₦94,800/year). All prices are in Nigerian Naira (NGN) and charged via Flutterwave.</li>
+              <li>Pro accounts unlock customer-facing WhatsApp request handling, receipt workflows, photo scanning, recurring summaries, reports, PDF/email delivery, and expanded AI usage, subject to fair-use limits and abuse prevention.</li>
               <li>Payments are non-refundable except where required by law.</li>
               <li>We reserve the right to change pricing with 30 days notice.</li>
               <li>Your Pro access continues until your subscription period ends.</li>
@@ -61,7 +66,7 @@ export default function TermsPage() {
 
           <section>
             <h2 className="text-xl font-semibold text-brand-dark mb-3">6. AI-Generated Content</h2>
-            <p>Hoursback uses AI to generate workflow reports and insights. These outputs are provided for informational purposes only. We do not guarantee the accuracy, completeness, or fitness for any particular purpose of AI-generated content. You should not rely solely on our reports for financial, legal, or business-critical decisions.</p>
+            <p>Hoursback uses AI to generate workflow reports, summaries, structured records, and customer/staff message drafts or replies. These outputs are provided for informational and operational assistance only. We do not guarantee the accuracy, completeness, or fitness for any particular purpose of AI-generated content. You are responsible for reviewing important replies, receipts, payment verification, refunds, legal decisions, financial decisions, and business-critical actions.</p>
           </section>
 
           <section>

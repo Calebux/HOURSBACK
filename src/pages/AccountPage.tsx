@@ -9,6 +9,7 @@ import { UserAvatar } from '../components/UserAvatar';
 import { ProUpgradeButton } from '../components/ProUpgradeButton';
 import { toast } from 'sonner';
 import type { BusinessProfile } from '../components/OnboardingModal';
+import { BILLING_LIMITS } from '../lib/billing';
 
 interface Profile {
   subscription_status: string;
@@ -147,7 +148,7 @@ export default function AccountPage() {
                   </p>
                 )}
                 {!isProStatus && (
-                  <p className="text-xs text-slate-500 mt-0.5">3 free workflows · upgrade to unlock all 15</p>
+                  <p className="text-xs text-slate-500 mt-0.5">Starter access · upgrade for customer WhatsApp, scanner, reports, and expanded AI usage</p>
                 )}
               </div>
             </div>
@@ -232,6 +233,28 @@ export default function AccountPage() {
         )}
 
         {/* Quick links */}
+        <div className="bg-white rounded-2xl border border-brand-dark/10 shadow-sm p-6 mb-4">
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <div>
+              <p className="text-sm font-semibold text-slate-700">Plan limits</p>
+              <p className="mt-1 text-xs text-slate-400">Clear boundaries before launch and customer traffic.</p>
+            </div>
+            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${isProStatus ? 'bg-purple-50 text-purple-700' : 'bg-slate-100 text-slate-600'}`}>
+              {isProStatus ? BILLING_LIMITS.pro.label : BILLING_LIMITS.free.label}
+            </span>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {Object.entries(isProStatus ? BILLING_LIMITS.pro : BILLING_LIMITS.free)
+              .filter(([key]) => key !== 'label')
+              .map(([key, value]) => (
+                <div key={key} className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{key.replace(/([A-Z])/g, ' $1')}</p>
+                  <p className="mt-1 text-xs text-slate-600">{value}</p>
+                </div>
+              ))}
+          </div>
+        </div>
+
         <div className="bg-white rounded-2xl border border-brand-dark/10 shadow-sm divide-y divide-slate-100 mb-4">
           <Link to="/workflows" className="flex items-center justify-between px-6 py-4 hover:bg-slate-50 transition-colors">
             <div className="flex items-center gap-3">

@@ -4,6 +4,7 @@ import { X, Mail, Lock, Loader2, AlertCircle, User as UserIcon } from 'lucide-re
 import { supabase } from '../lib/supabase';
 import { validatePassword } from '../lib/validation';
 import { toast } from 'sonner';
+import { track } from '../lib/analytics';
 
 interface AuthModalProps {
     isOpen: boolean;
@@ -58,6 +59,7 @@ export function AuthModal({ isOpen, onClose, defaultView = 'signin' }: AuthModal
                     }
                 });
                 if (signUpError) throw signUpError;
+                track('signup', { provider: 'email' });
 
                 // If session is null, it means email confirmation is required
                 if (signUpData.user && signUpData.session === null) {
@@ -81,6 +83,7 @@ export function AuthModal({ isOpen, onClose, defaultView = 'signin' }: AuthModal
                 });
 
                 if (signInError) throw signInError;
+                track('signin', { provider: 'email' });
                 onClose();
             }
         } catch (err: unknown) {

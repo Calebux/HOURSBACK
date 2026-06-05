@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { MobileNav } from '../components/MobileNav';
+import { track } from '../lib/analytics';
 
 interface KapsoConnection {
   id: string;
@@ -169,6 +170,7 @@ export default function WhatsAppPage() {
       return;
     }
     mergeSavedConnection(data.connection);
+    track('whatsapp_setup_link_created', { connection_type: connectionType });
     toast.success('WhatsApp setup link created');
   };
 
@@ -218,6 +220,12 @@ export default function WhatsAppPage() {
       return;
     }
     mergeSavedConnection(data.connection);
+    track('whatsapp_connection_saved', {
+      connection_type: connectionType,
+      has_customer_menu: !!customerMenu.trim(),
+      has_payment_instructions: !!paymentInstructions.trim(),
+      has_fulfillment_rules: !!fulfillmentRules.trim(),
+    });
     toast.success('WhatsApp connection saved');
   };
 
@@ -242,6 +250,12 @@ export default function WhatsAppPage() {
       return;
     }
     mergeSavedConnection(data.connection);
+    track('whatsapp_customer_settings_saved', {
+      has_customer_menu: !!customerMenu.trim(),
+      has_payment_instructions: !!paymentInstructions.trim(),
+      has_fulfillment_rules: !!fulfillmentRules.trim(),
+      has_owner_notification_number: !!ownerNotificationNumber.trim(),
+    });
     toast.success('Customer reply settings saved');
   };
 

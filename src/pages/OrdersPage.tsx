@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { CheckCircle2, ChevronLeft, MessageCircle, RefreshCw, XCircle } from 'lucide-react';
+import { CheckCircle2, ChevronLeft, Download, MessageCircle, RefreshCw, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { MobileNav } from '../components/MobileNav';
+import { track } from '../lib/analytics';
 
 interface Order {
   id: string;
@@ -92,6 +93,10 @@ function money(amount: number | string | null | undefined) {
   return value > 0 ? `₦${value.toLocaleString('en-NG')}` : null;
 }
 
+function csvEscape(value: string) {
+  return `"${value.replace(/"/g, '""')}"`;
+}
+
 export default function OrdersPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -146,6 +151,10 @@ export default function OrdersPage() {
     } else {
       toast.success('Payment confirmed and customer notified');
     }
+    track('customer_order_verified', {
+      order_id: orderId,
+      message_sent: data?.message_sent !== false,
+    });
     await loadOrders();
   };
 
@@ -322,6 +331,54 @@ export default function OrdersPage() {
 
   const actionLabel = (action: string) => action.replace(/_/g, ' ');
 
+  const exportOrders = () => {
+    const rows = [
+      [
+        'Date',
+        'Reference',
+        'Customer',
+        'Phone',
+        'Type',
+        'Status',
+        'Payment status',
+        'Fulfillment',
+        'Items',
+        'Fulfillment details',
+        'Payment method',
+        'Expected total',
+        'Customer paid',
+        'Receipt status',
+        'Owner notes',
+      ],
+      ...filtered.map((order) => [
+        new Date(order.created_at).toISOString(),
+        order.order_code || '',
+        order.customer_name || '',
+        order.customer_phone || '',
+        requestType(order),
+        order.status,
+        order.payment_status || 'unpaid',
+        order.fulfillment_status || 'new',
+        itemSummary(order.items),
+        order.delivery_address || '',
+        order.payment_method || '',
+        String(order.owner_adjusted_total_amount || order.expected_total_amount || orderTotal(order.items) || ''),
+        String(order.payment_claimed_amount || ''),
+        order.receipt_storage_status || '',
+        order.owner_notes || '',
+      ]),
+    ];
+    const csv = rows.map((row) => row.map((cell) => csvEscape(String(cell))).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `hoursback-customer-requests-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    track('customer_orders_exported', { rows: filtered.length, filter: filter || 'all' });
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-brand-light flex items-center justify-center">
@@ -350,6 +407,15 @@ export default function OrdersPage() {
             <RefreshCw className="w-4 h-4" />
             Refresh
           </button>
+          {filtered.length > 0 && (
+            <button
+              onClick={exportOrders}
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-brand-dark border border-slate-200 px-3 py-1.5 rounded-lg transition-colors"
+            >
+              <Download className="w-4 h-4" />
+              Export CSV
+            </button>
+          )}
         </div>
       </div>
 

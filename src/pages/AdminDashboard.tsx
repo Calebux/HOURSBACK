@@ -1,10 +1,19 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ChevronLeft, LayoutDashboard, FileText, Users, Activity, Plus, Edit, Eye, Trash2, X } from 'lucide-react';
+import { AlertTriangle, ChevronLeft, LayoutDashboard, FileText, Users, Activity, Plus, Edit, Eye, Trash2, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { getProfile, fetchPlaybooks, getAdminStats, deletePlaybook } from '../lib/api';
 import type { Playbook } from '../data/playbooks';
 import { toast } from 'sonner';
+import { supabase } from '../lib/supabase';
+
+interface LaunchHealth {
+    recentMessages: number | null;
+    failedCustomerSends: number | null;
+    receiptStorageFailures: number | null;
+    stuckUnpaidRequests: number | null;
+    incompleteCustomerSetups: number | null;
+}
 
 export default function AdminDashboard() {
     const { user, signOut, isLoading: authLoading } = useAuth();
@@ -13,6 +22,13 @@ export default function AdminDashboard() {
     const [isAdmin, setIsAdmin] = useState(false);
     const [playbooks, setPlaybooks] = useState<Playbook[]>([]);
     const [stats, setStats] = useState<{ totalUsers: number | null; totalPlaybooks: number; totalCompletions: number | null }>({ totalUsers: null, totalPlaybooks: 0, totalCompletions: null });
+    const [launchHealth, setLaunchHealth] = useState<LaunchHealth>({
+        recentMessages: null,
+        failedCustomerSends: null,
+        receiptStorageFailures: null,
+        stuckUnpaidRequests: null,
+        incompleteCustomerSetups: null,
+    });
 
     useEffect(() => {
         if (authLoading) return;
@@ -27,13 +43,40 @@ export default function AdminDashboard() {
                 const profile = await getProfile(user.id, user.email || '');
                 setIsAdmin(!!profile?.is_admin);
 
-                const [fetchedStats, fetchedPlaybooks] = await Promise.all([
+                const twoDaysAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+                const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+                const [
+                    fetchedStats,
+                    fetchedPlaybooks,
+                    recentMessages,
+                    failedSends,
+                    receiptFailures,
+                    stuckUnpaid,
+                    incompleteSetups,
+                ] = await Promise.all([
                     getAdminStats(),
-                    fetchPlaybooks()
+                    fetchPlaybooks(),
+                    supabase.from('kapso_messages').select('id', { count: 'exact', head: true }).gte('created_at', oneDayAgo),
+                    supabase.from('kapso_order_audit_logs').select('id', { count: 'exact', head: true }).eq('message_sent', false).gte('created_at', oneDayAgo),
+                    supabase.from('kapso_orders').select('id', { count: 'exact', head: true }).eq('receipt_storage_status', 'failed'),
+                    supabase.from('kapso_orders').select('id', { count: 'exact', head: true }).eq('status', 'confirmed').eq('payment_status', 'unpaid').lt('created_at', twoDaysAgo),
+                    supabase
+                        .from('kapso_connections')
+                        .select('id', { count: 'exact', head: true })
+                        .eq('connection_type', 'customer')
+                        .or('phone_number_id.is.null,customer_menu.is.null,payment_instructions.is.null,fulfillment_rules.is.null'),
                 ]);
 
                 setStats(fetchedStats);
                 setPlaybooks(fetchedPlaybooks);
+                setLaunchHealth({
+                    recentMessages: recentMessages.error ? null : recentMessages.count ?? 0,
+                    failedCustomerSends: failedSends.error ? null : failedSends.count ?? 0,
+                    receiptStorageFailures: receiptFailures.error ? null : receiptFailures.count ?? 0,
+                    stuckUnpaidRequests: stuckUnpaid.error ? null : stuckUnpaid.count ?? 0,
+                    incompleteCustomerSetups: incompleteSetups.error ? null : incompleteSetups.count ?? 0,
+                });
             } catch (err) {
                 console.error('Error loading admin dashboard:', err);
             } finally {
@@ -150,6 +193,51 @@ export default function AdminDashboard() {
                         <div>
                             <p className="text-sm text-slate-500 font-medium tracking-wide uppercase">Total Completions</p>
                             <p className="text-3xl font-bold">{stats.totalCompletions != null ? stats.totalCompletions.toLocaleString() : '—'}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-white rounded-3xl border border-brand-dark/10 shadow-antigravity-md p-6 mb-12">
+                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-5">
+                        <div>
+                            <h2 className="text-xl font-semibold">Launch Health</h2>
+                            <p className="mt-1 text-sm text-slate-500">
+                                Operational checks for customer WhatsApp rollout. Kapso delivery 401/500 alerts still need to be watched in Kapso and Supabase Edge Function logs.
+                            </p>
+                        </div>
+                        <Link to="/orders" className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50">
+                            Open Orders
+                        </Link>
+                    </div>
+                    <div className="grid md:grid-cols-5 gap-3">
+                        {[
+                            ['Messages 24h', launchHealth.recentMessages, 'Recent inbound/outbound WhatsApp rows.'],
+                            ['Failed sends 24h', launchHealth.failedCustomerSends, 'Owner actions where customer message was not sent.'],
+                            ['Receipt failures', launchHealth.receiptStorageFailures, 'Receipts received but not saved for review.'],
+                            ['Stuck unpaid', launchHealth.stuckUnpaidRequests, 'Confirmed unpaid requests older than 48 hours.'],
+                            ['Incomplete setup', launchHealth.incompleteCustomerSetups, 'Customer channels missing launch fields.'],
+                        ].map(([label, value, help]) => {
+                            const count = typeof value === 'number' ? value : null;
+                            const risky = label !== 'Messages 24h' && count != null && count > 0;
+                            return (
+                                <div key={String(label)} className={`rounded-2xl border p-4 ${risky ? 'border-amber-200 bg-amber-50' : 'border-slate-100 bg-slate-50'}`}>
+                                    <div className="flex items-center justify-between gap-2">
+                                        <p className="text-xs font-semibold text-slate-500">{label}</p>
+                                        {risky && <AlertTriangle className="h-4 w-4 text-amber-600" />}
+                                    </div>
+                                    <p className="mt-2 text-2xl font-bold text-brand-dark">{count == null ? '—' : count}</p>
+                                    <p className="mt-1 text-[11px] leading-relaxed text-slate-500">{help}</p>
+                                </div>
+                            );
+                        })}
+                    </div>
+                    <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                        <p className="text-sm font-semibold text-brand-dark">Support workflow</p>
+                        <div className="mt-2 grid gap-2 md:grid-cols-2 text-xs leading-relaxed text-slate-600">
+                            <p>Setup fails: verify Kapso API key, phone number ID, webhook URL, webhook secret, and connection mode.</p>
+                            <p>Receipt missing: ask the customer to resend the receipt with the request reference.</p>
+                            <p>AI reply is wrong: update catalogue, payment instructions, fulfillment rules, and escalation instructions, then retest.</p>
+                            <p>Payment dispute/refund: handle manually and record notes on the request. Refunds are not automated.</p>
                         </div>
                     </div>
                 </div>

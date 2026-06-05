@@ -12,7 +12,7 @@ export default function PrivacyPage() {
 
       <div className="container mx-auto px-6 py-16 max-w-3xl">
         <h1 className="text-4xl font-bold mb-2">Privacy Policy</h1>
-        <p className="text-brand-dark/50 mb-12">Last updated: March 2026</p>
+        <p className="text-brand-dark/50 mb-12">Last updated: June 2026</p>
 
         <div className="prose prose-slate max-w-none space-y-8 text-brand-dark/80 leading-relaxed">
 
@@ -22,6 +22,8 @@ export default function PrivacyPage() {
             <ul className="list-disc pl-6 mt-2 space-y-1">
               <li><strong>Account data:</strong> Your email address and name when you sign up.</li>
               <li><strong>Workflow data:</strong> URLs, keywords, and data sources you configure for your workflows.</li>
+              <li><strong>WhatsApp and customer request data:</strong> Messages, phone numbers, customer names, order or service request details, payment status, delivery or appointment details, and related operational notes received through connected WhatsApp channels.</li>
+              <li><strong>Receipt and media data:</strong> Payment proof, receipt screenshots, documents, and related metadata that you or your customers send for review.</li>
               <li><strong>Usage data:</strong> How you interact with the platform, which workflows you deploy, and how often they run.</li>
               <li><strong>Payment data:</strong> Payment is processed by Flutterwave. We do not store your card details.</li>
               <li><strong>Uploaded files:</strong> Excel or CSV files you upload as data sources are stored securely in Supabase Storage.</li>
@@ -32,6 +34,8 @@ export default function PrivacyPage() {
             <h2 className="text-xl font-semibold text-brand-dark mb-3">2. How We Use Your Information</h2>
             <ul className="list-disc pl-6 space-y-1">
               <li>To run your AI workflows and deliver results to your inbox.</li>
+              <li>To process WhatsApp messages, customer requests, receipts, sales logs, and owner/staff operational updates.</li>
+              <li>To generate AI-assisted replies, summaries, reports, and structured business records based on the information you configure.</li>
               <li>To send you workflow reports and product notifications via email.</li>
               <li>To improve our AI outputs based on your feedback.</li>
               <li>To manage your subscription and process payments.</li>
@@ -44,21 +48,22 @@ export default function PrivacyPage() {
             <p>We do not sell your personal data. We share data only with the following service providers who help us operate the platform:</p>
             <ul className="list-disc pl-6 mt-2 space-y-1">
               <li><strong>Supabase</strong> — database and file storage</li>
+              <li><strong>Kapso</strong> — WhatsApp messaging, webhook delivery, and connected phone-number infrastructure</li>
               <li><strong>Anthropic (Claude)</strong> — AI processing of your workflow data</li>
               <li><strong>Resend</strong> — email delivery</li>
               <li><strong>Flutterwave</strong> — payment processing</li>
-              <li><strong>PostHog</strong> — product analytics (anonymised usage data)</li>
+              <li><strong>PostHog</strong> — product analytics, onboarding milestones, and usage event tracking</li>
             </ul>
           </section>
 
           <section>
             <h2 className="text-xl font-semibold text-brand-dark mb-3">4. Data Retention</h2>
-            <p>We retain your account and workflow data for as long as your account is active. Workflow run results are retained for up to 90 days. Uploaded files are retained until you delete your account or remove the workflow. You may request deletion of your data at any time by contacting us.</p>
+            <p>We retain your account, workflow, WhatsApp, sales log, customer request, and receipt data for as long as your account is active or as needed to provide the service. Workflow run results are retained for up to 90 days unless needed for your account history. Uploaded files, receipt screenshots, and media are retained until you delete the related record, delete your account, or request removal. You may request deletion of your data at any time by contacting us.</p>
           </section>
 
           <section>
             <h2 className="text-xl font-semibold text-brand-dark mb-3">5. Security</h2>
-            <p>We use industry-standard security measures including encrypted connections (TLS), row-level security in our database, and secure environment variable management. We do not store raw payment credentials.</p>
+            <p>We use industry-standard security measures including encrypted connections (TLS), row-level security in our database, signed receipt links, webhook signature verification, and secure environment variable management. We do not store raw payment credentials. Receipt images and customer messages may contain personal data, so you should only connect WhatsApp numbers and upload data you are authorised to process.</p>
           </section>
 
           <section>

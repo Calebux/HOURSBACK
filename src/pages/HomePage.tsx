@@ -21,6 +21,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { MobileNav } from '../components/MobileNav';
 import { UserAvatar } from '../components/UserAvatar';
+import { track } from '../lib/analytics';
 
 interface BotEntry {
   entry_type: string;
@@ -290,6 +291,31 @@ export default function HomePage() {
     return { steps, nextIndex, completed };
   }, [connections, requests]);
 
+  useEffect(() => {
+    if (!user) return;
+    const emitOnce = (key: string, event: string, props: Record<string, string | number | boolean> = {}) => {
+      const storageKey = `hb_analytics_${user.id}_${key}`;
+      if (localStorage.getItem(storageKey)) return;
+      track(event, props);
+      localStorage.setItem(storageKey, new Date().toISOString());
+    };
+
+    if (connections.some((connection) => connection.last_webhook_at)) {
+      emitOnce('first_webhook_received', 'first_webhook_received');
+    }
+    if (requests.length > 0) {
+      emitOnce('first_customer_order', 'first_customer_order');
+    }
+    if (requests.some((request) => request.payment_status === 'receipt_sent' || request.payment_status === 'verified')) {
+      emitOnce('first_receipt_received', 'first_receipt_received');
+    }
+    if (customerLaunchSteps.completed === customerLaunchSteps.steps.length) {
+      emitOnce('customer_launch_checklist_completed', 'customer_launch_checklist_completed', {
+        steps: customerLaunchSteps.steps.length,
+      });
+    }
+  }, [connections, customerLaunchSteps, requests, user]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-brand-light flex items-center justify-center">
@@ -382,6 +408,11 @@ export default function HomePage() {
                 <Link
                   key={step.title}
                   to={step.to}
+                  onClick={() => track('customer_launch_checklist_clicked', {
+                    step: step.title,
+                    done: step.done,
+                    next: isNext,
+                  })}
                   className={`rounded-2xl border p-4 transition ${
                     step.done
                       ? 'border-emerald-100 bg-emerald-50/60'

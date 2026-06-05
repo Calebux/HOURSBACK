@@ -4,6 +4,7 @@ import type { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { getProfile } from '../lib/api';
 import posthog from 'posthog-js';
+import { track } from '../lib/analytics';
 
 interface AuthContextType {
     user: User | null;
@@ -61,6 +62,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 refreshPro(session.user.id, session.user.email);
                 if (event === 'SIGNED_IN') {
                     posthog.identify(session.user.id, { email: session.user.email });
+                    track('signin', { provider: session.user.app_metadata?.provider || 'unknown' });
                 }
             } else {
                 setIsPro(false);
