@@ -1299,11 +1299,11 @@ async function getDailyTotals(supabase: any, userId: string, timeZone?: string) 
   const start = getTodayStart(timeZone);
   const { data: entries } = await supabase
     .from("bot_entries")
-    .select("entry_type, parsed_data, created_at")
+    .select("entry_type, parsed_data, sale_date, created_at")
     .eq("user_id", userId)
-    .gte("created_at", start.toISOString());
+    .or(`created_at.gte.${start.toISOString()},sale_date.gte.${start.toISOString()}`);
 
-  const rows = entries || [];
+  const rows = (entries || []).filter((entry: any) => entryDate(entry) >= start);
   return {
     entries: rows.length,
     sales: rows
@@ -1425,12 +1425,12 @@ async function getTodayBusinessMetrics(supabase: any, userId: string, timeZone?:
   const start = getTodayStart(timeZone);
   const { data: entries } = await supabase
     .from("bot_entries")
-    .select("entry_type, parsed_data, triggered_by, created_at")
+    .select("entry_type, parsed_data, triggered_by, sale_date, created_at")
     .eq("user_id", userId)
-    .gte("created_at", start.toISOString())
+    .or(`created_at.gte.${start.toISOString()},sale_date.gte.${start.toISOString()}`)
     .order("created_at", { ascending: false });
 
-  const rows = entries || [];
+  const rows = (entries || []).filter((entry: any) => entryDate(entry) >= start);
   const sales = rows.filter((e: any) => e.entry_type === "sale");
   const expenses = rows.filter((e: any) => e.entry_type === "expense");
   const totalSales = sales.reduce((sum: number, e: any) => sum + Number(e.parsed_data?.total || 0), 0);
@@ -1555,28 +1555,49 @@ function markdownToEmailHtml(markdown: string) {
   return html.join("\n");
 }
 
-function parseReportRange(text: string) {
+function getZonedDateParts(date: Date, timeZone = "Africa/Lagos") {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return {
+    year: Number(value.year),
+    month: Number(value.month),
+    day: Number(value.day),
+  };
+}
+
+function zonedStartOfDay(date: Date, timeZone = "Africa/Lagos") {
+  const { year, month, day } = getZonedDateParts(date, timeZone);
+  if (timeZone === "Africa/Lagos") {
+    return new Date(Date.UTC(year, month - 1, day, -1, 0, 0));
+  }
+  return new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
+}
+
+function parseReportRange(text: string, timeZone = "Africa/Lagos") {
   const now = new Date();
   const end = new Date(now);
-  const start = new Date(now);
+  const start = zonedStartOfDay(now, timeZone);
   let label = "Today";
 
   if (/\b(yesterday)\b/i.test(text)) {
-    start.setDate(now.getDate() - 1);
-    start.setHours(0, 0, 0, 0);
-    end.setDate(now.getDate() - 1);
-    end.setHours(23, 59, 59, 999);
+    start.setUTCDate(start.getUTCDate() - 1);
+    end.setTime(start.getTime() + 24 * 60 * 60 * 1000 - 1);
     label = "Yesterday";
   } else if (/\b(week|weekly|last 7 days|7 days)\b/i.test(text)) {
-    start.setDate(now.getDate() - 6);
-    start.setHours(0, 0, 0, 0);
+    start.setUTCDate(start.getUTCDate() - 6);
     label = "Last 7 days";
   } else if (/\b(month|monthly|this month)\b/i.test(text)) {
-    start.setDate(1);
-    start.setHours(0, 0, 0, 0);
+    const { year, month } = getZonedDateParts(now, timeZone);
+    start.setTime(timeZone === "Africa/Lagos"
+      ? Date.UTC(year, month - 1, 1, -1, 0, 0)
+      : Date.UTC(year, month - 1, 1, 0, 0, 0));
     label = "This month";
   } else {
-    start.setHours(0, 0, 0, 0);
     label = "Today";
   }
 
@@ -1587,8 +1608,8 @@ function entryDate(entry: any) {
   return new Date(entry.sale_date || entry.created_at);
 }
 
-async function collectReportMetrics(supabase: any, userId: string, text: string) {
-  const range = parseReportRange(text);
+async function collectReportMetrics(supabase: any, userId: string, text: string, timeZone?: string) {
+  const range = parseReportRange(text, timeZone);
   const lowerBound = range.start.toISOString();
 
   const { data: entries, error } = await supabase
@@ -1821,7 +1842,13 @@ async function sendReportEmail(supabase: any, userId: string, subject: string, o
     }),
   });
   if (!res.ok) {
-    console.error("WhatsApp report email failed:", await res.text());
+    const errorBody = await res.text();
+    console.error("WhatsApp report email failed:", errorBody);
+    await logAnalyticsEvent(supabase, userId, "report_email_failed", {
+      status: res.status,
+      subject,
+      error: errorBody.slice(0, 500),
+    });
     return false;
   }
   return true;
@@ -1831,7 +1858,7 @@ async function generateWhatsAppBusinessReport(supabase: any, connection: any, te
   const reportType = looksLikeProfitAndLossQuestion(text) ? "profit_and_loss" : "sales_summary";
   const wantsEmail = /\b(email|mail|inbox)\b/i.test(text);
   const wantsPdf = /\b(pdf|document|download)\b/i.test(text);
-  const metrics = await collectReportMetrics(supabase, connection.user_id, text);
+  const metrics = await collectReportMetrics(supabase, connection.user_id, text, connection.business_timezone);
   if (!metrics.rows.length) {
     return [
       `I found no records for ${metrics.range.label.toLowerCase()}.`,
@@ -1877,6 +1904,9 @@ serve(async (req) => {
     const payload = JSON.parse(rawBody);
     if (!KAPSO_WEBHOOK_SECRET && !KAPSO_ALLOW_UNSIGNED_WEBHOOKS) {
       console.error("Kapso webhook rejected: KAPSO_WEBHOOK_SECRET is not configured");
+      await logAnalyticsEvent(supabase, null, "webhook_missing_secret", {
+        has_allow_unsigned: KAPSO_ALLOW_UNSIGNED_WEBHOOKS,
+      });
       return new Response(JSON.stringify({ error: "Webhook signature secret is not configured" }), { status: 500, headers });
     }
     const signature = firstString(
@@ -1887,6 +1917,10 @@ serve(async (req) => {
     const isValid = await verifySignature(rawBody, signature || null);
     if (!isValid) {
       console.log("Kapso webhook rejected: invalid signature", { hasSignature: !!signature });
+      await logAnalyticsEvent(supabase, null, "webhook_invalid_signature", {
+        has_signature: !!signature,
+        event: firstString(req.headers.get("X-Webhook-Event"), payload?.event) || null,
+      });
       return new Response(JSON.stringify({ error: "Invalid signature" }), { status: 401, headers });
     }
 
@@ -2068,7 +2102,7 @@ serve(async (req) => {
             if (aiReply) {
               reply = aiReply;
             } else if (looksLikeWorkflowRequest(text)) {
-              reply = await saveWorkflowRequest(supabase, connection, message, text);
+              reply = "A staff member will help with that request.";
             } else if (looksLikeReceiptSubmission(text, message)) {
               reply = await markLatestOrderReceiptSent(supabase, connection, message, text, payload);
             } else if (looksLikePaymentConfirmation(text)) {
@@ -2200,6 +2234,13 @@ serve(async (req) => {
   } catch (err) {
     console.error("kapso-webhook error:", err);
     const message = err instanceof Error ? err.message : "Internal error";
+    try {
+      await logAnalyticsEvent(supabase, null, "webhook_function_error", {
+        error: message,
+      });
+    } catch (logErr) {
+      console.error("Failed to log webhook function error:", logErr);
+    }
     return new Response(JSON.stringify({ error: message }), { status: 500, headers });
   }
 });

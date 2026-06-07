@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { fetchWithTimeout, sanitizeUrl } from "../_shared/security.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,6 +8,30 @@ const corsHeaders = {
 };
 
 type ParsedCsvRow = Record<string, string>;
+
+const MAX_SOURCE_BYTES = 2 * 1024 * 1024;
+const MAX_LEDGER_IMPORT_ROWS = 5000;
+
+async function readLimitedText(response: Response) {
+  const contentLength = Number(response.headers.get("content-length") || 0);
+  if (contentLength > MAX_SOURCE_BYTES) {
+    throw new Error("Source is too large. Keep connected sheets under 2MB for import.");
+  }
+
+  const text = await response.text();
+  if (new TextEncoder().encode(text).byteLength > MAX_SOURCE_BYTES) {
+    throw new Error("Source is too large. Keep connected sheets under 2MB for import.");
+  }
+  return text;
+}
+
+function googleSheetCsvUrl(url: string) {
+  const parsed = new URL(url);
+  const match = parsed.pathname.match(/\/spreadsheets\/d\/([^/]+)/);
+  if (!match?.[1]) return null;
+  const gid = parsed.searchParams.get("gid") || parsed.hash.match(/gid=([0-9]+)/)?.[1] || "0";
+  return `https://docs.google.com/spreadsheets/d/${match[1]}/export?format=csv&gid=${encodeURIComponent(gid)}`;
+}
 
 function parseCsv(text: string): string[][] {
   const rows: string[][] = [];
@@ -177,6 +202,13 @@ serve(async (req) => {
 
   const { url, source_id, import_ledger } = await req.json();
   if (!url) return new Response(JSON.stringify({ error: "URL required" }), { status: 400, headers: corsHeaders });
+  const safeUrl = sanitizeUrl(url);
+  if (!safeUrl) {
+    return new Response(JSON.stringify({ ok: false, error: "Invalid or unsafe URL." }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   try {
     let preview = "";
@@ -185,17 +217,23 @@ serve(async (req) => {
     let importPreview: ReturnType<typeof previewEntry>[] = [];
     let importedEntries = 0;
 
-    if (url.includes("docs.google.com/spreadsheets")) {
+    if (safeUrl.includes("docs.google.com/spreadsheets")) {
       // Export as CSV
-      const csvUrl = url.replace(/\/edit.*$/, "/export?format=csv");
-      const res = await fetch(csvUrl, { signal: AbortSignal.timeout(10000) });
+      const csvUrl = googleSheetCsvUrl(safeUrl);
+      if (!csvUrl) {
+        return new Response(JSON.stringify({ ok: false, error: "Invalid Google Sheets URL." }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const res = await fetchWithTimeout(csvUrl, {}, 10000);
       if (!res.ok) {
         return new Response(JSON.stringify({
           ok: false,
           error: `Could not access sheet (HTTP ${res.status}). Make sure it is set to "Anyone with the link can view".`,
         }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
-      const text = await res.text();
+      const text = await readLimitedText(res);
       const lines = text.trim().split("\n").filter(Boolean);
       rowCount = Math.max(0, lines.length - 1); // minus header row
       preview = lines.slice(0, 4).join("\n");
@@ -213,7 +251,7 @@ serve(async (req) => {
           .filter("parsed_data->>data_source_id", "eq", source_id);
 
         if (entries.length) {
-          const rows = entries.map((entry) => ({
+          const rows = entries.slice(0, MAX_LEDGER_IMPORT_ROWS).map((entry) => ({
             user_id: user.id,
             chat_id: 0,
             triggered_by: "Data source import",
@@ -230,26 +268,26 @@ serve(async (req) => {
           importedEntries = rows.length;
         }
       }
-    } else if (url.includes("docs.google.com/document")) {
-      const exportUrl = url.replace(/\/edit.*$/, "/export?format=txt");
-      const res = await fetch(exportUrl, { signal: AbortSignal.timeout(10000) });
+    } else if (safeUrl.includes("docs.google.com/document")) {
+      const exportUrl = safeUrl.replace(/\/edit.*$/, "/export?format=txt");
+      const res = await fetchWithTimeout(exportUrl, {}, 10000);
       if (!res.ok) {
         return new Response(JSON.stringify({
           ok: false,
           error: `Could not access document (HTTP ${res.status}). Make sure sharing is set to "Anyone with the link".`,
         }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
-      const text = await res.text();
+      const text = await readLimitedText(res);
       preview = text.substring(0, 300);
     } else {
-      const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
+      const res = await fetchWithTimeout(safeUrl, {}, 10000);
       if (!res.ok) {
         return new Response(JSON.stringify({
           ok: false,
           error: `Could not access URL (HTTP ${res.status}).`,
         }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
-      const text = await res.text();
+      const text = await readLimitedText(res);
       preview = text.substring(0, 300);
     }
 
