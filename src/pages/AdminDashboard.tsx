@@ -11,6 +11,11 @@ import { BILLING_LIMITS } from '../lib/billing';
 interface LaunchHealth {
     webhookInvalidSignature1h: number | null;
     webhookErrors1h: number | null;
+    webhookRateLimited1h: number | null;
+    whatsappPlanLimited24h: number | null;
+    whatsappReportLimited24h: number | null;
+    whatsappAiLimited24h: number | null;
+    whatsappRoutingFailures24h: number | null;
     kapsoReplyFailures24h: number | null;
     reportEmailFailures24h: number | null;
     failedCustomerSends: number | null;
@@ -26,6 +31,7 @@ interface MigrationReadiness {
     analytics_events_table?: boolean;
     bot_entries_source_order_id?: boolean;
     source_order_id_unique_index?: boolean;
+    whatsapp_scale_indexes?: boolean;
 }
 
 type SupportRow = Record<string, unknown>;
@@ -36,6 +42,7 @@ interface SupportQueues {
     orders_needing_receipt_resend?: SupportRow[];
     pro_customer_whatsapp_incomplete?: SupportRow[];
     recent_ai_handoffs?: SupportRow[];
+    high_volume_whatsapp_accounts_24h?: SupportRow[];
 }
 
 type SupportQueueCard = [string, SupportRow[] | undefined, string];
@@ -52,6 +59,11 @@ export default function AdminDashboard() {
     const [launchHealth, setLaunchHealth] = useState<LaunchHealth>({
         webhookInvalidSignature1h: null,
         webhookErrors1h: null,
+        webhookRateLimited1h: null,
+        whatsappPlanLimited24h: null,
+        whatsappReportLimited24h: null,
+        whatsappAiLimited24h: null,
+        whatsappRoutingFailures24h: null,
         kapsoReplyFailures24h: null,
         reportEmailFailures24h: null,
         failedCustomerSends: null,
@@ -96,6 +108,11 @@ export default function AdminDashboard() {
                     setLaunchHealth({
                         webhookInvalidSignature1h: Number(monitoring.webhook_invalid_signature_1h ?? 0),
                         webhookErrors1h: Number(monitoring.webhook_errors_1h ?? 0),
+                        webhookRateLimited1h: Number(monitoring.webhook_rate_limited_1h ?? 0),
+                        whatsappPlanLimited24h: Number(monitoring.whatsapp_plan_limited_24h ?? 0),
+                        whatsappReportLimited24h: Number(monitoring.whatsapp_report_limited_24h ?? 0),
+                        whatsappAiLimited24h: Number(monitoring.whatsapp_ai_limited_24h ?? 0),
+                        whatsappRoutingFailures24h: Number(monitoring.whatsapp_routing_failures_24h ?? 0),
                         kapsoReplyFailures24h: Number(monitoring.kapso_reply_failures_24h ?? 0),
                         reportEmailFailures24h: Number(monitoring.report_email_failures_24h ?? 0),
                         failedCustomerSends: Number(monitoring.failed_customer_sends_24h ?? 0),
@@ -246,6 +263,11 @@ export default function AdminDashboard() {
                         {[
                             ['Webhook 401s 1h', launchHealth.webhookInvalidSignature1h, 'Invalid Kapso signatures or wrong webhook secret.'],
                             ['Webhook 500s 1h', launchHealth.webhookErrors1h, 'Webhook runtime errors or missing production secret.'],
+                            ['Rate limited 1h', launchHealth.webhookRateLimited1h, 'Inbound WhatsApp spikes blocked before expensive processing.'],
+                            ['Plan limited 24h', launchHealth.whatsappPlanLimited24h, 'Accounts that exceeded daily WhatsApp message limits.'],
+                            ['AI limited 24h', launchHealth.whatsappAiLimited24h, 'Accounts that exceeded daily AI reply/parse limits.'],
+                            ['Report limited 24h', launchHealth.whatsappReportLimited24h, 'Accounts that exceeded WhatsApp report generation limits.'],
+                            ['Routing failures 24h', launchHealth.whatsappRoutingFailures24h, 'Automatic Kapso webhook registration failures.'],
                             ['Reply failures 24h', launchHealth.kapsoReplyFailures24h, 'Kapso sends that failed after processing inbound messages.'],
                             ['Email failures 24h', launchHealth.reportEmailFailures24h, 'WhatsApp report emails that could not be sent.'],
                             ['Failed sends 24h', launchHealth.failedCustomerSends, 'Owner actions where customer message was not sent.'],
@@ -270,13 +292,14 @@ export default function AdminDashboard() {
                     </div>
                     <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-4">
                         <p className="text-sm font-semibold text-brand-dark">Production migration readiness</p>
-                        <div className="mt-3 grid gap-2 md:grid-cols-5">
+                        <div className="mt-3 grid gap-2 md:grid-cols-6">
                             {[
                                 ['Receipt storage', migrationReadiness.receipt_storage_bucket],
                                 ['Audit logs', migrationReadiness.order_audit_logs_table],
                                 ['Analytics events', migrationReadiness.analytics_events_table],
                                 ['Sales sync column', migrationReadiness.bot_entries_source_order_id],
                                 ['Sales sync idempotency', migrationReadiness.source_order_id_unique_index],
+                                ['Scale indexes', migrationReadiness.whatsapp_scale_indexes],
                             ].map(([label, ok]) => (
                                 <div key={String(label)} className={`rounded-xl border px-3 py-2 ${ok ? 'border-emerald-100 bg-emerald-50 text-emerald-700' : 'border-red-100 bg-red-50 text-red-700'}`}>
                                     <div className="flex items-center gap-1.5">
@@ -317,6 +340,7 @@ export default function AdminDashboard() {
                             ['Receipt resend needed', supportQueues.orders_needing_receipt_resend, 'Receipt exists but file is missing or failed to save.'],
                             ['Pro setup incomplete', supportQueues.pro_customer_whatsapp_incomplete, 'Pro customer channels not ready for launch.'],
                             ['Recent AI handoffs', supportQueues.recent_ai_handoffs, 'Customer replies routed to staff review.'],
+                            ['High-volume accounts', supportQueues.high_volume_whatsapp_accounts_24h, 'Accounts with 100+ inbound WhatsApp messages in 24 hours.'],
                         ] as SupportQueueCard[]).map(([title, rows, description]) => (
                             <div key={String(title)} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
                                 <div className="flex items-start justify-between gap-3">
@@ -335,7 +359,7 @@ export default function AdminDashboard() {
                                                 {String(row.email || row.order_code || row.event_name || row.action || row.id || 'Issue')}
                                             </p>
                                             <p className="mt-0.5 truncate">
-                                                {String(row.message_text || row.customer_phone || row.status || row.receipt_storage_error || row.connection_type || row.created_at || '')}
+                                                {String(row.message_text || row.customer_phone || row.status || row.receipt_storage_error || row.connection_type || row.inbound_messages_24h || row.created_at || '')}
                                             </p>
                                         </div>
                                     )) : (

@@ -30,6 +30,7 @@ const SettingsPage       = lazy(() => import('./pages/SettingsPage'));
 const CapturePage        = lazy(() => import('./pages/CapturePage'));
 const OperationsPage     = lazy(() => import('./pages/OperationsPage'));
 const WhatsAppPage       = lazy(() => import('./pages/WhatsAppPage'));
+const WhatsAppCallbackPage = lazy(() => import('./pages/WhatsAppCallbackPage'));
 const OrdersPage         = lazy(() => import('./pages/OrdersPage'));
 const DataSourcesPage    = lazy(() => import('./pages/DataSourcesPage'));
 const SalesLogPage       = lazy(() => import('./pages/SalesLogPage'));
@@ -50,6 +51,12 @@ function AppWithOnboarding() {
 
   useEffect(() => {
     if (!user) return;
+    const pendingWhatsAppCallback = localStorage.getItem('hoursback_pending_whatsapp_callback');
+    if (pendingWhatsAppCallback?.startsWith('/whatsapp/callback')) {
+      localStorage.removeItem('hoursback_pending_whatsapp_callback');
+      navigate(pendingWhatsAppCallback);
+      return;
+    }
     const key = `hb_profile_${user.id}`;
     const done = localStorage.getItem(key);
     if (!done) {
@@ -101,6 +108,7 @@ function AppWithOnboarding() {
           <Route path="/operations" element={<OperationsPage />} />
           <Route path="/telegram" element={<Navigate to="/whatsapp" replace />} />
           <Route path="/whatsapp" element={<WhatsAppPage />} />
+          <Route path="/whatsapp/callback" element={<WhatsAppCallbackPage />} />
           <Route path="/orders" element={<OrdersPage />} />
           <Route path="/data-sources" element={<DataSourcesPage />} />
           <Route path="/data-log" element={<SalesLogPage />} />

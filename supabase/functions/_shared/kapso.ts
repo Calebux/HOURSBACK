@@ -1,5 +1,17 @@
 const KAPSO_API_BASE = "https://api.kapso.ai";
 
+export class KapsoApiError extends Error {
+  status: number;
+  details: unknown;
+
+  constructor(message: string, status: number, details: unknown) {
+    super(message);
+    this.name = "KapsoApiError";
+    this.status = status;
+    this.details = details;
+  }
+}
+
 export function getKapsoApiKey(): string | null {
   return Deno.env.get("KAPSO_API_KEY") || null;
 }
@@ -33,7 +45,7 @@ export async function kapsoFetch(path: string, init: RequestInit = {}) {
 
   if (!response.ok) {
     const message = json?.error || json?.message || `Kapso request failed with ${response.status}`;
-    throw new Error(message);
+    throw new KapsoApiError(message, response.status, json);
   }
 
   return json;
@@ -64,9 +76,54 @@ export async function createKapsoCustomer(name: string, externalCustomerId: stri
   });
 }
 
-export async function createKapsoSetupLink(customerId: string) {
+export async function createKapsoSetupLink(customerId: string, setupLink: Record<string, unknown> = {}) {
   return kapsoFetch(`/platform/v1/customers/${customerId}/setup_links`, {
     method: "POST",
-    body: JSON.stringify({ setup_link: {} }),
+    body: JSON.stringify({ setup_link: setupLink }),
+  });
+}
+
+export async function listKapsoPhoneWebhooks(phoneNumberId: string) {
+  return kapsoFetch(`/platform/v1/whatsapp/phone_numbers/${phoneNumberId}/webhooks`);
+}
+
+export async function createKapsoPhoneWebhook(
+  phoneNumberId: string,
+  url: string,
+  secretKey: string,
+  events: string[] = ["whatsapp.message.received"],
+) {
+  return kapsoFetch(`/platform/v1/whatsapp/phone_numbers/${phoneNumberId}/webhooks`, {
+    method: "POST",
+    body: JSON.stringify({
+      whatsapp_webhook: {
+        kind: "kapso",
+        url,
+        secret_key: secretKey,
+        events,
+        active: true,
+      },
+    }),
+  });
+}
+
+export async function updateKapsoPhoneWebhook(
+  phoneNumberId: string,
+  webhookId: string,
+  url: string,
+  secretKey: string,
+  events: string[] = ["whatsapp.message.received"],
+) {
+  return kapsoFetch(`/platform/v1/whatsapp/phone_numbers/${phoneNumberId}/webhooks/${webhookId}`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      whatsapp_webhook: {
+        kind: "kapso",
+        url,
+        secret_key: secretKey,
+        events,
+        active: true,
+      },
+    }),
   });
 }

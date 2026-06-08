@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import Anthropic from "npm:@anthropic-ai/sdk";
 import { getKapsoApiKey, sendKapsoText } from "../_shared/kapso.ts";
+import { checkRateLimit } from "../_shared/security.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -10,6 +11,14 @@ const KAPSO_WEBHOOK_SECRET = Deno.env.get("KAPSO_WEBHOOK_SECRET") || "";
 const KAPSO_ALLOW_UNSIGNED_WEBHOOKS = Deno.env.get("KAPSO_ALLOW_UNSIGNED_WEBHOOKS") === "true";
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") || "";
 const APP_URL = Deno.env.get("APP_URL") || "https://www.hoursback.xyz";
+const PHONE_WEBHOOK_LIMIT_PER_MINUTE = 180;
+const FREE_INTERNAL_MESSAGES_PER_DAY = 300;
+const PRO_MESSAGES_PER_DAY = 10_000;
+const PRO_AI_MESSAGES_PER_DAY = 1_500;
+const FREE_AI_MESSAGES_PER_DAY = 80;
+const FREE_REPORTS_PER_HOUR = 2;
+const PRO_REPORTS_PER_HOUR = 12;
+const AI_REPORT_ROW_LIMIT = 1_000;
 
 const headers = { "Content-Type": "application/json" };
 
@@ -133,6 +142,42 @@ function firstString(...values: unknown[]) {
     if (typeof value === "string" && value.trim()) return value.trim();
   }
   return undefined;
+}
+
+function isProProfile(profile: any) {
+  return profile?.subscription_status === "pro";
+}
+
+async function checkWebhookRateLimit(
+  supabase: any,
+  key: string,
+  limit: number,
+  windowSeconds: number,
+  eventName: string,
+  userId: string | null,
+  properties: Record<string, unknown>,
+) {
+  const result = await checkRateLimit(supabase, key, limit, windowSeconds);
+  if (result.allowed) return true;
+  await logAnalyticsEvent(supabase, userId, eventName, {
+    ...properties,
+    limit,
+    window_seconds: windowSeconds,
+  });
+  return false;
+}
+
+function planMessageLimit(profile: any, connectionType: string) {
+  if (isProProfile(profile)) return PRO_MESSAGES_PER_DAY;
+  return connectionType === "customer" ? 0 : FREE_INTERNAL_MESSAGES_PER_DAY;
+}
+
+function planAiLimit(profile: any) {
+  return isProProfile(profile) ? PRO_AI_MESSAGES_PER_DAY : FREE_AI_MESSAGES_PER_DAY;
+}
+
+function planReportLimit(profile: any) {
+  return isProProfile(profile) ? PRO_REPORTS_PER_HOUR : FREE_REPORTS_PER_HOUR;
 }
 
 function findReceiptUrl(...values: unknown[]): string | undefined {
@@ -1694,7 +1739,7 @@ function deterministicReport(metrics: any, reportType: string) {
 
 async function generateReportWithAI(metrics: any, reportType: string) {
   const fallback = deterministicReport(metrics, reportType);
-  if (!ANTHROPIC_API_KEY || !metrics.rows.length) return fallback;
+  if (!ANTHROPIC_API_KEY || !metrics.rows.length || metrics.rows.length > AI_REPORT_ROW_LIMIT) return fallback;
 
   try {
     const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
@@ -1855,6 +1900,27 @@ async function sendReportEmail(supabase: any, userId: string, subject: string, o
 }
 
 async function generateWhatsAppBusinessReport(supabase: any, connection: any, text: string) {
+  const profile = await getProfile(supabase, connection.user_id);
+  const reportAllowed = await checkWebhookRateLimit(
+    supabase,
+    `whatsapp-report:${connection.user_id}`,
+    planReportLimit(profile),
+    60 * 60,
+    "whatsapp_report_limit_reached",
+    connection.user_id,
+    {
+      connection_type: connection.connection_type || "internal",
+      plan: isProProfile(profile) ? "pro" : "free",
+    },
+  );
+  if (!reportAllowed) {
+    return [
+      "Report limit reached for this hour.",
+      "Your sales messages are still being captured. Open Reports to view existing reports or try again shortly.",
+      `${APP_URL}/reports`,
+    ].join("\n");
+  }
+
   const reportType = looksLikeProfitAndLossQuestion(text) ? "profit_and_loss" : "sales_summary";
   const wantsEmail = /\b(email|mail|inbox)\b/i.test(text);
   const wantsPdf = /\b(pdf|document|download)\b/i.test(text);
@@ -1955,6 +2021,23 @@ serve(async (req) => {
       return new Response(JSON.stringify({ success: true, ignored: "non-inbound message" }), { headers });
     }
 
+    const phoneAllowed = await checkWebhookRateLimit(
+      supabase,
+      `kapso-phone:${message.phoneNumberId}`,
+      PHONE_WEBHOOK_LIMIT_PER_MINUTE,
+      60,
+      "whatsapp_webhook_rate_limited",
+      null,
+      {
+        scope: "phone_number",
+        phone_number_id: message.phoneNumberId,
+        message_id: message.messageId || null,
+      },
+    );
+    if (!phoneAllowed) {
+      return new Response(JSON.stringify({ success: true, ignored: "rate limited" }), { headers });
+    }
+
     if (!idempotencyKey && message.messageId) {
       const { error } = await supabase.from("kapso_webhook_events").insert({
         idempotency_key: `kapso-message:${message.messageId}`,
@@ -2024,18 +2107,22 @@ serve(async (req) => {
       && connection.phone_number_id
       && connection.phone_number_id !== message.phoneNumberId
     ) {
-      console.log("Kapso webhook ignored: phone number id mismatch for mode", {
+      console.log("Kapso webhook phone number id changed for signed mode URL", {
         mode: requestedMode,
-        expectedPhoneNumberId: connection.phone_number_id,
+        previousPhoneNumberId: connection.phone_number_id,
         incomingPhoneNumberId: message.phoneNumberId,
       });
-      return new Response(JSON.stringify({ success: true, ignored: "phone number mismatch" }), { headers });
+      await logAnalyticsEvent(supabase, connection.user_id, "whatsapp_phone_number_id_changed", {
+        connection_type: requestedMode,
+        previous_phone_number_id: connection.phone_number_id,
+        incoming_phone_number_id: message.phoneNumberId,
+      });
     }
 
     await supabase.from("kapso_connections").update({
       phone_number_id: message.phoneNumberId,
       phone_number: connection.phone_number || message.to || null,
-      status: "connected",
+      status: connection.kapso_webhook_registered_at ? "webhook_active" : "connected",
       last_webhook_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     }).eq("id", connection.id);
@@ -2047,6 +2134,26 @@ serve(async (req) => {
         message_id: message.messageId || null,
       });
       return new Response(JSON.stringify({ success: true, ignored: "customer WhatsApp requires Pro" }), { headers });
+    }
+
+    const accountMessageLimit = planMessageLimit(profile, connection.connection_type || "internal");
+    const accountAllowed = accountMessageLimit > 0
+      ? await checkWebhookRateLimit(
+        supabase,
+        `whatsapp-user:${connection.user_id}`,
+        accountMessageLimit,
+        24 * 60 * 60,
+        "whatsapp_plan_limit_reached",
+        connection.user_id,
+        {
+          connection_type: connection.connection_type || "internal",
+          plan: isProProfile(profile) ? "pro" : "free",
+          phone_number_id: message.phoneNumberId,
+        },
+      )
+      : false;
+    if (!accountAllowed) {
+      return new Response(JSON.stringify({ success: true, ignored: "plan limit reached" }), { headers });
     }
 
     await logAnalyticsEvent(supabase, connection.user_id, "webhook_received", {
@@ -2095,7 +2202,20 @@ serve(async (req) => {
           if (!openOrder && latestActiveOrder?.status === "confirmed" && looksLikeOrderEditRequest(text)) {
             reply = await saveOwnerReviewRequest(supabase, connection, latestActiveOrder, message, text);
           } else {
-            const ai = await getCustomerAIResponse(supabase, connection, message, text, openOrder);
+            const aiAllowed = await checkWebhookRateLimit(
+              supabase,
+              `whatsapp-ai:${connection.user_id}`,
+              planAiLimit(profile),
+              24 * 60 * 60,
+              "whatsapp_ai_limit_reached",
+              connection.user_id,
+              {
+                connection_type: connection.connection_type || "customer",
+                plan: isProProfile(profile) ? "pro" : "free",
+                message_id: message.messageId || null,
+              },
+            );
+            const ai = aiAllowed ? await getCustomerAIResponse(supabase, connection, message, text, openOrder) : null;
             const aiReply = await handleCustomerAIAction(supabase, connection, message, text, payload, openOrder, ai);
             await logCustomerAIAction(supabase, connection, message, text, openOrder, ai, aiReply);
             const availabilityItem = extractAvailabilityItem(text);
@@ -2176,7 +2296,22 @@ serve(async (req) => {
       ].join("\n");
     } else if (looksLikeSalesEntry(text) || text.toLowerCase().startsWith("/log ")) {
       const logText = text.toLowerCase().startsWith("/log ") ? text.slice(5).trim() : text;
-      const parsed = await parseEntryWithAI(logText);
+      const parseAiAllowed = await checkWebhookRateLimit(
+        supabase,
+        `whatsapp-ai:${connection.user_id}`,
+        planAiLimit(profile),
+        24 * 60 * 60,
+        "whatsapp_ai_limit_reached",
+        connection.user_id,
+        {
+          connection_type: connection.connection_type || "internal",
+          plan: isProProfile(profile) ? "pro" : "free",
+          message_id: message.messageId || null,
+        },
+      );
+      const parsed = parseAiAllowed
+        ? await parseEntryWithAI(logText)
+        : { entry_type: "note", item: null, qty: null, unit_price: null, total: null, customer: null, notes: logText };
       const entryType = parsed.entry_type || "sale";
       await supabase.from("bot_entries").insert({
         user_id: connection.user_id,

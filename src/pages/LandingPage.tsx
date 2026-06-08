@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import {
   ArrowRight, CheckCircle2, Menu, X, Lightbulb,
   Zap, Mail, Bot, CalendarClock,
-  BarChart3, Users, PauseCircle, Sparkles, MessageCircle
+  BarChart3, Users, PauseCircle, Sparkles, MessageCircle, ShieldCheck, Database, LockKeyhole
 } from 'lucide-react';
 import { AuthModal } from '../components/AuthModal';
 import { useAuth } from '../contexts/AuthContext';
@@ -43,6 +43,7 @@ export default function LandingPage() {
 
           <div className="absolute left-1/2 -translate-x-1/2 hidden md:flex items-center gap-8 text-sm text-[#202124]/70">
             <button onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-[#202124] transition-colors">How it works</button>
+            <button onClick={() => document.getElementById('data-handling')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-[#202124] transition-colors">Data & privacy</button>
             <button onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-[#202124] transition-colors">Pricing</button>
             <button onClick={() => document.getElementById('workflows')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-[#202124] transition-colors">Workflows</button>
             <button onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-[#202124] transition-colors">FAQ</button>
@@ -56,7 +57,7 @@ export default function LandingPage() {
               </>
             ) : (
               <>
-                <button onClick={openSignin} className="hidden sm:block text-sm text-[#202124]/70 hover:text-[#202124] transition-colors">Sign in</button>
+                <button onClick={openSignin} className="text-sm text-[#202124]/70 hover:text-[#202124] transition-colors">Sign in</button>
                 <button onClick={openSignup} className="hidden sm:block px-4 py-2 bg-[#202124] text-white rounded-full text-sm font-medium hover:bg-[#202124]/85 transition-colors">
                   Get started free
                 </button>
@@ -72,11 +73,17 @@ export default function LandingPage() {
           <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="md:hidden bg-white border-t border-black/8">
             <div className="px-6 py-4 space-y-4 text-sm">
               <button onClick={() => { document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' }); setMobileMenuOpen(false); }} className="block text-[#202124]/70">How it works</button>
+              <button onClick={() => { document.getElementById('data-handling')?.scrollIntoView({ behavior: 'smooth' }); setMobileMenuOpen(false); }} className="block text-[#202124]/70">Data & privacy</button>
               <button onClick={() => { document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' }); setMobileMenuOpen(false); }} className="block text-[#202124]/70">Pricing</button>
               <button onClick={() => { document.getElementById('workflows')?.scrollIntoView({ behavior: 'smooth' }); setMobileMenuOpen(false); }} className="block text-[#202124]/70">Workflows</button>
               {user
                 ? <button onClick={() => { navigate('/home'); setMobileMenuOpen(false); }} className="block text-[#202124]/70">Dashboard</button>
-                : <button onClick={() => { openSignup(); setMobileMenuOpen(false); }} className="w-full py-2 bg-[#202124] text-white rounded-full font-medium">Get started</button>
+                : (
+                  <div className="grid grid-cols-2 gap-2 pt-2">
+                    <button onClick={() => { openSignin(); setMobileMenuOpen(false); }} className="w-full py-2 border border-black/10 text-[#202124] rounded-full font-medium">Sign in</button>
+                    <button onClick={() => { openSignup(); setMobileMenuOpen(false); }} className="w-full py-2 bg-[#202124] text-white rounded-full font-medium">Get started</button>
+                  </div>
+                )
               }
             </div>
           </motion.div>
@@ -86,35 +93,20 @@ export default function LandingPage() {
       {/* ── Hero ── */}
       <HeroSection onGetStarted={user ? () => navigate('/home') : openSignup} />
 
-      {/* ── Logo Marquee ── */}
-      <LogoMarquee />
+      {/* ── Problem / solution ── */}
+      <ProblemSolutionSection />
 
-      {/* ── About Bento ── */}
-      <AboutBento />
+      {/* ── Data handling ── */}
+      <DataHandlingSection />
 
       {/* ── How It Works ── */}
       <HowItWorksSection />
 
-      {/* ── Sample Reports ── */}
-      <SampleReportsSection />
-
-      {/* ── WhatsApp operations strip ── */}
-      <WhatsAppOperationsStrip />
-
       {/* ── WhatsApp Feature ── */}
       <WhatsAppFeature />
 
-      {/* ── Who Is It For ── */}
-      <WhoIsItForSection />
-
-      {/* ── Autopilot ── */}
-      <AutopilotSection />
-
       {/* ── Pricing ── */}
       <PricingSection onAuthRequired={openSignup} />
-
-      {/* ── Testimonials ── */}
-      <TestimonialsSection />
 
       {/* ── FAQ ── */}
       <FAQSection />
@@ -237,19 +229,19 @@ function HeroSection({ onGetStarted }: { onGetStarted: () => void }) {
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-          className="text-5xl md:text-7xl font-bold tracking-tight text-white leading-[1.08] max-w-3xl mx-auto"
+          className="text-4xl sm:text-5xl md:text-7xl font-bold tracking-tight text-white leading-[1.08] max-w-3xl mx-auto"
           style={{ textShadow: '0 2px 32px rgba(0,0,0,0.35)' }}
         >
-          Get hours back every week.
+          Stop guessing what happened in your business today.
         </motion.h1>
         <motion.p
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.12, ease: [0.16, 1, 0.3, 1] }}
-          className="mt-5 text-base md:text-lg text-white/85 max-w-lg mx-auto leading-relaxed"
+          className="mt-5 text-base md:text-lg text-white/90 max-w-2xl mx-auto leading-relaxed"
           style={{ textShadow: '0 1px 8px rgba(0,0,0,0.3)' }}
         >
-          Deploy AI workflows that monitor your business automatically — from spreadsheets, websites, webhooks, and WhatsApp messages from staff or customers.
+          Hoursback turns messy WhatsApp updates, Google Sheets, customer requests, and daily sales records into clean logs, summaries, and reports you can trust.
         </motion.p>
 
         <motion.div
@@ -258,7 +250,7 @@ function HeroSection({ onGetStarted }: { onGetStarted: () => void }) {
           transition={{ duration: 0.6, delay: 0.18 }}
           className="mt-5 flex flex-wrap items-center justify-center gap-2"
         >
-          {['WhatsApp sales logs', 'Orders & service requests', '5-line profit checks'].map((item) => (
+          {['Know what sold today', 'Separate each branch', 'Get accounting-ready records'].map((item) => (
             <span
               key={item}
               className="rounded-full border border-white/25 bg-white/10 px-3 py-1 text-xs font-semibold text-white/85 backdrop-blur-sm"
@@ -299,7 +291,7 @@ function HeroSection({ onGetStarted }: { onGetStarted: () => void }) {
           <div className="flex gap-0.5">
             {[...Array(5)].map((_, i) => <span key={i} className="text-[#FBBC04]">★</span>)}
           </div>
-          <span className="text-white/75 text-xs font-medium" style={{ textShadow: '0 1px 6px rgba(0,0,0,0.3)' }}>Loved by early customers ★★★★★</span>
+          <span className="text-white/75 text-xs font-medium" style={{ textShadow: '0 1px 6px rgba(0,0,0,0.3)' }}>Built for owners who need clean records, not another dashboard.</span>
         </motion.div>
       </div>
 
@@ -308,7 +300,7 @@ function HeroSection({ onGetStarted }: { onGetStarted: () => void }) {
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.9, delay: 0.45, ease: [0.16, 1, 0.3, 1] }}
-        className="relative z-10 flex items-end justify-center gap-0 pb-0 mt-10"
+        className="relative z-10 hidden sm:flex items-end justify-center gap-0 pb-0 mt-10"
         style={{ perspective: '1200px' }}
       >
         {fanCards.map((card, i) => (
@@ -336,6 +328,82 @@ function HeroSection({ onGetStarted }: { onGetStarted: () => void }) {
           </div>
         ))}
       </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.7, delay: 0.38 }}
+        className="relative z-10 mx-6 mb-8 mt-8 rounded-3xl border border-white/20 bg-white/95 p-4 shadow-xl sm:hidden"
+      >
+        <div className="flex items-center justify-between border-b border-black/8 pb-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#202124]/35">Today</p>
+            <p className="text-lg font-bold text-[#202124]">₦128,500 logged</p>
+          </div>
+          <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">Live</span>
+        </div>
+        <div className="mt-3 grid gap-2 text-xs text-[#202124]/65">
+          <p className="rounded-xl bg-[#F8F9FA] px-3 py-2">Shop A: 18 sales · ₦82,000</p>
+          <p className="rounded-xl bg-[#F8F9FA] px-3 py-2">Shop B: 9 sales · ₦46,500</p>
+          <p className="rounded-xl bg-[#F8F9FA] px-3 py-2">2 receipts need review</p>
+        </div>
+      </motion.div>
+    </section>
+  );
+}
+
+/* ─────────────────────────────── PROBLEM / SOLUTION ─────────────────────────────── */
+function ProblemSolutionSection() {
+  const problems = [
+    'Staff send updates in different formats.',
+    'Each branch keeps its own sheet or chat trail.',
+    'Receipts, cash, transfer, and daily totals do not line up quickly.',
+  ];
+  const outcomes = [
+    'A clean sales log by date, branch, item, quantity, and payment method.',
+    'Owner summaries from WhatsApp: sales today, P&L, top items, missing closeouts.',
+    'Customer orders, bookings, and receipts routed into one review table.',
+  ];
+
+  return (
+    <section className="bg-white py-16 border-b border-black/8">
+      <div className="container mx-auto max-w-5xl px-6">
+        <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#202124]/40">Problem → solution</p>
+            <h2 className="mt-3 text-3xl font-bold leading-tight tracking-tight text-[#202124] md:text-4xl">
+              If you run two shops, you should not wait until night to know what each one sold.
+            </h2>
+            <p className="mt-4 text-sm leading-relaxed text-[#202124]/60">
+              Hoursback is for owners whose business data is already happening in WhatsApp, Sheets, notebooks, and customer chats. It turns those updates into records you can act on.
+            </p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="rounded-3xl border border-red-100 bg-red-50 p-5">
+              <p className="text-sm font-bold text-red-900">What breaks today</p>
+              <div className="mt-4 space-y-3">
+                {problems.map((item) => (
+                  <div key={item} className="flex gap-2 text-sm leading-relaxed text-red-800/75">
+                    <X className="mt-0.5 h-4 w-4 shrink-0" />
+                    <span>{item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="rounded-3xl border border-emerald-100 bg-emerald-50 p-5">
+              <p className="text-sm font-bold text-emerald-950">What Hoursback gives you</p>
+              <div className="mt-4 space-y-3">
+                {outcomes.map((item) => (
+                  <div key={item} className="flex gap-2 text-sm leading-relaxed text-emerald-900/75">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+                    <span>{item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
   );
 }
@@ -369,19 +437,81 @@ function LogoMarquee() {
   );
 }
 
+/* ─────────────────────────────── DATA HANDLING ─────────────────────────────── */
+function DataHandlingSection() {
+  const items = [
+    {
+      icon: <Database className="h-5 w-5" />,
+      title: 'Your business records stay tied to your workspace',
+      body: 'Sales logs, WhatsApp messages, receipts, reports, and connected Sheets are stored against your account so each business sees only its own data.',
+    },
+    {
+      icon: <ShieldCheck className="h-5 w-5" />,
+      title: 'We use data to produce your reports, not to sell your customer list',
+      body: 'Hoursback processes your records to answer business questions, generate summaries, and route workflows. Customer messages and receipts are not advertising inventory.',
+    },
+    {
+      icon: <LockKeyhole className="h-5 w-5" />,
+      title: 'You can export and review the records',
+      body: 'Owners can inspect sales logs, orders, receipts, workflow runs, and reports. For serious clients, this matters before they trust automation.',
+    },
+  ];
+
+  return (
+    <section id="data-handling" className="bg-[#202124] py-14 text-white">
+      <div className="container mx-auto max-w-5xl px-6">
+        <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/40">Data handling</p>
+            <h2 className="mt-3 text-3xl font-bold leading-tight tracking-tight md:text-4xl">
+              Before you connect WhatsApp or Sheets, you should know how the data is handled.
+            </h2>
+            <p className="mt-4 text-sm leading-relaxed text-white/60">
+              Hoursback is handling business records: sales, expenses, customer requests, receipts, and reports. We make that visible because serious teams ask about it before they onboard.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link to="/privacy" className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-[#202124] hover:bg-white/90">
+                Read privacy policy
+              </Link>
+              <Link to="/trust" className="rounded-full border border-white/20 px-4 py-2 text-sm font-semibold text-white/80 hover:bg-white/10">
+                Trust center
+              </Link>
+            </div>
+          </div>
+          <div className="grid gap-3">
+            {items.map((item) => (
+              <div key={item.title} className="rounded-2xl border border-white/10 bg-white/[0.06] p-5">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10 text-[#34A853]">
+                    {item.icon}
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white">{item.title}</h3>
+                    <p className="mt-1.5 text-sm leading-relaxed text-white/55">{item.body}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ─────────────────────────────── ABOUT BENTO ─────────────────────────────── */
 function AboutBento() {
   return (
     <section className="py-24 bg-white">
       <div className="container mx-auto px-6 max-w-5xl">
         <div className="text-center mb-14">
-          <p className="text-xs font-semibold tracking-[0.2em] uppercase text-[#202124]/40 mb-4">+ About us</p>
+          <p className="text-xs font-semibold tracking-[0.2em] uppercase text-[#202124]/40 mb-4">+ The problem</p>
           <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-[#202124] leading-[1.1] max-w-3xl mx-auto">
-            Business automation built for people who actually{' '}
+            Sales, expenses, stock notes, and customer requests are scattered while you{' '}
             <span className="inline-flex items-center gap-1">
               <span className="bg-[#4285F4] text-white text-3xl md:text-4xl font-bold px-2 py-0 rounded-lg leading-tight">run</span>
             </span>{' '}
-            businesses.
+            the business.
           </h2>
         </div>
 
@@ -390,18 +520,18 @@ function AboutBento() {
           {/* Card 1: Dark — photo + stat */}
           <div className="bg-[#202124] rounded-3xl p-6 flex flex-col justify-between row-span-1 md:row-span-1 relative overflow-hidden">
             <div className="absolute bottom-0 right-0 w-32 h-32 bg-[#4285F4]/20 rounded-full blur-2xl" />
-            <p className="text-white/40 text-xs font-semibold uppercase tracking-widest">Workflows deployed</p>
+            <p className="text-white/40 text-xs font-semibold uppercase tracking-widest">Daily updates cleaned up</p>
             <div>
               <p className="text-6xl font-bold text-white leading-none">500+</p>
-              <p className="text-white/50 text-sm mt-2">Running automatically, 24/7, without you touching them.</p>
+              <p className="text-white/50 text-sm mt-2">WhatsApp, sheet, and manual updates turned into structured records.</p>
             </div>
           </div>
 
           {/* Card 2: White — testimonial */}
           <div className="bg-[#F8F9FA] border border-black/8 rounded-3xl p-6 flex flex-col justify-between col-span-1 md:col-span-1">
             <div>
-              <p className="text-xs font-semibold text-[#202124]/40 uppercase tracking-widest mb-2">Email delivery rate</p>
-              <p className="text-5xl font-bold text-[#202124]">98%</p>
+              <p className="text-xs font-semibold text-[#202124]/40 uppercase tracking-widest mb-2">Accounting trail</p>
+              <p className="text-5xl font-bold text-[#202124]">Daily</p>
             </div>
             <div>
               <div className="flex -space-x-2 mb-3">
@@ -411,25 +541,25 @@ function AboutBento() {
                   </div>
                 ))}
               </div>
-              <p className="text-xs text-[#202124]/60 leading-relaxed">"The supplier monitor caught a 15% price hike the week it went live."</p>
+              <p className="text-xs text-[#202124]/60 leading-relaxed">"I can see what each branch sold without chasing staff at night."</p>
             </div>
           </div>
 
           {/* Card 3: Yellow — big number */}
           <div className="bg-[#FBBC04] rounded-3xl p-6 flex flex-col justify-between col-span-2 md:col-span-1">
-            <p className="text-[#202124]/60 text-xs font-semibold uppercase tracking-widest">Hours saved</p>
+            <p className="text-[#202124]/60 text-xs font-semibold uppercase tracking-widest">Owner questions answered</p>
             <div>
-              <p className="text-6xl font-bold text-[#202124] leading-none">1,000+</p>
-              <p className="text-[#202124]/70 text-sm mt-2">Hours reclaimed by our users — no code required.</p>
+              <p className="text-6xl font-bold text-[#202124] leading-none">24/7</p>
+              <p className="text-[#202124]/70 text-sm mt-2">Ask for sales, P&L, branch totals, top items, and missing closeouts.</p>
             </div>
           </div>
 
           {/* Card 4: stat strip */}
           <div className="col-span-2 md:col-span-2 bg-[#F8F9FA] border border-black/8 rounded-3xl p-6 flex items-center justify-around gap-4">
             {[
-              { value: '15+', label: 'Free templates' },
-              { value: '5 min', label: 'Avg. setup time' },
-              { value: '100%', label: 'No-code required' },
+              { value: '2 shops', label: 'Tracked in one ledger' },
+              { value: 'WhatsApp', label: 'For staff and customers' },
+              { value: 'Sheets', label: 'Still supported' },
             ].map((s, i) => (
               <div key={i} className="text-center">
                 <p className="text-3xl font-bold text-[#202124]">{s.value}</p>
@@ -457,8 +587,8 @@ function HowItWorksSection() {
   const howItWorksSteps = [
     {
       num: '01',
-      title: 'Connect a data source',
-      desc: 'Paste a Google Sheets URL, a website link, connect via webhook, or capture team updates from chat. No API keys or technical setup — takes 30 seconds.',
+      title: 'Bring the daily record into one place',
+      desc: 'Connect a Google Sheet, use WhatsApp for staff updates, add manual entries, or receive customer requests. The goal is one clean operating record.',
       preview: (
         <div className="bg-white rounded-2xl border border-black/10 p-5 shadow-sm">
           <p className="text-xs font-semibold text-[#202124]/40 uppercase tracking-widest mb-3">Data source</p>
@@ -477,8 +607,8 @@ function HowItWorksSection() {
     },
     {
       num: '02',
-      title: 'Pick a workflow template',
-      desc: 'Choose from 15+ ready-made templates — finance, sales, competitor tracking, operations, and more. Or write your own prompt.',
+      title: 'Tell Hoursback what the record should answer',
+      desc: 'Track branch sales, daily P&L, cash vs transfer, top items, open customer requests, missing receipts, or stock movement.',
       preview: (
         <div className="grid grid-cols-2 gap-3">
           {[
@@ -497,8 +627,8 @@ function HowItWorksSection() {
     },
     {
       num: '03',
-      title: 'Set your schedule',
-      desc: 'Choose daily, weekly, or monthly. Pick the time you want the report. The AI runs automatically — you never trigger it manually.',
+      title: 'Get updates without chasing staff',
+      desc: 'Ask from WhatsApp or schedule a daily, weekly, or monthly report. The owner sees what changed without opening every chat or sheet.',
       preview: (
         <div className="bg-white rounded-2xl border border-black/10 p-5 shadow-sm">
           <p className="text-xs font-semibold text-[#202124]/40 uppercase tracking-widest mb-4">Delivery schedule</p>
@@ -521,8 +651,8 @@ function HowItWorksSection() {
     },
     {
       num: '04',
-      title: 'Receive insights in your inbox',
-      desc: 'A clear, plain-English summary lands in your email every time the workflow runs. No dashboard to open, no data to decode.',
+      title: 'Use the cleaned record for decisions and accounting',
+      desc: 'Every structured entry feeds the sales log, reports, and exports so you can review what was sold, by whom, where, and when.',
       preview: (
         <div className="bg-white rounded-2xl border border-black/10 overflow-hidden shadow-sm">
           <div className="px-5 py-3 border-b border-black/8 flex items-center gap-3">
@@ -553,14 +683,14 @@ function HowItWorksSection() {
   ];
 
   return (
-    <section id="how-it-works" className="py-24 bg-[#F8F9FA]">
+    <section id="how-it-works" className="py-16 bg-[#F8F9FA]">
       <div className="container mx-auto px-6 max-w-5xl">
-        <div className="text-center mb-16">
+        <div className="text-center mb-10">
           <p className="text-xs font-semibold tracking-[0.2em] uppercase text-[#202124]/40 mb-4">+ How it works</p>
           <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-[#202124] leading-[1.1] max-w-2xl mx-auto">
-            From data source to inbox in four steps
+            From scattered updates to accounting-ready records
           </h2>
-          <p className="mt-4 text-base text-[#202124]/60 max-w-xl mx-auto">No engineers, no dashboards, no maintenance — clear results on a schedule you choose.</p>
+          <p className="mt-4 text-base text-[#202124]/60 max-w-xl mx-auto">For owners who need to know what sold today, what changed, and what needs follow-up.</p>
         </div>
 
         <div className="grid md:grid-cols-2 gap-8 items-start">
@@ -831,7 +961,7 @@ function WhatsAppFeature() {
   ];
 
   return (
-    <section className="py-20 bg-[#F8F9FA] border-b border-black/8">
+    <section className="py-16 bg-[#F8F9FA] border-b border-black/8">
       <div className="container mx-auto px-6 max-w-5xl">
         <div className="grid lg:grid-cols-[0.95fr_1.05fr] gap-10 items-center">
           <div>
@@ -1066,9 +1196,9 @@ function PricingSection({ onAuthRequired }: { onAuthRequired?: () => void }) {
   const [isAnnual, setIsAnnual] = useState(false);
 
   return (
-    <section id="pricing" className="py-24 bg-[#F8F9FA]">
+    <section id="pricing" className="py-16 bg-[#F8F9FA]">
       <div className="container mx-auto px-6 max-w-5xl">
-        <div className="text-center mb-14">
+        <div className="text-center mb-10">
           <p className="text-xs font-semibold tracking-[0.2em] uppercase text-[#202124]/40 mb-4">+ Pricing</p>
           <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-[#202124] leading-[1.1] max-w-3xl mx-auto">
             Flexible plans built for every stage of growth
@@ -1090,54 +1220,6 @@ function PricingSection({ onAuthRequired }: { onAuthRequired?: () => void }) {
           {pricingPlans.map((plan, i) => (
             <PricingPlanCard key={i} plan={plan} isAnnual={isAnnual} onAuthRequired={onAuthRequired} />
           ))}
-        </div>
-
-        {/* ── Feature comparison table ── */}
-        <div className="mt-16">
-          <h3 className="text-center text-lg font-semibold text-[#202124] mb-8">Everything that's included — side by side</h3>
-          <div className="bg-white rounded-2xl border border-black/8 overflow-hidden">
-            {/* Header */}
-            <div className="grid grid-cols-[1fr_100px_100px] border-b border-black/8">
-              <div className="px-6 py-4 text-sm font-semibold text-[#202124]/50">Feature</div>
-              <div className="px-4 py-4 text-center text-sm font-semibold text-[#202124]">Free</div>
-              <div className="px-4 py-4 text-center text-sm font-bold text-[#202124] bg-[#202124]/[0.03]">Pro</div>
-            </div>
-
-            {[
-              { label: 'Active workflows', free: '1', pro: 'Unlimited' },
-              { label: 'AI report credits / month', free: '5', pro: 'Unlimited' },
-              { label: 'Email delivery', free: true, pro: true },
-              { label: 'WhatsApp staff and customer workflows', free: false, pro: true },
-              { label: 'Scheduled auto-runs', free: false, pro: true },
-              { label: 'Custom data sources', free: false, pro: true },
-              { label: 'Upload files (CSV, PDF, images)', free: false, pro: true },
-              { label: 'Competitor & supplier monitoring', free: false, pro: true },
-              { label: 'Multi-step workflows', free: false, pro: true },
-              { label: 'Priority email support', free: false, pro: true },
-            ].map((row, i) => (
-              <div key={i} className={`grid grid-cols-[1fr_100px_100px] border-b border-black/5 last:border-0 ${i % 2 === 0 ? '' : 'bg-[#F8F9FA]/60'}`}>
-                <div className="px-6 py-3.5 text-sm text-[#202124]/80">{row.label}</div>
-                <div className="px-4 py-3.5 text-center">
-                  {typeof row.free === 'boolean' ? (
-                    row.free
-                      ? <span className="text-emerald-600 font-bold">✓</span>
-                      : <span className="text-[#202124]/20 text-lg leading-none">—</span>
-                  ) : (
-                    <span className="text-sm font-medium text-[#202124]/70">{row.free}</span>
-                  )}
-                </div>
-                <div className="px-4 py-3.5 text-center bg-[#202124]/[0.03]">
-                  {typeof row.pro === 'boolean' ? (
-                    row.pro
-                      ? <span className="text-emerald-600 font-bold">✓</span>
-                      : <span className="text-[#202124]/20 text-lg leading-none">—</span>
-                  ) : (
-                    <span className="text-sm font-semibold text-[#202124]">{row.pro}</span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
         </div>
       </div>
     </section>
@@ -1202,6 +1284,9 @@ function TestimonialsSection() {
 function FAQSection() {
   const faqs = [
     { q: "Do I need to know how to code?", a: "No. If you can fill in a form, you can deploy a workflow. Pick a template, connect your data source, set your schedule — live in under 5 minutes." },
+    { q: "Can I track two shops or branches?", a: "Yes. Staff can include the branch name in WhatsApp updates or use a connected Sheet with a branch/location column. Hoursback structures the records so you can see what each shop sold each day." },
+    { q: "Can this help with accounting?", a: "Yes, if the inputs are consistent. Hoursback can create a structured sales log with date, branch, item, quantity, amount, payment method, and customer/request notes. Accurate inventory or stock balance also depends on recording opening stock, restocks, transfers, wastage, and returns." },
+    { q: "How is my business data handled?", a: "Your sales logs, WhatsApp records, receipts, connected Sheets, and reports are tied to your workspace. Hoursback uses them to generate summaries, answer business questions, and run workflows. Read the Privacy Policy and Trust Center before connecting sensitive records." },
     { q: "Can Hoursback work with WhatsApp?", a: "Yes. Staff can log sales and closeout updates from WhatsApp, customers can place orders, bookings, or service requests through a customer-facing number, and owners can ask for summaries like today’s sales or a 5-line profit check." },
     { q: "What does Hoursback actually monitor?", a: "Google Sheets, websites, CRM data, financial spreadsheets, competitor pages, WhatsApp messages, and any data you connect via webhook. The AI detects what changed and sends you a clear summary by email or supported chat workflows." },
     { q: "How often does the AI run?", a: "You choose — daily, weekly, or monthly. Once deployed, the workflow runs on that schedule automatically. The report just arrives in your inbox." },
@@ -1209,9 +1294,9 @@ function FAQSection() {
   ];
 
   return (
-    <section id="faq" className="py-24 bg-white">
+    <section id="faq" className="py-16 bg-white">
       <div className="container mx-auto px-6 max-w-3xl">
-        <div className="text-center mb-14">
+        <div className="text-center mb-10">
           <p className="text-xs font-semibold tracking-[0.2em] uppercase text-[#202124]/40 mb-4">+ FAQ</p>
           <h2 className="text-4xl font-bold tracking-tight text-[#202124]">Frequently asked questions</h2>
         </div>
@@ -1244,14 +1329,14 @@ function CTABanner({ onGetStarted }: { onGetStarted: () => void }) {
               </div>
             ))}
           </div>
-          <span className="text-white/70 text-sm">Trusted by 500+ users</span>
+          <span className="text-white/70 text-sm">Built for owners who need daily clarity</span>
         </div>
 
         <h2 className="text-4xl md:text-5xl font-bold text-white max-w-xl leading-[1.1] mb-4">
-          We combine human insight with artificial intelligence
+          Know what sold today before the day gets away from you.
         </h2>
         <p className="text-white/65 max-w-lg leading-relaxed mb-8 text-sm">
-          Our platform bridges strategic thinking and AI to help businesses streamline processes, improve decision-making, and create intelligent digital experiences.
+          Connect WhatsApp or Sheets, let your team keep working normally, and get a clean sales log with summaries you can use for accounting and decisions.
         </p>
 
         <button
@@ -1481,3 +1566,16 @@ function AutopilotSection() {
     </section>
   );
 }
+
+// Retained for reuse on longer product pages, but intentionally omitted from
+// the shorter ad-focused landing page render.
+const retainedLongLandingSections = [
+  LogoMarquee,
+  AboutBento,
+  SampleReportsSection,
+  WhatsAppOperationsStrip,
+  TestimonialsSection,
+  WhoIsItForSection,
+  AutopilotSection,
+];
+void retainedLongLandingSections;

@@ -2,9 +2,12 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import {
   createKapsoCustomer,
+  createKapsoPhoneWebhook,
   createKapsoSetupLink,
   getKapsoApiKey,
+  listKapsoPhoneWebhooks,
   sendKapsoText,
+  updateKapsoPhoneWebhook,
 } from "../_shared/kapso.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -83,6 +86,149 @@ function requireProForCustomerMode(profile: any, connectionType: string) {
     JSON.stringify({ error: "Customer-facing WhatsApp is a Pro feature. Internal WhatsApp setup is available on Free." }),
     { status: 403, headers: corsHeaders },
   );
+}
+
+function firstString(...values: unknown[]) {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return null;
+}
+
+function normalizedOrigin(value: unknown) {
+  if (typeof value !== "string") return null;
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "https:" && url.protocol !== "http:") return null;
+    return url.origin;
+  } catch {
+    return null;
+  }
+}
+
+function kapsoWebhookUrl(userId: string, connectionType: string) {
+  return `${SUPABASE_URL}/functions/v1/kapso-webhook?uid=${userId}&mode=${connectionType}`;
+}
+
+function extractKapsoWebhookId(webhook: any) {
+  return firstString(webhook?.id, webhook?.data?.id, webhook?.whatsapp_webhook?.id);
+}
+
+function extractKapsoSetupLinkId(setupLink: any) {
+  return firstString(setupLink?.id, setupLink?.setup_link?.id, setupLink?.data?.id);
+}
+
+function extractKapsoSetupLinkUrl(setupLink: any) {
+  return firstString(setupLink?.url, setupLink?.setup_link?.url, setupLink?.data?.url);
+}
+
+function extractKapsoSetupLinkExpiry(setupLink: any) {
+  return firstString(setupLink?.expires_at, setupLink?.setup_link?.expires_at, setupLink?.data?.expires_at);
+}
+
+function extractKapsoWebhookRows(response: any) {
+  if (Array.isArray(response)) return response;
+  if (Array.isArray(response?.data)) return response.data;
+  if (Array.isArray(response?.whatsapp_webhooks)) return response.whatsapp_webhooks;
+  return [];
+}
+
+function errorMessage(err: unknown) {
+  if (err instanceof Error) return err.message;
+  return "Unexpected error";
+}
+
+function errorStatus(err: unknown) {
+  if (typeof err === "object" && err && "status" in err) {
+    const status = Number((err as { status?: unknown }).status);
+    if (Number.isFinite(status)) return status;
+  }
+  return null;
+}
+
+async function registerKapsoWebhookForNumber(
+  supabase: any,
+  userId: string,
+  connectionType: string,
+  phoneNumberId: string,
+) {
+  if (!getKapsoApiKey()) {
+    throw new Error("KAPSO_API_KEY is not configured in Supabase secrets");
+  }
+  if (!KAPSO_WEBHOOK_SECRET) {
+    throw new Error("KAPSO_WEBHOOK_SECRET is not configured in Supabase secrets");
+  }
+
+  const url = kapsoWebhookUrl(userId, connectionType);
+  let existingWebhook: any = null;
+
+  try {
+    const webhooks = await listKapsoPhoneWebhooks(phoneNumberId);
+    existingWebhook = extractKapsoWebhookRows(webhooks).find((item: any) => (
+      firstString(item?.url, item?.whatsapp_webhook?.url) === url
+    ));
+  } catch (err) {
+    console.warn("Kapso webhook list failed, creating a fresh webhook:", err);
+  }
+
+  const existingWebhookId = existingWebhook ? extractKapsoWebhookId(existingWebhook) : null;
+  const created = existingWebhook && existingWebhookId
+    ? await updateKapsoPhoneWebhook(
+      phoneNumberId,
+      existingWebhookId,
+      url,
+      KAPSO_WEBHOOK_SECRET,
+      ["whatsapp.message.received"],
+    )
+    : await createKapsoPhoneWebhook(
+      phoneNumberId,
+      url,
+      KAPSO_WEBHOOK_SECRET,
+      ["whatsapp.message.received"],
+    );
+  const webhook = created?.data || created?.whatsapp_webhook || created;
+  const webhookId = extractKapsoWebhookId(webhook);
+  const registeredAt = new Date().toISOString();
+
+  await supabase
+    .from("kapso_connections")
+    .update({
+      kapso_webhook_id: webhookId || null,
+      kapso_webhook_url: url,
+      kapso_webhook_registered_at: registeredAt,
+      kapso_webhook_error: null,
+      webhook_secret_set: true,
+      status: "webhook_active",
+      updated_at: registeredAt,
+    })
+    .eq("user_id", userId)
+    .eq("connection_type", connectionType);
+
+  await logAnalyticsEvent(supabase, userId, "whatsapp_webhook_registered", {
+    connection_type: connectionType,
+    phone_number_id: phoneNumberId,
+    reused_existing_webhook: !!existingWebhook,
+    updated_existing_webhook: !!existingWebhookId,
+  }, "edge");
+
+  return {
+    id: webhookId,
+    url,
+    reused_existing_webhook: !!existingWebhook,
+    updated_existing_webhook: !!existingWebhookId,
+    registered_at: registeredAt,
+  };
+}
+
+async function fetchConnectionForUser(supabase: any, userId: string, connectionType: string) {
+  const { data, error } = await supabase
+    .from("kapso_connections")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("connection_type", connectionType)
+    .maybeSingle();
+  if (error) throw error;
+  return data || null;
 }
 
 function orderItemsSummary(items: any[]) {
@@ -204,6 +350,41 @@ serve(async (req) => {
       return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
     }
 
+    if (action === "register_webhook") {
+      const connectionType = body.connection_type === "customer" ? "customer" : "internal";
+      const proResponse = requireProForCustomerMode(profile, connectionType);
+      if (proResponse) return proResponse;
+
+      const connection = await fetchConnectionForUser(supabase, user.id, connectionType);
+      if (!connection?.phone_number_id) {
+        return new Response(JSON.stringify({ error: "Connect a WhatsApp number before registering message routing." }), { status: 400, headers: corsHeaders });
+      }
+
+      try {
+        const webhook = await registerKapsoWebhookForNumber(supabase, user.id, connectionType, connection.phone_number_id);
+        const refreshed = await fetchConnectionForUser(supabase, user.id, connectionType);
+        return new Response(JSON.stringify({ success: true, connection: refreshed || connection, webhook }), { headers: corsHeaders });
+      } catch (err) {
+        const message = errorMessage(err);
+        await supabase
+          .from("kapso_connections")
+          .update({
+            kapso_webhook_error: message,
+            webhook_secret_set: !!KAPSO_WEBHOOK_SECRET,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("user_id", user.id)
+          .eq("connection_type", connectionType);
+        await logAnalyticsEvent(supabase, user.id, "whatsapp_webhook_registration_failed", {
+          connection_type: connectionType,
+          phone_number_id: connection.phone_number_id,
+          status: errorStatus(err),
+          error: message,
+        }, "edge");
+        return new Response(JSON.stringify({ success: false, connection, error: message }), { status: 502, headers: corsHeaders });
+      }
+    }
+
     if (action === "customer_settings") {
       const proResponse = requireProForCustomerMode(profile, "customer");
       if (proResponse) return proResponse;
@@ -231,7 +412,7 @@ serve(async (req) => {
           phone_number_id: existing?.phone_number_id || null,
           phone_number: existing?.phone_number || null,
           display_name: existing?.display_name || "Customer Requests",
-          status: existing?.phone_number_id ? "connected" : "settings_saved",
+          status: existing?.kapso_webhook_registered_at ? "webhook_active" : existing?.phone_number_id ? "connected" : "settings_saved",
           webhook_secret_set: !!KAPSO_WEBHOOK_SECRET,
           customer_menu: customerMenu || null,
           payment_instructions: paymentInstructions || null,
@@ -645,6 +826,7 @@ serve(async (req) => {
           fulfillment_rules: connectionType === "customer" ? fulfillmentRules || null : null,
           escalation_instructions: connectionType === "customer" ? escalationInstructions || null : null,
           status: "connected",
+          kapso_webhook_error: null,
           webhook_secret_set: !!KAPSO_WEBHOOK_SECRET,
           updated_at: new Date().toISOString(),
         }, { onConflict: "user_id,connection_type" })
@@ -652,13 +834,44 @@ serve(async (req) => {
         .single();
 
       if (error) throw error;
+      let webhook = null;
+      try {
+        webhook = await registerKapsoWebhookForNumber(supabase, user.id, connectionType, phoneNumberId);
+      } catch (err) {
+        const message = errorMessage(err);
+        await supabase
+          .from("kapso_connections")
+          .update({
+            status: "connected",
+            kapso_webhook_error: message,
+            webhook_secret_set: !!KAPSO_WEBHOOK_SECRET,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("user_id", user.id)
+          .eq("connection_type", connectionType);
+        await logAnalyticsEvent(supabase, user.id, "whatsapp_webhook_registration_failed", {
+          connection_type: connectionType,
+          phone_number_id: phoneNumberId,
+          status: errorStatus(err),
+          error: message,
+        }, "edge");
+        return new Response(JSON.stringify({ success: false, connection: data, error: message }), { status: 502, headers: corsHeaders });
+      }
+
+      const { data: refreshed } = await supabase
+        .from("kapso_connections")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("connection_type", connectionType)
+        .maybeSingle();
+
       await logAnalyticsEvent(supabase, user.id, "whatsapp_connection_saved", {
         connection_type: connectionType,
         has_customer_menu: !!customerMenu,
         has_payment_instructions: !!paymentInstructions,
         has_fulfillment_rules: !!fulfillmentRules,
       }, "edge");
-      return new Response(JSON.stringify({ success: true, connection: data }), { headers: corsHeaders });
+      return new Response(JSON.stringify({ success: true, connection: refreshed || data, webhook }), { headers: corsHeaders });
     }
 
     if (action === "generate_setup_link") {
@@ -692,8 +905,28 @@ serve(async (req) => {
 
       if (!customerId) throw new Error("Kapso did not return a customer id");
 
-      const setup = await createKapsoSetupLink(customerId);
+      const appOrigin = normalizedOrigin(body.app_origin)
+        || normalizedOrigin(req.headers.get("Origin"))
+        || Deno.env.get("APP_URL")
+        || "https://www.hoursback.xyz";
+      const callbackBase = `${appOrigin}/whatsapp/callback?mode=${connectionType}`;
+      let setup;
+      let setupLinkFallbackUsed = false;
+      try {
+        setup = await createKapsoSetupLink(customerId, {
+          allowed_connection_types: ["coexistence"],
+          success_redirect_url: `${callbackBase}&status=success`,
+          failure_redirect_url: `${callbackBase}&status=failed`,
+        });
+      } catch (err) {
+        console.warn("Kapso enhanced setup link failed, falling back to basic setup link:", err);
+        setupLinkFallbackUsed = true;
+        setup = await createKapsoSetupLink(customerId);
+      }
       const setupLink = setup?.data || setup;
+      const setupLinkUrl = extractKapsoSetupLinkUrl(setupLink);
+      const setupLinkExpiry = extractKapsoSetupLinkExpiry(setupLink);
+      const setupLinkId = extractKapsoSetupLinkId(setupLink);
 
       const { data, error } = await supabase
         .from("kapso_connections")
@@ -702,8 +935,9 @@ serve(async (req) => {
           connection_type: connectionType,
           kapso_customer_id: customerId,
           external_customer_id: externalCustomerId,
-          setup_link_url: setupLink?.url || null,
-          setup_link_expires_at: setupLink?.expires_at || null,
+          setup_link_id: setupLinkId,
+          setup_link_url: setupLinkUrl,
+          setup_link_expires_at: setupLinkExpiry,
           status: existing?.phone_number_id ? "connected" : "setup_pending",
           webhook_secret_set: !!KAPSO_WEBHOOK_SECRET,
           updated_at: new Date().toISOString(),
@@ -714,8 +948,82 @@ serve(async (req) => {
       if (error) throw error;
       await logAnalyticsEvent(supabase, user.id, "whatsapp_setup_link_created", {
         connection_type: connectionType,
+        allowed_connection_types: ["coexistence"],
+        fallback_used: setupLinkFallbackUsed,
       }, "edge");
       return new Response(JSON.stringify({ success: true, connection: data }), { headers: corsHeaders });
+    }
+
+    if (action === "finalize_setup") {
+      const connectionType = body.connection_type === "customer" ? "customer" : "internal";
+      const proResponse = requireProForCustomerMode(profile, connectionType);
+      if (proResponse) return proResponse;
+      const phoneNumberId = String(body.phone_number_id || body.phoneNumberId || "").trim();
+      const phoneNumber = String(body.phone_number || body.phoneNumber || "").trim();
+      const displayName = String(body.display_name || body.displayName || (connectionType === "customer" ? "Customer Requests" : "Internal Operations")).trim();
+      const setupLinkId = String(body.setup_link_id || body.setupLinkId || "").trim();
+
+      if (!phoneNumberId) {
+        return new Response(JSON.stringify({ error: "phone_number_id is required to finish WhatsApp setup" }), { status: 400, headers: corsHeaders });
+      }
+
+      const now = new Date().toISOString();
+      const { data, error } = await supabase
+        .from("kapso_connections")
+        .upsert({
+          user_id: user.id,
+          connection_type: connectionType,
+          phone_number_id: phoneNumberId,
+          phone_number: phoneNumber || null,
+          display_name: displayName,
+          setup_link_id: setupLinkId || null,
+          status: "connected",
+          kapso_webhook_error: null,
+          webhook_secret_set: !!KAPSO_WEBHOOK_SECRET,
+          updated_at: now,
+        }, { onConflict: "user_id,connection_type" })
+        .select("*")
+        .single();
+
+      if (error) throw error;
+
+      let webhook = null;
+      try {
+        webhook = await registerKapsoWebhookForNumber(supabase, user.id, connectionType, phoneNumberId);
+      } catch (err) {
+        const message = errorMessage(err);
+        await supabase
+          .from("kapso_connections")
+          .update({
+            status: "connected",
+            kapso_webhook_error: message,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("user_id", user.id)
+          .eq("connection_type", connectionType);
+        await logAnalyticsEvent(supabase, user.id, "whatsapp_webhook_registration_failed", {
+          connection_type: connectionType,
+          phone_number_id: phoneNumberId,
+          status: errorStatus(err),
+          error: message,
+        }, "edge");
+        return new Response(JSON.stringify({ success: false, connection: data, error: message }), { status: 502, headers: corsHeaders });
+      }
+
+      const { data: refreshed } = await supabase
+        .from("kapso_connections")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("connection_type", connectionType)
+        .maybeSingle();
+
+      await logAnalyticsEvent(supabase, user.id, "whatsapp_connection_finalized", {
+        connection_type: connectionType,
+        phone_number_id: phoneNumberId,
+        setup_link_id: setupLinkId || null,
+      }, "edge");
+
+      return new Response(JSON.stringify({ success: true, connection: refreshed || data, webhook }), { headers: corsHeaders });
     }
 
     return new Response(JSON.stringify({ error: "Unknown action" }), { status: 400, headers: corsHeaders });

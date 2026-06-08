@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { CheckCircle2, ChevronLeft, Copy, ExternalLink, Loader2, Lock, MessageCircle, Trash2 } from 'lucide-react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { CheckCircle2, ChevronLeft, Copy, ExternalLink, Loader2, Lock, MessageCircle, Trash2, Wrench } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -26,6 +26,10 @@ interface KapsoConnection {
   escalation_instructions: string | null;
   last_webhook_at: string | null;
   webhook_secret_set: boolean;
+  kapso_webhook_id?: string | null;
+  kapso_webhook_url?: string | null;
+  kapso_webhook_registered_at?: string | null;
+  kapso_webhook_error?: string | null;
 }
 
 interface KapsoStatus {
@@ -110,6 +114,7 @@ const customerCapabilities = [
 export default function WhatsAppPage() {
   const { user, isPro } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [status, setStatus] = useState<KapsoStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -123,7 +128,8 @@ export default function WhatsAppPage() {
   const [operatingHours, setOperatingHours] = useState('');
   const [fulfillmentRules, setFulfillmentRules] = useState('');
   const [escalationInstructions, setEscalationInstructions] = useState('');
-  const [connectionType, setConnectionType] = useState<'internal' | 'customer'>('internal');
+  const [connectionType, setConnectionType] = useState<'internal' | 'customer'>(searchParams.get('mode') === 'customer' ? 'customer' : 'internal');
+  const [showAdvancedSetup, setShowAdvancedSetup] = useState(false);
 
   const webhookUrl = useMemo(() => {
     if (!user) return '';
@@ -167,7 +173,11 @@ export default function WhatsAppPage() {
   const generateSetupLink = async () => {
     setSaving(true);
     const { data, error } = await supabase.functions.invoke('kapso-setup', {
-      body: { action: 'generate_setup_link', connection_type: connectionType },
+      body: {
+        action: 'generate_setup_link',
+        connection_type: connectionType,
+        app_origin: window.location.origin,
+      },
     });
     setSaving(false);
 
@@ -233,6 +243,32 @@ export default function WhatsAppPage() {
       has_fulfillment_rules: !!fulfillmentRules.trim(),
     });
     toast.success('WhatsApp connection saved');
+  };
+
+  const retryRouting = async () => {
+    if (!selectedConnection?.phone_number_id) {
+      toast.error('Connect a WhatsApp number before registering routing');
+      return;
+    }
+
+    setSaving(true);
+    const { data, error } = await supabase.functions.invoke('kapso-setup', {
+      body: {
+        action: 'register_webhook',
+        connection_type: connectionType,
+      },
+    });
+    setSaving(false);
+
+    if (error) {
+      toast.error(error.message || 'Could not register message routing');
+      void loadStatus();
+      return;
+    }
+
+    mergeSavedConnection(data.connection);
+    track('whatsapp_webhook_registration_retried', { connection_type: connectionType });
+    toast.success('Message routing is active');
   };
 
   const saveCustomerSettings = async () => {
@@ -301,6 +337,11 @@ export default function WhatsAppPage() {
     toast.success('Webhook URL copied');
   };
 
+  const selectConnectionType = (type: 'internal' | 'customer') => {
+    setConnectionType(type);
+    setSearchParams({ mode: type });
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-brand-light flex items-center justify-center">
@@ -312,11 +353,17 @@ export default function WhatsAppPage() {
   const selectedConnection = status?.connections?.find((item) => item.connection_type === connectionType) || null;
   const customerModeLocked = connectionType === 'customer' && !isPro;
   const activeCapabilities = connectionType === 'internal' ? internalCapabilities : customerCapabilities;
+  const webhookActive = !!selectedConnection?.kapso_webhook_registered_at || selectedConnection?.status === 'webhook_active';
   const customerReadyChecks = [
     {
       title: 'Customer number connected',
       done: !!selectedConnection?.phone_number_id,
       body: 'Kapso phone number ID is saved for this customer-facing channel.',
+    },
+    {
+      title: 'Message routing active',
+      done: webhookActive,
+      body: 'Hoursback has registered the Kapso Events webhook for this number.',
     },
     {
       title: 'Catalogue or service list saved',
@@ -334,7 +381,7 @@ export default function WhatsAppPage() {
       body: 'Pickup, delivery, service fees, cash-on-pickup, timelines, and handoff rules are clear.',
     },
     {
-      title: 'Webhook has received a test',
+      title: 'Test message received',
       done: !!selectedConnection?.last_webhook_at,
       body: 'Send a menu question, request, paid message, and receipt from a real phone before launch.',
     },
@@ -427,7 +474,7 @@ export default function WhatsAppPage() {
               <button
                 key={type}
                 type="button"
-                onClick={() => setConnectionType(type as 'internal' | 'customer')}
+                onClick={() => selectConnectionType(type as 'internal' | 'customer')}
                 className={`text-left rounded-2xl border p-4 transition-colors ${
                   connectionType === type
                     ? 'bg-emerald-50 border-emerald-200'
@@ -510,7 +557,7 @@ export default function WhatsAppPage() {
               </div>
             </div>
 
-            <div className="grid md:grid-cols-5 gap-3">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {customerReadyChecks.map((item, index) => (
                 <div
                   key={item.title}
@@ -555,7 +602,14 @@ export default function WhatsAppPage() {
           <div>
             <h3 className="text-lg font-semibold text-brand-dark">1. Connect {connectionType === 'customer' ? 'customer requests' : 'internal operations'} number</h3>
             <p className="mt-1 text-sm text-slate-500">
-              Use Kapso setup if `KAPSO_API_KEY` is configured, or paste a Kapso WhatsApp Business Phone Number ID manually.
+              Use the setup link to connect a WhatsApp Business App number. You may need access to the Meta/Facebook account that manages that number, but you do not need to configure webhooks manually.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4">
+            <p className="text-sm font-semibold text-blue-950">Before you start</p>
+            <p className="mt-1 text-xs leading-relaxed text-blue-700">
+              Keep the business owner or admin nearby if the WhatsApp number is managed inside Meta Business. Kapso handles the technical connection; Hoursback will route messages after the number is connected.
             </p>
           </div>
 
@@ -566,7 +620,7 @@ export default function WhatsAppPage() {
               className="inline-flex items-center justify-center gap-2 rounded-full bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <ExternalLink className="w-4 h-4" />}
-              Generate Kapso setup link
+              Connect WhatsApp Business app
             </button>
             {!status?.api_configured && (
               <p className="text-xs text-amber-600 self-center">KAPSO_API_KEY is not configured in Supabase secrets.</p>
@@ -580,7 +634,7 @@ export default function WhatsAppPage() {
               rel="noreferrer"
               className="block rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700 hover:bg-emerald-100 transition-colors"
             >
-              Open Kapso setup link →
+              Continue WhatsApp setup →
               {selectedConnection.setup_link_expires_at && (
                 <span className="block mt-1 text-xs text-emerald-700/60">
                   Expires {new Date(selectedConnection.setup_link_expires_at).toLocaleString()}
@@ -589,7 +643,70 @@ export default function WhatsAppPage() {
             </a>
           )}
 
-          <div className="grid sm:grid-cols-3 gap-3">
+          {selectedConnection?.phone_number_id && (
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
+                <p className="text-xs text-emerald-700/70 mb-1">Number</p>
+                <p className="text-sm font-semibold text-emerald-900">
+                  {selectedConnection.phone_number || selectedConnection.phone_number_id}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
+                <p className="text-xs text-emerald-700/70 mb-1">Routing</p>
+                <p className="text-sm font-semibold text-emerald-900">
+                  {webhookActive ? 'Active' : selectedConnection.kapso_webhook_error ? 'Needs support' : 'Pending'}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
+                <p className="text-xs text-emerald-700/70 mb-1">Test message</p>
+                <p className="text-sm font-semibold text-emerald-900">
+                  {selectedConnection.last_webhook_at ? new Date(selectedConnection.last_webhook_at).toLocaleString() : 'Not received yet'}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {selectedConnection?.kapso_webhook_error && (
+            <div className="rounded-2xl border border-red-100 bg-red-50 p-4 text-sm text-red-700">
+              Routing setup failed: {selectedConnection.kapso_webhook_error}. Use Advanced support below or retry setup.
+            </div>
+          )}
+
+          {selectedConnection?.phone_number_id && !webhookActive && (
+            <div className="flex flex-col gap-3 rounded-2xl border border-amber-100 bg-amber-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm leading-relaxed text-amber-800">
+                This number is saved, but message routing is not active yet. Register routing before sending customers or staff to WhatsApp.
+              </p>
+              <button
+                type="button"
+                onClick={retryRouting}
+                disabled={saving || customerModeLocked}
+                className="shrink-0 rounded-full bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700 disabled:opacity-60"
+              >
+                {saving ? 'Registering...' : 'Register routing'}
+              </button>
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setShowAdvancedSetup((value) => !value)}
+            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+          >
+            <Wrench className="h-4 w-4" />
+            {showAdvancedSetup ? 'Hide advanced support' : 'Advanced support'}
+          </button>
+
+          {showAdvancedSetup && (
+            <div className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div>
+                <p className="text-sm font-semibold text-brand-dark">Manual support setup</p>
+                <p className="mt-1 text-xs leading-relaxed text-slate-500">
+                  Use this only when Kapso support asks for a phone number ID or a setup callback does not include one. Saving here also registers the Kapso Events webhook automatically.
+                </p>
+              </div>
+
+              <div className="grid sm:grid-cols-3 gap-3">
             <label className="sm:col-span-1">
               <span className="block text-xs font-medium text-slate-500 mb-1.5">Display name</span>
               <input
@@ -617,7 +734,17 @@ export default function WhatsAppPage() {
                 placeholder="1234567890"
               />
             </label>
-          </div>
+              </div>
+
+              <button
+                onClick={saveManualConnection}
+                disabled={saving || customerModeLocked}
+                className="rounded-full bg-brand-dark px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-dark/90 disabled:opacity-60"
+              >
+                Save connection and register routing
+              </button>
+            </div>
+          )}
 
           {connectionType === 'customer' && (
             <div className="space-y-3">
@@ -704,20 +831,13 @@ export default function WhatsAppPage() {
             </div>
           )}
 
-          <button
-            onClick={saveManualConnection}
-            disabled={saving || customerModeLocked}
-            className="rounded-full bg-brand-dark px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-dark/90 disabled:opacity-60"
-          >
-            Save connection
-          </button>
         </section>
 
         <section className="bg-white rounded-3xl border border-brand-dark/10 p-6 space-y-4">
           <div>
-            <h3 className="text-lg font-semibold text-brand-dark">2. Register this webhook in Kapso</h3>
+            <h3 className="text-lg font-semibold text-brand-dark">2. Message routing</h3>
             <p className="mt-1 text-sm text-slate-500">
-              Subscribe to `whatsapp.message.received`. Set the same secret in Supabase as `KAPSO_WEBHOOK_SECRET`.
+              Hoursback registers routing automatically after setup. Use this endpoint only for admin testing or if support asks you to verify a Kapso Events webhook.
             </p>
           </div>
 
@@ -733,6 +853,12 @@ export default function WhatsAppPage() {
               <p className="text-xs text-slate-400 mb-1">Webhook secret</p>
               <p className="text-sm font-semibold text-brand-dark">
                 {status?.webhook_secret_configured ? 'Configured' : 'Not configured'}
+              </p>
+            </div>
+            <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4">
+              <p className="text-xs text-slate-400 mb-1">Routing registration</p>
+              <p className="text-sm font-semibold text-brand-dark">
+                {webhookActive ? 'Active' : selectedConnection?.kapso_webhook_error ? 'Failed' : 'Pending'}
               </p>
             </div>
             <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4">
