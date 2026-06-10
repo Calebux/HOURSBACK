@@ -110,6 +110,25 @@ function kapsoWebhookUrl(userId: string, connectionType: string) {
   return `${SUPABASE_URL}/functions/v1/kapso-webhook?uid=${userId}&mode=${connectionType}`;
 }
 
+function wabaGatewayWebhookUrl(userId: string, connectionType: string) {
+  return `${SUPABASE_URL}/functions/v1/waba-gateway-webhook?uid=${userId}&mode=${connectionType}`;
+}
+
+function getWhatsAppSetupProvider() {
+  return Deno.env.get("WABA_GATEWAY_PROVIDER") === "waba_gateway" ? "waba_gateway" : "kapso";
+}
+
+function gatewaySetupUrl(userId: string, connectionType: string, appOrigin: string) {
+  const base = Deno.env.get("WABA_GATEWAY_SETUP_URL")
+    || `${(Deno.env.get("WABA_GATEWAY_BASE_URL") || "https://waba.hoursback.xyz").replace(/\/+$/, "")}/connect`;
+  const url = new URL(base);
+  url.searchParams.set("uid", userId);
+  url.searchParams.set("mode", connectionType);
+  url.searchParams.set("return_url", `${appOrigin}/whatsapp/callback?mode=${connectionType}`);
+  url.searchParams.set("webhook_url", wabaGatewayWebhookUrl(userId, connectionType));
+  return url.toString();
+}
+
 function extractKapsoWebhookId(webhook: any) {
   return firstString(webhook?.id, webhook?.data?.id, webhook?.whatsapp_webhook?.id);
 }
@@ -835,27 +854,42 @@ serve(async (req) => {
 
       if (error) throw error;
       let webhook = null;
-      try {
-        webhook = await registerKapsoWebhookForNumber(supabase, user.id, connectionType, phoneNumberId);
-      } catch (err) {
-        const message = errorMessage(err);
+      if (getWhatsAppSetupProvider() === "waba_gateway") {
         await supabase
           .from("kapso_connections")
           .update({
-            status: "connected",
-            kapso_webhook_error: message,
+            status: "webhook_active",
+            kapso_webhook_url: wabaGatewayWebhookUrl(user.id, connectionType),
+            kapso_webhook_registered_at: new Date().toISOString(),
+            kapso_webhook_error: null,
             webhook_secret_set: !!KAPSO_WEBHOOK_SECRET,
             updated_at: new Date().toISOString(),
           })
           .eq("user_id", user.id)
           .eq("connection_type", connectionType);
-        await logAnalyticsEvent(supabase, user.id, "whatsapp_webhook_registration_failed", {
-          connection_type: connectionType,
-          phone_number_id: phoneNumberId,
-          status: errorStatus(err),
-          error: message,
-        }, "edge");
-        return new Response(JSON.stringify({ success: false, connection: data, error: message }), { status: 502, headers: corsHeaders });
+      } else {
+        try {
+          webhook = await registerKapsoWebhookForNumber(supabase, user.id, connectionType, phoneNumberId);
+        } catch (err) {
+          const message = errorMessage(err);
+          await supabase
+            .from("kapso_connections")
+            .update({
+              status: "connected",
+              kapso_webhook_error: message,
+              webhook_secret_set: !!KAPSO_WEBHOOK_SECRET,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("user_id", user.id)
+            .eq("connection_type", connectionType);
+          await logAnalyticsEvent(supabase, user.id, "whatsapp_webhook_registration_failed", {
+            connection_type: connectionType,
+            phone_number_id: phoneNumberId,
+            status: errorStatus(err),
+            error: message,
+          }, "edge");
+          return new Response(JSON.stringify({ success: false, connection: data, error: message }), { status: 502, headers: corsHeaders });
+        }
       }
 
       const { data: refreshed } = await supabase
@@ -878,6 +912,39 @@ serve(async (req) => {
       const connectionType = body.connection_type === "customer" ? "customer" : "internal";
       const proResponse = requireProForCustomerMode(profile, connectionType);
       if (proResponse) return proResponse;
+      const appOrigin = normalizedOrigin(body.app_origin)
+        || normalizedOrigin(req.headers.get("Origin"))
+        || Deno.env.get("APP_URL")
+        || "https://www.hoursback.xyz";
+
+      if (getWhatsAppSetupProvider() === "waba_gateway") {
+        const setupLinkUrl = gatewaySetupUrl(user.id, connectionType, appOrigin);
+        const externalCustomerId = `hoursback:${user.id}:${connectionType}`;
+
+        const { data, error } = await supabase
+          .from("kapso_connections")
+          .upsert({
+            user_id: user.id,
+            connection_type: connectionType,
+            external_customer_id: externalCustomerId,
+            setup_link_url: setupLinkUrl,
+            setup_link_expires_at: null,
+            status: "setup_pending",
+            webhook_secret_set: !!KAPSO_WEBHOOK_SECRET,
+            kapso_webhook_error: null,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: "user_id,connection_type" })
+          .select("*")
+          .single();
+
+        if (error) throw error;
+        await logAnalyticsEvent(supabase, user.id, "whatsapp_gateway_setup_link_created", {
+          connection_type: connectionType,
+          provider: "waba_gateway",
+        }, "edge");
+        return new Response(JSON.stringify({ success: true, connection: data, provider: "waba_gateway" }), { headers: corsHeaders });
+      }
+
       if (!getKapsoApiKey()) {
         return new Response(
           JSON.stringify({ error: "KAPSO_API_KEY is not configured in Supabase secrets" }),
@@ -905,10 +972,6 @@ serve(async (req) => {
 
       if (!customerId) throw new Error("Kapso did not return a customer id");
 
-      const appOrigin = normalizedOrigin(body.app_origin)
-        || normalizedOrigin(req.headers.get("Origin"))
-        || Deno.env.get("APP_URL")
-        || "https://www.hoursback.xyz";
       const callbackBase = `${appOrigin}/whatsapp/callback?mode=${connectionType}`;
       let setup;
       let setupLinkFallbackUsed = false;
@@ -988,26 +1051,41 @@ serve(async (req) => {
       if (error) throw error;
 
       let webhook = null;
-      try {
-        webhook = await registerKapsoWebhookForNumber(supabase, user.id, connectionType, phoneNumberId);
-      } catch (err) {
-        const message = errorMessage(err);
+      if (getWhatsAppSetupProvider() === "waba_gateway") {
         await supabase
           .from("kapso_connections")
           .update({
-            status: "connected",
-            kapso_webhook_error: message,
+            status: "webhook_active",
+            kapso_webhook_url: wabaGatewayWebhookUrl(user.id, connectionType),
+            kapso_webhook_registered_at: new Date().toISOString(),
+            kapso_webhook_error: null,
+            webhook_secret_set: !!KAPSO_WEBHOOK_SECRET,
             updated_at: new Date().toISOString(),
           })
           .eq("user_id", user.id)
           .eq("connection_type", connectionType);
-        await logAnalyticsEvent(supabase, user.id, "whatsapp_webhook_registration_failed", {
-          connection_type: connectionType,
-          phone_number_id: phoneNumberId,
-          status: errorStatus(err),
-          error: message,
-        }, "edge");
-        return new Response(JSON.stringify({ success: false, connection: data, error: message }), { status: 502, headers: corsHeaders });
+      } else {
+        try {
+          webhook = await registerKapsoWebhookForNumber(supabase, user.id, connectionType, phoneNumberId);
+        } catch (err) {
+          const message = errorMessage(err);
+          await supabase
+            .from("kapso_connections")
+            .update({
+              status: "connected",
+              kapso_webhook_error: message,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("user_id", user.id)
+            .eq("connection_type", connectionType);
+          await logAnalyticsEvent(supabase, user.id, "whatsapp_webhook_registration_failed", {
+            connection_type: connectionType,
+            phone_number_id: phoneNumberId,
+            status: errorStatus(err),
+            error: message,
+          }, "edge");
+          return new Response(JSON.stringify({ success: false, connection: data, error: message }), { status: 502, headers: corsHeaders });
+        }
       }
 
       const { data: refreshed } = await supabase

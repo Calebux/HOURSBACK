@@ -46,7 +46,7 @@ export default function WhatsAppCallbackPage() {
     const status = params.get('status');
     if (status === 'failed' || params.get('error')) {
       setState('error');
-      setMessage(params.get('error_description') || params.get('error') || 'Kapso could not connect this WhatsApp number.');
+      setMessage(params.get('error_description') || params.get('error') || 'Hoursback could not connect this WhatsApp number.');
       return;
     }
 
@@ -85,7 +85,7 @@ export default function WhatsAppCallbackPage() {
 
     if (!phoneNumberId) {
       setState('error');
-      setMessage('Kapso returned to Hoursback, but no phone number ID was included. Open WhatsApp setup and use Advanced support to save the phone number ID, or retry the setup link.');
+      setMessage('WhatsApp setup returned to Hoursback, but no phone number ID was included. Open WhatsApp setup and use Advanced support to save the phone number ID, or retry setup.');
       return;
     }
 

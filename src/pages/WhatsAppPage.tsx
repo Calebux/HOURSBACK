@@ -182,12 +182,12 @@ export default function WhatsAppPage() {
     setSaving(false);
 
     if (error) {
-      toast.error(error.message || 'Could not create setup link');
+      toast.error(error.message || 'Could not start WhatsApp setup');
       return;
     }
     mergeSavedConnection(data.connection);
     track('whatsapp_setup_link_created', { connection_type: connectionType });
-    toast.success('WhatsApp setup link created');
+    toast.success('WhatsApp setup started');
   };
 
   const mergeSavedConnection = (connection: KapsoConnection) => {
@@ -602,7 +602,7 @@ export default function WhatsAppPage() {
           <div>
             <h3 className="text-lg font-semibold text-brand-dark">1. Connect {connectionType === 'customer' ? 'customer requests' : 'internal operations'} number</h3>
             <p className="mt-1 text-sm text-slate-500">
-              Use the setup link to connect a WhatsApp Business App number. You may need access to the Meta/Facebook account that manages that number, but you do not need to configure webhooks manually.
+              Open the WhatsApp setup flow to connect a WhatsApp Business App number. You may need access to the Meta/Facebook account that manages that number, but you do not need to configure webhooks manually.
             </p>
           </div>
 
@@ -620,7 +620,7 @@ export default function WhatsAppPage() {
               className="inline-flex items-center justify-center gap-2 rounded-full bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <ExternalLink className="w-4 h-4" />}
-              Connect WhatsApp Business app
+              Open WhatsApp setup
             </button>
             {!status?.api_configured && (
               <p className="text-xs text-amber-600 self-center">WhatsApp setup is not configured yet. Contact support.</p>
