@@ -58,7 +58,7 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="text-xl font-semibold text-brand-dark mb-3">4. Data Retention</h2>
-            <p>We retain your account, workflow, WhatsApp, sales log, customer request, and receipt data for as long as your account is active or as needed to provide the service. Workflow run results are retained for up to 90 days unless needed for your account history. Uploaded files, receipt screenshots, and media are retained until you delete the related record, delete your account, or request removal. You may request deletion of your data at any time by contacting us.</p>
+            <p>We retain your account, workflow, WhatsApp, sales log, customer request, and receipt data for as long as your account is active or as needed to provide the service. Workflow run results are retained for up to 90 days unless needed for your account history. Uploaded files, receipt screenshots, and media are retained until you delete the related record, delete your account, or request removal. You may request deletion of your data at any time by following our <Link to="/data-deletion" className="text-[#4285F4] hover:underline">data deletion instructions</Link>.</p>
           </section>
 
           <section>
@@ -68,7 +68,7 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="text-xl font-semibold text-brand-dark mb-3">6. Your Rights</h2>
-            <p>You have the right to access, export, correct, or delete your personal data. You can download an account export from the Account page. To exercise any of these rights, contact us at <a href="mailto:support@hoursback.xyz" className="text-[#4285F4] hover:underline">support@hoursback.xyz</a>.</p>
+            <p>You have the right to access, export, correct, or delete your personal data. You can download an account export from the Account page. To request deletion, follow the instructions at <Link to="/data-deletion" className="text-[#4285F4] hover:underline">hoursback.xyz/data-deletion</Link> or contact us at <a href="mailto:support@hoursback.xyz" className="text-[#4285F4] hover:underline">support@hoursback.xyz</a>.</p>
           </section>
 
           <section>

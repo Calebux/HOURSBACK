@@ -64,6 +64,11 @@
     <priority>0.3</priority>
   </url>
   <url>
+    <loc>https://www.hoursback.xyz/data-deletion</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
     <loc>https://www.hoursback.xyz/terms</loc>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>

@@ -358,12 +358,12 @@ export default function WhatsAppPage() {
     {
       title: 'Customer number connected',
       done: !!selectedConnection?.phone_number_id,
-      body: 'Kapso phone number ID is saved for this customer-facing channel.',
+      body: 'Your customer-facing WhatsApp number is connected to this workspace.',
     },
     {
       title: 'Message routing active',
       done: webhookActive,
-      body: 'Hoursback has registered the Kapso Events webhook for this number.',
+      body: 'Hoursback can receive messages from this number automatically.',
     },
     {
       title: 'Catalogue or service list saved',
@@ -418,10 +418,10 @@ export default function WhatsAppPage() {
         <section className="bg-white rounded-3xl border border-brand-dark/10 p-6">
           <div className="flex flex-col md:flex-row md:items-start justify-between gap-5">
             <div>
-              <p className="text-xs font-semibold tracking-[0.18em] uppercase text-emerald-600 mb-3">Kapso integration</p>
+              <p className="text-xs font-semibold tracking-[0.18em] uppercase text-emerald-600 mb-3">WhatsApp connection</p>
               <h2 className="text-2xl font-bold text-brand-dark">Turn WhatsApp messages into Hoursback workflow inputs.</h2>
               <p className="mt-3 text-sm text-slate-500 max-w-2xl leading-relaxed">
-                Staff can send sales updates in WhatsApp, customers can start order conversations, and owners can ask for daily summaries. Inbound messages are routed through Kapso into the existing Sales Log.
+                Staff can send sales updates in WhatsApp, customers can start order conversations, and owners can ask for daily summaries. Hoursback handles the message routing in the background.
               </p>
             </div>
             <div className={`px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 ${
@@ -609,7 +609,7 @@ export default function WhatsAppPage() {
           <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4">
             <p className="text-sm font-semibold text-blue-950">Before you start</p>
             <p className="mt-1 text-xs leading-relaxed text-blue-700">
-              Keep the business owner or admin nearby if the WhatsApp number is managed inside Meta Business. Kapso handles the technical connection; Hoursback will route messages after the number is connected.
+              Keep the business owner or admin nearby if the WhatsApp number is managed inside Meta Business. Hoursback will route messages after the number is connected.
             </p>
           </div>
 
@@ -623,7 +623,7 @@ export default function WhatsAppPage() {
               Connect WhatsApp Business app
             </button>
             {!status?.api_configured && (
-              <p className="text-xs text-amber-600 self-center">KAPSO_API_KEY is not configured in Supabase secrets.</p>
+              <p className="text-xs text-amber-600 self-center">WhatsApp setup is not configured yet. Contact support.</p>
             )}
           </div>
 
@@ -702,7 +702,7 @@ export default function WhatsAppPage() {
               <div>
                 <p className="text-sm font-semibold text-brand-dark">Manual support setup</p>
                 <p className="mt-1 text-xs leading-relaxed text-slate-500">
-                  Use this only when Kapso support asks for a phone number ID or a setup callback does not include one. Saving here also registers the Kapso Events webhook automatically.
+                  Use this only when Hoursback support asks for a phone number ID or a setup callback does not include one.
                 </p>
               </div>
 
@@ -726,7 +726,7 @@ export default function WhatsAppPage() {
               />
             </label>
             <label className="sm:col-span-1">
-              <span className="block text-xs font-medium text-slate-500 mb-1.5">Kapso phone number ID</span>
+              <span className="block text-xs font-medium text-slate-500 mb-1.5">Phone number ID</span>
               <input
                 value={phoneNumberId}
                 onChange={(e) => setPhoneNumberId(e.target.value)}
@@ -741,8 +741,43 @@ export default function WhatsAppPage() {
                 disabled={saving || customerModeLocked}
                 className="rounded-full bg-brand-dark px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-dark/90 disabled:opacity-60"
               >
-                Save connection and register routing
+                Save connection
               </button>
+
+              <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4">
+                <p className="text-sm font-semibold text-amber-900">Routing diagnostics</p>
+                <p className="mt-1 text-xs leading-relaxed text-amber-800">
+                  These details are for Hoursback support. Normal users do not need to copy URLs, manage secrets, or create webhooks.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 rounded-2xl bg-white border border-slate-200 p-3">
+                <code className="text-xs text-slate-600 break-all flex-1">{webhookUrl}</code>
+                <button onClick={copyWebhook} className="p-2 hover:bg-slate-50 rounded-lg transition-colors" title="Copy webhook URL">
+                  <Copy className="w-4 h-4 text-slate-500" />
+                </button>
+              </div>
+
+              <div className="grid sm:grid-cols-3 gap-3">
+                <div className="rounded-2xl bg-white border border-slate-200 p-4">
+                  <p className="text-xs text-slate-400 mb-1">Secret</p>
+                  <p className="text-sm font-semibold text-brand-dark">
+                    {status?.webhook_secret_configured ? 'Configured' : 'Not configured'}
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-white border border-slate-200 p-4">
+                  <p className="text-xs text-slate-400 mb-1">Routing</p>
+                  <p className="text-sm font-semibold text-brand-dark">
+                    {webhookActive ? 'Active' : selectedConnection?.kapso_webhook_error ? 'Failed' : 'Pending'}
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-white border border-slate-200 p-4">
+                  <p className="text-xs text-slate-400 mb-1">Last message</p>
+                  <p className="text-sm font-semibold text-brand-dark">
+                    {selectedConnection?.last_webhook_at ? new Date(selectedConnection.last_webhook_at).toLocaleString() : 'No messages yet'}
+                  </p>
+                </div>
+              </div>
             </div>
           )}
 
@@ -833,42 +868,6 @@ export default function WhatsAppPage() {
 
         </section>
 
-        <section className="bg-white rounded-3xl border border-brand-dark/10 p-6 space-y-4">
-          <div>
-            <h3 className="text-lg font-semibold text-brand-dark">2. Message routing</h3>
-            <p className="mt-1 text-sm text-slate-500">
-              Hoursback registers routing automatically after setup. Use this endpoint only for admin testing or if support asks you to verify a Kapso Events webhook.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2 rounded-2xl bg-slate-50 border border-slate-200 p-3">
-            <code className="text-xs text-slate-600 break-all flex-1">{webhookUrl}</code>
-            <button onClick={copyWebhook} className="p-2 hover:bg-white rounded-lg transition-colors" title="Copy webhook URL">
-              <Copy className="w-4 h-4 text-slate-500" />
-            </button>
-          </div>
-
-          <div className="grid sm:grid-cols-2 gap-3">
-            <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4">
-              <p className="text-xs text-slate-400 mb-1">Webhook secret</p>
-              <p className="text-sm font-semibold text-brand-dark">
-                {status?.webhook_secret_configured ? 'Configured' : 'Not configured'}
-              </p>
-            </div>
-            <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4">
-              <p className="text-xs text-slate-400 mb-1">Routing registration</p>
-              <p className="text-sm font-semibold text-brand-dark">
-                {webhookActive ? 'Active' : selectedConnection?.kapso_webhook_error ? 'Failed' : 'Pending'}
-              </p>
-            </div>
-            <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4">
-              <p className="text-xs text-slate-400 mb-1">Last webhook</p>
-              <p className="text-sm font-semibold text-brand-dark">
-                {selectedConnection?.last_webhook_at ? new Date(selectedConnection.last_webhook_at).toLocaleString() : 'No messages yet'}
-              </p>
-            </div>
-          </div>
-        </section>
       </main>
 
       <MobileNav />

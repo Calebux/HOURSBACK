@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import Anthropic from "npm:@anthropic-ai/sdk";
-import { getKapsoApiKey, sendKapsoText } from "../_shared/kapso.ts";
+import { getKapsoApiKey, getOutboundMessageId, sendWhatsAppText } from "../_shared/kapso.ts";
 import { checkRateLimit } from "../_shared/security.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -1021,7 +1021,7 @@ async function markLatestOrderReceiptSent(supabase: any, connection: any, messag
         receiptSaved ? "Receipt: saved in Hoursback" : "Receipt: needs resend or manual review",
         "Open Hoursback /orders to verify payment.",
       ].filter(Boolean);
-      await sendKapsoText(connection.phone_number_id, ownerNumber, ownerLines.join("\n"));
+      await sendWhatsAppText(connection.phone_number_id, ownerNumber, ownerLines.join("\n"));
     } catch (err) {
       console.error("Owner receipt notification failed:", err);
     }
@@ -2342,11 +2342,11 @@ serve(async (req) => {
 
     if (message.from && reply) {
       try {
-        const sendResult = await sendKapsoText(message.phoneNumberId, message.from, reply);
+        const sendResult = await sendWhatsAppText(message.phoneNumberId, message.from, reply);
         await supabase.from("kapso_messages").insert({
           user_id: connection.user_id,
           connection_id: connection.id,
-          kapso_message_id: sendResult?.messages?.[0]?.id || null,
+          kapso_message_id: getOutboundMessageId(sendResult),
           phone_number_id: message.phoneNumberId,
           direction: "outbound",
           from_number: message.to || null,
@@ -2356,11 +2356,11 @@ serve(async (req) => {
           raw_payload: sendResult,
         });
       } catch (err) {
-        console.error("Kapso reply failed after inbound processing:", err);
+        console.error("WhatsApp reply failed after inbound processing:", err);
         await logAnalyticsEvent(supabase, connection.user_id, "kapso_reply_failed", {
           connection_type: connection.connection_type || "internal",
           message_id: message.messageId || null,
-          error: err instanceof Error ? err.message : "Kapso reply failed",
+          error: err instanceof Error ? err.message : "WhatsApp reply failed",
         });
       }
     }

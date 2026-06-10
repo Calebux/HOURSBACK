@@ -6,7 +6,7 @@ import {
   createKapsoSetupLink,
   getKapsoApiKey,
   listKapsoPhoneWebhooks,
-  sendKapsoText,
+  sendWhatsAppText,
   updateKapsoPhoneWebhook,
 } from "../_shared/kapso.ts";
 
@@ -58,10 +58,10 @@ async function logOrderAudit(
 
 async function safeSendKapsoText(phoneNumberId: string, to: string, text: string) {
   try {
-    await sendKapsoText(phoneNumberId, to, text);
+    await sendWhatsAppText(phoneNumberId, to, text);
     return true;
   } catch (err) {
-    console.error("Kapso customer notification failed:", err);
+    console.error("WhatsApp customer notification failed:", err);
     return false;
   }
 }

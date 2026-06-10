@@ -268,7 +268,7 @@ export default function AdminDashboard() {
                             ['AI limited 24h', launchHealth.whatsappAiLimited24h, 'Accounts that exceeded daily AI reply/parse limits.'],
                             ['Report limited 24h', launchHealth.whatsappReportLimited24h, 'Accounts that exceeded WhatsApp report generation limits.'],
                             ['Routing failures 24h', launchHealth.whatsappRoutingFailures24h, 'Automatic Kapso webhook registration failures.'],
-                            ['Reply failures 24h', launchHealth.kapsoReplyFailures24h, 'Kapso sends that failed after processing inbound messages.'],
+                            ['Reply failures 24h', launchHealth.kapsoReplyFailures24h, 'WhatsApp sends that failed after processing inbound messages.'],
                             ['Email failures 24h', launchHealth.reportEmailFailures24h, 'WhatsApp report emails that could not be sent.'],
                             ['Failed sends 24h', launchHealth.failedCustomerSends, 'Owner actions where customer message was not sent.'],
                             ['Receipt failures', launchHealth.receiptStorageFailures, 'Receipts received but not saved for review.'],

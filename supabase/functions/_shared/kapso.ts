@@ -1,4 +1,5 @@
 const KAPSO_API_BASE = "https://api.kapso.ai";
+const WABA_GATEWAY_DEFAULT_BASE = "https://waba.hoursback.xyz";
 
 export class KapsoApiError extends Error {
   status: number;
@@ -62,6 +63,68 @@ export async function sendKapsoText(phoneNumberId: string, to: string, body: str
       text: { body },
     }),
   });
+}
+
+export function getWhatsAppProvider(): "kapso" | "waba_gateway" {
+  return Deno.env.get("WABA_GATEWAY_PROVIDER") === "waba_gateway" ? "waba_gateway" : "kapso";
+}
+
+export async function sendWabaGatewayText(phoneNumberId: string, to: string, body: string) {
+  const apiKey = Deno.env.get("WABA_GATEWAY_API_KEY");
+  if (!apiKey) {
+    throw new Error("WABA_GATEWAY_API_KEY is not configured");
+  }
+
+  const baseUrl = (Deno.env.get("WABA_GATEWAY_BASE_URL") || WABA_GATEWAY_DEFAULT_BASE).replace(/\/+$/, "");
+  const gatewayPhoneNumberId = Deno.env.get("WABA_GATEWAY_PHONE_NUMBER_ID") || phoneNumberId;
+  const response = await fetch(`${baseUrl}/phone-numbers/${encodeURIComponent(gatewayPhoneNumberId)}/messages`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      to,
+      type: "text",
+      text: { body },
+    }),
+  });
+
+  const text = await response.text();
+  let json: any = null;
+  if (text) {
+    try {
+      json = JSON.parse(text);
+    } catch {
+      json = { raw: text };
+    }
+  }
+
+  if (!response.ok) {
+    const message = json?.error || json?.message || `WABA gateway request failed with ${response.status}`;
+    throw new KapsoApiError(message, response.status, json);
+  }
+
+  return {
+    provider: "waba_gateway",
+    ...json,
+  };
+}
+
+export async function sendWhatsAppText(phoneNumberId: string, to: string, body: string) {
+  if (getWhatsAppProvider() === "waba_gateway") {
+    return sendWabaGatewayText(phoneNumberId, to, body);
+  }
+  return sendKapsoText(phoneNumberId, to, body);
+}
+
+export function getOutboundMessageId(result: any): string | null {
+  return result?.messages?.[0]?.id
+    || result?.message?.id
+    || result?.data?.message?.id
+    || result?.id
+    || result?.message_id
+    || null;
 }
 
 export async function createKapsoCustomer(name: string, externalCustomerId: string) {

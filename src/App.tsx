@@ -19,6 +19,7 @@ const PlaybooksPage      = lazy(() => import('./pages/PlaybooksPage'));
 const PlaybookViewerPage = lazy(() => import('./pages/PlaybookViewerPage'));
 const CrashCoursePage    = lazy(() => import('./pages/CrashCoursePage'));
 const PrivacyPage        = lazy(() => import('./pages/PrivacyPage'));
+const DataDeletionPage   = lazy(() => import('./pages/DataDeletionPage'));
 const TermsPage          = lazy(() => import('./pages/TermsPage'));
 const NotFoundPage       = lazy(() => import('./pages/NotFoundPage'));
 const TrustPage          = lazy(() => import('./pages/TrustPage'));
@@ -97,6 +98,7 @@ function AppWithOnboarding() {
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/account" element={<AccountPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/data-deletion" element={<DataDeletionPage />} />
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/trust" element={<TrustPage />} />
           <Route path="/quiz" element={<QuizPage />} />

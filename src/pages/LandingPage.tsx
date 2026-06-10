@@ -1391,6 +1391,7 @@ function Footer() {
             <ul className="space-y-2.5 text-sm text-white/50">
               <li><Link to="/trust" className="hover:text-white transition-colors">Trust &amp; Security</Link></li>
               <li><Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
+              <li><Link to="/data-deletion" className="hover:text-white transition-colors">Data Deletion</Link></li>
               <li><a href="mailto:petersoncaleb275@gmail.com" className="hover:text-white transition-colors">Contact</a></li>
             </ul>
           </div>
@@ -1409,6 +1410,7 @@ function Footer() {
           <p>© 2026 Hoursback. All rights reserved.</p>
           <div className="flex gap-6">
             <Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
+            <Link to="/data-deletion" className="hover:text-white transition-colors">Data Deletion</Link>
             <Link to="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
           </div>
         </div>
