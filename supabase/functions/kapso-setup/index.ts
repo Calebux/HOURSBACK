@@ -118,14 +118,14 @@ function getWhatsAppSetupProvider() {
   return Deno.env.get("WABA_GATEWAY_PROVIDER") === "waba_gateway" ? "waba_gateway" : "kapso";
 }
 
-function gatewaySetupUrl(userId: string, connectionType: string, appOrigin: string) {
+function gatewaySetupUrl(userId: string, connectionType: string) {
   const base = Deno.env.get("WABA_GATEWAY_SETUP_URL")
     || `${(Deno.env.get("WABA_GATEWAY_BASE_URL") || "https://waba.hoursback.xyz").replace(/\/+$/, "")}/connect`;
+  const webhookSecret = Deno.env.get("WABA_GATEWAY_WEBHOOK_SECRET") || KAPSO_WEBHOOK_SECRET;
   const url = new URL(base);
   url.searchParams.set("uid", userId);
   url.searchParams.set("mode", connectionType);
-  url.searchParams.set("return_url", `${appOrigin}/whatsapp/callback?mode=${connectionType}`);
-  url.searchParams.set("webhook_url", wabaGatewayWebhookUrl(userId, connectionType));
+  if (webhookSecret) url.searchParams.set("webhook_secret", webhookSecret);
   return url.toString();
 }
 
@@ -918,7 +918,7 @@ serve(async (req) => {
         || "https://www.hoursback.xyz";
 
       if (getWhatsAppSetupProvider() === "waba_gateway") {
-        const setupLinkUrl = gatewaySetupUrl(user.id, connectionType, appOrigin);
+        const setupLinkUrl = gatewaySetupUrl(user.id, connectionType);
         const externalCustomerId = `hoursback:${user.id}:${connectionType}`;
 
         const { data, error } = await supabase
