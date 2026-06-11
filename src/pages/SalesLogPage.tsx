@@ -54,6 +54,15 @@ interface Closeout {
   created_at: string;
 }
 
+interface SheetDestination {
+  spreadsheet_id: string;
+  sheet_name: string;
+  enabled: boolean;
+  connected: boolean;
+  last_sync_at: string | null;
+  last_sync_error: string | null;
+}
+
 function fmt(n: number | null | undefined) {
   if (n == null) return '';
   return `₦${Number(n).toLocaleString()}`;
@@ -104,6 +113,11 @@ export default function SalesLogPage() {
   const [filterType, setFilterType] = useState('');
   const [filterStaff, setFilterStaff] = useState('');
   const [filterChannel, setFilterChannel] = useState('');
+  const [sheetDestination, setSheetDestination] = useState<SheetDestination | null>(null);
+  const [sheetUrl, setSheetUrl] = useState('');
+  const [sheetName, setSheetName] = useState('Sales Log');
+  const [sheetSaving, setSheetSaving] = useState(false);
+  const [sheetSyncing, setSheetSyncing] = useState(false);
 
   // Photo upload state
   const [uploadState, setUploadState] = useState<'idle' | 'parsing' | 'preview' | 'saving'>('idle');
@@ -142,6 +156,19 @@ export default function SalesLogPage() {
       });
   };
 
+  const loadSheetDestination = async () => {
+    if (!user) return;
+    const { data } = await supabase.functions.invoke('google-sheets-sync', {
+      body: { action: 'status' },
+    });
+    const destination = data?.destination || null;
+    setSheetDestination(destination);
+    if (destination) {
+      setSheetUrl(destination.spreadsheet_id || '');
+      setSheetName(destination.sheet_name || 'Sales Log');
+    }
+  };
+
   useEffect(() => {
     if (!user) { navigate('/'); return; }
     // Check pro status
@@ -152,10 +179,27 @@ export default function SalesLogPage() {
       .single()
       .then(({ data }) => {
         setIsPro(data?.subscription_status === 'pro');
-      });
+    });
     loadEntries();
     loadCloseout();
+    void loadSheetDestination();
   }, [user, navigate]);
+
+  useEffect(() => {
+    const finishGoogleConnect = async () => {
+      if (!user) return;
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('google_sheets') !== 'connected') return;
+      window.history.replaceState(null, document.title, '/sales-log');
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.provider_token) {
+        toast.error('Google connected, but no Sheets token was returned. Try Connect Google again.');
+        return;
+      }
+      toast.success('Google connected. Paste your Sheet URL and save the destination.');
+    };
+    void finishGoogleConnect();
+  }, [user]);
 
   const staffOptions = useMemo(() =>
     [...new Set(entries.map(e => e.triggered_by).filter(Boolean))].sort() as string[],
@@ -341,6 +385,66 @@ export default function SalesLogPage() {
     }
   };
 
+  const connectGoogle = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=/sales-log?google_sheets=connected`,
+        scopes: 'https://www.googleapis.com/auth/spreadsheets',
+        queryParams: { access_type: 'offline', prompt: 'consent' },
+      },
+    });
+    if (error) toast.error(error.message);
+  };
+
+  const saveSheetDestination = async () => {
+    if (!sheetUrl.trim()) {
+      toast.error('Paste a Google Sheet URL or spreadsheet ID');
+      return;
+    }
+    setSheetSaving(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const providerToken = session?.provider_token;
+      if (!providerToken) {
+        toast.error('Connect Google first');
+        return;
+      }
+      const { data, error } = await supabase.functions.invoke('google-sheets-sync', {
+        body: {
+          action: 'configure',
+          spreadsheet_url: sheetUrl.trim(),
+          sheet_name: sheetName.trim() || 'Sales Log',
+          access_token: providerToken,
+          expires_in: session.expires_in,
+        },
+      });
+      if (error) throw error;
+      setSheetDestination(data.destination);
+      toast.success('Google Sheet connected');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not connect Google Sheet');
+    } finally {
+      setSheetSaving(false);
+    }
+  };
+
+  const syncSheetNow = async () => {
+    setSheetSyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('google-sheets-sync', {
+        body: { action: 'sync', since: null },
+      });
+      if (error) throw error;
+      await loadSheetDestination();
+      toast.success(`Synced ${data?.synced || 0} rows to Google Sheets`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Google Sheets sync failed');
+    } finally {
+      setSheetSyncing(false);
+    }
+  };
+
   const dismissPreview = () => {
     setPreviewEntries([]);
     setUploadState('idle');
@@ -360,9 +464,9 @@ export default function SalesLogPage() {
       <div className="sticky top-0 z-10 bg-white/90 backdrop-blur border-b border-slate-200">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <Link to="/operations" className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors">
+            <button type="button" onClick={() => navigate(-1)} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors">
               <ChevronLeft className="w-5 h-5 text-slate-500" />
-            </Link>
+            </button>
             <div className="flex items-center gap-2">
               <FileText className="w-4 h-4 text-emerald-500" />
               <h1 className="text-base font-semibold text-brand-dark">Sales Log</h1>
@@ -492,6 +596,63 @@ export default function SalesLogPage() {
             </div>
           </div>
         )}
+
+        <div className="bg-white border border-brand-dark/10 rounded-2xl p-4 space-y-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-brand-dark">Google Sheets destination</p>
+              <p className="text-xs text-slate-500 mt-1">
+                Append sales rows to a Google Sheet with formula-friendly columns.
+              </p>
+              {sheetDestination?.last_sync_at && (
+                <p className="text-xs text-emerald-700 mt-1">
+                  Last sync {new Date(sheetDestination.last_sync_at).toLocaleString()}
+                </p>
+              )}
+              {sheetDestination?.last_sync_error && (
+                <p className="text-xs text-red-600 mt-1">{sheetDestination.last_sync_error}</p>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={connectGoogle}
+              className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+            >
+              {sheetDestination?.connected ? 'Reconnect Google' : 'Connect Google'}
+            </button>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-[1fr_180px_auto_auto]">
+            <input
+              value={sheetUrl}
+              onChange={(e) => setSheetUrl(e.target.value)}
+              className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-400"
+              placeholder="Google Sheet URL or spreadsheet ID"
+            />
+            <input
+              value={sheetName}
+              onChange={(e) => setSheetName(e.target.value)}
+              className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-400"
+              placeholder="Tab name"
+            />
+            <button
+              type="button"
+              onClick={saveSheetDestination}
+              disabled={sheetSaving}
+              className="rounded-lg bg-brand-dark px-3 py-2 text-sm font-semibold text-white hover:bg-brand-dark/90 disabled:opacity-60"
+            >
+              {sheetSaving ? 'Saving...' : 'Save'}
+            </button>
+            <button
+              type="button"
+              onClick={syncSheetNow}
+              disabled={sheetSyncing || !sheetDestination?.connected}
+              className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
+            >
+              {sheetSyncing ? 'Syncing...' : 'Sync rows'}
+            </button>
+          </div>
+        </div>
 
         {recentCloseout && (
           <div className="bg-white rounded-2xl border border-brand-dark/10 p-4">

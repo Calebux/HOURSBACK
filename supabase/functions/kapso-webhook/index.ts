@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import Anthropic from "npm:@anthropic-ai/sdk";
 import { getKapsoApiKey, getOutboundMessageId, sendWhatsAppTextForProvider } from "../_shared/kapso.ts";
+import { appendGoogleSheetRows, googleTokenValid } from "../_shared/google_sheets.ts";
 import { checkRateLimit } from "../_shared/security.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -1582,6 +1583,36 @@ function normalizeParsedEntries(parsed: any, rawText: string, fallbackEntries: a
   return usefulEntries.length ? usefulEntries : fallbackEntries;
 }
 
+async function appendEntriesToGoogleSheetIfConfigured(supabase: any, userId: string, rows: any[]) {
+  try {
+    const { data: destination } = await supabase
+      .from("google_sheet_destinations")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("enabled", true)
+      .maybeSingle();
+    if (!googleTokenValid(destination)) return;
+
+    await appendGoogleSheetRows(destination.spreadsheet_id, destination.sheet_name, destination.access_token, rows);
+    await supabase
+      .from("google_sheet_destinations")
+      .update({
+        last_sync_at: new Date().toISOString(),
+        last_sync_error: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", destination.id);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Google Sheets append failed";
+    console.error("Google Sheets append failed:", err);
+    await supabase
+      .from("google_sheet_destinations")
+      .update({ last_sync_error: message, updated_at: new Date().toISOString() })
+      .eq("user_id", userId);
+    await logAnalyticsEvent(supabase, userId, "google_sheets_append_failed", { error: message });
+  }
+}
+
 async function getTodayBusinessMetrics(supabase: any, userId: string, timeZone?: string) {
   const start = getTodayStart(timeZone);
   const { data: entries } = await supabase
@@ -2446,7 +2477,12 @@ serve(async (req) => {
         source: "whatsapp_text",
         channel: "whatsapp",
       }));
-      await supabase.from("bot_entries").insert(rows);
+      const { data: insertedRows, error: insertError } = await supabase
+        .from("bot_entries")
+        .insert(rows)
+        .select("*");
+      if (insertError) throw insertError;
+      await appendEntriesToGoogleSheetIfConfigured(supabase, connection.user_id, insertedRows || rows);
       await logAnalyticsEvent(supabase, connection.user_id, "sales_log_entry_created", {
         source: "whatsapp_text",
         entry_type: rows.length === 1 ? rows[0].entry_type : "batch",
