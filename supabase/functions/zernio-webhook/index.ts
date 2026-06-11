@@ -102,7 +102,25 @@ function normalizeZernioPayload(payload: any) {
   const accountId = firstString(account?._id, account?.id, account?.accountId, message?.accountId, conversation?.accountId);
   const conversationId = firstString(conversation?.id, conversation?._id, conversation?.conversationId, message?.conversationId);
   const textBody = firstString(message?.text, message?.message, message?.body, message?.content);
-  const from = conversationId || firstString(message?.from?.id, message?.from, conversation?.contactId);
+  const contactPhone = firstString(
+    message?.from?.phone,
+    message?.from?.phoneNumber,
+    message?.from?.wa_id,
+    message?.from?.whatsapp,
+    message?.from?.id,
+    typeof message?.from === "string" && /^\+?\d[\d\s()+-]+$/.test(message.from) ? message.from : undefined,
+    conversation?.contactPhone,
+    conversation?.phone,
+    conversation?.phoneNumber,
+    conversation?.wa_id,
+    conversation?.contact?.phone,
+    conversation?.contact?.phoneNumber,
+    conversation?.contact?.wa_id,
+    payload?.contact?.phone,
+    payload?.contact?.phoneNumber,
+    payload?.contact?.wa_id,
+  );
+  const from = contactPhone || conversationId || firstString(message?.from?.id, message?.from, conversation?.contactId);
   const contactName = firstString(
     conversation?.contactName,
     conversation?.name,
@@ -129,6 +147,7 @@ function normalizeZernioPayload(payload: any) {
         origin: "zernio",
         conversation_id: conversationId,
         account_id: accountId,
+        reply_to: conversationId,
       },
     },
     phone_number_id: accountId,

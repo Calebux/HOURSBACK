@@ -27,6 +27,7 @@ type ParsedMessage = {
   messageId?: string;
   phoneNumberId?: string;
   from?: string;
+  replyTo?: string;
   to?: string;
   contactName?: string;
   type?: string;
@@ -308,6 +309,7 @@ function parseKapsoMessage(payload: any): ParsedMessage | null {
       conversation?.business_scoped_user_id,
       conversation?.username
     ),
+    replyTo: firstString(kapso?.reply_to, kapso?.conversation_id, data?.reply_to, conversation?.id),
     to: firstString(msg?.to, data?.to, kapso?.to),
     contactName: firstString(conversationKapso?.contact_name, kapso?.contact_name, data?.contact?.name, data?.profile?.name),
     type: firstString(msg?.type, data?.type) || (text ? "text" : undefined),
@@ -1663,17 +1665,19 @@ async function loadBusinessDirectory(supabase: any, userId: string) {
 }
 
 async function loadInternalContact(supabase: any, userId: string, fromNumber?: string | null) {
+  const raw = String(fromNumber || "").trim();
   const phone = normalizePhone(fromNumber);
-  if (!phone) return null;
+  const candidates = [...new Set([phone, raw].filter(Boolean))];
+  if (!candidates.length) return null;
   const { data, error } = await supabase
     .from("business_internal_contacts")
     .select("*")
     .eq("user_id", userId)
-    .eq("phone_number", phone)
+    .in("phone_number", candidates)
     .eq("active", true)
-    .maybeSingle();
+    .limit(1);
   if (error) throw error;
-  return data || null;
+  return data?.[0] || null;
 }
 
 async function internalContactsConfigured(supabase: any, userId: string) {
@@ -2974,7 +2978,7 @@ serve(async (req) => {
 
     if (message.from && reply) {
       try {
-        const sendResult = await sendWhatsAppTextForProvider(connection.whatsapp_provider, message.phoneNumberId, message.from, reply);
+        const sendResult = await sendWhatsAppTextForProvider(connection.whatsapp_provider, message.phoneNumberId, message.replyTo || message.from, reply);
         await supabase.from("kapso_messages").insert({
           user_id: connection.user_id,
           connection_id: connection.id,

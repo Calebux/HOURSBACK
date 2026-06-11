@@ -21,6 +21,7 @@ type Contact = {
 };
 
 function normalizePhone(value: string) {
+  if (/[a-z]/i.test(value)) return value.trim();
   const digits = value.replace(/\D/g, '');
   if (digits.startsWith('0')) return `234${digits.slice(1)}`;
   return digits;
