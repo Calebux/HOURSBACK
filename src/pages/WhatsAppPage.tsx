@@ -12,6 +12,7 @@ interface KapsoConnection {
   id: string;
   status: string;
   connection_type?: 'internal' | 'customer';
+  whatsapp_provider?: 'kapso' | 'waba_gateway' | 'zernio';
   setup_link_url: string | null;
   setup_link_expires_at: string | null;
   phone_number_id: string | null;
@@ -36,6 +37,7 @@ interface KapsoStatus {
   connected: boolean;
   api_configured: boolean;
   webhook_secret_configured: boolean;
+  setup_link_configured?: boolean;
   provider?: 'kapso' | 'waba_gateway' | 'zernio';
   connection: KapsoConnection | null;
   connections?: KapsoConnection[];
@@ -193,8 +195,10 @@ export default function WhatsAppPage() {
     mergeSavedConnection(data.connection);
     track('whatsapp_setup_link_created', { connection_type: connectionType });
 
-    if (data.connection?.setup_link_url) {
-      window.open(data.connection.setup_link_url, '_blank', 'noopener,noreferrer');
+    const returnedSetupLink = data.connection?.setup_link_url || '';
+    const returnedProvider = data.connection?.whatsapp_provider || data.provider || status?.provider;
+    if (returnedSetupLink && !(returnedProvider === 'zernio' && returnedSetupLink.includes('waba.hoursback.xyz'))) {
+      window.open(returnedSetupLink, '_blank', 'noopener,noreferrer');
     } else {
       toast.success('WhatsApp setup started — click the link below to continue');
     }
@@ -210,6 +214,7 @@ export default function WhatsAppPage() {
         connected: nextConnections.some((item) => !!item.phone_number_id),
         api_configured: prev?.api_configured ?? false,
         webhook_secret_configured: prev?.webhook_secret_configured ?? false,
+        setup_link_configured: prev?.setup_link_configured,
         provider: prev?.provider,
         connection: nextConnections.find((item) => item.connection_type === 'internal') || nextConnections[0] || null,
         connections: nextConnections,
@@ -362,7 +367,19 @@ export default function WhatsAppPage() {
   }
 
   const selectedConnection = status?.connections?.find((item) => item.connection_type === connectionType) || null;
+  const setupLinkUrl = (() => {
+    if (!selectedConnection?.setup_link_url) return '';
+    if (status?.provider && selectedConnection.whatsapp_provider && selectedConnection.whatsapp_provider !== status.provider) {
+      return '';
+    }
+    if (status?.provider === 'zernio' && selectedConnection.setup_link_url.includes('waba.hoursback.xyz')) {
+      return '';
+    }
+    return selectedConnection.setup_link_url;
+  })();
+  const setupLinkExpiry = setupLinkUrl ? selectedConnection?.setup_link_expires_at : null;
   const customerModeLocked = connectionType === 'customer' && !isPro;
+  const setupLauncherAvailable = status?.provider !== 'zernio' || !!status?.setup_link_configured;
   const activeCapabilities = connectionType === 'internal' ? internalCapabilities : customerCapabilities;
   const webhookActive = !!selectedConnection?.kapso_webhook_registered_at || selectedConnection?.status === 'webhook_active';
   const customerReadyChecks = [
@@ -627,7 +644,7 @@ export default function WhatsAppPage() {
           <div className="flex flex-col sm:flex-row gap-3">
             <button
               onClick={generateSetupLink}
-              disabled={saving || !status?.api_configured || customerModeLocked}
+              disabled={saving || !status?.api_configured || customerModeLocked || !setupLauncherAvailable}
               className="inline-flex items-center justify-center gap-2 rounded-full bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <ExternalLink className="w-4 h-4" />}
@@ -636,19 +653,22 @@ export default function WhatsAppPage() {
             {!status?.api_configured && (
               <p className="text-xs text-amber-600 self-center">WhatsApp setup is not configured yet. Contact support.</p>
             )}
+            {status?.provider === 'zernio' && !status?.setup_link_configured && (
+              <p className="text-xs text-amber-600 self-center">Zernio hosted setup is not configured yet. Use Advanced support to save the phone number ID.</p>
+            )}
           </div>
 
-          {selectedConnection?.setup_link_url && (
+          {setupLinkUrl && (
             <a
-              href={selectedConnection.setup_link_url}
+              href={setupLinkUrl}
               target="_blank"
               rel="noreferrer"
               className="block rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700 hover:bg-emerald-100 transition-colors"
             >
               Continue WhatsApp setup →
-              {selectedConnection.setup_link_expires_at && (
+              {setupLinkExpiry && (
                 <span className="block mt-1 text-xs text-emerald-700/60">
-                  Expires {new Date(selectedConnection.setup_link_expires_at).toLocaleString()}
+                  Expires {new Date(setupLinkExpiry).toLocaleString()}
                 </span>
               )}
             </a>

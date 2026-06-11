@@ -398,10 +398,12 @@ serve(async (req) => {
 
       const setupProvider = getWhatsAppSetupProvider();
       const apiConfigured = setupProvider === "zernio" ? !!getZernioApiKey() : !!getKapsoApiKey();
+      const setupLinkConfigured = setupProvider !== "zernio" || !!Deno.env.get("ZERNIO_SETUP_URL");
       return new Response(JSON.stringify({
         connected: connections.some((item: any) => !!item.phone_number_id),
         api_configured: apiConfigured,
         webhook_secret_configured: webhookSecretConfiguredForProvider(setupProvider),
+        setup_link_configured: setupLinkConfigured,
         provider: setupProvider,
         connection: primary,
         connections,
