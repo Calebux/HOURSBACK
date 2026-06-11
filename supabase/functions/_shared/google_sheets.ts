@@ -107,7 +107,7 @@ export function googleTokenValid(destination: any) {
 }
 
 export function googleTokenConnected(destination: any) {
-  return googleTokenValid(destination) || Boolean(destination?.refresh_token);
+  return destination?.auth_method === "service_account" || googleTokenValid(destination) || Boolean(destination?.refresh_token);
 }
 
 function refreshedTokenExpiresAt(expiresIn: unknown) {
@@ -115,7 +115,89 @@ function refreshedTokenExpiresAt(expiresIn: unknown) {
   return new Date(Date.now() + Math.max(300, seconds) * 1000).toISOString();
 }
 
+function base64UrlEncode(input: string | Uint8Array) {
+  const bytes = typeof input === "string" ? new TextEncoder().encode(input) : input;
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += 8192) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + 8192));
+  }
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
+function pemToArrayBuffer(pem: string) {
+  const normalized = pem.replace(/\\n/g, "\n");
+  const base64 = normalized
+    .replace(/-----BEGIN PRIVATE KEY-----/g, "")
+    .replace(/-----END PRIVATE KEY-----/g, "")
+    .replace(/\s/g, "");
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes.buffer;
+}
+
+function getGoogleServiceAccount() {
+  const raw = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON");
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed.client_email || !parsed.private_key) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+export function getGoogleServiceAccountEmail() {
+  return getGoogleServiceAccount()?.client_email || null;
+}
+
+export async function getGoogleServiceAccountAccessToken() {
+  const serviceAccount = getGoogleServiceAccount();
+  if (!serviceAccount) {
+    throw new Error("Google Sheets service account is not configured.");
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const header = { alg: "RS256", typ: "JWT" };
+  const claims = {
+    iss: serviceAccount.client_email,
+    scope: "https://www.googleapis.com/auth/spreadsheets",
+    aud: "https://oauth2.googleapis.com/token",
+    iat: now,
+    exp: now + 3600,
+  };
+  const unsignedJwt = `${base64UrlEncode(JSON.stringify(header))}.${base64UrlEncode(JSON.stringify(claims))}`;
+  const key = await crypto.subtle.importKey(
+    "pkcs8",
+    pemToArrayBuffer(serviceAccount.private_key),
+    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const signature = new Uint8Array(await crypto.subtle.sign("RSASSA-PKCS1-v1_5", key, new TextEncoder().encode(unsignedJwt)));
+  const assertion = `${unsignedJwt}.${base64UrlEncode(signature)}`;
+
+  const response = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+      assertion,
+    }),
+  });
+  const json = await response.json().catch(() => ({}));
+  if (!response.ok || !json.access_token) {
+    throw new Error(json?.error_description || json?.error || "Google service account token failed.");
+  }
+  return json.access_token;
+}
+
 export async function getGoogleAccessToken(supabase: any, destination: any) {
+  if (destination?.auth_method === "service_account") {
+    return await getGoogleServiceAccountAccessToken();
+  }
+
   if (googleTokenValid(destination)) return destination.access_token;
 
   const refreshToken = destination?.refresh_token;

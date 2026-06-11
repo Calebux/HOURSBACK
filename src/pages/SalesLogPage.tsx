@@ -58,6 +58,7 @@ interface SheetDestination {
   spreadsheet_id: string;
   sheet_name: string;
   enabled: boolean;
+  auth_method?: string;
   connected: boolean;
   last_sync_at: string | null;
   last_sync_error: string | null;
@@ -122,6 +123,7 @@ export default function SalesLogPage() {
   const [sheetName, setSheetName] = useState('Sales Log');
   const [sheetSaving, setSheetSaving] = useState(false);
   const [sheetSyncing, setSheetSyncing] = useState(false);
+  const [serviceAccountEmail, setServiceAccountEmail] = useState<string | null>(null);
 
   // Photo upload state
   const [uploadState, setUploadState] = useState<'idle' | 'parsing' | 'preview' | 'saving'>('idle');
@@ -166,6 +168,7 @@ export default function SalesLogPage() {
       body: { action: 'status' },
     });
     const destination = data?.destination || null;
+    setServiceAccountEmail(data?.service_account_email || null);
     setSheetDestination(destination);
     if (destination) {
       setSheetUrl(destination.spreadsheet_id || '');
@@ -455,6 +458,20 @@ export default function SalesLogPage() {
     }
     setSheetSaving(true);
     try {
+      if (serviceAccountEmail) {
+        const { data, error } = await supabase.functions.invoke('google-sheets-sync', {
+          body: {
+            action: 'configure_service_account',
+            spreadsheet_url: sheetUrl.trim(),
+            sheet_name: sheetName.trim() || 'Sales Log',
+          },
+        });
+        if (error) throw error;
+        setSheetDestination(data.destination);
+        toast.success('Google Sheet connected. New WhatsApp rows will append automatically.');
+        return;
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
       const providerToken = session?.provider_token;
       if (!providerToken) {
@@ -666,8 +683,14 @@ export default function SalesLogPage() {
             <div>
               <p className="text-sm font-semibold text-brand-dark">Google Sheets destination</p>
               <p className="text-xs text-slate-500 mt-1">
-                Paste a Sheet URL, connect Google, and Hoursback will append every new WhatsApp sale as formula-friendly rows.
+                Share your Sheet with Hoursback, paste the URL, and new WhatsApp sales append as formula-friendly rows.
               </p>
+              {serviceAccountEmail && (
+                <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Share sheet with</p>
+                  <p className="mt-1 break-all font-mono text-xs text-slate-700">{serviceAccountEmail}</p>
+                </div>
+              )}
               {sheetDestination?.last_sync_at && (
                 <p className="text-xs text-emerald-700 mt-1">
                   Last sync {new Date(sheetDestination.last_sync_at).toLocaleString()}
@@ -682,7 +705,7 @@ export default function SalesLogPage() {
               onClick={connectGoogle}
               className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-600 hover:bg-slate-50"
             >
-              {sheetDestination?.connected ? 'Reconnect Google' : 'Connect Google'}
+              {sheetDestination?.auth_method === 'oauth' ? 'Reconnect Google' : 'Use Google sign-in'}
             </button>
           </div>
 
@@ -705,7 +728,7 @@ export default function SalesLogPage() {
               disabled={sheetSaving}
               className="rounded-lg bg-brand-dark px-3 py-2 text-sm font-semibold text-white hover:bg-brand-dark/90 disabled:opacity-60"
             >
-              {sheetSaving ? 'Saving...' : sheetDestination?.connected ? 'Save' : 'Connect & save'}
+              {sheetSaving ? 'Saving...' : serviceAccountEmail ? 'Save sheet' : sheetDestination?.connected ? 'Save' : 'Connect & save'}
             </button>
             <button
               type="button"

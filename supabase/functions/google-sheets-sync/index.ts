@@ -4,6 +4,8 @@ import {
   appendGoogleSheetRows,
   ensureGoogleSheetHeader,
   getGoogleAccessToken,
+  getGoogleServiceAccountAccessToken,
+  getGoogleServiceAccountEmail,
   googleTokenConnected,
 } from "../_shared/google_sheets.ts";
 
@@ -42,7 +44,7 @@ function tokenExpiresAt(expiresIn: unknown) {
 async function destinationForUser(supabase: any, userId: string) {
   const { data, error } = await supabase
     .from("google_sheet_destinations")
-    .select("id,user_id,spreadsheet_id,sheet_name,enabled,access_token,refresh_token,token_type,token_expires_at,last_sync_at,last_sync_error,updated_at")
+    .select("id,user_id,spreadsheet_id,sheet_name,enabled,auth_method,access_token,refresh_token,token_type,token_expires_at,last_sync_at,last_sync_error,updated_at")
     .eq("user_id", userId)
     .maybeSingle();
   if (error) throw error;
@@ -56,6 +58,7 @@ function publicDestination(destination: any) {
     spreadsheet_id: destination.spreadsheet_id,
     sheet_name: destination.sheet_name,
     enabled: destination.enabled,
+    auth_method: destination.auth_method || "oauth",
     connected: googleTokenConnected(destination),
     last_sync_at: destination.last_sync_at,
     last_sync_error: destination.last_sync_error,
@@ -77,7 +80,40 @@ serve(async (req) => {
   try {
     if (action === "status") {
       const destination = await destinationForUser(supabase, user.id);
-      return new Response(JSON.stringify({ destination: publicDestination(destination) }), { headers: corsHeaders });
+      return new Response(JSON.stringify({
+        destination: publicDestination(destination),
+        service_account_email: getGoogleServiceAccountEmail(),
+      }), { headers: corsHeaders });
+    }
+
+    if (action === "configure_service_account") {
+      const spreadsheetId = parseSpreadsheetId(String(body.spreadsheet_id || body.spreadsheet_url || ""));
+      const sheetName = String(body.sheet_name || "Sales Log").trim() || "Sales Log";
+      if (!spreadsheetId) {
+        return new Response(JSON.stringify({ error: "Spreadsheet ID or URL is required" }), { status: 400, headers: corsHeaders });
+      }
+
+      const accessToken = await getGoogleServiceAccountAccessToken();
+      await ensureGoogleSheetHeader(spreadsheetId, sheetName, accessToken);
+      const { data, error } = await supabase
+        .from("google_sheet_destinations")
+        .upsert({
+          user_id: user.id,
+          spreadsheet_id: spreadsheetId,
+          sheet_name: sheetName,
+          enabled: body.enabled !== false,
+          auth_method: "service_account",
+          access_token: null,
+          refresh_token: null,
+          token_type: "Bearer",
+          token_expires_at: null,
+          last_sync_error: null,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "user_id" })
+        .select("*")
+        .single();
+      if (error) throw error;
+      return new Response(JSON.stringify({ destination: publicDestination(data) }), { headers: corsHeaders });
     }
 
     if (action === "configure") {
@@ -101,6 +137,7 @@ serve(async (req) => {
           spreadsheet_id: spreadsheetId,
           sheet_name: sheetName,
           enabled: body.enabled !== false,
+          auth_method: "oauth",
           access_token: accessToken,
           refresh_token: refreshToken || null,
           token_type: String(body.token_type || "Bearer"),
