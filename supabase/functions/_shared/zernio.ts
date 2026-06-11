@@ -81,6 +81,39 @@ export async function createZernioWhatsAppConnectUrl(profileId: string, redirect
   return { authUrl, state: response?.state || null };
 }
 
+export async function ensureZernioWebhook(url: string) {
+  const secret = getZernioWebhookSecret();
+  if (!secret) throw new Error("ZERNIO_WEBHOOK_SECRET is not configured");
+
+  const desired = {
+    name: "Hoursback WhatsApp",
+    url,
+    secret,
+    events: ["message.received"],
+    isActive: true,
+  };
+
+  const existingResponse = await zernioFetch("/webhooks/settings");
+  const webhooks = Array.isArray(existingResponse?.webhooks)
+    ? existingResponse.webhooks
+    : Array.isArray(existingResponse?.data)
+      ? existingResponse.data
+      : [];
+  const existing = webhooks.find((webhook: any) => firstString(webhook?.url) === url);
+
+  if (existing?._id) {
+    return zernioFetch("/webhooks/settings", {
+      method: "PUT",
+      body: JSON.stringify({ _id: existing._id, ...desired }),
+    });
+  }
+
+  return zernioFetch("/webhooks/settings", {
+    method: "POST",
+    body: JSON.stringify(desired),
+  });
+}
+
 export async function sendZernioText(accountId: string, conversationId: string, body: string) {
   return zernioFetch(`/inbox/conversations/${encodeURIComponent(conversationId)}/messages`, {
     method: "POST",

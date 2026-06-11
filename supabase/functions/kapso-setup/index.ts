@@ -11,6 +11,7 @@ import {
 } from "../_shared/kapso.ts";
 import {
   createZernioWhatsAppConnectUrl,
+  ensureZernioWebhook,
   getOrCreateZernioProfile,
   getZernioApiKey,
   getZernioWebhookSecret,
@@ -264,11 +265,13 @@ async function markGlobalZernioWebhookActive(
 ) {
   const url = zernioWebhookUrl();
   const registeredAt = new Date().toISOString();
+  const webhookSettings = await ensureZernioWebhook(url);
+  const webhook = webhookSettings?.webhook || webhookSettings?.data?.webhook || webhookSettings?.data || webhookSettings;
 
   await supabase
     .from("kapso_connections")
     .update({
-      kapso_webhook_id: null,
+      kapso_webhook_id: webhook?._id || webhook?.id || null,
       kapso_webhook_url: url,
       kapso_webhook_registered_at: registeredAt,
       kapso_webhook_error: null,
@@ -284,6 +287,7 @@ async function markGlobalZernioWebhookActive(
     connection_type: connectionType,
     phone_number_id: phoneNumberId,
     webhook_url: url,
+    zernio_webhook_id: webhook?._id || webhook?.id || null,
   }, "edge");
 
   return { url, provider: "zernio" };
