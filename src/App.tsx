@@ -35,6 +35,7 @@ const WhatsAppCallbackPage = lazy(() => import('./pages/WhatsAppCallbackPage'));
 const OrdersPage         = lazy(() => import('./pages/OrdersPage'));
 const DataSourcesPage    = lazy(() => import('./pages/DataSourcesPage'));
 const SalesLogPage       = lazy(() => import('./pages/SalesLogPage'));
+const TeamOutletsPage    = lazy(() => import('./pages/TeamOutletsPage'));
 const AdminDashboard     = lazy(() => import('./pages/AdminDashboard'));
 
 function PageLoader() {
@@ -114,6 +115,7 @@ function AppWithOnboarding() {
           <Route path="/orders" element={<OrdersPage />} />
           <Route path="/data-sources" element={<DataSourcesPage />} />
           <Route path="/data-log" element={<SalesLogPage />} />
+          <Route path="/team-outlets" element={<TeamOutletsPage />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>

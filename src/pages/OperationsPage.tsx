@@ -7,6 +7,7 @@ import {
   FileText,
   Inbox,
   Radio,
+  Shield,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { MobileNav } from '../components/MobileNav';
@@ -40,6 +41,13 @@ const operationAreas = [
     href: '/data-sources',
     icon: Database,
     action: 'View sources',
+  },
+  {
+    title: 'Team and outlets',
+    description: 'Authorize internal WhatsApp users and map staff, aliases, and outlets for cleaner logs.',
+    href: '/team-outlets',
+    icon: Shield,
+    action: 'Manage access',
   },
   {
     title: 'Reports',

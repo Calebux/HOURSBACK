@@ -145,6 +145,13 @@ function firstString(...values: unknown[]) {
   return undefined;
 }
 
+function normalizePhone(value?: string | null) {
+  const digits = String(value || "").replace(/\D/g, "");
+  if (!digits) return "";
+  if (digits.startsWith("0")) return `234${digits.slice(1)}`;
+  return digits;
+}
+
 function isProProfile(profile: any) {
   return profile?.subscription_status === "pro";
 }
@@ -1655,6 +1662,40 @@ async function loadBusinessDirectory(supabase: any, userId: string) {
   return { staff: staff || [], shops: shops || [] };
 }
 
+async function loadInternalContact(supabase: any, userId: string, fromNumber?: string | null) {
+  const phone = normalizePhone(fromNumber);
+  if (!phone) return null;
+  const { data, error } = await supabase
+    .from("business_internal_contacts")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("phone_number", phone)
+    .eq("active", true)
+    .maybeSingle();
+  if (error) throw error;
+  return data || null;
+}
+
+async function internalContactsConfigured(supabase: any, userId: string) {
+  const { count, error } = await supabase
+    .from("business_internal_contacts")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("active", true);
+  if (error) throw error;
+  return Number(count || 0) > 0;
+}
+
+function unauthorizedInternalReply(hasContacts: boolean) {
+  return hasContacts
+    ? "This WhatsApp number is not authorized for internal operations. Ask the owner to add your number in Team & Outlets."
+    : "Internal operations are locked. Add authorized contacts in Hoursback > Operations > Team & Outlets before using this WhatsApp number.";
+}
+
+function permissionDeniedReply(action: string) {
+  return `You are not authorized to ${action}. Ask the owner to update your permission in Team & Outlets.`;
+}
+
 function directoryLabels(items: any[]) {
   return items.flatMap((item) => [item.name, ...(item.aliases || [])]
     .map((value) => String(value || "").trim())
@@ -2730,6 +2771,12 @@ serve(async (req) => {
 
     const activeCloseoutSession = await findActiveCloseoutSession(supabase, connection.user_id, message.from);
     const activeSalesLogSession = await findActiveSalesLogSession(supabase, connection.user_id, message.from);
+    const internalContact = connection.connection_type === "internal"
+      ? await loadInternalContact(supabase, connection.user_id, message.from)
+      : null;
+    const hasInternalContacts = connection.connection_type === "internal"
+      ? await internalContactsConfigured(supabase, connection.user_id)
+      : false;
 
     if (connection.connection_type === "customer") {
       const openOrder = await findOpenCustomerOrder(supabase, connection, message.from);
@@ -2793,16 +2840,34 @@ serve(async (req) => {
           }
         }
       }
+    } else if (!internalContact) {
+      reply = unauthorizedInternalReply(hasInternalContacts);
+      await logAnalyticsEvent(supabase, connection.user_id, "unauthorized_internal_whatsapp_blocked", {
+        from_number: normalizePhone(message.from),
+        has_internal_contacts: hasInternalContacts,
+        attempted_text: text.slice(0, 120),
+      });
     } else if (activeCloseoutSession && /\b(cancel|stop)\b/i.test(text)) {
+      if (!internalContact.can_closeout) {
+        reply = permissionDeniedReply("run closeout");
+      } else {
       await supabase
         .from("kapso_closeout_sessions")
         .update({ status: "cancelled", updated_at: new Date().toISOString() })
         .eq("id", activeCloseoutSession.id);
       reply = "Closeout cancelled.";
+      }
     } else if (activeCloseoutSession) {
-      const closeout = await saveCloseout(supabase, connection, message, text);
-      reply = closeout.reply;
+      if (!internalContact.can_closeout) {
+        reply = permissionDeniedReply("run closeout");
+      } else {
+        const closeout = await saveCloseout(supabase, connection, message, text);
+        reply = closeout.reply;
+      }
     } else if (looksLikeCloseoutStart(text)) {
+      if (!internalContact.can_closeout) {
+        reply = permissionDeniedReply("run closeout");
+      } else {
       const hasTotals = /\d/.test(text);
       if (hasTotals) {
         const closeout = await saveCloseout(supabase, connection, message, text);
@@ -2827,22 +2892,39 @@ serve(async (req) => {
       } else {
         reply = closeoutPrompt();
       }
+      }
     } else if (activeSalesLogSession) {
-      reply = await handlePendingSalesLogSession(supabase, connection, message, text, activeSalesLogSession);
+      reply = internalContact.can_log_sales
+        ? await handlePendingSalesLogSession(supabase, connection, { ...message, contactName: internalContact.name || message.contactName }, text, activeSalesLogSession)
+        : permissionDeniedReply("log sales");
     } else if (looksLikeDirectorySetup(text)) {
-      reply = await handleDirectorySetup(supabase, connection.user_id, text);
+      reply = internalContact.can_manage_setup
+        ? await handleDirectorySetup(supabase, connection.user_id, text)
+        : permissionDeniedReply("manage staff or outlets");
     } else if (looksLikeReportGenerationRequest(text)) {
-      reply = await generateWhatsAppBusinessReport(supabase, connection, text);
+      reply = internalContact.can_query_reports
+        ? await generateWhatsAppBusinessReport(supabase, connection, text)
+        : permissionDeniedReply("generate reports");
     } else if (looksLikeWorkflowRequest(text)) {
-      reply = await saveWorkflowRequest(supabase, connection, message, text);
+      reply = internalContact.can_manage_setup
+        ? await saveWorkflowRequest(supabase, connection, message, text)
+        : permissionDeniedReply("create workflows");
     } else if (looksLikeProfitAndLossQuestion(text)) {
-      reply = await buildProfitAndLossSummary(supabase, connection.user_id, connection.business_timezone);
+      reply = internalContact.can_query_reports
+        ? await buildProfitAndLossSummary(supabase, connection.user_id, connection.business_timezone)
+        : permissionDeniedReply("query reports");
     } else if (looksLikeFiveLineSummary(text)) {
-      reply = await buildFiveLineSummary(supabase, connection.user_id, connection.business_timezone);
+      reply = internalContact.can_query_reports
+        ? await buildFiveLineSummary(supabase, connection.user_id, connection.business_timezone)
+        : permissionDeniedReply("query reports");
     } else if (looksLikeSalesLogQuestion(text)) {
-      reply = await buildSalesLogQueryAnswer(supabase, connection.user_id, text, connection.business_timezone);
+      reply = internalContact.can_query_reports
+        ? await buildSalesLogQueryAnswer(supabase, connection.user_id, text, connection.business_timezone)
+        : permissionDeniedReply("query sales data");
     } else if (looksLikeSummaryQuestion(text)) {
-      reply = await buildSalesLogQueryAnswer(supabase, connection.user_id, text, connection.business_timezone);
+      reply = internalContact.can_query_reports
+        ? await buildSalesLogQueryAnswer(supabase, connection.user_id, text, connection.business_timezone)
+        : permissionDeniedReply("query sales data");
     } else if (looksLikeOrderMessage(text) && !looksLikeSalesEntry(text)) {
       reply = [
         "This WhatsApp number is for staff operations.",
@@ -2850,6 +2932,9 @@ serve(async (req) => {
         "Staff can use this line for sales logs, closeout, P&L, 5-line summaries, and workflow requests.",
       ].join("\n");
     } else if (looksLikeSalesEntry(text) || text.toLowerCase().startsWith("/log ")) {
+      if (!internalContact.can_log_sales) {
+        reply = permissionDeniedReply("log sales");
+      } else {
       const logText = text.toLowerCase().startsWith("/log ") ? text.slice(5).trim() : text;
       const parseAiAllowed = await checkWebhookRateLimit(
         supabase,
@@ -2868,7 +2953,7 @@ serve(async (req) => {
         ? await parseEntryWithAI(logText)
         : [{ entry_type: "note", item: null, qty: null, unit_price: null, total: null, customer: null, notes: logText }];
       const directory = await loadBusinessDirectory(supabase, connection.user_id);
-      const fallbackStaff = message.contactName || message.from || "WhatsApp";
+      const fallbackStaff = internalContact.name || message.contactName || message.from || "WhatsApp";
       const entries = applyDirectoryContext(Array.isArray(parsedEntries) ? parsedEntries : [parsedEntries], directory, logText, fallbackStaff)
         .map((entry: any) => ({ ...entry, raw_text: logText }));
       const required = shouldRequireContext(directory, entries);
@@ -2880,7 +2965,8 @@ serve(async (req) => {
         await savePendingSalesLogSession(supabase, connection, message, entries, missingFields);
         reply = contextPrompt(missingFields, directory);
       } else {
-        reply = await persistSalesLogEntries(supabase, connection, message, entries, logText);
+        reply = await persistSalesLogEntries(supabase, connection, { ...message, contactName: fallbackStaff }, entries, logText);
+      }
       }
     } else {
       reply = "Received. Send a sales update like “Sold 3 gowns, 2 fittings. Transfer ₦42,000” or ask “How much did we sell today?”";
