@@ -64,10 +64,6 @@ interface SheetDestination {
   last_sync_error: string | null;
 }
 
-function pendingSheetKey(userId: string) {
-  return `hoursback_google_sheet_pending_${userId}`;
-}
-
 function fmt(n: number | null | undefined) {
   if (n == null) return '';
   return `₦${Number(n).toLocaleString()}`;
@@ -191,63 +187,6 @@ export default function SalesLogPage() {
     loadCloseout();
     void loadSheetDestination();
   }, [user, navigate]);
-
-  useEffect(() => {
-    const finishGoogleConnect = async () => {
-      if (!user) return;
-      const params = new URLSearchParams(window.location.search);
-      if (params.get('google_sheets') !== 'connected') return;
-      window.history.replaceState(null, document.title, '/sales-log');
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.provider_token) {
-        toast.error('Google connected, but no Sheets token was returned. Try Connect Google again.');
-        return;
-      }
-      const pendingRaw = localStorage.getItem(pendingSheetKey(user.id));
-      let pending: { sheetUrl?: string; sheetName?: string } = {};
-      try {
-        pending = pendingRaw ? JSON.parse(pendingRaw) : {};
-      } catch {
-        pending = {};
-      }
-      const nextSheetUrl = pending.sheetUrl || sheetUrl;
-      const nextSheetName = pending.sheetName || sheetName || 'Sales Log';
-      setSheetUrl(nextSheetUrl);
-      setSheetName(nextSheetName);
-      if (!nextSheetUrl?.trim()) {
-        toast.success('Google connected. Paste your Sheet URL to finish setup.');
-        return;
-      }
-
-      setSheetSaving(true);
-      try {
-        const sessionWithProvider = session as typeof session & {
-          provider_refresh_token?: string;
-          token_type?: string;
-        };
-        const { data, error } = await supabase.functions.invoke('google-sheets-sync', {
-          body: {
-            action: 'configure',
-            spreadsheet_url: nextSheetUrl.trim(),
-            sheet_name: nextSheetName.trim() || 'Sales Log',
-            access_token: session.provider_token,
-            refresh_token: sessionWithProvider.provider_refresh_token,
-            token_type: sessionWithProvider.token_type || 'Bearer',
-            expires_in: session.expires_in,
-          },
-        });
-        if (error) throw error;
-        setSheetDestination(data.destination);
-        localStorage.removeItem(pendingSheetKey(user.id));
-        toast.success('Google Sheet connected. New WhatsApp rows will append automatically.');
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : 'Could not finish Google Sheets setup');
-      } finally {
-        setSheetSaving(false);
-      }
-    };
-    void finishGoogleConnect();
-  }, [user, sheetName, sheetUrl]);
 
   const staffOptions = useMemo(() =>
     [...new Set(entries.map(e => e.triggered_by).filter(Boolean))].sort() as string[],
@@ -433,24 +372,6 @@ export default function SalesLogPage() {
     }
   };
 
-  const connectGoogle = async () => {
-    if (user) {
-      localStorage.setItem(pendingSheetKey(user.id), JSON.stringify({
-        sheetUrl: sheetUrl.trim(),
-        sheetName: sheetName.trim() || 'Sales Log',
-      }));
-    }
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=/sales-log?google_sheets=connected`,
-        scopes: 'https://www.googleapis.com/auth/spreadsheets',
-        queryParams: { access_type: 'offline', prompt: 'consent' },
-      },
-    });
-    if (error) toast.error(error.message);
-  };
-
   const saveSheetDestination = async () => {
     if (!sheetUrl.trim()) {
       toast.error('Paste a Google Sheet URL or spreadsheet ID');
@@ -458,50 +379,20 @@ export default function SalesLogPage() {
     }
     setSheetSaving(true);
     try {
-      if (serviceAccountEmail) {
-        const { data, error } = await supabase.functions.invoke('google-sheets-sync', {
-          body: {
-            action: 'configure_service_account',
-            spreadsheet_url: sheetUrl.trim(),
-            sheet_name: sheetName.trim() || 'Sales Log',
-          },
-        });
-        if (error) throw error;
-        setSheetDestination(data.destination);
-        toast.success('Google Sheet connected. New WhatsApp rows will append automatically.');
+      if (!serviceAccountEmail) {
+        toast.error('Google Sheets service account is not configured yet');
         return;
       }
 
-      const { data: { session } } = await supabase.auth.getSession();
-      const providerToken = session?.provider_token;
-      if (!providerToken) {
-        if (user) {
-          localStorage.setItem(pendingSheetKey(user.id), JSON.stringify({
-            sheetUrl: sheetUrl.trim(),
-            sheetName: sheetName.trim() || 'Sales Log',
-          }));
-        }
-        await connectGoogle();
-        return;
-      }
-      const sessionWithProvider = session as typeof session & {
-        provider_refresh_token?: string;
-        token_type?: string;
-      };
       const { data, error } = await supabase.functions.invoke('google-sheets-sync', {
         body: {
-          action: 'configure',
+          action: 'configure_service_account',
           spreadsheet_url: sheetUrl.trim(),
           sheet_name: sheetName.trim() || 'Sales Log',
-          access_token: providerToken,
-          refresh_token: sessionWithProvider.provider_refresh_token,
-          token_type: sessionWithProvider.token_type || 'Bearer',
-          expires_in: session.expires_in,
         },
       });
       if (error) throw error;
       setSheetDestination(data.destination);
-      if (user) localStorage.removeItem(pendingSheetKey(user.id));
       toast.success('Google Sheet connected. New WhatsApp rows will append automatically.');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Could not connect Google Sheet');
@@ -700,13 +591,6 @@ export default function SalesLogPage() {
                 <p className="text-xs text-red-600 mt-1">{sheetDestination.last_sync_error}</p>
               )}
             </div>
-            <button
-              type="button"
-              onClick={connectGoogle}
-              className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-600 hover:bg-slate-50"
-            >
-              {sheetDestination?.auth_method === 'oauth' ? 'Reconnect Google' : 'Use Google sign-in'}
-            </button>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-[1fr_180px_auto_auto]">
@@ -728,7 +612,7 @@ export default function SalesLogPage() {
               disabled={sheetSaving}
               className="rounded-lg bg-brand-dark px-3 py-2 text-sm font-semibold text-white hover:bg-brand-dark/90 disabled:opacity-60"
             >
-              {sheetSaving ? 'Saving...' : serviceAccountEmail ? 'Save sheet' : sheetDestination?.connected ? 'Save' : 'Connect & save'}
+              {sheetSaving ? 'Saving...' : 'Save sheet'}
             </button>
             <button
               type="button"
