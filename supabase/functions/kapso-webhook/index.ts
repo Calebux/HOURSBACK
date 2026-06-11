@@ -332,7 +332,7 @@ function parseKapsoMessage(payload: any): ParsedMessage | null {
 }
 
 function looksLikeSalesEntry(text: string) {
-  return /\b(sold|sell|sale|sales|spent|expense|bought|paid|cash|transfer|pos|₦|ngn|naira|\d+\s+(?:at|for|x|@)|\d+\s*[a-z][a-z\s-]*\s+(?:at|were|was))\b/i.test(text);
+  return /\b(sold|sell|sale|sales|refund|refunded|return|returned|reversal|spent|expense|bought|paid|cash|transfer|pos|₦|ngn|naira|\d+\s+(?:at|for|x|@)|\d+\s*[a-z][a-z\s-]*\s+(?:at|were|was))\b/i.test(text);
 }
 
 function looksLikeSummaryQuestion(text: string) {
@@ -1356,11 +1356,17 @@ async function getDailyTotals(supabase: any, userId: string, timeZone?: string) 
     .or(`created_at.gte.${start.toISOString()},sale_date.gte.${start.toISOString()}`);
 
   const rows = (entries || []).filter((entry: any) => entryDate(entry) >= start);
+  const sales = rows
+    .filter((e: any) => e.entry_type === "sale")
+    .reduce((sum: number, e: any) => sum + Number(e.parsed_data?.total || 0), 0);
+  const refunds = rows
+    .filter((e: any) => e.entry_type === "refund")
+    .reduce((sum: number, e: any) => sum + Number(e.parsed_data?.total || 0), 0);
   return {
     entries: rows.length,
-    sales: rows
-      .filter((e: any) => e.entry_type === "sale")
-      .reduce((sum: number, e: any) => sum + Number(e.parsed_data?.total || 0), 0),
+    sales: sales - refunds,
+    grossSales: sales,
+    refunds,
     expenses: rows
       .filter((e: any) => e.entry_type === "expense")
       .reduce((sum: number, e: any) => sum + Number(e.parsed_data?.total || 0), 0),
@@ -1463,12 +1469,13 @@ async function parseEntryWithAI(text: string) {
         role: "user",
         content: `Extract spreadsheet-ready business ledger rows from this WhatsApp message: "${text}"
 Return JSON only, no explanation:
-{"entries":[{"entry_type":"sale"|"expense"|"note","item":string|null,"qty":number|null,"unit_price":number|null,"total":number|null,"customer":string|null,"payment_method":"cash"|"transfer"|"pos"|"card"|"mixed"|null,"shop":string|null,"notes":string|null}]}
+{"entries":[{"entry_type":"sale"|"expense"|"refund"|"note","item":string|null,"qty":number|null,"unit_price":number|null,"total":number|null,"customer":string|null,"payment_method":"cash"|"transfer"|"pos"|"card"|"mixed"|null,"shop":string|null,"notes":string|null}]}
 Rules:
 - If multiple products/services are mentioned, return one entry per item.
 - Compute total = qty * unit_price when possible.
 - Nigerian shorthand: 10k means 10000, 5k means 5000.
 - "3 gowns, 2 fittings and 3 shoes; gowns were 10k each..." means 3 separate sale rows.
+- Use entry_type "refund" for returned/refunded/reversed sales. Keep total positive; Hoursback subtracts it in reports.
 - If a shop/branch/location is mentioned, put it in shop.
 - Use note only when there is no sale/expense amount or quantity.`,
       }],
@@ -1522,6 +1529,7 @@ function parseEntriesFallback(text: string) {
   const entries: any[] = [];
   const paymentMethod = inferPaymentMethod(text);
   const shop = inferShop(text);
+  const isRefund = /\b(refund|refunded|return|returned|reversal|reverse)\b/i.test(text);
   const quantityPattern = /(\d+(?:\.\d+)?)\s+([a-z][a-z\s-]*?)(?=\s*(?:,|;|\.|\band\b|\bwere\b|\bwas\b|\bat\b|\bfor\b|$))/gi;
   const pricePattern = /([a-z][a-z\s-]*?)\s+(?:were|was|at|for)\s*(?:₦|ngn|naira)?\s*([0-9][0-9,]*(?:\.\d+)?\s*k?)\s*(?:each|per)?/gi;
   const quantities = new Map<string, { item: string; qty: number }>();
@@ -1542,7 +1550,7 @@ function parseEntriesFallback(text: string) {
   for (const { item, qty } of quantities.values()) {
     const unitPrice = prices.get(item) || null;
     entries.push({
-      entry_type: unitPrice ? "sale" : "note",
+      entry_type: unitPrice ? (isRefund ? "refund" : "sale") : "note",
       item,
       qty,
       unit_price: unitPrice,
@@ -1562,6 +1570,7 @@ function parseEntriesFallback(text: string) {
 }
 
 function normalizeParsedEntries(parsed: any, rawText: string, fallbackEntries: any[]) {
+  const isRefundText = /\b(refund|refunded|return|returned|reversal|reverse)\b/i.test(rawText);
   const sourceEntries = Array.isArray(parsed?.entries) ? parsed.entries : [parsed];
   const entries = sourceEntries
     .filter((entry: any) => entry && typeof entry === "object")
@@ -1571,8 +1580,11 @@ function normalizeParsedEntries(parsed: any, rawText: string, fallbackEntries: a
       const total = entry.total == null && qty != null && unitPrice != null
         ? qty * unitPrice
         : entry.total == null ? null : Number(entry.total);
+      const normalizedType = ["sale", "expense", "refund", "note"].includes(entry.entry_type)
+        ? entry.entry_type
+        : (total ? (isRefundText ? "refund" : "sale") : "note");
       return {
-        entry_type: ["sale", "expense", "note"].includes(entry.entry_type) ? entry.entry_type : (total ? "sale" : "note"),
+        entry_type: isRefundText && normalizedType === "sale" ? "refund" : normalizedType,
         item: entry.item || null,
         qty: Number.isFinite(qty) ? qty : null,
         unit_price: Number.isFinite(unitPrice) ? unitPrice : null,
@@ -1631,7 +1643,10 @@ async function getTodayBusinessMetrics(supabase: any, userId: string, timeZone?:
   const rows = (entries || []).filter((entry: any) => entryDate(entry) >= start);
   const sales = rows.filter((e: any) => e.entry_type === "sale");
   const expenses = rows.filter((e: any) => e.entry_type === "expense");
-  const totalSales = sales.reduce((sum: number, e: any) => sum + Number(e.parsed_data?.total || 0), 0);
+  const refunds = rows.filter((e: any) => e.entry_type === "refund");
+  const grossSales = sales.reduce((sum: number, e: any) => sum + Number(e.parsed_data?.total || 0), 0);
+  const totalRefunds = refunds.reduce((sum: number, e: any) => sum + Number(e.parsed_data?.total || 0), 0);
+  const totalSales = grossSales - totalRefunds;
   const totalExpenses = expenses.reduce((sum: number, e: any) => sum + Number(e.parsed_data?.total || 0), 0);
   const counts = new Map<string, number>();
   for (const e of sales) {
@@ -1650,6 +1665,8 @@ async function getTodayBusinessMetrics(supabase: any, userId: string, timeZone?:
 
   return {
     rows,
+    grossSales,
+    totalRefunds,
     totalSales,
     totalExpenses,
     estimatedProfit: totalSales - totalExpenses,
@@ -1663,7 +1680,8 @@ async function buildSalesSummary(supabase: any, userId: string, timeZone?: strin
 
   return [
     `Today so far:`,
-    `Sales: ₦${metrics.totalSales.toLocaleString()}`,
+    `Net sales: ₦${metrics.totalSales.toLocaleString()}`,
+    metrics.totalRefunds ? `Gross sales: ₦${metrics.grossSales.toLocaleString()} | Refunds: ₦${metrics.totalRefunds.toLocaleString()}` : `Gross sales: ₦${metrics.grossSales.toLocaleString()}`,
     `Expenses: ₦${metrics.totalExpenses.toLocaleString()}`,
     `Entries logged: ${metrics.rows.length}`,
     metrics.topItem ? `Top item: ${metrics.topItem[0]} (${metrics.topItem[1]} units/entries)` : `Top item: none yet`,
@@ -1677,7 +1695,8 @@ async function buildProfitAndLossSummary(supabase: any, userId: string, timeZone
   const metrics = await getTodayBusinessMetrics(supabase, userId, timeZone);
   return [
     "Estimated profit and loss today:",
-    `Revenue: ₦${metrics.totalSales.toLocaleString()}`,
+    `Net revenue: ₦${metrics.totalSales.toLocaleString()}`,
+    metrics.totalRefunds ? `Gross sales: ₦${metrics.grossSales.toLocaleString()} | Refunds: ₦${metrics.totalRefunds.toLocaleString()}` : `Gross sales: ₦${metrics.grossSales.toLocaleString()}`,
     `Expenses: ₦${metrics.totalExpenses.toLocaleString()}`,
     `Estimated profit: ₦${metrics.estimatedProfit.toLocaleString()}`,
     metrics.latestCloseout
@@ -1689,7 +1708,7 @@ async function buildProfitAndLossSummary(supabase: any, userId: string, timeZone
 async function buildFiveLineSummary(supabase: any, userId: string, timeZone?: string) {
   const metrics = await getTodayBusinessMetrics(supabase, userId, timeZone);
   return [
-    `Sales: ₦${metrics.totalSales.toLocaleString()}`,
+    `Net sales: ₦${metrics.totalSales.toLocaleString()}`,
     `Expenses: ₦${metrics.totalExpenses.toLocaleString()}`,
     `Estimated profit: ₦${metrics.estimatedProfit.toLocaleString()}`,
     metrics.topItem ? `Top item: ${metrics.topItem[0]} (${metrics.topItem[1]})` : "Top item: none yet",
@@ -1844,7 +1863,10 @@ async function collectReportMetrics(supabase: any, userId: string, text: string,
   });
   const sales = rows.filter((entry: any) => entry.entry_type === "sale");
   const expenses = rows.filter((entry: any) => entry.entry_type === "expense");
-  const revenue = sales.reduce((sum: number, entry: any) => sum + Number(entry.parsed_data?.total || 0), 0);
+  const refunds = rows.filter((entry: any) => entry.entry_type === "refund");
+  const grossRevenue = sales.reduce((sum: number, entry: any) => sum + Number(entry.parsed_data?.total || 0), 0);
+  const refundTotal = refunds.reduce((sum: number, entry: any) => sum + Number(entry.parsed_data?.total || 0), 0);
+  const revenue = grossRevenue - refundTotal;
   const expenseTotal = expenses.reduce((sum: number, entry: any) => sum + Number(entry.parsed_data?.total || 0), 0);
   const itemCounts = new Map<string, { qty: number; revenue: number }>();
 
@@ -1872,6 +1894,9 @@ async function collectReportMetrics(supabase: any, userId: string, text: string,
     rows,
     sales,
     expenses,
+    refunds,
+    grossRevenue,
+    refundTotal,
     revenue,
     expenseTotal,
     profit: revenue - expenseTotal,
@@ -1922,7 +1947,10 @@ async function buildSalesLogQueryAnswer(supabase: any, userId: string, text: str
 
   const sales = rows.filter((entry: any) => entry.entry_type === "sale");
   const expenses = rows.filter((entry: any) => entry.entry_type === "expense");
-  const revenue = sales.reduce((sum: number, entry: any) => sum + Number(entry.parsed_data?.total || 0), 0);
+  const refunds = rows.filter((entry: any) => entry.entry_type === "refund");
+  const grossRevenue = sales.reduce((sum: number, entry: any) => sum + Number(entry.parsed_data?.total || 0), 0);
+  const refundTotal = refunds.reduce((sum: number, entry: any) => sum + Number(entry.parsed_data?.total || 0), 0);
+  const revenue = grossRevenue - refundTotal;
   const expenseTotal = expenses.reduce((sum: number, entry: any) => sum + Number(entry.parsed_data?.total || 0), 0);
   const qtySold = sales.reduce((sum: number, entry: any) => sum + Number(entry.parsed_data?.qty || (entry.parsed_data?.item ? 1 : 0)), 0);
   const itemCounts = new Map<string, { qty: number; revenue: number }>();
@@ -1954,10 +1982,11 @@ async function buildSalesLogQueryAnswer(supabase: any, userId: string, text: str
     return lines.join("\n");
   }
 
-  lines.push(`Sales: ₦${revenue.toLocaleString("en-NG")}`);
+  lines.push(`Net sales: ₦${revenue.toLocaleString("en-NG")}`);
+  if (refundTotal) lines.push(`Gross sales: ₦${grossRevenue.toLocaleString("en-NG")} | Refunds: ₦${refundTotal.toLocaleString("en-NG")}`);
   lines.push(`Expenses: ₦${expenseTotal.toLocaleString("en-NG")}`);
   if (filters.itemMatches.length || /\bhow many\b/i.test(text)) lines.push(`Qty sold: ${qtySold.toLocaleString("en-NG")}`);
-  lines.push(`Entries: ${rows.length} (${sales.length} sales, ${expenses.length} expenses)`);
+  lines.push(`Entries: ${rows.length} (${sales.length} sales, ${expenses.length} expenses${refunds.length ? `, ${refunds.length} refunds` : ""})`);
   lines.push(topItems.length ? `Top items: ${topItems.join("; ")}` : "Top items: none yet");
 
   const recent = rows
@@ -1983,12 +2012,15 @@ function deterministicReport(metrics: any, reportType: string) {
     `# ${reportType === "profit_and_loss" ? "Profit and Loss Report" : "Sales Report"} - ${metrics.range.label}`,
     "",
     "## At a glance",
-    `- Revenue: ₦${metrics.revenue.toLocaleString("en-NG")}`,
+    `- Net revenue: ₦${metrics.revenue.toLocaleString("en-NG")}`,
+    `- Gross sales: ₦${Number(metrics.grossRevenue || metrics.revenue || 0).toLocaleString("en-NG")}`,
+    `- Refunds: ₦${Number(metrics.refundTotal || 0).toLocaleString("en-NG")}`,
     `- Expenses: ₦${metrics.expenseTotal.toLocaleString("en-NG")}`,
     `- Estimated profit: ₦${metrics.profit.toLocaleString("en-NG")}`,
     `- Entries reviewed: ${metrics.rows.length}`,
     `- Sales entries: ${metrics.sales.length}`,
     `- Expense entries: ${metrics.expenses.length}`,
+    `- Refund entries: ${metrics.refunds?.length || 0}`,
     "",
     "## Top items or services",
     metrics.topItems.length
@@ -2034,11 +2066,14 @@ async function generateReportWithAI(metrics: any, reportType: string) {
           JSON.stringify({
             period: metrics.range.label,
             revenue: metrics.revenue,
+            gross_revenue: metrics.grossRevenue,
+            refunds: metrics.refundTotal,
             expenses: metrics.expenseTotal,
             estimated_profit: metrics.profit,
             entries_reviewed: metrics.rows.length,
             sales_entries: metrics.sales.length,
             expense_entries: metrics.expenses.length,
+            refund_entries: metrics.refunds?.length || 0,
             top_items: metrics.topItems,
             channels: metrics.channels,
           }),
@@ -2621,9 +2656,15 @@ serve(async (req) => {
       const expenseTotal = entries
         .filter((entry: any) => entry.entry_type === "expense")
         .reduce((sum: number, entry: any) => sum + Number(entry.total || 0), 0);
+      const refundTotal = entries
+        .filter((entry: any) => entry.entry_type === "refund")
+        .reduce((sum: number, entry: any) => sum + Number(entry.total || 0), 0);
+      const incompleteItems = entries
+        .filter((entry: any) => entry.entry_type === "note" && entry.item && entry.qty && !entry.total)
+        .map((entry: any) => `${entry.item}${entry.qty ? ` x ${entry.qty}` : ""}`);
       const lines = [`Logged ${rows.length} row${rows.length === 1 ? "" : "s"} from WhatsApp.`];
       for (const entry of entries.slice(0, 5)) {
-        const label = entry.entry_type === "expense" ? "Expense" : entry.entry_type === "note" ? "Note" : "Sale";
+        const label = entry.entry_type === "expense" ? "Expense" : entry.entry_type === "refund" ? "Refund" : entry.entry_type === "note" ? "Note" : "Sale";
         const item = entry.item ? `${entry.item}${entry.qty ? ` x ${entry.qty}` : ""}` : label;
         const amount = entry.total ? ` — ₦${Number(entry.total).toLocaleString()}` : "";
         lines.push(`${label}: ${item}${amount}`);
@@ -2631,6 +2672,11 @@ serve(async (req) => {
       if (entries.length > 5) lines.push(`+${entries.length - 5} more rows`);
       if (salesTotal) lines.push(`Sales total: ₦${salesTotal.toLocaleString()}`);
       if (expenseTotal) lines.push(`Expenses total: ₦${expenseTotal.toLocaleString()}`);
+      if (refundTotal) lines.push(`Refunds total: ₦${refundTotal.toLocaleString()}`);
+      if (incompleteItems.length) {
+        lines.push(`Missing amount for: ${compactList(incompleteItems)}.`);
+        lines.push("Reply with the prices, for example: “gowns 10000 each, fittings 5000 each”.");
+      }
       reply = lines.join("\n");
     } else {
       reply = "Received. Send a sales update like “Sold 3 gowns, 2 fittings. Transfer ₦42,000” or ask “How much did we sell today?”";

@@ -214,6 +214,13 @@ export default function SalesLogPage() {
       .reduce((sum, e) => sum + (e.parsed_data?.total ?? 0), 0),
     [filtered]
   );
+  const refundAmount = useMemo(() =>
+    filtered
+      .filter(e => e.entry_type === 'refund')
+      .reduce((sum, e) => sum + (e.parsed_data?.total ?? 0), 0),
+    [filtered]
+  );
+  const netSalesAmount = totalAmount - refundAmount;
 
   const monthStart = new Date();
   monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
@@ -247,6 +254,7 @@ export default function SalesLogPage() {
       const day = days.find(d => d.date === dateKey);
       if (!day) continue;
       if (e.entry_type === 'sale') day.sales += e.parsed_data?.total ?? 0;
+      if (e.entry_type === 'refund') day.sales -= e.parsed_data?.total ?? 0;
       if (e.entry_type === 'expense') day.expenses += e.parsed_data?.total ?? 0;
     }
     return days;
@@ -511,6 +519,7 @@ export default function SalesLogPage() {
                       <span className={`text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${
                         e.entry_type === 'sale'    ? 'bg-emerald-50 text-emerald-700' :
                         e.entry_type === 'expense' ? 'bg-red-50 text-red-600' :
+                        e.entry_type === 'refund'  ? 'bg-amber-50 text-amber-700' :
                                                      'bg-slate-100 text-slate-500'
                       }`}>
                         {e.entry_type}
@@ -658,6 +667,11 @@ export default function SalesLogPage() {
             <p className="text-xs text-slate-400 mb-1">Total sales</p>
             <p className="text-2xl font-bold text-brand-dark">
               {totalAmount > 0 ? `₦${totalAmount.toLocaleString()}` : '—'}
+              {refundAmount > 0 && (
+                <span className="block text-xs font-medium text-amber-600 mt-0.5">
+                  Net ₦{netSalesAmount.toLocaleString()}
+                </span>
+              )}
             </p>
           </div>
           <div className="bg-white rounded-2xl border border-brand-dark/10 p-4">
@@ -750,6 +764,7 @@ export default function SalesLogPage() {
             <option value="">All types</option>
             <option value="sale">Sale</option>
             <option value="expense">Expense</option>
+            <option value="refund">Refund</option>
             <option value="note">Note</option>
           </select>
           {staffOptions.length > 0 && (
@@ -852,6 +867,7 @@ export default function SalesLogPage() {
                         <span className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full ${
                           e.entry_type === 'sale'    ? 'bg-emerald-50 text-emerald-700' :
                           e.entry_type === 'expense' ? 'bg-red-50 text-red-600' :
+                          e.entry_type === 'refund'  ? 'bg-amber-50 text-amber-700' :
                                                        'bg-slate-100 text-slate-500'
                         }`}>
                           {e.entry_type.charAt(0).toUpperCase() + e.entry_type.slice(1)}
@@ -873,14 +889,14 @@ export default function SalesLogPage() {
                     </tr>
                   ))}
                 </tbody>
-                {filtered.some(e => e.entry_type === 'sale' && e.parsed_data?.total) && (
+                {filtered.some(e => ['sale', 'refund'].includes(e.entry_type) && e.parsed_data?.total) && (
                   <tfoot>
                     <tr className="border-t border-slate-200 bg-slate-50">
                       <td colSpan={6} className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase">
-                        Total (sales)
+                        Net sales
                       </td>
                       <td className="px-4 py-3 text-right font-bold text-brand-dark">
-                        {fmt(totalAmount)}
+                        {fmt(netSalesAmount)}
                       </td>
                       <td colSpan={5} />
                     </tr>
