@@ -19,6 +19,8 @@ interface BotEntry {
     unit_price?: number | null;
     total?: number | null;
     customer?: string | null;
+    payment_method?: string | null;
+    shop?: string | null;
     notes?: string | null;
     sale_date?: string | null;
   } | null;
@@ -35,6 +37,8 @@ interface ParsedEntry {
   unit_price: number | null;
   total: number | null;
   customer: string | null;
+  payment_method?: string | null;
+  shop?: string | null;
   notes: string | null;
   sale_date: string | null;
 }
@@ -221,15 +225,17 @@ export default function SalesLogPage() {
 
   const downloadCsv = () => {
     const rows = [
-      ['Date', 'Staff', 'Item', 'Qty', 'Unit Price', 'Total', 'Customer', 'Type', 'Channel', 'Source', 'Raw'],
+      ['Date', 'Shop', 'Staff', 'Item', 'Qty', 'Unit Price', 'Total', 'Customer', 'Payment Method', 'Type', 'Channel', 'Source', 'Raw'],
       ...filtered.map(e => [
         fmtDate(e.sale_date ?? e.created_at),
+        e.parsed_data?.shop ?? '',
         e.triggered_by ?? '',
         e.parsed_data?.item ?? '',
         e.parsed_data?.qty != null ? String(e.parsed_data.qty) : '',
         e.parsed_data?.unit_price != null ? String(e.parsed_data.unit_price) : '',
         e.parsed_data?.total != null ? String(e.parsed_data.total) : '',
         e.parsed_data?.customer ?? '',
+        e.parsed_data?.payment_method ?? '',
         e.entry_type,
         e.channel || inferChannel(e.source),
         e.source ?? 'whatsapp_text',

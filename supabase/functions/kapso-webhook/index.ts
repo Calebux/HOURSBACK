@@ -331,7 +331,7 @@ function parseKapsoMessage(payload: any): ParsedMessage | null {
 }
 
 function looksLikeSalesEntry(text: string) {
-  return /\b(sold|sell|sale|sales|spent|expense|bought|paid|cash|transfer|pos|₦|ngn|naira)\b/i.test(text);
+  return /\b(sold|sell|sale|sales|spent|expense|bought|paid|cash|transfer|pos|₦|ngn|naira|\d+\s+(?:at|for|x|@)|\d+\s*[a-z][a-z\s-]*\s+(?:at|were|was))\b/i.test(text);
 }
 
 function looksLikeSummaryQuestion(text: string) {
@@ -1443,28 +1443,143 @@ async function saveCloseout(supabase: any, connection: any, message: ParsedMessa
 }
 
 async function parseEntryWithAI(text: string) {
+  const fallbackEntries = parseEntriesFallback(text);
   if (!ANTHROPIC_API_KEY) {
-    return { entry_type: "note", item: null, qty: null, unit_price: null, total: null, customer: null, notes: text };
+    return fallbackEntries;
   }
 
   try {
     const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
     const parseRes = await anthropic.messages.create({
       model: "claude-haiku-4-5-20251001",
-      max_tokens: 220,
+      max_tokens: 700,
       messages: [{
         role: "user",
-        content: `Extract a structured business log entry from this WhatsApp message: "${text}"\nReturn JSON only, no explanation:\n{"entry_type":"sale"|"expense"|"note","item":string|null,"qty":number|null,"unit_price":number|null,"total":number|null,"customer":string|null,"notes":string|null}\nIf a field is not mentioned, use null.`,
+        content: `Extract spreadsheet-ready business ledger rows from this WhatsApp message: "${text}"
+Return JSON only, no explanation:
+{"entries":[{"entry_type":"sale"|"expense"|"note","item":string|null,"qty":number|null,"unit_price":number|null,"total":number|null,"customer":string|null,"payment_method":"cash"|"transfer"|"pos"|"card"|"mixed"|null,"shop":string|null,"notes":string|null}]}
+Rules:
+- If multiple products/services are mentioned, return one entry per item.
+- Compute total = qty * unit_price when possible.
+- Nigerian shorthand: 10k means 10000, 5k means 5000.
+- "3 gowns, 2 fittings and 3 shoes; gowns were 10k each..." means 3 separate sale rows.
+- If a shop/branch/location is mentioned, put it in shop.
+- Use note only when there is no sale/expense amount or quantity.`,
       }],
     });
     const raw = (parseRes.content[0] as { text: string }).text.trim();
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
-    if (jsonMatch) return JSON.parse(jsonMatch[0]);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      return normalizeParsedEntries(parsed, text, fallbackEntries);
+    }
   } catch (err) {
     console.error("WhatsApp parse error:", err);
   }
 
-  return { entry_type: "note", item: null, qty: null, unit_price: null, total: null, customer: null, notes: text };
+  return fallbackEntries;
+}
+
+function parseMoneyValue(value: string | null | undefined) {
+  if (!value) return null;
+  const normalized = value.toLowerCase().replace(/[,₦\s]/g, "");
+  const match = normalized.match(/^([0-9]+(?:\.[0-9]+)?)(k)?$/);
+  if (!match) return null;
+  return Number(match[1]) * (match[2] ? 1000 : 1);
+}
+
+function singularItem(value: string) {
+  const cleaned = value.trim().replace(/\s+/g, " ").toLowerCase();
+  if (cleaned.endsWith("ies")) return `${cleaned.slice(0, -3)}y`;
+  if (cleaned.endsWith("s") && !cleaned.endsWith("ss")) return cleaned.slice(0, -1);
+  return cleaned;
+}
+
+function inferPaymentMethod(text: string) {
+  const lower = text.toLowerCase();
+  const methods = [
+    lower.includes("transfer") || lower.includes("bank") ? "transfer" : null,
+    lower.includes("pos") ? "pos" : null,
+    lower.includes("cash") ? "cash" : null,
+    lower.includes("card") ? "card" : null,
+  ].filter(Boolean);
+  return methods.length > 1 ? "mixed" : methods[0] || null;
+}
+
+function inferShop(text: string) {
+  const match = text.match(/\b(?:shop|branch|store|location)\s*[:=-]?\s*([a-z0-9\s'-]{2,40})(?:[.,;]|$)/i)
+    || text.match(/\b(?:at|in)\s+([a-z0-9\s'-]{2,30})\s+(?:shop|branch|store)\b/i);
+  return match?.[1]?.trim() || null;
+}
+
+function parseEntriesFallback(text: string) {
+  const entries: any[] = [];
+  const paymentMethod = inferPaymentMethod(text);
+  const shop = inferShop(text);
+  const quantityPattern = /(\d+(?:\.\d+)?)\s+([a-z][a-z\s-]*?)(?=\s*(?:,|;|\.|\band\b|\bwere\b|\bwas\b|\bat\b|\bfor\b|$))/gi;
+  const pricePattern = /([a-z][a-z\s-]*?)\s+(?:were|was|at|for)\s*(?:₦|ngn|naira)?\s*([0-9][0-9,]*(?:\.\d+)?\s*k?)\s*(?:each|per)?/gi;
+  const quantities = new Map<string, { item: string; qty: number }>();
+  const prices = new Map<string, number>();
+  let match: RegExpExecArray | null;
+
+  while ((match = quantityPattern.exec(text)) !== null) {
+    const qty = Number(match[1]);
+    const rawItem = singularItem(match[2].replace(/\b(the|were|was|at|for)\b/gi, "").trim());
+    if (rawItem && Number.isFinite(qty)) quantities.set(rawItem, { item: rawItem, qty });
+  }
+  while ((match = pricePattern.exec(text)) !== null) {
+    const rawItem = singularItem(match[1].replace(/\b(the|and)\b/gi, "").trim());
+    const price = parseMoneyValue(match[2]);
+    if (rawItem && price != null) prices.set(rawItem, price);
+  }
+
+  for (const { item, qty } of quantities.values()) {
+    const unitPrice = prices.get(item) || null;
+    entries.push({
+      entry_type: unitPrice ? "sale" : "note",
+      item,
+      qty,
+      unit_price: unitPrice,
+      total: unitPrice ? qty * unitPrice : null,
+      customer: null,
+      payment_method: paymentMethod,
+      shop,
+      notes: unitPrice ? null : text,
+    });
+  }
+
+  if (!entries.length) {
+    entries.push({ entry_type: "note", item: null, qty: null, unit_price: null, total: null, customer: null, payment_method: paymentMethod, shop, notes: text });
+  }
+
+  return entries;
+}
+
+function normalizeParsedEntries(parsed: any, rawText: string, fallbackEntries: any[]) {
+  const sourceEntries = Array.isArray(parsed?.entries) ? parsed.entries : [parsed];
+  const entries = sourceEntries
+    .filter((entry: any) => entry && typeof entry === "object")
+    .map((entry: any) => {
+      const qty = entry.qty == null ? null : Number(entry.qty);
+      const unitPrice = entry.unit_price == null ? null : Number(entry.unit_price);
+      const total = entry.total == null && qty != null && unitPrice != null
+        ? qty * unitPrice
+        : entry.total == null ? null : Number(entry.total);
+      return {
+        entry_type: ["sale", "expense", "note"].includes(entry.entry_type) ? entry.entry_type : (total ? "sale" : "note"),
+        item: entry.item || null,
+        qty: Number.isFinite(qty) ? qty : null,
+        unit_price: Number.isFinite(unitPrice) ? unitPrice : null,
+        total: Number.isFinite(total) ? total : null,
+        customer: entry.customer || null,
+        payment_method: entry.payment_method || inferPaymentMethod(rawText),
+        shop: entry.shop || inferShop(rawText),
+        notes: entry.notes || null,
+      };
+    });
+
+  const usefulEntries = entries.filter((entry: any) => entry.entry_type !== "note" || entry.total || entry.item);
+  return usefulEntries.length ? usefulEntries : fallbackEntries;
 }
 
 async function getTodayBusinessMetrics(supabase: any, userId: string, timeZone?: string) {
@@ -2310,32 +2425,51 @@ serve(async (req) => {
           message_id: message.messageId || null,
         },
       );
-      const parsed = parseAiAllowed
+      const parsedEntries = parseAiAllowed
         ? await parseEntryWithAI(logText)
-        : { entry_type: "note", item: null, qty: null, unit_price: null, total: null, customer: null, notes: logText };
-      const entryType = parsed.entry_type || "sale";
-      await supabase.from("bot_entries").insert({
+        : [{ entry_type: "note", item: null, qty: null, unit_price: null, total: null, customer: null, notes: logText }];
+      const entries = Array.isArray(parsedEntries) ? parsedEntries : [parsedEntries];
+      const batchId = crypto.randomUUID();
+      const rows = entries.map((parsed: any) => ({
         user_id: connection.user_id,
         chat_id: 0,
         triggered_by: message.contactName || message.from || "WhatsApp",
         role: "staff",
         raw_text: logText,
-        entry_type: entryType,
-        parsed_data: parsed,
+        entry_type: parsed.entry_type || "sale",
+        parsed_data: {
+          ...parsed,
+          currency: "NGN",
+          batch_id: batchId,
+          connection_type: connection.connection_type || "internal",
+        },
         source: "whatsapp_text",
         channel: "whatsapp",
-      });
+      }));
+      await supabase.from("bot_entries").insert(rows);
       await logAnalyticsEvent(supabase, connection.user_id, "sales_log_entry_created", {
         source: "whatsapp_text",
-        entry_type: entryType,
-        has_total: !!parsed.total,
+        entry_type: rows.length === 1 ? rows[0].entry_type : "batch",
+        row_count: rows.length,
+        total: entries.reduce((sum: number, entry: any) => sum + Number(entry.total || 0), 0),
       });
 
-      const lines = [`Logged from WhatsApp.`];
-      lines.push(`Type: ${entryType === "expense" ? "Expense" : entryType === "note" ? "Note" : "Sale"}`);
-      if (parsed.item) lines.push(`Item: ${parsed.item}${parsed.qty ? ` x ${parsed.qty}` : ""}`);
-      if (parsed.total) lines.push(`Amount: ₦${Number(parsed.total).toLocaleString()}`);
-      if (parsed.customer) lines.push(`Customer: ${parsed.customer}`);
+      const salesTotal = entries
+        .filter((entry: any) => entry.entry_type === "sale")
+        .reduce((sum: number, entry: any) => sum + Number(entry.total || 0), 0);
+      const expenseTotal = entries
+        .filter((entry: any) => entry.entry_type === "expense")
+        .reduce((sum: number, entry: any) => sum + Number(entry.total || 0), 0);
+      const lines = [`Logged ${rows.length} row${rows.length === 1 ? "" : "s"} from WhatsApp.`];
+      for (const entry of entries.slice(0, 5)) {
+        const label = entry.entry_type === "expense" ? "Expense" : entry.entry_type === "note" ? "Note" : "Sale";
+        const item = entry.item ? `${entry.item}${entry.qty ? ` x ${entry.qty}` : ""}` : label;
+        const amount = entry.total ? ` — ₦${Number(entry.total).toLocaleString()}` : "";
+        lines.push(`${label}: ${item}${amount}`);
+      }
+      if (entries.length > 5) lines.push(`+${entries.length - 5} more rows`);
+      if (salesTotal) lines.push(`Sales total: ₦${salesTotal.toLocaleString()}`);
+      if (expenseTotal) lines.push(`Expenses total: ₦${expenseTotal.toLocaleString()}`);
       reply = lines.join("\n");
     } else {
       reply = "Received. Send a sales update like “Sold 3 gowns, 2 fittings. Transfer ₦42,000” or ask “How much did we sell today?”";
