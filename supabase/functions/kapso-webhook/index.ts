@@ -341,7 +341,7 @@ function parseKapsoMessage(payload: any): ParsedMessage | null {
 }
 
 function looksLikeSalesEntry(text: string) {
-  return /\b(sold|sell|sale|sales|refund|refunded|return|returned|reversal|spent|expense|bought|paid|cash|transfer|pos|₦|ngn|naira|\d+\s+(?:at|for|x|@)|\d+\s*[a-z][a-z\s-]*\s+(?:at|were|was))\b/i.test(text);
+  return /\b(sold|sell|sale|sales|refund|refunded|return|returned|reversal|spent|expense|bought|paid|cash|transfer|pos|₦|ngn|naira|\d+\s+(?:at|for|x|@)|\d+\s*[a-z][a-z\s-]*\s+(?:at|were|was)|\d+\s+[a-z][a-z\s-]{1,40}\s+[0-9][0-9,]*(?:\.\d+)?\s*k?\s*(?:each|per)?)\b/i.test(text);
 }
 
 function looksLikeSummaryQuestion(text: string) {
@@ -1491,6 +1491,8 @@ Rules:
 - "3 gowns, 2 fittings and 3 shoes; gowns were 10k each..." means 3 separate sale rows.
 - Use entry_type "refund" for returned/refunded/reversed sales. Keep total positive; Hoursback subtracts it in reports.
 - If a shop/branch/location is mentioned, put it in shop.
+- A person before "sold", like "Ada sold..." or "John at Lekki sold...", is staff/sales rep context, not the customer. Do not put that person in customer.
+- Only fill customer when the message explicitly says customer, client, or buyer name.
 - Use note only when there is no sale/expense amount or quantity.`,
       }],
     });
@@ -1537,6 +1539,16 @@ function inferShop(text: string) {
   const match = text.match(/\b(?:shop|branch|store|location)\s*[:=-]?\s*([a-z0-9\s'-]{2,40})(?:[.,;]|$)/i)
     || text.match(/\b(?:at|in)\s+([a-z0-9\s'-]{2,30})\s+(?:shop|branch|store)\b/i);
   return match?.[1]?.trim() || null;
+}
+
+function inferStaffFromSalesText(text: string) {
+  const match = text.match(/^\s*([a-z][a-z\s'-]{1,40}?)(?:\s+(?:at|in)\s+[a-z0-9\s'-]{2,40})?\s+sold\b/i);
+  if (!match) return null;
+  const name = match[1]
+    .replace(/\b(i|we|they|he|she|customer|client|buyer)\b/gi, "")
+    .trim()
+    .replace(/\s+/g, " ");
+  return name.length >= 2 ? name : null;
 }
 
 function parseEntriesFallback(text: string) {
@@ -1772,15 +1784,23 @@ function shouldRequireContext(directory: { staff: any[]; shops: any[] }, entries
 function applyDirectoryContext(entries: any[], directory: { staff: any[]; shops: any[] }, text: string, fallbackStaff: string) {
   const lookupText = `${text} ${fallbackStaff || ""}`;
   const matchedStaff = matchDirectoryItem(lookupText, directory.staff);
+  const inferredStaff = inferStaffFromSalesText(text);
   const matchedShop = matchDirectoryItem(lookupText, directory.shops) || (matchedStaff?.default_shop
     ? directory.shops.find((shop) => shop.name.toLowerCase() === String(matchedStaff.default_shop).toLowerCase())
     : null);
-  return entries.map((entry: any) => ({
-    ...entry,
-    staff: entry.staff || matchedStaff?.name || null,
-    shop: entry.shop || matchedShop?.name || null,
-    triggered_by: entry.staff || matchedStaff?.name || fallbackStaff,
-  }));
+  return entries.map((entry: any) => {
+    const staffName = entry.staff || matchedStaff?.name || inferredStaff || null;
+    const customer = staffName && String(entry.customer || "").trim().toLowerCase() === String(staffName).trim().toLowerCase()
+      ? null
+      : entry.customer || null;
+    return {
+      ...entry,
+      customer,
+      staff: staffName,
+      shop: entry.shop || matchedShop?.name || null,
+      triggered_by: staffName || fallbackStaff,
+    };
+  });
 }
 
 async function findActiveSalesLogSession(supabase: any, userId: string, fromNumber?: string) {

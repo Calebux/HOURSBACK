@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { ChevronLeft, Download, FileText, Camera, X, Loader2, CheckCircle2, Lock, Trash2, MessageCircle, Sheet, Shield } from 'lucide-react';
+import { ChevronLeft, Download, FileText, Camera, X, Loader2, CheckCircle2, Lock, Trash2, MessageCircle, Sheet, Shield, Maximize2, Minimize2 } from 'lucide-react';
 import { MobileNav } from '../components/MobileNav';
 import { toast } from 'sonner';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
@@ -121,6 +121,7 @@ export default function SalesLogPage() {
   const [sheetSaving, setSheetSaving] = useState(false);
   const [sheetSyncing, setSheetSyncing] = useState(false);
   const [serviceAccountEmail, setServiceAccountEmail] = useState<string | null>(null);
+  const [expandedTable, setExpandedTable] = useState(false);
 
   // Photo upload state
   const [uploadState, setUploadState] = useState<'idle' | 'parsing' | 'preview' | 'saving'>('idle');
@@ -819,6 +820,16 @@ export default function SalesLogPage() {
           )}
           {filtered.length > 0 && (
             <button
+              onClick={() => setExpandedTable(true)}
+              className="inline-flex items-center gap-1.5 text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white text-slate-700 hover:bg-slate-50 transition-colors"
+              title="Expand Sales Log table"
+            >
+              <Maximize2 className="w-4 h-4" />
+              Expand
+            </button>
+          )}
+          {filtered.length > 0 && (
+            <button
               onClick={downloadCsv}
               className="inline-flex items-center gap-1.5 text-sm border border-emerald-200 rounded-lg px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors"
               title="Download a CSV you can import into Google Sheets"
@@ -841,9 +852,24 @@ export default function SalesLogPage() {
             </p>
           </div>
         ) : (
-          <div className="bg-white rounded-2xl border border-brand-dark/10 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[1040px] text-sm">
+          <div className={expandedTable ? 'fixed inset-0 z-50 flex flex-col bg-white p-4' : 'bg-white rounded-2xl border border-brand-dark/10 overflow-hidden'}>
+            {expandedTable && (
+              <div className="mb-3 flex items-center justify-between border-b border-slate-100 pb-3">
+                <div>
+                  <h2 className="text-base font-semibold text-brand-dark">Sales Log Table</h2>
+                  <p className="text-xs text-slate-500">{filtered.length} rows · scroll across to inspect every column</p>
+                </div>
+                <button
+                  onClick={() => setExpandedTable(false)}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+                >
+                  <Minimize2 className="h-4 w-4" />
+                  Close
+                </button>
+              </div>
+            )}
+            <div className={expandedTable ? 'flex-1 overflow-auto rounded-xl border border-slate-100' : 'overflow-x-auto'}>
+              <table className={`${expandedTable ? 'min-w-[1280px]' : 'w-full min-w-[1040px]'} text-sm`}>
                 <thead className="sticky top-0 bg-white z-[1]">
                   <tr className="border-b border-slate-100">
                     <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Date</th>
