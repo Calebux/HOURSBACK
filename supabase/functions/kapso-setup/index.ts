@@ -9,7 +9,12 @@ import {
   sendWhatsAppTextForProvider,
   updateKapsoPhoneWebhook,
 } from "../_shared/kapso.ts";
-import { getZernioApiKey, getZernioWebhookSecret } from "../_shared/zernio.ts";
+import {
+  createZernioWhatsAppConnectUrl,
+  getOrCreateZernioProfile,
+  getZernioApiKey,
+  getZernioWebhookSecret,
+} from "../_shared/zernio.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -398,7 +403,7 @@ serve(async (req) => {
 
       const setupProvider = getWhatsAppSetupProvider();
       const apiConfigured = setupProvider === "zernio" ? !!getZernioApiKey() : !!getKapsoApiKey();
-      const setupLinkConfigured = setupProvider !== "zernio" || !!Deno.env.get("ZERNIO_SETUP_URL");
+      const setupLinkConfigured = setupProvider !== "zernio" || !!getZernioApiKey();
       return new Response(JSON.stringify({
         connected: connections.some((item: any) => !!item.phone_number_id),
         api_configured: apiConfigured,
@@ -1032,25 +1037,19 @@ serve(async (req) => {
           );
         }
 
-        // Build the Meta Embedded Sign-Up URL (or use a Zernio-hosted setup URL if configured)
-        const zernioSetupOverride = Deno.env.get("ZERNIO_SETUP_URL");
-        const callbackBase = `${appOrigin}/whatsapp/callback?mode=${connectionType}`;
-
-        let setupLinkUrl: string;
-        if (zernioSetupOverride) {
-          setupLinkUrl = `${zernioSetupOverride}?redirect_uri=${encodeURIComponent(callbackBase + "&status=success")}&state=${encodeURIComponent(`${user.id}:${connectionType}`)}`;
-        } else {
-          return new Response(
-            JSON.stringify({ error: "Zernio setup requires ZERNIO_SETUP_URL so Hoursback receives the connected phone_number_id" }),
-            { status: 400, headers: corsHeaders },
-          );
-        }
+        const callbackUrl = `${appOrigin}/whatsapp/callback?mode=${connectionType}&provider=zernio`;
+        const profileId = await getOrCreateZernioProfile(
+          `Hoursback ${user.email || user.id} ${connectionType}`,
+        );
+        const { authUrl: setupLinkUrl, state: setupLinkId } = await createZernioWhatsAppConnectUrl(profileId, callbackUrl);
 
         const { data, error } = await supabase
           .from("kapso_connections")
           .upsert({
             user_id: user.id,
             connection_type: connectionType,
+            external_customer_id: `zernio:profile:${profileId}`,
+            setup_link_id: setupLinkId || null,
             setup_link_url: setupLinkUrl,
             setup_link_expires_at: null,
             status: "setup_pending",
@@ -1066,6 +1065,7 @@ serve(async (req) => {
         await logAnalyticsEvent(supabase, user.id, "whatsapp_zernio_setup_link_created", {
           connection_type: connectionType,
           provider: "zernio",
+          zernio_profile_id: profileId,
         }, "edge");
         return new Response(JSON.stringify({ success: true, connection: data, provider: "zernio" }), { headers: corsHeaders });
       }

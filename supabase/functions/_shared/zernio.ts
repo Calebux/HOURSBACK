@@ -1,4 +1,4 @@
-const ZERNIO_API_BASE = (Deno.env.get("ZERNIO_API_BASE") || "https://api.zernio.com").replace(/\/+$/, "");
+const ZERNIO_API_BASE = (Deno.env.get("ZERNIO_API_BASE") || "https://zernio.com/api/v1").replace(/\/+$/, "");
 
 export class ZernioApiError extends Error {
   status: number;
@@ -46,20 +46,52 @@ export async function zernioFetch(path: string, init: RequestInit = {}) {
   return json;
 }
 
-export async function sendZernioText(phoneNumberId: string, to: string, body: string) {
-  return zernioFetch(`/meta/whatsapp/v24.0/${phoneNumberId}/messages`, {
+function firstString(...values: unknown[]) {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return null;
+}
+
+export async function getOrCreateZernioProfile(name: string) {
+  const configuredProfileId = Deno.env.get("ZERNIO_PROFILE_ID");
+  if (configuredProfileId) return configuredProfileId;
+
+  const profilesResponse = await zernioFetch("/profiles");
+  const profiles = Array.isArray(profilesResponse?.profiles) ? profilesResponse.profiles : [];
+  const existing = profiles.find((profile: any) => profile?.isDefault) || profiles[0];
+  const existingId = firstString(existing?._id, existing?.id, existing?.profileId);
+  if (existingId) return existingId;
+
+  const created = await zernioFetch("/profiles", {
+    method: "POST",
+    body: JSON.stringify({ name }),
+  });
+  const profile = created?.profile || created?.data || created;
+  const profileId = firstString(profile?._id, profile?.id, profile?.profileId);
+  if (!profileId) throw new Error("Zernio did not return a profile id");
+  return profileId;
+}
+
+export async function createZernioWhatsAppConnectUrl(profileId: string, redirectUrl: string) {
+  const params = new URLSearchParams({ profileId, redirect_url: redirectUrl });
+  const response = await zernioFetch(`/connect/whatsapp?${params.toString()}`);
+  const authUrl = firstString(response?.authUrl, response?.data?.authUrl, response?.url);
+  if (!authUrl) throw new Error("Zernio did not return an authUrl");
+  return { authUrl, state: response?.state || null };
+}
+
+export async function sendZernioText(accountId: string, conversationId: string, body: string) {
+  return zernioFetch(`/inbox/conversations/${encodeURIComponent(conversationId)}/messages`, {
     method: "POST",
     body: JSON.stringify({
-      messaging_product: "whatsapp",
-      recipient_type: "individual",
-      to,
-      type: "text",
-      text: { body },
+      accountId,
+      message: body,
     }),
   });
 }
 
-/** Verify an inbound Meta X-Hub-Signature-256 HMAC. */
+/** Verify an inbound Zernio or Meta-compatible HMAC. */
 export async function verifyZernioSignature(rawBody: string, signature: string | null): Promise<boolean> {
   const secret = getZernioWebhookSecret();
   if (!signature || !secret) return false;

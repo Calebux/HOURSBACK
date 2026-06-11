@@ -53,6 +53,8 @@ export default function WhatsAppCallbackPage() {
     const phoneNumberId = firstParam(params, [
       'phone_number_id',
       'phoneNumberId',
+      'accountId',
+      'account_id',
       'whatsapp_phone_number_id',
       'waba_phone_number_id',
       'phone_number[id]',
@@ -63,6 +65,7 @@ export default function WhatsAppCallbackPage() {
     const phoneNumber = firstParam(params, [
       'phone_number',
       'phoneNumber',
+      'username',
       'display_phone_number',
       'phone_number[number]',
       'phone_numbers[0][display_phone_number]',

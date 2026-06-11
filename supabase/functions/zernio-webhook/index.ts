@@ -94,6 +94,53 @@ function normalizeMetaPayload(payload: any) {
   };
 }
 
+/** Parse Zernio's Inbox webhook payload. */
+function normalizeZernioPayload(payload: any) {
+  const message = payload?.message || {};
+  const conversation = payload?.conversation || {};
+  const account = payload?.account || {};
+  const accountId = firstString(account?._id, account?.id, account?.accountId, message?.accountId, conversation?.accountId);
+  const conversationId = firstString(conversation?.id, conversation?._id, conversation?.conversationId, message?.conversationId);
+  const textBody = firstString(message?.text, message?.message, message?.body, message?.content);
+  const from = conversationId || firstString(message?.from?.id, message?.from, conversation?.contactId);
+  const contactName = firstString(
+    conversation?.contactName,
+    conversation?.name,
+    message?.from?.name,
+    message?.senderName,
+  );
+
+  return {
+    event: "whatsapp.message.received",
+    message: {
+      id: firstString(message?.id, message?._id, message?.messageId, payload?.id),
+      from,
+      to: firstString(account?.username, account?.displayName),
+      text: textBody ? { body: textBody } : undefined,
+      type: firstString(message?.type) || (textBody ? "text" : "message"),
+      timestamp: firstString(message?.createdAt, message?.timestamp, payload?.timestamp) || new Date().toISOString(),
+      phone_number_id: accountId,
+      contact_name: contactName,
+      media_url: firstString(message?.attachmentUrl, message?.attachments?.[0]?.url),
+      kapso: {
+        direction: "inbound",
+        content: textBody,
+        status: "received",
+        origin: "zernio",
+        conversation_id: conversationId,
+        account_id: accountId,
+      },
+    },
+    phone_number_id: accountId,
+    gateway: {
+      provider: "zernio",
+      raw_event: payload?.event || "message.received",
+      conversation_id: conversationId,
+      account_id: accountId,
+    },
+  };
+}
+
 serve(async (req) => {
   const url = new URL(req.url);
 
@@ -116,7 +163,9 @@ serve(async (req) => {
 
   try {
     const rawBody = await req.text();
-    const signature = req.headers.get("X-Hub-Signature-256") || req.headers.get("X-Webhook-Signature");
+    const signature = req.headers.get("X-Zernio-Signature")
+      || req.headers.get("X-Hub-Signature-256")
+      || req.headers.get("X-Webhook-Signature");
 
     const valid = await verifyZernioSignature(rawBody, signature);
     if (!valid) {
@@ -127,11 +176,13 @@ serve(async (req) => {
     const payload = JSON.parse(rawBody);
 
     // Status updates (delivery receipts) — acknowledge but don't process
-    if (!payload?.entry?.[0]?.changes?.[0]?.value?.messages?.length) {
+    const hasMetaMessage = !!payload?.entry?.[0]?.changes?.[0]?.value?.messages?.length;
+    const hasZernioMessage = payload?.event === "message.received" && !!payload?.message;
+    if (!hasMetaMessage && !hasZernioMessage) {
       return new Response(JSON.stringify({ success: true, ignored: "no message" }), { headers });
     }
 
-    const normalized = normalizeMetaPayload(payload);
+    const normalized = hasZernioMessage ? normalizeZernioPayload(payload) : normalizeMetaPayload(payload);
     if (!normalized.phone_number_id || !normalized.message?.from) {
       await logAnalyticsEvent(supabase, null, "zernio_unusable_payload", {
         has_phone_number_id: !!normalized.phone_number_id,

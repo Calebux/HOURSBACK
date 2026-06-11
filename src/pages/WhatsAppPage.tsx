@@ -654,7 +654,7 @@ export default function WhatsAppPage() {
               <p className="text-xs text-amber-600 self-center">WhatsApp setup is not configured yet. Contact support.</p>
             )}
             {status?.provider === 'zernio' && !status?.setup_link_configured && (
-              <p className="text-xs text-amber-600 self-center">Zernio hosted setup is not configured yet. Use Advanced support to save the phone number ID.</p>
+              <p className="text-xs text-amber-600 self-center">Zernio API setup is not configured yet. Contact support or use Advanced support.</p>
             )}
           </div>
 
