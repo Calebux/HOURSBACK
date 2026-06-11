@@ -1690,9 +1690,30 @@ async function internalContactsConfigured(supabase: any, userId: string) {
   return Number(count || 0) > 0;
 }
 
+async function recordPendingInternalSender(supabase: any, userId: string, message: ParsedMessage, text: string) {
+  const senderId = String(message.from || "").trim();
+  if (!senderId) return;
+  const normalizedId = normalizePhone(senderId);
+  const { error } = await supabase
+    .from("business_pending_internal_senders")
+    .upsert({
+      user_id: userId,
+      sender_id: senderId,
+      normalized_id: normalizedId || null,
+      contact_name: message.contactName || null,
+      last_message: text.slice(0, 240),
+      status: "pending",
+      last_seen_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "user_id,sender_id" });
+  if (error) {
+    console.error("Failed to record pending internal sender", error);
+  }
+}
+
 function unauthorizedInternalReply(hasContacts: boolean) {
   return hasContacts
-    ? "This WhatsApp number is not authorized for internal operations. Ask the owner to add your number in Team & Outlets."
+    ? "This WhatsApp number is not authorized for internal operations. Ask the owner to approve it in Team & Outlets."
     : "Internal operations are locked. Add authorized contacts in Hoursback > Operations > Team & Outlets before using this WhatsApp number.";
 }
 
@@ -2868,6 +2889,7 @@ serve(async (req) => {
         }
       }
     } else if (!internalContact) {
+      await recordPendingInternalSender(supabase, connection.user_id, message, text);
       reply = unauthorizedInternalReply(hasInternalContacts);
       await logAnalyticsEvent(supabase, connection.user_id, "unauthorized_internal_whatsapp_blocked", {
         from_number: normalizePhone(message.from),

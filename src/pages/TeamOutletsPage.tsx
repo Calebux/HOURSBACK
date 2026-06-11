@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Loader2, Plus, Shield, Store, Trash2, Users } from 'lucide-react';
+import { Check, ChevronLeft, Loader2, Plus, Shield, Store, Trash2, Users, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { MobileNav } from '../components/MobileNav';
@@ -19,6 +19,15 @@ type Contact = {
   can_manage_setup: boolean;
   active: boolean;
 };
+type PendingSender = {
+  id: string;
+  sender_id: string;
+  normalized_id: string | null;
+  contact_name: string | null;
+  last_message: string | null;
+  status: 'pending' | 'linked' | 'ignored';
+  last_seen_at: string;
+};
 
 function normalizePhone(value: string) {
   if (/[a-z]/i.test(value)) return value.trim();
@@ -31,6 +40,10 @@ function aliasArray(value: string) {
   return value.split(',').map(v => v.trim()).filter(Boolean);
 }
 
+function displaySender(value: string) {
+  return /^\d+$/.test(value) ? `+${value}` : value;
+}
+
 export default function TeamOutletsPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -39,6 +52,8 @@ export default function TeamOutletsPage() {
   const [staff, setStaff] = useState<Staff[]>([]);
   const [shops, setShops] = useState<Shop[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [pendingSenders, setPendingSenders] = useState<PendingSender[]>([]);
+  const [pendingLinks, setPendingLinks] = useState<Record<string, string>>({});
   const [staffForm, setStaffForm] = useState({ name: '', aliases: '', default_shop: '' });
   const [shopForm, setShopForm] = useState({ name: '', aliases: '' });
   const [contactForm, setContactForm] = useState({
@@ -53,17 +68,19 @@ export default function TeamOutletsPage() {
 
   const load = async () => {
     if (!user) return;
-    const [staffRes, shopRes, contactRes] = await Promise.all([
+    const [staffRes, shopRes, contactRes, pendingRes] = await Promise.all([
       supabase.from('business_staff').select('*').eq('user_id', user.id).order('name'),
       supabase.from('business_shops').select('*').eq('user_id', user.id).order('name'),
       supabase.from('business_internal_contacts').select('*').eq('user_id', user.id).order('name'),
+      supabase.from('business_pending_internal_senders').select('*').eq('user_id', user.id).eq('status', 'pending').order('last_seen_at', { ascending: false }),
     ]);
-    if (staffRes.error || shopRes.error || contactRes.error) {
+    if (staffRes.error || shopRes.error || contactRes.error || pendingRes.error) {
       toast.error('Could not load team setup');
     }
     setStaff((staffRes.data ?? []) as Staff[]);
     setShops((shopRes.data ?? []) as Shop[]);
     setContacts((contactRes.data ?? []) as Contact[]);
+    setPendingSenders((pendingRes.data ?? []) as PendingSender[]);
     setLoading(false);
   };
 
@@ -148,6 +165,47 @@ export default function TeamOutletsPage() {
     void load();
   };
 
+  const linkPendingSender = async (pending: PendingSender) => {
+    if (!user) return;
+    const contactId = pendingLinks[pending.id];
+    const source = contacts.find(contact => contact.id === contactId);
+    if (!source) return toast.error('Choose the contact this WhatsApp chat belongs to');
+    setSaving(true);
+    const { error: contactError } = await supabase.from('business_internal_contacts').upsert({
+      user_id: user.id,
+      name: source.name,
+      phone_number: pending.sender_id,
+      role: source.role,
+      can_log_sales: source.can_log_sales,
+      can_query_reports: source.can_query_reports,
+      can_closeout: source.can_closeout,
+      can_manage_setup: source.can_manage_setup,
+      active: true,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id,phone_number' });
+    if (contactError) {
+      setSaving(false);
+      return toast.error(contactError.message);
+    }
+    const { error: pendingError } = await supabase
+      .from('business_pending_internal_senders')
+      .update({ status: 'linked', updated_at: new Date().toISOString() })
+      .eq('id', pending.id);
+    setSaving(false);
+    if (pendingError) return toast.error(pendingError.message);
+    toast.success(`${source.name} can now use internal WhatsApp`);
+    void load();
+  };
+
+  const ignorePendingSender = async (id: string) => {
+    const { error } = await supabase
+      .from('business_pending_internal_senders')
+      .update({ status: 'ignored', updated_at: new Date().toISOString() })
+      .eq('id', id);
+    if (error) return toast.error(error.message);
+    void load();
+  };
+
   if (loading) {
     return <div className="min-h-screen bg-brand-light flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-brand-dark" /></div>;
   }
@@ -182,6 +240,55 @@ export default function TeamOutletsPage() {
           </div>
         </section>
 
+        {pendingSenders.length > 0 && (
+          <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+            <div className="mb-3 flex items-start gap-3">
+              <Shield className="mt-0.5 h-5 w-5 text-amber-700" />
+              <div>
+                <p className="text-sm font-semibold text-amber-950">Pending WhatsApp approvals</p>
+                <p className="mt-1 text-xs leading-5 text-amber-800">
+                  Zernio may send a chat ID instead of the staff phone number. Link the pending chat to the right contact once, then that person can use internal WhatsApp normally.
+                </p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              {pendingSenders.map(sender => (
+                <div key={sender.id} className="grid gap-2 rounded-xl border border-amber-200 bg-white p-3 md:grid-cols-[1fr_220px_auto_auto] md:items-center">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-slate-900">{displaySender(sender.sender_id)}</p>
+                    <p className="truncate text-xs text-slate-500">
+                      {sender.contact_name || 'Unknown sender'} · {sender.last_message || 'No message text'}
+                    </p>
+                  </div>
+                  <select
+                    value={pendingLinks[sender.id] || ''}
+                    onChange={e => setPendingLinks(v => ({ ...v, [sender.id]: e.target.value }))}
+                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                  >
+                    <option value="">Link to contact</option>
+                    {contacts.filter(contact => contact.active).map(contact => (
+                      <option key={contact.id} value={contact.id}>{contact.name} ({contact.role})</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={() => linkPendingSender(sender)}
+                    disabled={saving}
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-dark px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                  >
+                    <Check className="h-4 w-4" /> Approve
+                  </button>
+                  <button
+                    onClick={() => ignorePendingSender(sender.id)}
+                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+                  >
+                    <X className="h-4 w-4" /> Ignore
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         <section className="grid gap-4 lg:grid-cols-3">
           <div className="rounded-2xl border border-brand-dark/10 bg-white p-4 lg:col-span-2">
             <div className="mb-4 flex items-center gap-2">
@@ -205,7 +312,7 @@ export default function TeamOutletsPage() {
                 <div key={contact.id} className={`flex items-center justify-between gap-3 py-3 ${!contact.active ? 'opacity-45' : ''}`}>
                   <div>
                     <p className="text-sm font-semibold">{contact.name} <span className="font-normal text-slate-400">({contact.role})</span></p>
-                    <p className="text-xs text-slate-500">+{contact.phone_number} · {[
+                    <p className="text-xs text-slate-500">{displaySender(contact.phone_number)} · {[
                       contact.can_log_sales ? 'log' : null,
                       contact.can_query_reports ? 'reports' : null,
                       contact.can_closeout ? 'closeout' : null,
