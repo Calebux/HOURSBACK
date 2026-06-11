@@ -344,6 +344,11 @@ function looksLikeSalesLogQuestion(text: string) {
     || (/\?/.test(text) && /\b(sales?|sold|sell|revenue|expenses?|entries|log|shop|branch|staff|item|cash|transfer|pos|today|yesterday|week|month)\b/i.test(text));
 }
 
+function looksLikeDirectorySetup(text: string) {
+  return /^\/?(staff|shops?)\s*[:=-]\s*/i.test(text.trim())
+    || /\b(add|set|register)\s+(staff|sales reps?|shops?|branches?)\b/i.test(text);
+}
+
 function looksLikeWorkflowRequest(text: string) {
   return /\b(schedule|deliver|every day|daily|weekly|monthly|every week|workflow|pdf|email|whatsapp)\b/i.test(text)
     && /\b(workflow|report|summary|p&l|profit and loss|sales|5\s*-?\s*liner?|five\s*-?\s*line)\b/i.test(text);
@@ -1600,6 +1605,244 @@ function normalizeParsedEntries(parsed: any, rawText: string, fallbackEntries: a
   return usefulEntries.length ? usefulEntries : fallbackEntries;
 }
 
+function splitDirectoryNames(value: string) {
+  return value
+    .split(/,|\n|;|\band\b/i)
+    .map((name) => name.trim().replace(/^[-•]\s*/, ""))
+    .filter((name) => name.length >= 2 && name.length <= 80);
+}
+
+function parseDirectorySetup(text: string) {
+  const trimmed = text.trim();
+  const direct = trimmed.match(/^\/?(staff|shops?)\s*[:=-]\s*(.+)$/i);
+  if (direct) {
+    return {
+      type: /^shop/i.test(direct[1]) ? "shop" : "staff",
+      names: splitDirectoryNames(direct[2]),
+    };
+  }
+  const natural = trimmed.match(/\b(?:add|set|register)\s+(staff|sales reps?|shops?|branches?)\s*[:=-]?\s*(.+)$/i);
+  if (!natural) return null;
+  return {
+    type: /shop|branch/i.test(natural[1]) ? "shop" : "staff",
+    names: splitDirectoryNames(natural[2]),
+  };
+}
+
+async function handleDirectorySetup(supabase: any, userId: string, text: string) {
+  const parsed = parseDirectorySetup(text);
+  if (!parsed?.names.length) {
+    return "Send staff or shops like:\nstaff: Ada, Tola\nshops: Lekki, Ikeja";
+  }
+  const table = parsed.type === "shop" ? "business_shops" : "business_staff";
+  const rows = parsed.names.map((name) => ({
+    user_id: userId,
+    name,
+    aliases: [name],
+    active: true,
+    updated_at: new Date().toISOString(),
+  }));
+  const { error } = await supabase.from(table).upsert(rows, { onConflict: "user_id,name" });
+  if (error) throw error;
+  return `${parsed.type === "shop" ? "Shops" : "Staff"} saved: ${parsed.names.join(", ")}`;
+}
+
+async function loadBusinessDirectory(supabase: any, userId: string) {
+  const [{ data: staff }, { data: shops }] = await Promise.all([
+    supabase.from("business_staff").select("name,aliases,default_shop").eq("user_id", userId).eq("active", true).order("name"),
+    supabase.from("business_shops").select("name,aliases").eq("user_id", userId).eq("active", true).order("name"),
+  ]);
+  return { staff: staff || [], shops: shops || [] };
+}
+
+function directoryLabels(items: any[]) {
+  return items.flatMap((item) => [item.name, ...(item.aliases || [])]
+    .map((value) => String(value || "").trim())
+    .filter(Boolean)
+    .map((value) => ({ value, item })))
+    .sort((a, b) => b.value.length - a.value.length);
+}
+
+function matchDirectoryItem(text: string, items: any[]) {
+  const lower = ` ${text.toLowerCase()} `;
+  for (const label of directoryLabels(items)) {
+    const escaped = label.value.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    if (new RegExp(`(^|[^a-z0-9])${escaped}([^a-z0-9]|$)`, "i").test(lower)) return label.item;
+  }
+  return null;
+}
+
+function shouldRequireContext(directory: { staff: any[]; shops: any[] }, entries: any[]) {
+  const materialRows = entries.filter((entry: any) => entry.entry_type !== "note" || entry.total || entry.item);
+  return {
+    staff: directory.staff.length > 1 && materialRows.some((entry: any) => !entry.staff),
+    shop: directory.shops.length > 1 && materialRows.some((entry: any) => !entry.shop),
+  };
+}
+
+function applyDirectoryContext(entries: any[], directory: { staff: any[]; shops: any[] }, text: string, fallbackStaff: string) {
+  const lookupText = `${text} ${fallbackStaff || ""}`;
+  const matchedStaff = matchDirectoryItem(lookupText, directory.staff);
+  const matchedShop = matchDirectoryItem(lookupText, directory.shops) || (matchedStaff?.default_shop
+    ? directory.shops.find((shop) => shop.name.toLowerCase() === String(matchedStaff.default_shop).toLowerCase())
+    : null);
+  return entries.map((entry: any) => ({
+    ...entry,
+    staff: entry.staff || matchedStaff?.name || null,
+    shop: entry.shop || matchedShop?.name || null,
+    triggered_by: entry.staff || matchedStaff?.name || fallbackStaff,
+  }));
+}
+
+async function findActiveSalesLogSession(supabase: any, userId: string, fromNumber?: string) {
+  if (!fromNumber) return null;
+  const { data } = await supabase
+    .from("kapso_sales_log_sessions")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("from_number", fromNumber)
+    .eq("status", "awaiting_context")
+    .gt("expires_at", new Date().toISOString())
+    .order("updated_at", { ascending: false })
+    .limit(1);
+  return data?.[0] || null;
+}
+
+async function savePendingSalesLogSession(
+  supabase: any,
+  connection: any,
+  message: ParsedMessage,
+  entries: any[],
+  missingFields: string[],
+) {
+  if (!message.from) return;
+  await supabase
+    .from("kapso_sales_log_sessions")
+    .update({ status: "cancelled", updated_at: new Date().toISOString() })
+    .eq("user_id", connection.user_id)
+    .eq("from_number", message.from)
+    .eq("status", "awaiting_context");
+
+  await supabase
+    .from("kapso_sales_log_sessions")
+    .insert({
+      user_id: connection.user_id,
+      connection_id: connection.id,
+      from_number: message.from,
+      pending_rows: entries,
+      missing_fields: missingFields,
+      status: "awaiting_context",
+      updated_at: new Date().toISOString(),
+      expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+    });
+}
+
+function contextPrompt(missingFields: string[], directory: { staff: any[]; shops: any[] }) {
+  const lines = ["I can log this, but I need context first."];
+  if (missingFields.includes("staff")) {
+    lines.push(`Who made the sale? Reply with: ${directory.staff.map((staff) => staff.name).join(", ")}`);
+  }
+  if (missingFields.includes("shop")) {
+    lines.push(`Which shop? Reply with: ${directory.shops.map((shop) => shop.name).join(", ")}`);
+  }
+  return lines.join("\n");
+}
+
+async function persistSalesLogEntries(supabase: any, connection: any, message: ParsedMessage, entries: any[], logText: string) {
+  const batchId = crypto.randomUUID();
+  const rows = entries.map((parsed: any) => {
+    const staffName = parsed.triggered_by || parsed.staff || message.contactName || message.from || "WhatsApp";
+    return {
+      user_id: connection.user_id,
+      chat_id: 0,
+      triggered_by: staffName,
+      role: "staff",
+      raw_text: logText,
+      entry_type: parsed.entry_type || "sale",
+      parsed_data: {
+        ...parsed,
+        staff: staffName,
+        currency: "NGN",
+        batch_id: batchId,
+        connection_type: connection.connection_type || "internal",
+      },
+      source: "whatsapp_text",
+      channel: "whatsapp",
+    };
+  });
+  const { data: insertedRows, error: insertError } = await supabase
+    .from("bot_entries")
+    .insert(rows)
+    .select("*");
+  if (insertError) throw insertError;
+  await appendEntriesToGoogleSheetIfConfigured(supabase, connection.user_id, insertedRows || rows);
+  await logAnalyticsEvent(supabase, connection.user_id, "sales_log_entry_created", {
+    source: "whatsapp_text",
+    entry_type: rows.length === 1 ? rows[0].entry_type : "batch",
+    row_count: rows.length,
+    total: entries.reduce((sum: number, entry: any) => sum + Number(entry.total || 0), 0),
+    has_staff: entries.some((entry: any) => Boolean(entry.staff || entry.triggered_by)),
+    has_shop: entries.some((entry: any) => Boolean(entry.shop)),
+  });
+
+  const salesTotal = entries
+    .filter((entry: any) => entry.entry_type === "sale")
+    .reduce((sum: number, entry: any) => sum + Number(entry.total || 0), 0);
+  const expenseTotal = entries
+    .filter((entry: any) => entry.entry_type === "expense")
+    .reduce((sum: number, entry: any) => sum + Number(entry.total || 0), 0);
+  const refundTotal = entries
+    .filter((entry: any) => entry.entry_type === "refund")
+    .reduce((sum: number, entry: any) => sum + Number(entry.total || 0), 0);
+  const incompleteItems = entries
+    .filter((entry: any) => entry.entry_type === "note" && entry.item && entry.qty && !entry.total)
+    .map((entry: any) => `${entry.item}${entry.qty ? ` x ${entry.qty}` : ""}`);
+  const lines = [`Logged ${rows.length} row${rows.length === 1 ? "" : "s"} from WhatsApp.`];
+  for (const entry of entries.slice(0, 5)) {
+    const label = entry.entry_type === "expense" ? "Expense" : entry.entry_type === "refund" ? "Refund" : entry.entry_type === "note" ? "Note" : "Sale";
+    const item = entry.item ? `${entry.item}${entry.qty ? ` x ${entry.qty}` : ""}` : label;
+    const amount = entry.total ? ` — ₦${Number(entry.total).toLocaleString()}` : "";
+    const context = [entry.staff, entry.shop].filter(Boolean).join(" / ");
+    lines.push(`${label}: ${item}${amount}${context ? ` (${context})` : ""}`);
+  }
+  if (entries.length > 5) lines.push(`+${entries.length - 5} more rows`);
+  if (salesTotal) lines.push(`Sales total: ₦${salesTotal.toLocaleString()}`);
+  if (expenseTotal) lines.push(`Expenses total: ₦${expenseTotal.toLocaleString()}`);
+  if (refundTotal) lines.push(`Refunds total: ₦${refundTotal.toLocaleString()}`);
+  if (incompleteItems.length) {
+    lines.push(`Missing amount for: ${compactList(incompleteItems)}.`);
+    lines.push("Reply with the prices, for example: “gowns 10000 each, fittings 5000 each”.");
+  }
+  return lines.join("\n");
+}
+
+async function handlePendingSalesLogSession(supabase: any, connection: any, message: ParsedMessage, text: string, session: any) {
+  if (/\b(cancel|stop)\b/i.test(text)) {
+    await supabase
+      .from("kapso_sales_log_sessions")
+      .update({ status: "cancelled", updated_at: new Date().toISOString() })
+      .eq("id", session.id);
+    return "Sales log cancelled.";
+  }
+  const directory = await loadBusinessDirectory(supabase, connection.user_id);
+  const fallbackStaff = message.contactName || message.from || "WhatsApp";
+  const entries = applyDirectoryContext(Array.isArray(session.pending_rows) ? session.pending_rows : [], directory, text, fallbackStaff);
+  const required = shouldRequireContext(directory, entries);
+  const missingFields = [
+    required.staff ? "staff" : null,
+    required.shop ? "shop" : null,
+  ].filter(Boolean) as string[];
+  if (missingFields.length) {
+    await savePendingSalesLogSession(supabase, connection, message, entries, missingFields);
+    return contextPrompt(missingFields, directory);
+  }
+  await supabase
+    .from("kapso_sales_log_sessions")
+    .update({ status: "completed", updated_at: new Date().toISOString() })
+    .eq("id", session.id);
+  return await persistSalesLogEntries(supabase, connection, message, entries, String(entries?.[0]?.raw_text || text));
+}
+
 async function appendEntriesToGoogleSheetIfConfigured(supabase: any, userId: string, rows: any[]) {
   try {
     const { data: destination } = await supabase
@@ -2486,6 +2729,7 @@ serve(async (req) => {
     const text = (message.text || "").trim();
 
     const activeCloseoutSession = await findActiveCloseoutSession(supabase, connection.user_id, message.from);
+    const activeSalesLogSession = await findActiveSalesLogSession(supabase, connection.user_id, message.from);
 
     if (connection.connection_type === "customer") {
       const openOrder = await findOpenCustomerOrder(supabase, connection, message.from);
@@ -2583,6 +2827,10 @@ serve(async (req) => {
       } else {
         reply = closeoutPrompt();
       }
+    } else if (activeSalesLogSession) {
+      reply = await handlePendingSalesLogSession(supabase, connection, message, text, activeSalesLogSession);
+    } else if (looksLikeDirectorySetup(text)) {
+      reply = await handleDirectorySetup(supabase, connection.user_id, text);
     } else if (looksLikeReportGenerationRequest(text)) {
       reply = await generateWhatsAppBusinessReport(supabase, connection, text);
     } else if (looksLikeWorkflowRequest(text)) {
@@ -2619,65 +2867,21 @@ serve(async (req) => {
       const parsedEntries = parseAiAllowed
         ? await parseEntryWithAI(logText)
         : [{ entry_type: "note", item: null, qty: null, unit_price: null, total: null, customer: null, notes: logText }];
-      const entries = Array.isArray(parsedEntries) ? parsedEntries : [parsedEntries];
-      const batchId = crypto.randomUUID();
-      const rows = entries.map((parsed: any) => ({
-        user_id: connection.user_id,
-        chat_id: 0,
-        triggered_by: message.contactName || message.from || "WhatsApp",
-        role: "staff",
-        raw_text: logText,
-        entry_type: parsed.entry_type || "sale",
-        parsed_data: {
-          ...parsed,
-          currency: "NGN",
-          batch_id: batchId,
-          connection_type: connection.connection_type || "internal",
-        },
-        source: "whatsapp_text",
-        channel: "whatsapp",
-      }));
-      const { data: insertedRows, error: insertError } = await supabase
-        .from("bot_entries")
-        .insert(rows)
-        .select("*");
-      if (insertError) throw insertError;
-      await appendEntriesToGoogleSheetIfConfigured(supabase, connection.user_id, insertedRows || rows);
-      await logAnalyticsEvent(supabase, connection.user_id, "sales_log_entry_created", {
-        source: "whatsapp_text",
-        entry_type: rows.length === 1 ? rows[0].entry_type : "batch",
-        row_count: rows.length,
-        total: entries.reduce((sum: number, entry: any) => sum + Number(entry.total || 0), 0),
-      });
-
-      const salesTotal = entries
-        .filter((entry: any) => entry.entry_type === "sale")
-        .reduce((sum: number, entry: any) => sum + Number(entry.total || 0), 0);
-      const expenseTotal = entries
-        .filter((entry: any) => entry.entry_type === "expense")
-        .reduce((sum: number, entry: any) => sum + Number(entry.total || 0), 0);
-      const refundTotal = entries
-        .filter((entry: any) => entry.entry_type === "refund")
-        .reduce((sum: number, entry: any) => sum + Number(entry.total || 0), 0);
-      const incompleteItems = entries
-        .filter((entry: any) => entry.entry_type === "note" && entry.item && entry.qty && !entry.total)
-        .map((entry: any) => `${entry.item}${entry.qty ? ` x ${entry.qty}` : ""}`);
-      const lines = [`Logged ${rows.length} row${rows.length === 1 ? "" : "s"} from WhatsApp.`];
-      for (const entry of entries.slice(0, 5)) {
-        const label = entry.entry_type === "expense" ? "Expense" : entry.entry_type === "refund" ? "Refund" : entry.entry_type === "note" ? "Note" : "Sale";
-        const item = entry.item ? `${entry.item}${entry.qty ? ` x ${entry.qty}` : ""}` : label;
-        const amount = entry.total ? ` — ₦${Number(entry.total).toLocaleString()}` : "";
-        lines.push(`${label}: ${item}${amount}`);
+      const directory = await loadBusinessDirectory(supabase, connection.user_id);
+      const fallbackStaff = message.contactName || message.from || "WhatsApp";
+      const entries = applyDirectoryContext(Array.isArray(parsedEntries) ? parsedEntries : [parsedEntries], directory, logText, fallbackStaff)
+        .map((entry: any) => ({ ...entry, raw_text: logText }));
+      const required = shouldRequireContext(directory, entries);
+      const missingFields = [
+        required.staff ? "staff" : null,
+        required.shop ? "shop" : null,
+      ].filter(Boolean) as string[];
+      if (missingFields.length) {
+        await savePendingSalesLogSession(supabase, connection, message, entries, missingFields);
+        reply = contextPrompt(missingFields, directory);
+      } else {
+        reply = await persistSalesLogEntries(supabase, connection, message, entries, logText);
       }
-      if (entries.length > 5) lines.push(`+${entries.length - 5} more rows`);
-      if (salesTotal) lines.push(`Sales total: ₦${salesTotal.toLocaleString()}`);
-      if (expenseTotal) lines.push(`Expenses total: ₦${expenseTotal.toLocaleString()}`);
-      if (refundTotal) lines.push(`Refunds total: ₦${refundTotal.toLocaleString()}`);
-      if (incompleteItems.length) {
-        lines.push(`Missing amount for: ${compactList(incompleteItems)}.`);
-        lines.push("Reply with the prices, for example: “gowns 10000 each, fittings 5000 each”.");
-      }
-      reply = lines.join("\n");
     } else {
       reply = "Received. Send a sales update like “Sold 3 gowns, 2 fittings. Transfer ₦42,000” or ask “How much did we sell today?”";
     }

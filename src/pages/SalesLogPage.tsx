@@ -113,6 +113,7 @@ export default function SalesLogPage() {
   const [isPro, setIsPro] = useState(false);
   const [filterType, setFilterType] = useState('');
   const [filterStaff, setFilterStaff] = useState('');
+  const [filterShop, setFilterShop] = useState('');
   const [filterChannel, setFilterChannel] = useState('');
   const [sheetDestination, setSheetDestination] = useState<SheetDestination | null>(null);
   const [sheetUrl, setSheetUrl] = useState('');
@@ -198,14 +199,20 @@ export default function SalesLogPage() {
     [entries]
   );
 
+  const shopOptions = useMemo(() =>
+    [...new Set(entries.map(e => e.parsed_data?.shop).filter(Boolean))].sort() as string[],
+    [entries]
+  );
+
   const filtered = useMemo(() =>
     entries.filter(e => {
       if (filterType && e.entry_type !== filterType) return false;
       if (filterStaff && e.triggered_by !== filterStaff) return false;
+      if (filterShop && e.parsed_data?.shop !== filterShop) return false;
       if (filterChannel && (e.channel || inferChannel(e.source)) !== filterChannel) return false;
       return true;
     }),
-    [entries, filterType, filterStaff, filterChannel]
+    [entries, filterType, filterStaff, filterShop, filterChannel]
   );
 
   const totalAmount = useMemo(() =>
@@ -776,6 +783,18 @@ export default function SalesLogPage() {
               <option value="">All staff</option>
               {staffOptions.map(s => (
                 <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+          )}
+          {shopOptions.length > 0 && (
+            <select
+              value={filterShop}
+              onChange={e => setFilterShop(e.target.value)}
+              className="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white text-slate-700 focus:outline-none focus:border-slate-400"
+            >
+              <option value="">All shops</option>
+              {shopOptions.map(shop => (
+                <option key={shop} value={shop}>{shop}</option>
               ))}
             </select>
           )}
