@@ -339,6 +339,11 @@ function looksLikeSummaryQuestion(text: string) {
   return /\b(how much|total|summary|sold most|top item|today|sales today|what sold|report|5\s*-?\s*liner?|five\s*-?\s*line)\b/i.test(text);
 }
 
+function looksLikeSalesLogQuestion(text: string) {
+  return /\b(how much|how many|what did|what sold|show|list|total|summary|top item|sales today|sales yesterday|sold today|sold yesterday|this week|this month|last 7 days|sales log)\b/i.test(text)
+    || (/\?/.test(text) && /\b(sales?|sold|sell|revenue|expenses?|entries|log|shop|branch|staff|item|cash|transfer|pos|today|yesterday|week|month)\b/i.test(text));
+}
+
 function looksLikeWorkflowRequest(text: string) {
   return /\b(schedule|deliver|every day|daily|weekly|monthly|every week|workflow|pdf|email|whatsapp)\b/i.test(text)
     && /\b(workflow|report|summary|p&l|profit and loss|sales|5\s*-?\s*liner?|five\s*-?\s*line)\b/i.test(text);
@@ -1801,13 +1806,32 @@ function entryDate(entry: any) {
   return new Date(entry.sale_date || entry.created_at);
 }
 
+function compactList(values: string[], limit = 3) {
+  if (!values.length) return "";
+  const shown = values.slice(0, limit);
+  const more = values.length > limit ? ` +${values.length - limit} more` : "";
+  return `${shown.join(", ")}${more}`;
+}
+
+function uniqueFieldValues(rows: any[], getter: (entry: any) => unknown) {
+  return [...new Set(rows
+    .map((entry) => String(getter(entry) || "").trim())
+    .filter((value) => value.length > 1))]
+    .sort((a, b) => b.length - a.length);
+}
+
+function valuesMentionedInText(values: string[], text: string) {
+  const lower = text.toLowerCase();
+  return values.filter((value) => lower.includes(value.toLowerCase()));
+}
+
 async function collectReportMetrics(supabase: any, userId: string, text: string, timeZone?: string) {
   const range = parseReportRange(text, timeZone);
   const lowerBound = range.start.toISOString();
 
   const { data: entries, error } = await supabase
     .from("bot_entries")
-    .select("entry_type,parsed_data,raw_text,source,channel,sale_date,created_at")
+    .select("entry_type,parsed_data,triggered_by,raw_text,source,channel,sale_date,created_at")
     .eq("user_id", userId)
     .or(`created_at.gte.${lowerBound},sale_date.gte.${lowerBound}`)
     .order("created_at", { ascending: false })
@@ -1854,6 +1878,104 @@ async function collectReportMetrics(supabase: any, userId: string, text: string,
     topItems,
     channels,
   };
+}
+
+function salesLogQueryFilters(rows: any[], text: string) {
+  const itemMatches = valuesMentionedInText(uniqueFieldValues(rows, (entry) => entry.parsed_data?.item), text);
+  const shopMatches = valuesMentionedInText(uniqueFieldValues(rows, (entry) => entry.parsed_data?.shop), text);
+  const staffMatches = valuesMentionedInText(uniqueFieldValues(rows, (entry) => entry.triggered_by), text);
+  const paymentMatches = valuesMentionedInText(uniqueFieldValues(rows, (entry) => entry.parsed_data?.payment_method), text);
+
+  return {
+    itemMatches,
+    shopMatches,
+    staffMatches,
+    paymentMatches,
+  };
+}
+
+async function buildSalesLogQueryAnswer(supabase: any, userId: string, text: string, timeZone?: string) {
+  const metrics = await collectReportMetrics(supabase, userId, text, timeZone);
+  const filters = salesLogQueryFilters(metrics.rows, text);
+  let rows = metrics.rows;
+
+  if (filters.itemMatches.length) {
+    rows = rows.filter((entry: any) => filters.itemMatches.some((item) =>
+      String(entry.parsed_data?.item || "").toLowerCase().includes(item.toLowerCase())
+    ));
+  }
+  if (filters.shopMatches.length) {
+    rows = rows.filter((entry: any) => filters.shopMatches.some((shop) =>
+      String(entry.parsed_data?.shop || "").toLowerCase().includes(shop.toLowerCase())
+    ));
+  }
+  if (filters.staffMatches.length) {
+    rows = rows.filter((entry: any) => filters.staffMatches.some((staff) =>
+      String(entry.triggered_by || "").toLowerCase().includes(staff.toLowerCase())
+    ));
+  }
+  if (filters.paymentMatches.length) {
+    rows = rows.filter((entry: any) => filters.paymentMatches.some((method) =>
+      String(entry.parsed_data?.payment_method || "").toLowerCase().includes(method.toLowerCase())
+    ));
+  }
+
+  const sales = rows.filter((entry: any) => entry.entry_type === "sale");
+  const expenses = rows.filter((entry: any) => entry.entry_type === "expense");
+  const revenue = sales.reduce((sum: number, entry: any) => sum + Number(entry.parsed_data?.total || 0), 0);
+  const expenseTotal = expenses.reduce((sum: number, entry: any) => sum + Number(entry.parsed_data?.total || 0), 0);
+  const qtySold = sales.reduce((sum: number, entry: any) => sum + Number(entry.parsed_data?.qty || (entry.parsed_data?.item ? 1 : 0)), 0);
+  const itemCounts = new Map<string, { qty: number; revenue: number }>();
+
+  for (const entry of sales) {
+    const item = String(entry.parsed_data?.item || "Unspecified");
+    const current = itemCounts.get(item) || { qty: 0, revenue: 0 };
+    current.qty += Number(entry.parsed_data?.qty || 1);
+    current.revenue += Number(entry.parsed_data?.total || 0);
+    itemCounts.set(item, current);
+  }
+
+  const topItems = [...itemCounts.entries()]
+    .sort((a, b) => b[1].revenue - a[1].revenue)
+    .slice(0, 3)
+    .map(([item, value]) => `${item}: ₦${value.revenue.toLocaleString("en-NG")} (${value.qty})`);
+
+  const appliedFilters = [
+    filters.itemMatches.length ? `Item: ${compactList(filters.itemMatches)}` : "",
+    filters.shopMatches.length ? `Shop: ${compactList(filters.shopMatches)}` : "",
+    filters.staffMatches.length ? `Staff: ${compactList(filters.staffMatches)}` : "",
+    filters.paymentMatches.length ? `Payment: ${compactList(filters.paymentMatches)}` : "",
+  ].filter(Boolean);
+
+  const lines = [`Sales Log - ${metrics.range.label}${appliedFilters.length ? ` (${appliedFilters.join("; ")})` : ""}`];
+  if (!rows.length) {
+    lines.push("No matching entries found.");
+    lines.push("Try a wider question, for example: “How much did we sell this week?”");
+    return lines.join("\n");
+  }
+
+  lines.push(`Sales: ₦${revenue.toLocaleString("en-NG")}`);
+  lines.push(`Expenses: ₦${expenseTotal.toLocaleString("en-NG")}`);
+  if (filters.itemMatches.length || /\bhow many\b/i.test(text)) lines.push(`Qty sold: ${qtySold.toLocaleString("en-NG")}`);
+  lines.push(`Entries: ${rows.length} (${sales.length} sales, ${expenses.length} expenses)`);
+  lines.push(topItems.length ? `Top items: ${topItems.join("; ")}` : "Top items: none yet");
+
+  const recent = rows
+    .slice()
+    .sort((a: any, b: any) => entryDate(b).getTime() - entryDate(a).getTime())
+    .slice(0, 3)
+    .map((entry: any) => {
+      const parsed = entry.parsed_data || {};
+      const item = parsed.item || entry.entry_type;
+      const amount = parsed.total ? `₦${Number(parsed.total).toLocaleString("en-NG")}` : "no amount";
+      const staff = entry.triggered_by ? ` by ${entry.triggered_by}` : "";
+      return `${item}${parsed.qty ? ` x ${parsed.qty}` : ""}: ${amount}${staff}`;
+    });
+  if (/\b(show|list|entries|details|what sold)\b/i.test(text) && recent.length) {
+    lines.push(`Recent: ${recent.join(" | ")}`);
+  }
+
+  return lines.join("\n");
 }
 
 function deterministicReport(metrics: any, reportType: string) {
@@ -2434,8 +2556,10 @@ serve(async (req) => {
       reply = await buildProfitAndLossSummary(supabase, connection.user_id, connection.business_timezone);
     } else if (looksLikeFiveLineSummary(text)) {
       reply = await buildFiveLineSummary(supabase, connection.user_id, connection.business_timezone);
+    } else if (looksLikeSalesLogQuestion(text)) {
+      reply = await buildSalesLogQueryAnswer(supabase, connection.user_id, text, connection.business_timezone);
     } else if (looksLikeSummaryQuestion(text)) {
-      reply = await buildSalesSummary(supabase, connection.user_id, connection.business_timezone);
+      reply = await buildSalesLogQueryAnswer(supabase, connection.user_id, text, connection.business_timezone);
     } else if (looksLikeOrderMessage(text) && !looksLikeSalesEntry(text)) {
       reply = [
         "This WhatsApp number is for staff operations.",
