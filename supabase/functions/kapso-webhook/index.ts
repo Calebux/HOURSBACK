@@ -358,6 +358,13 @@ function looksLikeDirectorySetup(text: string) {
     || /\b(add|set|register)\s+(staff|sales reps?|shops?|branches?)\b/i.test(text);
 }
 
+function looksLikeCatalogSetup(text: string) {
+  const trimmed = text.trim();
+  return /^\/?(catalog|items?|products?|stock)\s*[:=-]\s*/i.test(trimmed)
+    || /\b(add|set|update)\s+(catalog|items?|products?|stock)\b/i.test(trimmed)
+    || /^\/?(restock|price)\s+/i.test(trimmed);
+}
+
 function looksLikeWorkflowRequest(text: string) {
   return /\b(schedule|deliver|every day|daily|weekly|monthly|every week|workflow|pdf|email|whatsapp)\b/i.test(text)
     && /\b(workflow|report|summary|p&l|profit and loss|sales|5\s*-?\s*liner?|five\s*-?\s*line)\b/i.test(text);
@@ -1650,6 +1657,54 @@ function parseDirectorySetup(text: string) {
   };
 }
 
+function parseCatalogLines(text: string) {
+  const cleaned = text
+    .trim()
+    .replace(/^\/?(catalog|items?|products?|stock)\s*[:=-]\s*/i, "")
+    .replace(/^\b(add|set|update)\s+(catalog|items?|products?|stock)\s*[:=-]?\s*/i, "")
+    .replace(/^\/?(restock|price)\s+/i, "");
+  return cleaned
+    .split(/\n|;/)
+    .flatMap((line) => line.split(/\s*,\s*(?=[a-z][a-z\s'-]+\s+(?:₦|ngn|naira|\d))/i))
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+function parseCatalogItemLine(line: string) {
+  const priceMatch = line.match(/\b(?:price|at|for)?\s*(?:₦|ngn|naira)?\s*([0-9][0-9,]*(?:\.\d+)?\s*k?)\s*(?:each|per)?\b/i);
+  const stockMatch = line.match(/\b(?:stock|qty|quantity|count)\s*[:=-]?\s*([+-]?[0-9]+(?:\.\d+)?)\b/i);
+  const reorderMatch = line.match(/\b(?:reorder|low\s*stock|low|minimum|min)\s*[:=-]?\s*([0-9]+(?:\.\d+)?)\b/i);
+  const categoryMatch = line.match(/\b(?:category|cat)\s*[:=-]?\s*([a-z0-9\s'-]{2,40})(?:$|\s+(?:stock|qty|quantity|reorder|low|minimum|min|price)\b)/i);
+  const aliasMatch = line.match(/\b(?:aliases?|aka)\s*[:=-]?\s*([a-z0-9\s,'-]{2,80})$/i);
+  const firstMarker = [priceMatch?.index, stockMatch?.index, reorderMatch?.index, categoryMatch?.index, aliasMatch?.index]
+    .filter((index) => typeof index === "number")
+    .sort((a, b) => Number(a) - Number(b))[0];
+  const name = (firstMarker == null ? line : line.slice(0, Number(firstMarker)))
+    .replace(/\b(price|stock|qty|quantity|count|reorder|low|minimum|min|category|cat|aliases?|aka)\b.*$/i, "")
+    .trim()
+    .replace(/\s+/g, " ");
+  if (!name || name.length < 2) return null;
+  const explicitPrice = priceMatch
+    && (/\b(price|at|for)\b/i.test(priceMatch[0])
+      || /\b(each|per)\b/i.test(priceMatch[0])
+      || stockMatch?.index == null
+      || Number(priceMatch.index) < Number(stockMatch.index));
+  return {
+    name,
+    aliases: [name, ...splitDirectoryNames(aliasMatch?.[1] || "")],
+    category: categoryMatch?.[1]?.trim() || null,
+    unit_price: explicitPrice ? parseMoneyValue(priceMatch[1]) : null,
+    stock_qty: stockMatch ? Number(stockMatch[1]) : null,
+    reorder_point: reorderMatch ? Number(reorderMatch[1]) : null,
+  };
+}
+
+function parseCatalogSetup(text: string) {
+  return parseCatalogLines(text)
+    .map(parseCatalogItemLine)
+    .filter(Boolean) as any[];
+}
+
 async function handleDirectorySetup(supabase: any, userId: string, text: string) {
   const parsed = parseDirectorySetup(text);
   if (!parsed?.names.length) {
@@ -1668,12 +1723,49 @@ async function handleDirectorySetup(supabase: any, userId: string, text: string)
   return `${parsed.type === "shop" ? "Shops" : "Staff"} saved: ${parsed.names.join(", ")}`;
 }
 
+async function handleCatalogSetup(supabase: any, userId: string, text: string) {
+  const parsed = parseCatalogSetup(text);
+  if (!parsed.length) {
+    return [
+      "Send catalog items like:",
+      "catalog: gowns 10000 stock 20 reorder 5",
+      "catalog: fittings 5000; shoes 23000 stock 12",
+    ].join("\n");
+  }
+  const rows = parsed.map((item: any) => ({
+    user_id: userId,
+    name: item.name,
+    aliases: item.aliases?.length ? item.aliases : [item.name],
+    category: item.category,
+    unit_price: item.unit_price,
+    stock_qty: item.stock_qty,
+    reorder_point: item.reorder_point,
+    track_stock: item.stock_qty != null || item.reorder_point != null,
+    active: true,
+    updated_at: new Date().toISOString(),
+  }));
+  const { error } = await supabase.from("business_catalog_items").upsert(rows, { onConflict: "user_id,name" });
+  if (error) throw error;
+  return `Catalog saved: ${parsed.map((item: any) => item.name).join(", ")}`;
+}
+
 async function loadBusinessDirectory(supabase: any, userId: string) {
   const [{ data: staff }, { data: shops }] = await Promise.all([
     supabase.from("business_staff").select("name,aliases,default_shop").eq("user_id", userId).eq("active", true).order("name"),
     supabase.from("business_shops").select("name,aliases").eq("user_id", userId).eq("active", true).order("name"),
   ]);
   return { staff: staff || [], shops: shops || [] };
+}
+
+async function loadCatalogItems(supabase: any, userId: string) {
+  const { data, error } = await supabase
+    .from("business_catalog_items")
+    .select("id,name,aliases,unit_price,stock_qty,reorder_point,track_stock,active")
+    .eq("user_id", userId)
+    .eq("active", true)
+    .order("name");
+  if (error) throw error;
+  return data || [];
 }
 
 async function loadInternalContact(supabase: any, userId: string, fromNumber?: string | null) {
@@ -1803,6 +1895,27 @@ function applyDirectoryContext(entries: any[], directory: { staff: any[]; shops:
   });
 }
 
+function applyCatalogContext(entries: any[], catalogItems: any[]) {
+  return entries.map((entry: any) => {
+    const matched = entry.item ? matchDirectoryItem(String(entry.item), catalogItems) : null;
+    if (!matched) return entry;
+    const qty = entry.qty == null ? null : Number(entry.qty);
+    const unitPrice = entry.unit_price == null && matched.unit_price != null
+      ? Number(matched.unit_price)
+      : entry.unit_price == null ? null : Number(entry.unit_price);
+    const total = entry.total == null && qty != null && unitPrice != null
+      ? qty * unitPrice
+      : entry.total;
+    return {
+      ...entry,
+      item: matched.name || entry.item,
+      unit_price: Number.isFinite(unitPrice) ? unitPrice : entry.unit_price,
+      total: Number.isFinite(Number(total)) ? Number(total) : entry.total,
+      catalog_item_id: matched.id,
+    };
+  });
+}
+
 async function findActiveSalesLogSession(supabase: any, userId: string, fromNumber?: string) {
   if (!fromNumber) return null;
   const { data } = await supabase
@@ -1884,6 +1997,7 @@ async function persistSalesLogEntries(supabase: any, connection: any, message: P
     .insert(rows)
     .select("*");
   if (insertError) throw insertError;
+  const stockNotes = await recordStockMovementsForEntries(supabase, connection.user_id, insertedRows || rows);
   await appendEntriesToGoogleSheetIfConfigured(supabase, connection.user_id, insertedRows || rows);
   await logAnalyticsEvent(supabase, connection.user_id, "sales_log_entry_created", {
     source: "whatsapp_text",
@@ -1918,11 +2032,52 @@ async function persistSalesLogEntries(supabase: any, connection: any, message: P
   if (salesTotal) lines.push(`Sales total: ₦${salesTotal.toLocaleString()}`);
   if (expenseTotal) lines.push(`Expenses total: ₦${expenseTotal.toLocaleString()}`);
   if (refundTotal) lines.push(`Refunds total: ₦${refundTotal.toLocaleString()}`);
+  if (stockNotes.length) lines.push(...stockNotes);
   if (incompleteItems.length) {
     lines.push(`Missing amount for: ${compactList(incompleteItems)}.`);
     lines.push("Reply with the prices, for example: “gowns 10000 each, fittings 5000 each”.");
   }
   return lines.join("\n");
+}
+
+async function recordStockMovementsForEntries(supabase: any, userId: string, rows: any[]) {
+  const notes: string[] = [];
+  for (const row of rows || []) {
+    const parsed = row.parsed_data || {};
+    const catalogItemId = parsed.catalog_item_id;
+    const qty = parsed.qty == null ? null : Number(parsed.qty);
+    if (!catalogItemId || !qty || !["sale", "refund"].includes(row.entry_type)) continue;
+    const delta = row.entry_type === "refund" ? qty : -qty;
+    const { data: item, error: itemError } = await supabase
+      .from("business_catalog_items")
+      .select("id,name,stock_qty,reorder_point,track_stock")
+      .eq("user_id", userId)
+      .eq("id", catalogItemId)
+      .eq("active", true)
+      .maybeSingle();
+    if (itemError || !item?.track_stock) continue;
+    const nextQty = Number(item.stock_qty || 0) + delta;
+    const { error: updateError } = await supabase
+      .from("business_catalog_items")
+      .update({ stock_qty: nextQty, updated_at: new Date().toISOString() })
+      .eq("id", item.id);
+    if (updateError) {
+      console.error("Stock update failed", updateError);
+      continue;
+    }
+    await supabase.from("business_stock_movements").insert({
+      user_id: userId,
+      catalog_item_id: item.id,
+      movement_type: row.entry_type,
+      qty_delta: delta,
+      source_entry_id: row.id || null,
+      notes: `From WhatsApp Sales Log: ${row.raw_text || ""}`.slice(0, 240),
+    });
+    if (item.reorder_point != null && nextQty <= Number(item.reorder_point)) {
+      notes.push(`Low stock: ${item.name} is now ${nextQty.toLocaleString()}.`);
+    }
+  }
+  return notes;
 }
 
 async function handlePendingSalesLogSession(supabase: any, connection: any, message: ParsedMessage, text: string, session: any) {
@@ -1934,8 +2089,12 @@ async function handlePendingSalesLogSession(supabase: any, connection: any, mess
     return "Sales log cancelled.";
   }
   const directory = await loadBusinessDirectory(supabase, connection.user_id);
+  const catalogItems = await loadCatalogItems(supabase, connection.user_id);
   const fallbackStaff = message.contactName || message.from || "WhatsApp";
-  const entries = applyDirectoryContext(Array.isArray(session.pending_rows) ? session.pending_rows : [], directory, text, fallbackStaff);
+  const entries = applyCatalogContext(
+    applyDirectoryContext(Array.isArray(session.pending_rows) ? session.pending_rows : [], directory, text, fallbackStaff),
+    catalogItems,
+  );
   const required = shouldRequireContext(directory, entries);
   const missingFields = [
     required.staff ? "staff" : null,
@@ -2970,6 +3129,10 @@ serve(async (req) => {
       reply = internalContact.can_manage_setup
         ? await handleDirectorySetup(supabase, connection.user_id, text)
         : permissionDeniedReply("manage staff or outlets");
+    } else if (looksLikeCatalogSetup(text)) {
+      reply = internalContact.can_manage_setup
+        ? await handleCatalogSetup(supabase, connection.user_id, text)
+        : permissionDeniedReply("manage catalog or stock");
     } else if (looksLikeReportGenerationRequest(text)) {
       reply = internalContact.can_query_reports
         ? await generateWhatsAppBusinessReport(supabase, connection, text)
@@ -3022,9 +3185,12 @@ serve(async (req) => {
         ? await parseEntryWithAI(logText)
         : [{ entry_type: "note", item: null, qty: null, unit_price: null, total: null, customer: null, notes: logText }];
       const directory = await loadBusinessDirectory(supabase, connection.user_id);
+      const catalogItems = await loadCatalogItems(supabase, connection.user_id);
       const fallbackStaff = internalContact.name || message.contactName || message.from || "WhatsApp";
-      const entries = applyDirectoryContext(Array.isArray(parsedEntries) ? parsedEntries : [parsedEntries], directory, logText, fallbackStaff)
-        .map((entry: any) => ({ ...entry, raw_text: logText }));
+      const entries = applyCatalogContext(
+        applyDirectoryContext(Array.isArray(parsedEntries) ? parsedEntries : [parsedEntries], directory, logText, fallbackStaff),
+        catalogItems,
+      ).map((entry: any) => ({ ...entry, raw_text: logText }));
       const required = shouldRequireContext(directory, entries);
       const missingFields = [
         required.staff ? "staff" : null,

@@ -6,6 +6,7 @@ import {
   Database,
   FileText,
   Inbox,
+  Package,
   Radio,
   Shield,
 } from 'lucide-react';
@@ -20,6 +21,13 @@ const operationAreas = [
     href: '/data-log',
     icon: ClipboardList,
     action: 'Open log',
+  },
+  {
+    title: 'Catalog and stock',
+    description: 'Set item names, prices, aliases, stock levels, and reorder points for cleaner WhatsApp logging.',
+    href: '/catalog-stock',
+    icon: Package,
+    action: 'Manage catalog',
   },
   {
     title: 'Customer requests',
