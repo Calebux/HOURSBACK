@@ -1700,6 +1700,29 @@ function permissionDeniedReply(action: string) {
   return `You are not authorized to ${action}. Ask the owner to update your permission in Team & Outlets.`;
 }
 
+function internalWelcomeReply(contact: any) {
+  const name = String(contact?.name || "there").trim();
+  const capabilities = [
+    contact?.can_log_sales ? "log sales, expenses, and refunds" : null,
+    contact?.can_query_reports ? "ask for sales totals and reports" : null,
+    contact?.can_closeout ? "run end-of-day closeout" : null,
+    contact?.can_manage_setup ? "manage staff and outlet setup" : null,
+  ].filter(Boolean);
+  const examples = [
+    contact?.can_log_sales ? "Ada at Lekki sold 3 gowns 10000 each transfer" : null,
+    contact?.can_query_reports ? "How much did Lekki sell today?" : null,
+    contact?.can_closeout ? "closeout" : null,
+    contact?.can_manage_setup ? "staff: Ada, Tola" : null,
+  ].filter(Boolean);
+  return [
+    `Hi ${name}. Welcome to Hoursback operations.`,
+    capabilities.length
+      ? `You can ${capabilities.join("; ")}.`
+      : "Your number is authorized, but no actions are enabled yet.",
+    examples.length ? `Try: ${examples.slice(0, 2).join(" | ")}` : "Ask the owner to enable permissions in Team & Outlets.",
+  ].join("\n");
+}
+
 function directoryLabels(items: any[]) {
   return items.flatMap((item) => [item.name, ...(item.aliases || [])]
     .map((value) => String(value || "").trim())
@@ -2973,7 +2996,7 @@ serve(async (req) => {
       }
       }
     } else {
-      reply = "Received. Send a sales update like “Sold 3 gowns, 2 fittings. Transfer ₦42,000” or ask “How much did we sell today?”";
+      reply = internalWelcomeReply(internalContact);
     }
 
     if (message.from && reply) {
