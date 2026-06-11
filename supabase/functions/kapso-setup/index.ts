@@ -9,7 +9,7 @@ import {
   sendWhatsAppTextForProvider,
   updateKapsoPhoneWebhook,
 } from "../_shared/kapso.ts";
-import { getZernioApiKey } from "../_shared/zernio.ts";
+import { getZernioApiKey, getZernioWebhookSecret } from "../_shared/zernio.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -115,6 +115,10 @@ function wabaGatewayWebhookUrl(userId: string, connectionType: string) {
   return `${SUPABASE_URL}/functions/v1/waba-gateway-webhook?uid=${userId}&mode=${connectionType}`;
 }
 
+function zernioWebhookUrl() {
+  return `${SUPABASE_URL}/functions/v1/zernio-webhook`;
+}
+
 function getWhatsAppSetupProvider(): "kapso" | "waba_gateway" | "zernio" {
   const v = Deno.env.get("WHATSAPP_PROVIDER") || Deno.env.get("WABA_GATEWAY_PROVIDER") || "kapso";
   if (v === "waba_gateway") return "waba_gateway";
@@ -122,6 +126,9 @@ function getWhatsAppSetupProvider(): "kapso" | "waba_gateway" | "zernio" {
   return "kapso";
 }
 
+function webhookSecretConfiguredForProvider(provider: string) {
+  return provider === "zernio" ? !!getZernioWebhookSecret() : !!KAPSO_WEBHOOK_SECRET;
+}
 
 function gatewaySetupUrl(userId: string, connectionType: string) {
   const base = Deno.env.get("WABA_GATEWAY_SETUP_URL")
@@ -244,6 +251,39 @@ async function registerKapsoWebhookForNumber(
   };
 }
 
+async function markGlobalZernioWebhookActive(
+  supabase: any,
+  userId: string,
+  connectionType: string,
+  phoneNumberId: string,
+) {
+  const url = zernioWebhookUrl();
+  const registeredAt = new Date().toISOString();
+
+  await supabase
+    .from("kapso_connections")
+    .update({
+      kapso_webhook_id: null,
+      kapso_webhook_url: url,
+      kapso_webhook_registered_at: registeredAt,
+      kapso_webhook_error: null,
+      webhook_secret_set: !!getZernioWebhookSecret(),
+      whatsapp_provider: "zernio",
+      status: "webhook_active",
+      updated_at: registeredAt,
+    })
+    .eq("user_id", userId)
+    .eq("connection_type", connectionType);
+
+  await logAnalyticsEvent(supabase, userId, "whatsapp_zernio_routing_registered", {
+    connection_type: connectionType,
+    phone_number_id: phoneNumberId,
+    webhook_url: url,
+  }, "edge");
+
+  return { url, provider: "zernio" };
+}
+
 async function fetchConnectionForUser(supabase: any, userId: string, connectionType: string) {
   const { data, error } = await supabase
     .from("kapso_connections")
@@ -361,7 +401,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({
         connected: connections.some((item: any) => !!item.phone_number_id),
         api_configured: apiConfigured,
-        webhook_secret_configured: !!KAPSO_WEBHOOK_SECRET,
+        webhook_secret_configured: webhookSecretConfiguredForProvider(setupProvider),
         provider: setupProvider,
         connection: primary,
         connections,
@@ -392,20 +432,23 @@ serve(async (req) => {
         if (connection.whatsapp_provider === "zernio") {
           // Zernio uses a single global webhook set in the Zernio dashboard — no per-number API call needed.
           // Just record that routing is active so the UI shows the correct status.
-          const globalWebhookUrl = `${SUPABASE_URL}/functions/v1/zernio-webhook`;
+          webhook = await markGlobalZernioWebhookActive(supabase, user.id, connectionType, connection.phone_number_id);
+        } else if (connection.whatsapp_provider === "waba_gateway") {
           const registeredAt = new Date().toISOString();
+          const url = wabaGatewayWebhookUrl(user.id, connectionType);
           await supabase
             .from("kapso_connections")
             .update({
-              kapso_webhook_url: globalWebhookUrl,
+              kapso_webhook_url: url,
               kapso_webhook_registered_at: registeredAt,
               kapso_webhook_error: null,
+              webhook_secret_set: !!KAPSO_WEBHOOK_SECRET,
               status: "webhook_active",
               updated_at: registeredAt,
             })
             .eq("user_id", user.id)
             .eq("connection_type", connectionType);
-          webhook = { url: globalWebhookUrl, provider: "zernio" };
+          webhook = { url, provider: "waba_gateway" };
         } else {
           webhook = await registerKapsoWebhookForNumber(supabase, user.id, connectionType, connection.phone_number_id);
         }
@@ -852,6 +895,7 @@ serve(async (req) => {
       const operatingHours = String(body.operating_hours || "").trim();
       const fulfillmentRules = String(body.fulfillment_rules || "").trim();
       const escalationInstructions = String(body.escalation_instructions || "").trim();
+      const setupProvider = getWhatsAppSetupProvider();
 
       if (!phoneNumberId) {
         return new Response(JSON.stringify({ error: "phone_number_id is required" }), { status: 400, headers: corsHeaders });
@@ -874,7 +918,8 @@ serve(async (req) => {
           escalation_instructions: connectionType === "customer" ? escalationInstructions || null : null,
           status: "connected",
           kapso_webhook_error: null,
-          webhook_secret_set: !!KAPSO_WEBHOOK_SECRET,
+          webhook_secret_set: webhookSecretConfiguredForProvider(setupProvider),
+          whatsapp_provider: setupProvider,
           updated_at: new Date().toISOString(),
         }, { onConflict: "user_id,connection_type" })
         .select("*")
@@ -882,7 +927,7 @@ serve(async (req) => {
 
       if (error) throw error;
       let webhook = null;
-      if (getWhatsAppSetupProvider() === "waba_gateway") {
+      if (setupProvider === "waba_gateway") {
         await supabase
           .from("kapso_connections")
           .update({
@@ -891,10 +936,13 @@ serve(async (req) => {
             kapso_webhook_registered_at: new Date().toISOString(),
             kapso_webhook_error: null,
             webhook_secret_set: !!KAPSO_WEBHOOK_SECRET,
+            whatsapp_provider: "waba_gateway",
             updated_at: new Date().toISOString(),
           })
           .eq("user_id", user.id)
           .eq("connection_type", connectionType);
+      } else if (setupProvider === "zernio") {
+        webhook = await markGlobalZernioWebhookActive(supabase, user.id, connectionType, phoneNumberId);
       } else {
         try {
           webhook = await registerKapsoWebhookForNumber(supabase, user.id, connectionType, phoneNumberId);
@@ -984,19 +1032,14 @@ serve(async (req) => {
 
         // Build the Meta Embedded Sign-Up URL (or use a Zernio-hosted setup URL if configured)
         const zernioSetupOverride = Deno.env.get("ZERNIO_SETUP_URL");
-        const fbAppId = Deno.env.get("ZERNIO_FB_APP_ID");
         const callbackBase = `${appOrigin}/whatsapp/callback?mode=${connectionType}`;
 
         let setupLinkUrl: string;
         if (zernioSetupOverride) {
           setupLinkUrl = `${zernioSetupOverride}?redirect_uri=${encodeURIComponent(callbackBase + "&status=success")}&state=${encodeURIComponent(`${user.id}:${connectionType}`)}`;
-        } else if (fbAppId) {
-          const redirectUri = encodeURIComponent(`${callbackBase}&status=success`);
-          const state = encodeURIComponent(`${user.id}:${connectionType}`);
-          setupLinkUrl = `https://www.facebook.com/dialog/oauth?client_id=${fbAppId}&redirect_uri=${redirectUri}&scope=whatsapp_business_management,whatsapp_business_messaging&state=${state}&response_type=code`;
         } else {
           return new Response(
-            JSON.stringify({ error: "Zernio requires either ZERNIO_SETUP_URL or ZERNIO_FB_APP_ID to be configured" }),
+            JSON.stringify({ error: "Zernio setup requires ZERNIO_SETUP_URL so Hoursback receives the connected phone_number_id" }),
             { status: 400, headers: corsHeaders },
           );
         }
@@ -1010,7 +1053,7 @@ serve(async (req) => {
             setup_link_expires_at: null,
             status: "setup_pending",
             whatsapp_provider: "zernio",
-            webhook_secret_set: !!KAPSO_WEBHOOK_SECRET,
+            webhook_secret_set: !!getZernioWebhookSecret(),
             kapso_webhook_error: null,
             updated_at: new Date().toISOString(),
           }, { onConflict: "user_id,connection_type" })
@@ -1105,6 +1148,7 @@ serve(async (req) => {
       const phoneNumber = String(body.phone_number || body.phoneNumber || "").trim();
       const displayName = String(body.display_name || body.displayName || (connectionType === "customer" ? "Customer Requests" : "Internal Operations")).trim();
       const setupLinkId = String(body.setup_link_id || body.setupLinkId || "").trim();
+      const setupProvider = getWhatsAppSetupProvider();
 
       if (!phoneNumberId) {
         return new Response(JSON.stringify({ error: "phone_number_id is required to finish WhatsApp setup" }), { status: 400, headers: corsHeaders });
@@ -1122,7 +1166,8 @@ serve(async (req) => {
           setup_link_id: setupLinkId || null,
           status: "connected",
           kapso_webhook_error: null,
-          webhook_secret_set: !!KAPSO_WEBHOOK_SECRET,
+          webhook_secret_set: webhookSecretConfiguredForProvider(setupProvider),
+          whatsapp_provider: setupProvider,
           updated_at: now,
         }, { onConflict: "user_id,connection_type" })
         .select("*")
@@ -1131,7 +1176,7 @@ serve(async (req) => {
       if (error) throw error;
 
       let webhook = null;
-      if (getWhatsAppSetupProvider() === "waba_gateway") {
+      if (setupProvider === "waba_gateway") {
         await supabase
           .from("kapso_connections")
           .update({
@@ -1140,10 +1185,13 @@ serve(async (req) => {
             kapso_webhook_registered_at: new Date().toISOString(),
             kapso_webhook_error: null,
             webhook_secret_set: !!KAPSO_WEBHOOK_SECRET,
+            whatsapp_provider: "waba_gateway",
             updated_at: new Date().toISOString(),
           })
           .eq("user_id", user.id)
           .eq("connection_type", connectionType);
+      } else if (setupProvider === "zernio") {
+        webhook = await markGlobalZernioWebhookActive(supabase, user.id, connectionType, phoneNumberId);
       } else {
         try {
           webhook = await registerKapsoWebhookForNumber(supabase, user.id, connectionType, phoneNumberId);

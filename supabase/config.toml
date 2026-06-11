@@ -449,3 +449,7 @@ verify_jwt = false
 [functions.waba-gateway-webhook]
 enabled = true
 verify_jwt = false
+
+[functions.zernio-webhook]
+enabled = true
+verify_jwt = false

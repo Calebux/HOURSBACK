@@ -210,6 +210,7 @@ export default function WhatsAppPage() {
         connected: nextConnections.some((item) => !!item.phone_number_id),
         api_configured: prev?.api_configured ?? false,
         webhook_secret_configured: prev?.webhook_secret_configured ?? false,
+        provider: prev?.provider,
         connection: nextConnections.find((item) => item.connection_type === 'internal') || nextConnections[0] || null,
         connections: nextConnections,
       };
