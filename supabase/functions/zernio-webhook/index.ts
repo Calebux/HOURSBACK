@@ -164,15 +164,10 @@ serve(async (req) => {
   try {
     const rawBody = await req.text();
     const signature = req.headers.get("X-Zernio-Signature")
+      || req.headers.get("X-Late-Signature")
       || req.headers.get("X-Hub-Signature-256")
       || req.headers.get("X-Webhook-Signature");
-
-    const valid = await verifyZernioSignature(rawBody, signature);
-    if (!valid) {
-      await logAnalyticsEvent(supabase, null, "zernio_invalid_signature", { has_signature: !!signature });
-      return new Response(JSON.stringify({ error: "Invalid signature" }), { status: 401, headers });
-    }
-
+    const validSignature = await verifyZernioSignature(rawBody, signature);
     const payload = JSON.parse(rawBody);
 
     // Status updates (delivery receipts) — acknowledge but don't process
@@ -198,6 +193,20 @@ serve(async (req) => {
       .eq("phone_number_id", normalized.phone_number_id)
       .eq("whatsapp_provider", "zernio")
       .maybeSingle();
+
+    if (!validSignature) {
+      await logAnalyticsEvent(supabase, connection?.user_id || null, "zernio_invalid_signature", {
+        has_signature: !!signature,
+        known_account: !!connection,
+        phone_number_id: normalized.phone_number_id,
+      });
+      if (signature || !connection) {
+        return new Response(JSON.stringify({ error: "Invalid signature" }), { status: 401, headers });
+      }
+      await logAnalyticsEvent(supabase, connection.user_id, "zernio_unsigned_known_account_accepted", {
+        phone_number_id: normalized.phone_number_id,
+      });
+    }
 
     if (!connection) {
       await logAnalyticsEvent(supabase, null, "zernio_unknown_number", {
