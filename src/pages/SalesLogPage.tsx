@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { ChevronLeft, Download, FileText, Camera, X, Loader2, CheckCircle2, Lock, Trash2, MessageCircle, Sheet } from 'lucide-react';
+import { ChevronLeft, Download, FileText, Camera, X, Loader2, CheckCircle2, Lock, Trash2, MessageCircle, Sheet, Shield } from 'lucide-react';
 import { MobileNav } from '../components/MobileNav';
 import { toast } from 'sonner';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
@@ -581,6 +581,13 @@ export default function SalesLogPage() {
               <p className="text-xs text-emerald-700 mt-1">
                 Sales sent from WhatsApp are saved here automatically. Connect Google Sheets once to append new rows there too.
               </p>
+              <Link
+                to="/team-outlets"
+                className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-100"
+              >
+                <Shield className="h-3.5 w-3.5" />
+                Manage staff, outlets, and WhatsApp access
+              </Link>
             </div>
           </div>
         )}
