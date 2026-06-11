@@ -105,3 +105,53 @@ export function googleTokenValid(destination: any) {
   if (!destination?.token_expires_at) return true;
   return new Date(destination.token_expires_at).getTime() > Date.now() + 60_000;
 }
+
+export function googleTokenConnected(destination: any) {
+  return googleTokenValid(destination) || Boolean(destination?.refresh_token);
+}
+
+function refreshedTokenExpiresAt(expiresIn: unknown) {
+  const seconds = Number(expiresIn || 3600);
+  return new Date(Date.now() + Math.max(300, seconds) * 1000).toISOString();
+}
+
+export async function getGoogleAccessToken(supabase: any, destination: any) {
+  if (googleTokenValid(destination)) return destination.access_token;
+
+  const refreshToken = destination?.refresh_token;
+  const clientId = Deno.env.get("GOOGLE_CLIENT_ID");
+  const clientSecret = Deno.env.get("GOOGLE_CLIENT_SECRET");
+  if (!refreshToken || !clientId || !clientSecret) {
+    throw new Error("Google connection expired. Reconnect Google Sheets.");
+  }
+
+  const response = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      refresh_token: refreshToken,
+      grant_type: "refresh_token",
+    }),
+  });
+  const json = await response.json().catch(() => ({}));
+  if (!response.ok || !json.access_token) {
+    throw new Error(json?.error_description || json?.error || "Google connection expired. Reconnect Google Sheets.");
+  }
+
+  const updates = {
+    access_token: json.access_token,
+    token_expires_at: refreshedTokenExpiresAt(json.expires_in),
+    refresh_token: json.refresh_token || refreshToken,
+    token_type: json.token_type || destination?.token_type || "Bearer",
+    last_sync_error: null,
+    updated_at: new Date().toISOString(),
+  };
+  await supabase
+    .from("google_sheet_destinations")
+    .update(updates)
+    .eq("id", destination.id);
+
+  return json.access_token;
+}

@@ -3,7 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import {
   appendGoogleSheetRows,
   ensureGoogleSheetHeader,
-  googleTokenValid,
+  getGoogleAccessToken,
+  googleTokenConnected,
 } from "../_shared/google_sheets.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -41,7 +42,7 @@ function tokenExpiresAt(expiresIn: unknown) {
 async function destinationForUser(supabase: any, userId: string) {
   const { data, error } = await supabase
     .from("google_sheet_destinations")
-    .select("id,user_id,spreadsheet_id,sheet_name,enabled,access_token,token_expires_at,last_sync_at,last_sync_error,updated_at")
+    .select("id,user_id,spreadsheet_id,sheet_name,enabled,access_token,refresh_token,token_type,token_expires_at,last_sync_at,last_sync_error,updated_at")
     .eq("user_id", userId)
     .maybeSingle();
   if (error) throw error;
@@ -55,7 +56,7 @@ function publicDestination(destination: any) {
     spreadsheet_id: destination.spreadsheet_id,
     sheet_name: destination.sheet_name,
     enabled: destination.enabled,
-    connected: googleTokenValid(destination),
+    connected: googleTokenConnected(destination),
     last_sync_at: destination.last_sync_at,
     last_sync_error: destination.last_sync_error,
     updated_at: destination.updated_at,
@@ -83,6 +84,8 @@ serve(async (req) => {
       const spreadsheetId = parseSpreadsheetId(String(body.spreadsheet_id || body.spreadsheet_url || ""));
       const sheetName = String(body.sheet_name || "Sales Log").trim() || "Sales Log";
       const accessToken = String(body.access_token || "");
+      const existing = await destinationForUser(supabase, user.id);
+      const refreshToken = String(body.refresh_token || existing?.refresh_token || "");
       if (!spreadsheetId) {
         return new Response(JSON.stringify({ error: "Spreadsheet ID or URL is required" }), { status: 400, headers: corsHeaders });
       }
@@ -99,6 +102,8 @@ serve(async (req) => {
           sheet_name: sheetName,
           enabled: body.enabled !== false,
           access_token: accessToken,
+          refresh_token: refreshToken || null,
+          token_type: String(body.token_type || "Bearer"),
           token_expires_at: tokenExpiresAt(body.expires_in),
           last_sync_error: null,
           updated_at: new Date().toISOString(),
@@ -111,9 +116,10 @@ serve(async (req) => {
 
     if (action === "sync") {
       const destination = await destinationForUser(supabase, user.id);
-      if (!googleTokenValid(destination)) {
+      if (!googleTokenConnected(destination)) {
         return new Response(JSON.stringify({ error: "Google connection expired. Reconnect Google Sheets." }), { status: 400, headers: corsHeaders });
       }
+      const accessToken = await getGoogleAccessToken(supabase, destination);
       const since = body.since || destination.last_sync_at || null;
       let query = supabase
         .from("bot_entries")
@@ -125,7 +131,7 @@ serve(async (req) => {
       const { data: entries, error } = await query;
       if (error) throw error;
 
-      const updates = await appendGoogleSheetRows(destination.spreadsheet_id, destination.sheet_name, destination.access_token, entries || []);
+      const updates = await appendGoogleSheetRows(destination.spreadsheet_id, destination.sheet_name, accessToken, entries || []);
       await supabase
         .from("google_sheet_destinations")
         .update({

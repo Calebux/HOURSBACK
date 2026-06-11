@@ -63,6 +63,10 @@ interface SheetDestination {
   last_sync_error: string | null;
 }
 
+function pendingSheetKey(userId: string) {
+  return `hoursback_google_sheet_pending_${userId}`;
+}
+
 function fmt(n: number | null | undefined) {
   if (n == null) return '';
   return `₦${Number(n).toLocaleString()}`;
@@ -196,10 +200,51 @@ export default function SalesLogPage() {
         toast.error('Google connected, but no Sheets token was returned. Try Connect Google again.');
         return;
       }
-      toast.success('Google connected. Paste your Sheet URL and save the destination.');
+      const pendingRaw = localStorage.getItem(pendingSheetKey(user.id));
+      let pending: { sheetUrl?: string; sheetName?: string } = {};
+      try {
+        pending = pendingRaw ? JSON.parse(pendingRaw) : {};
+      } catch {
+        pending = {};
+      }
+      const nextSheetUrl = pending.sheetUrl || sheetUrl;
+      const nextSheetName = pending.sheetName || sheetName || 'Sales Log';
+      setSheetUrl(nextSheetUrl);
+      setSheetName(nextSheetName);
+      if (!nextSheetUrl?.trim()) {
+        toast.success('Google connected. Paste your Sheet URL to finish setup.');
+        return;
+      }
+
+      setSheetSaving(true);
+      try {
+        const sessionWithProvider = session as typeof session & {
+          provider_refresh_token?: string;
+          token_type?: string;
+        };
+        const { data, error } = await supabase.functions.invoke('google-sheets-sync', {
+          body: {
+            action: 'configure',
+            spreadsheet_url: nextSheetUrl.trim(),
+            sheet_name: nextSheetName.trim() || 'Sales Log',
+            access_token: session.provider_token,
+            refresh_token: sessionWithProvider.provider_refresh_token,
+            token_type: sessionWithProvider.token_type || 'Bearer',
+            expires_in: session.expires_in,
+          },
+        });
+        if (error) throw error;
+        setSheetDestination(data.destination);
+        localStorage.removeItem(pendingSheetKey(user.id));
+        toast.success('Google Sheet connected. New WhatsApp rows will append automatically.');
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Could not finish Google Sheets setup');
+      } finally {
+        setSheetSaving(false);
+      }
     };
     void finishGoogleConnect();
-  }, [user]);
+  }, [user, sheetName, sheetUrl]);
 
   const staffOptions = useMemo(() =>
     [...new Set(entries.map(e => e.triggered_by).filter(Boolean))].sort() as string[],
@@ -386,6 +431,12 @@ export default function SalesLogPage() {
   };
 
   const connectGoogle = async () => {
+    if (user) {
+      localStorage.setItem(pendingSheetKey(user.id), JSON.stringify({
+        sheetUrl: sheetUrl.trim(),
+        sheetName: sheetName.trim() || 'Sales Log',
+      }));
+    }
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
@@ -407,21 +458,34 @@ export default function SalesLogPage() {
       const { data: { session } } = await supabase.auth.getSession();
       const providerToken = session?.provider_token;
       if (!providerToken) {
-        toast.error('Connect Google first');
+        if (user) {
+          localStorage.setItem(pendingSheetKey(user.id), JSON.stringify({
+            sheetUrl: sheetUrl.trim(),
+            sheetName: sheetName.trim() || 'Sales Log',
+          }));
+        }
+        await connectGoogle();
         return;
       }
+      const sessionWithProvider = session as typeof session & {
+        provider_refresh_token?: string;
+        token_type?: string;
+      };
       const { data, error } = await supabase.functions.invoke('google-sheets-sync', {
         body: {
           action: 'configure',
           spreadsheet_url: sheetUrl.trim(),
           sheet_name: sheetName.trim() || 'Sales Log',
           access_token: providerToken,
+          refresh_token: sessionWithProvider.provider_refresh_token,
+          token_type: sessionWithProvider.token_type || 'Bearer',
           expires_in: session.expires_in,
         },
       });
       if (error) throw error;
       setSheetDestination(data.destination);
-      toast.success('Google Sheet connected');
+      if (user) localStorage.removeItem(pendingSheetKey(user.id));
+      toast.success('Google Sheet connected. New WhatsApp rows will append automatically.');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Could not connect Google Sheet');
     } finally {
@@ -591,7 +655,7 @@ export default function SalesLogPage() {
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-emerald-950">WhatsApp is feeding this log</p>
               <p className="text-xs text-emerald-700 mt-1">
-                Sales sent from WhatsApp are saved here automatically. Use Download CSV to open the same rows in Google Sheets.
+                Sales sent from WhatsApp are saved here automatically. Connect Google Sheets once to append new rows there too.
               </p>
             </div>
           </div>
@@ -602,7 +666,7 @@ export default function SalesLogPage() {
             <div>
               <p className="text-sm font-semibold text-brand-dark">Google Sheets destination</p>
               <p className="text-xs text-slate-500 mt-1">
-                Append sales rows to a Google Sheet with formula-friendly columns.
+                Paste a Sheet URL, connect Google, and Hoursback will append every new WhatsApp sale as formula-friendly rows.
               </p>
               {sheetDestination?.last_sync_at && (
                 <p className="text-xs text-emerald-700 mt-1">
@@ -641,7 +705,7 @@ export default function SalesLogPage() {
               disabled={sheetSaving}
               className="rounded-lg bg-brand-dark px-3 py-2 text-sm font-semibold text-white hover:bg-brand-dark/90 disabled:opacity-60"
             >
-              {sheetSaving ? 'Saving...' : 'Save'}
+              {sheetSaving ? 'Saving...' : sheetDestination?.connected ? 'Save' : 'Connect & save'}
             </button>
             <button
               type="button"
@@ -831,15 +895,18 @@ export default function SalesLogPage() {
         ) : (
           <div className="bg-white rounded-2xl border border-brand-dark/10 overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
+              <table className="w-full min-w-[1040px] text-sm">
+                <thead className="sticky top-0 bg-white z-[1]">
                   <tr className="border-b border-slate-100">
                     <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Date</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Shop</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Staff</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Item</th>
                     <th className="text-right px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Qty</th>
-                    <th className="text-right px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Amount</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide hidden sm:table-cell">Customer</th>
+                    <th className="text-right px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Unit Price</th>
+                    <th className="text-right px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Total</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Customer</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Payment</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Channel</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Type</th>
                     <th className="px-4 py-3 w-8" />
@@ -859,13 +926,16 @@ export default function SalesLogPage() {
                           : null
                         }
                       </td>
+                      <td className="px-4 py-3 text-slate-500 max-w-[120px] truncate">{e.parsed_data?.shop ?? ''}</td>
                       <td className="px-4 py-3 text-slate-700 font-medium">{e.triggered_by ?? '—'}</td>
                       <td className="px-4 py-3 text-slate-700 max-w-[160px] truncate">
                         {e.parsed_data?.item ?? <span className="text-slate-400 italic">{e.raw_text.slice(0, 40)}</span>}
                       </td>
                       <td className="px-4 py-3 text-right text-slate-600">{e.parsed_data?.qty ?? ''}</td>
+                      <td className="px-4 py-3 text-right text-slate-600">{fmt(e.parsed_data?.unit_price)}</td>
                       <td className="px-4 py-3 text-right font-medium text-brand-dark">{fmt(e.parsed_data?.total)}</td>
-                      <td className="px-4 py-3 text-slate-500 hidden sm:table-cell">{e.parsed_data?.customer ?? ''}</td>
+                      <td className="px-4 py-3 text-slate-500 max-w-[140px] truncate">{e.parsed_data?.customer ?? ''}</td>
+                      <td className="px-4 py-3 text-slate-500 max-w-[120px] truncate">{e.parsed_data?.payment_method ?? ''}</td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${channelClass(e.channel || inferChannel(e.source))}`}>
                           {labelChannel(e.channel || inferChannel(e.source))}
@@ -899,13 +969,13 @@ export default function SalesLogPage() {
                 {filtered.some(e => e.entry_type === 'sale' && e.parsed_data?.total) && (
                   <tfoot>
                     <tr className="border-t border-slate-200 bg-slate-50">
-                      <td colSpan={4} className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase">
+                      <td colSpan={6} className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase">
                         Total (sales)
                       </td>
                       <td className="px-4 py-3 text-right font-bold text-brand-dark">
                         {fmt(totalAmount)}
                       </td>
-                      <td colSpan={4} />
+                      <td colSpan={5} />
                     </tr>
                   </tfoot>
                 )}

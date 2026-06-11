@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import Anthropic from "npm:@anthropic-ai/sdk";
 import { getKapsoApiKey, getOutboundMessageId, sendWhatsAppTextForProvider } from "../_shared/kapso.ts";
-import { appendGoogleSheetRows, googleTokenValid } from "../_shared/google_sheets.ts";
+import { appendGoogleSheetRows, getGoogleAccessToken, googleTokenConnected } from "../_shared/google_sheets.ts";
 import { checkRateLimit } from "../_shared/security.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -1591,9 +1591,10 @@ async function appendEntriesToGoogleSheetIfConfigured(supabase: any, userId: str
       .eq("user_id", userId)
       .eq("enabled", true)
       .maybeSingle();
-    if (!googleTokenValid(destination)) return;
+    if (!googleTokenConnected(destination)) return;
 
-    await appendGoogleSheetRows(destination.spreadsheet_id, destination.sheet_name, destination.access_token, rows);
+    const accessToken = await getGoogleAccessToken(supabase, destination);
+    await appendGoogleSheetRows(destination.spreadsheet_id, destination.sheet_name, accessToken, rows);
     await supabase
       .from("google_sheet_destinations")
       .update({
