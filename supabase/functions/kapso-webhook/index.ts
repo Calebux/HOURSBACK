@@ -1701,7 +1701,7 @@ function permissionDeniedReply(action: string) {
 }
 
 function internalWelcomeReply(contact: any) {
-  const name = String(contact?.name || "there").trim();
+  const name = String(contact?.name || "there").replace(/\s*\([^)]*\)\s*$/g, "").trim() || "there";
   const capabilities = [
     contact?.can_log_sales ? "log sales, expenses, and refunds" : null,
     contact?.can_query_reports ? "ask for sales totals and reports" : null,
