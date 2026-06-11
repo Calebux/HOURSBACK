@@ -36,6 +36,7 @@ interface KapsoStatus {
   connected: boolean;
   api_configured: boolean;
   webhook_secret_configured: boolean;
+  provider?: 'kapso' | 'waba_gateway' | 'zernio';
   connection: KapsoConnection | null;
   connections?: KapsoConnection[];
 }
@@ -133,8 +134,12 @@ export default function WhatsAppPage() {
 
   const webhookUrl = useMemo(() => {
     if (!user) return '';
+    if (status?.provider === 'zernio') {
+      // Single global webhook — no uid/mode params needed, routing is done by phone_number_id
+      return `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/zernio-webhook`;
+    }
     return `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/kapso-webhook?uid=${user.id}&mode=${connectionType}`;
-  }, [user, connectionType]);
+  }, [user, connectionType, status?.provider]);
 
   const loadStatus = useCallback(async () => {
     if (!user) return;
@@ -187,7 +192,12 @@ export default function WhatsAppPage() {
     }
     mergeSavedConnection(data.connection);
     track('whatsapp_setup_link_created', { connection_type: connectionType });
-    toast.success('WhatsApp setup started');
+
+    if (data.connection?.setup_link_url) {
+      window.open(data.connection.setup_link_url, '_blank', 'noopener,noreferrer');
+    } else {
+      toast.success('WhatsApp setup started — click the link below to continue');
+    }
   };
 
   const mergeSavedConnection = (connection: KapsoConnection) => {

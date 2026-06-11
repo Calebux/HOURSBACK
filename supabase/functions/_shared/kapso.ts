@@ -65,8 +65,11 @@ export async function sendKapsoText(phoneNumberId: string, to: string, body: str
   });
 }
 
-export function getWhatsAppProvider(): "kapso" | "waba_gateway" {
-  return Deno.env.get("WABA_GATEWAY_PROVIDER") === "waba_gateway" ? "waba_gateway" : "kapso";
+export function getWhatsAppProvider(): "kapso" | "waba_gateway" | "zernio" {
+  const v = Deno.env.get("WHATSAPP_PROVIDER") || Deno.env.get("WABA_GATEWAY_PROVIDER") || "kapso";
+  if (v === "waba_gateway") return "waba_gateway";
+  if (v === "zernio") return "zernio";
+  return "kapso";
 }
 
 export async function sendWabaGatewayText(phoneNumberId: string, to: string, body: string) {
@@ -112,8 +115,20 @@ export async function sendWabaGatewayText(phoneNumberId: string, to: string, bod
 }
 
 export async function sendWhatsAppText(phoneNumberId: string, to: string, body: string) {
-  if (getWhatsAppProvider() === "waba_gateway") {
-    return sendWabaGatewayText(phoneNumberId, to, body);
+  return sendWhatsAppTextForProvider(getWhatsAppProvider(), phoneNumberId, to, body);
+}
+
+/** Provider-aware send — pass the provider from the connection row. */
+export async function sendWhatsAppTextForProvider(
+  provider: string | null | undefined,
+  phoneNumberId: string,
+  to: string,
+  body: string,
+) {
+  if (provider === "waba_gateway") return sendWabaGatewayText(phoneNumberId, to, body);
+  if (provider === "zernio") {
+    const { sendZernioText } = await import("./zernio.ts");
+    return sendZernioText(phoneNumberId, to, body);
   }
   return sendKapsoText(phoneNumberId, to, body);
 }

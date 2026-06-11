@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import Anthropic from "npm:@anthropic-ai/sdk";
-import { getKapsoApiKey, getOutboundMessageId, sendWhatsAppText } from "../_shared/kapso.ts";
+import { getKapsoApiKey, getOutboundMessageId, sendWhatsAppTextForProvider } from "../_shared/kapso.ts";
 import { checkRateLimit } from "../_shared/security.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -198,13 +198,14 @@ function extensionForContentType(contentType: string) {
   return "jpg";
 }
 
-async function persistReceiptMedia(supabase: any, order: any, message: ParsedMessage, receiptUrl: string | null) {
+async function persistReceiptMedia(supabase: any, order: any, message: ParsedMessage, receiptUrl: string | null, provider?: string) {
   if (!receiptUrl) {
     return { status: "failed", error: "No receipt media URL found" };
   }
 
   try {
-    const apiKey = getKapsoApiKey();
+    // Zernio/Meta media URLs are pre-signed and don't need the Kapso API key
+    const apiKey = provider === "zernio" ? null : getKapsoApiKey();
     const response = await fetch(receiptUrl, {
       headers: apiKey
         ? {
@@ -971,7 +972,7 @@ async function markLatestOrderReceiptSent(supabase: any, connection: any, messag
   const receivedAt = new Date().toISOString();
   const claimedAmount = parseClaimedPaymentAmount(text);
   const receiptUrl = message.receiptUrl || order.receipt_url || findReceiptUrl(text) || null;
-  const storedReceipt = await persistReceiptMedia(supabase, order, message, receiptUrl);
+  const storedReceipt = await persistReceiptMedia(supabase, order, message, receiptUrl, connection?.whatsapp_provider);
   const receiptSaved = storedReceipt?.status === "saved";
   const notes = [
     order.notes,
@@ -1021,7 +1022,7 @@ async function markLatestOrderReceiptSent(supabase: any, connection: any, messag
         receiptSaved ? "Receipt: saved in Hoursback" : "Receipt: needs resend or manual review",
         "Open Hoursback /orders to verify payment.",
       ].filter(Boolean);
-      await sendWhatsAppText(connection.phone_number_id, ownerNumber, ownerLines.join("\n"));
+      await sendWhatsAppTextForProvider(connection.whatsapp_provider, connection.phone_number_id, ownerNumber, ownerLines.join("\n"));
     } catch (err) {
       console.error("Owner receipt notification failed:", err);
     }
@@ -2342,7 +2343,7 @@ serve(async (req) => {
 
     if (message.from && reply) {
       try {
-        const sendResult = await sendWhatsAppText(message.phoneNumberId, message.from, reply);
+        const sendResult = await sendWhatsAppTextForProvider(connection.whatsapp_provider, message.phoneNumberId, message.from, reply);
         await supabase.from("kapso_messages").insert({
           user_id: connection.user_id,
           connection_id: connection.id,
