@@ -23,7 +23,7 @@ export default function TermsPage() {
 
           <section>
             <h2 className="text-xl font-semibold text-brand-dark mb-3">2. Description of Service</h2>
-            <p>Hoursback provides AI-powered workflow automation tools that capture business activity from data sources, WhatsApp, uploads, and manual entries, then turn that activity into operations, reports, summaries, and customer/staff replies. We use third-party providers, including Anthropic Claude, Supabase, Kapso, Resend, Flutterwave, and analytics tools, to operate the service.</p>
+            <p>Hoursback is a product of CALBRIDGE DIGITAL LABS LTD. Hoursback provides AI-powered workflow automation tools that capture business activity from data sources, WhatsApp, uploads, and manual entries, then turn that activity into operations, reports, summaries, and customer/staff replies. We use third-party providers, including Anthropic Claude, Supabase, Kapso, Resend, Flutterwave, and analytics tools, to operate the service.</p>
           </section>
 
           <section>

@@ -16,6 +16,8 @@ export default function PrivacyPage() {
 
         <div className="prose prose-slate max-w-none space-y-8 text-brand-dark/80 leading-relaxed">
 
+          <p>Hoursback is a product of CALBRIDGE DIGITAL LABS LTD ("we", "us", "our"). This policy explains how we handle your information when you use Hoursback.</p>
+
           <section>
             <h2 className="text-xl font-semibold text-brand-dark mb-3">1. Information We Collect</h2>
             <p>We collect the following information when you use Hoursback:</p>

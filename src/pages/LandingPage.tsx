@@ -1407,7 +1407,7 @@ function Footer() {
         </div>
 
         <div className="pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4 text-white/35 text-sm">
-          <p>© 2026 Hoursback. All rights reserved.</p>
+          <p>© 2026 Hoursback, a product of CALBRIDGE DIGITAL LABS LTD. All rights reserved.</p>
           <div className="flex gap-6">
             <Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
             <Link to="/data-deletion" className="hover:text-white transition-colors">Data Deletion</Link>

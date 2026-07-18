@@ -271,7 +271,7 @@ export default function CaseStudiesPage() {
       {/* Footer */}
       <footer className="py-8 border-t border-brand-dark/10 bg-brand-light">
         <div className="container mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-brand-dark/40">
-          <span>© 2026 Hoursback. All rights reserved.</span>
+          <span>© 2026 Hoursback, a product of CALBRIDGE DIGITAL LABS LTD. All rights reserved.</span>
           <div className="flex gap-6">
             <Link to="/privacy" className="hover:text-brand-dark transition-colors">Privacy</Link>
             <Link to="/terms" className="hover:text-brand-dark transition-colors">Terms</Link>
