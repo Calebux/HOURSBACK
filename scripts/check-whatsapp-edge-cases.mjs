@@ -4,7 +4,20 @@ import { dirname, join } from 'node:path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
-const webhook = readFileSync(join(root, 'supabase/functions/kapso-webhook/index.ts'), 'utf8');
+// The WhatsApp webhook logic is split across provider adapters and shared
+// modules — check patterns against the union of all of them.
+const webhook = [
+  'supabase/functions/kapso-webhook/index.ts',
+  'supabase/functions/meta-webhook/index.ts',
+  'supabase/functions/_shared/whatsapp_core.ts',
+  'supabase/functions/_shared/whatsapp_normalize.ts',
+  'supabase/functions/_shared/whatsapp_intents.ts',
+  'supabase/functions/_shared/whatsapp_media.ts',
+  'supabase/functions/_shared/whatsapp_orders.ts',
+  'supabase/functions/_shared/whatsapp_sales.ts',
+  'supabase/functions/_shared/whatsapp_reports.ts',
+  'supabase/functions/_shared/whatsapp_router.ts',
+].map((path) => readFileSync(join(root, path), 'utf8')).join('\n');
 const ordersPage = readFileSync(join(root, 'src/pages/OrdersPage.tsx'), 'utf8');
 const kapsoSetup = readFileSync(join(root, 'supabase/functions/kapso-setup/index.ts'), 'utf8');
 const whatsappPage = readFileSync(join(root, 'src/pages/WhatsAppPage.tsx'), 'utf8');

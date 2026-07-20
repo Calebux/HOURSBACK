@@ -136,6 +136,14 @@ function webhookSecretConfiguredForProvider(provider: string) {
   return provider === "zernio" ? !!getZernioWebhookSecret() : !!KAPSO_WEBHOOK_SECRET;
 }
 
+// The WABA gateway onboards via the public /connect endpoint and never uses a
+// Kapso API key. Its base URL has a built-in default, so "configured" hinges on
+// having a webhook secret to sign/verify forwarded events — /connect rejects
+// setup links that don't carry one.
+function gatewayConfigured(): boolean {
+  return !!(Deno.env.get("WABA_GATEWAY_WEBHOOK_SECRET") || KAPSO_WEBHOOK_SECRET);
+}
+
 function gatewaySetupUrl(userId: string, connectionType: string) {
   const base = Deno.env.get("WABA_GATEWAY_SETUP_URL")
     || `${(Deno.env.get("WABA_GATEWAY_BASE_URL") || "https://waba.hoursback.xyz").replace(/\/+$/, "")}/connect`;
@@ -406,8 +414,14 @@ serve(async (req) => {
       const primary = connections.find((item: any) => item.connection_type === "internal") || connections[0] || null;
 
       const setupProvider = getWhatsAppSetupProvider();
-      const apiConfigured = setupProvider === "zernio" ? !!getZernioApiKey() : !!getKapsoApiKey();
-      const setupLinkConfigured = setupProvider !== "zernio" || !!getZernioApiKey();
+      const apiConfigured =
+        setupProvider === "zernio" ? !!getZernioApiKey()
+        : setupProvider === "waba_gateway" ? gatewayConfigured()
+        : !!getKapsoApiKey();
+      const setupLinkConfigured =
+        setupProvider === "zernio" ? !!getZernioApiKey()
+        : setupProvider === "waba_gateway" ? gatewayConfigured()
+        : true;
       return new Response(JSON.stringify({
         connected: connections.some((item: any) => !!item.phone_number_id),
         api_configured: apiConfigured,

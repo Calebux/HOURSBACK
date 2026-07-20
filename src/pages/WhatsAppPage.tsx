@@ -12,7 +12,7 @@ interface KapsoConnection {
   id: string;
   status: string;
   connection_type?: 'internal' | 'customer';
-  whatsapp_provider?: 'kapso' | 'waba_gateway' | 'zernio';
+  whatsapp_provider?: 'kapso' | 'waba_gateway' | 'zernio' | 'meta';
   setup_link_url: string | null;
   setup_link_expires_at: string | null;
   phone_number_id: string | null;

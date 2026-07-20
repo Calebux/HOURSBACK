@@ -65,10 +65,11 @@ export async function sendKapsoText(phoneNumberId: string, to: string, body: str
   });
 }
 
-export function getWhatsAppProvider(): "kapso" | "waba_gateway" | "zernio" {
+export function getWhatsAppProvider(): "kapso" | "waba_gateway" | "zernio" | "meta" {
   const v = Deno.env.get("WHATSAPP_PROVIDER") || Deno.env.get("WABA_GATEWAY_PROVIDER") || "kapso";
   if (v === "waba_gateway") return "waba_gateway";
   if (v === "zernio") return "zernio";
+  if (v === "meta") return "meta";
   return "kapso";
 }
 
@@ -129,6 +130,10 @@ export async function sendWhatsAppTextForProvider(
   if (provider === "zernio") {
     const { sendZernioText } = await import("./zernio.ts");
     return sendZernioText(phoneNumberId, to, body);
+  }
+  if (provider === "meta") {
+    const { sendMetaText } = await import("./meta.ts");
+    return sendMetaText(phoneNumberId, to, body);
   }
   return sendKapsoText(phoneNumberId, to, body);
 }

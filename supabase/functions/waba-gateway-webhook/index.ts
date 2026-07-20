@@ -1,5 +1,17 @@
+// WABA gateway provider adapter: verify signature, normalize the gateway's
+// Meta-flavoured payload, fast-ack, and process through the shared router.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import {
+  firstString,
+  logAnalyticsEvent,
+  markInboundEvent,
+  recordInboundEvent,
+  runInBackground,
+  verifyHmacSignature,
+} from "../_shared/whatsapp_core.ts";
+import { hasMediaMessage, parseKapsoMessage } from "../_shared/whatsapp_normalize.ts";
+import { processInboundMessage } from "../_shared/whatsapp_router.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -8,80 +20,7 @@ const KAPSO_WEBHOOK_SECRET = Deno.env.get("KAPSO_WEBHOOK_SECRET") || "";
 
 const headers = { "Content-Type": "application/json" };
 
-function bytesToHex(bytes: ArrayBuffer) {
-  return [...new Uint8Array(bytes)].map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-function timingSafeEqual(a: string, b: string) {
-  if (a.length !== b.length) return false;
-  let result = 0;
-  for (let i = 0; i < a.length; i++) result |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return result === 0;
-}
-
-function firstString(...values: unknown[]) {
-  for (const value of values) {
-    if (typeof value === "string" && value.trim()) return value.trim();
-  }
-  return undefined;
-}
-
-async function hmacHex(secret: string, body: string) {
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
-  return bytesToHex(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(body)));
-}
-
-async function verifySignature(rawBody: string, signature: string | null, secret: string) {
-  if (!signature || !secret) return false;
-  const signatureCandidates = signature
-    .trim()
-    .split(",")
-    .flatMap((part) => {
-      const trimmed = part.trim();
-      const [, value] = trimmed.match(/^(?:sha256|v1)=([^,]+)$/i) || [];
-      return [trimmed, value].filter(Boolean);
-    })
-    .map((value) => value.replace(/^sha256=/i, "").trim());
-
-  const bodiesToCheck = [rawBody];
-  try {
-    bodiesToCheck.push(JSON.stringify(JSON.parse(rawBody)));
-  } catch {
-    // raw body only
-  }
-
-  for (const body of bodiesToCheck) {
-    const expected = await hmacHex(secret, body);
-    if (signatureCandidates.some((candidate) => timingSafeEqual(candidate, expected))) return true;
-  }
-  return false;
-}
-
-async function logAnalyticsEvent(
-  supabase: any,
-  userId: string | null,
-  eventName: string,
-  properties: Record<string, unknown> = {},
-) {
-  try {
-    await supabase.from("app_analytics_events").insert({
-      user_id: userId,
-      event_name: eventName,
-      properties,
-      source: "waba_gateway_webhook",
-    });
-  } catch (err) {
-    console.error("WABA gateway analytics log failed:", err);
-  }
-}
-
-function normalizeGatewayPayload(payload: any, eventHeader?: string | null) {
+function normalizeGatewayPayload(payload: any, eventHeader: string | null) {
   const message = payload?.message || payload?.data?.message || payload?.entry?.[0]?.changes?.[0]?.value?.messages?.[0] || {};
   const value = payload?.entry?.[0]?.changes?.[0]?.value || {};
   const metadata = value?.metadata || {};
@@ -151,77 +90,67 @@ serve(async (req) => {
 
     const gatewaySecret = WABA_GATEWAY_WEBHOOK_SECRET || KAPSO_WEBHOOK_SECRET;
     if (!gatewaySecret) {
-      await logAnalyticsEvent(supabase, uid, "waba_gateway_missing_secret", { mode });
+      await logAnalyticsEvent(supabase, uid, "waba_gateway_missing_secret", { mode }, "waba_gateway_webhook");
       return new Response(JSON.stringify({ error: "WABA gateway webhook secret is not configured" }), { status: 500, headers });
     }
 
-    const valid = await verifySignature(rawBody, signature || null, gatewaySecret);
+    const valid = await verifyHmacSignature(rawBody, signature || null, gatewaySecret);
     if (!valid) {
       await logAnalyticsEvent(supabase, uid, "waba_gateway_invalid_signature", {
         mode,
         has_signature: !!signature,
         event: req.headers.get("X-Webhook-Event"),
-      });
+      }, "waba_gateway_webhook");
       return new Response(JSON.stringify({ error: "Invalid signature" }), { status: 401, headers });
     }
 
     const payload = JSON.parse(rawBody);
     const normalized = normalizeGatewayPayload(payload, req.headers.get("X-Webhook-Event"));
-    if (!normalized.phone_number_id || !normalized.message?.from) {
+    const message = parseKapsoMessage(normalized);
+    if (!normalized.phone_number_id || !message?.from || (!message.text && !hasMediaMessage(message))) {
       await logAnalyticsEvent(supabase, uid, "waba_gateway_unusable_payload", {
         mode,
         has_phone_number_id: !!normalized.phone_number_id,
-        has_from: !!normalized.message?.from,
-      });
+        has_from: !!message?.from,
+      }, "waba_gateway_webhook");
       return new Response(JSON.stringify({ success: true, ignored: "no usable message" }), { headers });
     }
 
-    if (!KAPSO_WEBHOOK_SECRET) {
-      return new Response(JSON.stringify({ error: "Internal Hoursback webhook secret is not configured" }), { status: 500, headers });
-    }
-
-    const handoffBody = JSON.stringify(normalized);
-    const handoffSignature = `sha256=${await hmacHex(KAPSO_WEBHOOK_SECRET, handoffBody)}`;
-    const handoffUrl = `${SUPABASE_URL}/functions/v1/kapso-webhook?uid=${encodeURIComponent(uid || "")}&mode=${mode}`;
     const idempotencyKey = firstString(
       req.headers.get("X-Idempotency-Key"),
-      normalized.message.id ? `waba-gateway:${normalized.message.id}` : undefined,
+      message.messageId ? `waba-gateway:${message.messageId}` : undefined,
     );
-
-    const response = await fetch(handoffUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Webhook-Signature": handoffSignature,
-        "X-Webhook-Event": "whatsapp.message.received",
-        ...(idempotencyKey ? { "X-Idempotency-Key": idempotencyKey } : {}),
-      },
-      body: handoffBody,
-    });
-    const responseText = await response.text();
-
-    if (!response.ok) {
-      await logAnalyticsEvent(supabase, uid, "waba_gateway_handoff_failed", {
-        mode,
-        status: response.status,
-        response: responseText.slice(0, 500),
-      });
-      return new Response(responseText || JSON.stringify({ error: "Hoursback handoff failed" }), {
-        status: response.status,
-        headers,
-      });
+    let eventId: string | null = null;
+    if (idempotencyKey) {
+      const record = await recordInboundEvent(supabase, idempotencyKey, normalized.event, "waba_gateway", normalized);
+      if (record.duplicate) {
+        return new Response(JSON.stringify({ success: true, duplicate: true }), { headers });
+      }
+      eventId = record.eventId;
     }
 
-    await logAnalyticsEvent(supabase, uid, "waba_gateway_handoff_succeeded", {
-      mode,
-      phone_number_id: normalized.phone_number_id,
-      message_id: normalized.message.id || null,
-    });
-    return new Response(responseText || JSON.stringify({ success: true }), { headers });
+    runInBackground((async () => {
+      try {
+        await processInboundMessage(supabase, normalized, message, {
+          uid,
+          requestedMode: mode,
+          provider: "waba_gateway",
+          webhookSecretSet: !!gatewaySecret,
+        });
+        await markInboundEvent(supabase, eventId, "processed");
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : "Internal error";
+        console.error("waba-gateway-webhook processing error:", err);
+        await logAnalyticsEvent(supabase, uid, "waba_gateway_function_error", { mode, error: errorMessage }, "waba_gateway_webhook");
+        await markInboundEvent(supabase, eventId, "failed", errorMessage);
+      }
+    })());
+
+    return new Response(JSON.stringify({ success: true, accepted: true }), { headers });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Internal error";
     console.error("waba-gateway-webhook error:", err);
-    await logAnalyticsEvent(supabase, uid, "waba_gateway_function_error", { mode, error: message });
+    await logAnalyticsEvent(supabase, uid, "waba_gateway_function_error", { mode, error: message }, "waba_gateway_webhook");
     return new Response(JSON.stringify({ error: message }), { status: 500, headers });
   }
 });
