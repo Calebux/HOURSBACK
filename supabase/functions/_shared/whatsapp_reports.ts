@@ -2,7 +2,7 @@
 import Anthropic from "npm:@anthropic-ai/sdk";
 import { AI_REPORT_ROW_LIMIT, checkWebhookRateLimit, getProfile, isProProfile, logAnalyticsEvent, planReportLimit } from "./whatsapp_core.ts";
 import { looksLikeProfitAndLossQuestion } from "./whatsapp_intents.ts";
-import { getTodayStart } from "./whatsapp_sales.ts";
+import { directoryItemLabels, getTodayStart, loadBusinessDirectory, loadCatalogItems, matchDirectoryItems } from "./whatsapp_sales.ts";
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY") || "";
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") || "";
@@ -164,38 +164,175 @@ export function getZonedDateParts(date: Date, timeZone = "Africa/Lagos") {
   };
 }
 
-export function zonedStartOfDay(date: Date, timeZone = "Africa/Lagos") {
-  const { year, month, day } = getZonedDateParts(date, timeZone);
+// Start of a given calendar day in the business timezone. Out-of-range day values
+// roll over correctly (day 0 = last day of the previous month), so callers can do
+// plain integer arithmetic on calendar dates.
+export function zonedDayStart(year: number, month: number, day: number, timeZone = "Africa/Lagos") {
   if (timeZone === "Africa/Lagos") {
     return new Date(Date.UTC(year, month - 1, day, -1, 0, 0));
   }
   return new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
 }
 
-export function parseReportRange(text: string, timeZone = "Africa/Lagos") {
-  const now = new Date();
-  const end = new Date(now);
-  const start = zonedStartOfDay(now, timeZone);
-  let label = "Today";
+export function zonedStartOfDay(date: Date, timeZone = "Africa/Lagos") {
+  const { year, month, day } = getZonedDateParts(date, timeZone);
+  return zonedDayStart(year, month, day, timeZone);
+}
 
-  if (/\b(yesterday)\b/i.test(text)) {
-    start.setUTCDate(start.getUTCDate() - 1);
-    end.setTime(start.getTime() + 24 * 60 * 60 * 1000 - 1);
-    label = "Yesterday";
-  } else if (/\b(week|weekly|last 7 days|7 days)\b/i.test(text)) {
-    start.setUTCDate(start.getUTCDate() - 6);
-    label = "Last 7 days";
-  } else if (/\b(month|monthly|this month)\b/i.test(text)) {
-    const { year, month } = getZonedDateParts(now, timeZone);
-    start.setTime(timeZone === "Africa/Lagos"
-      ? Date.UTC(year, month - 1, 1, -1, 0, 0)
-      : Date.UTC(year, month - 1, 1, 0, 0, 0));
-    label = "This month";
+const MONTH_NAMES = [
+  "january", "february", "march", "april", "may", "june",
+  "july", "august", "september", "october", "november", "december",
+];
+const DAY_NAMES = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+// Day of week for a calendar date, independent of timezone offset.
+export function calendarWeekday(year: number, month: number, day: number) {
+  return new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+}
+
+export function formatDayLabel(year: number, month: number, day: number) {
+  return `${day} ${MONTH_LABELS[month - 1]} ${year}`;
+}
+
+function monthIndexFromName(name: string) {
+  const lower = name.toLowerCase();
+  return MONTH_NAMES.findIndex((month) => month.startsWith(lower.slice(0, 3)));
+}
+
+// A single explicit calendar date: 2026-04-11, 11/4, 11/4/2026, "April 11", "11 April".
+function parseExplicitDate(text: string, now: Date, timeZone: string) {
+  const monthGroup = MONTH_NAMES.map((month) => month.slice(0, 3)).join("|");
+  const current = getZonedDateParts(now, timeZone);
+  let year: number | null = null;
+  let month: number | null = null;
+  let day: number | null = null;
+
+  const iso = text.match(/\b(\d{4})-(\d{1,2})-(\d{1,2})\b/);
+  const monthFirst = text.match(new RegExp(`\\b(${monthGroup})[a-z]*\\.?\\s+(\\d{1,2})(?:st|nd|rd|th)?\\b`, "i"));
+  const dayFirst = text.match(new RegExp(`\\b(\\d{1,2})(?:st|nd|rd|th)?\\s+(?:of\\s+)?(${monthGroup})[a-z]*\\b`, "i"));
+  // Day-first numeric, the Nigerian convention: 11/4 is 11 April.
+  const numeric = text.match(/\b(\d{1,2})[/.-](\d{1,2})(?:[/.-](\d{2,4}))?\b/);
+
+  if (iso) {
+    year = Number(iso[1]);
+    month = Number(iso[2]);
+    day = Number(iso[3]);
+  } else if (monthFirst) {
+    month = monthIndexFromName(monthFirst[1]) + 1;
+    day = Number(monthFirst[2]);
+  } else if (dayFirst) {
+    day = Number(dayFirst[1]);
+    month = monthIndexFromName(dayFirst[2]) + 1;
+  } else if (numeric) {
+    day = Number(numeric[1]);
+    month = Number(numeric[2]);
+    if (numeric[3]) year = Number(numeric[3].length === 2 ? `20${numeric[3]}` : numeric[3]);
   } else {
-    label = "Today";
+    return null;
   }
 
-  return { start, end, label };
+  if (!month || !day || month < 1 || month > 12 || day < 1 || day > 31) return null;
+  if (year === null) {
+    year = current.year;
+    // No year given and the date is still ahead of us — they meant last year.
+    if (zonedDayStart(year, month, day, timeZone).getTime() > now.getTime()) year -= 1;
+  }
+
+  const start = zonedDayStart(year, month, day, timeZone);
+  return {
+    start,
+    end: new Date(zonedDayStart(year, month, day + 1, timeZone).getTime() - 1),
+    label: formatDayLabel(year, month, day),
+    matched: true,
+  };
+}
+
+// Words that promise a period we should honour. Used to detect the ones we could not
+// resolve, so the reply can say which period it actually covered.
+export function mentionsPeriod(text: string) {
+  return /\b(yesterday|today|week|weekly|month|monthly|year|yearly|quarter|q[1-4]|days?|since|between|ago|last|previous|this|sunday|monday|tuesday|wednesday|thursday|friday|saturday|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\b/i.test(text);
+}
+
+export function parseReportRange(text: string, timeZone = "Africa/Lagos", now = new Date()) {
+  const { year, month, day } = getZonedDateParts(now, timeZone);
+  const today = zonedDayStart(year, month, day, timeZone);
+  const dayStart = (offset: number) => zonedDayStart(year, month, day + offset, timeZone);
+  const endOfDay = (start: Date) => new Date(start.getTime() + 24 * 60 * 60 * 1000 - 1);
+  // Monday-based week offset.
+  const intoWeek = (calendarWeekday(year, month, day) + 6) % 7;
+
+  const explicit = parseExplicitDate(text, now, timeZone);
+  if (explicit) return explicit;
+
+  if (/\byesterday\b/i.test(text)) {
+    const start = dayStart(-1);
+    return { start, end: endOfDay(start), label: "Yesterday", matched: true };
+  }
+
+  const namedDay = text.match(/\b(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/i);
+  if (namedDay) {
+    const target = DAY_NAMES.indexOf(namedDay[1].toLowerCase());
+    const back = (calendarWeekday(year, month, day) - target + 7) % 7;
+    const start = dayStart(-back);
+    const parts = getZonedDateParts(start, timeZone);
+    return {
+      start,
+      end: back === 0 ? new Date(now) : endOfDay(start),
+      label: back === 0 ? "Today" : formatDayLabel(parts.year, parts.month, parts.day),
+      matched: true,
+    };
+  }
+
+  if (/\b(last|previous|past)\s+month\b/i.test(text)) {
+    const start = zonedDayStart(year, month - 1, 1, timeZone);
+    return {
+      start,
+      end: new Date(zonedDayStart(year, month, 1, timeZone).getTime() - 1),
+      label: `${MONTH_LABELS[(month + 10) % 12]} ${month === 1 ? year - 1 : year}`,
+      matched: true,
+    };
+  }
+
+  if (/\b(last|previous|past)\s+week\b/i.test(text)) {
+    const start = dayStart(-intoWeek - 7);
+    return {
+      start,
+      end: new Date(dayStart(-intoWeek).getTime() - 1),
+      label: "Last week",
+      matched: true,
+    };
+  }
+
+  const lastNDays = text.match(/\b(?:last|past)\s+(\d{1,3})\s+days?\b/i);
+  if (lastNDays) {
+    const days = Math.max(1, Math.min(365, Number(lastNDays[1])));
+    return {
+      start: dayStart(-(days - 1)),
+      end: new Date(now),
+      label: `Last ${days} days`,
+      matched: true,
+    };
+  }
+
+  if (/\b(?:last|past)\s+7\s+days\b|\b7\s+days\b/i.test(text)) {
+    return { start: dayStart(-6), end: new Date(now), label: "Last 7 days", matched: true };
+  }
+
+  if (/\bthis\s+week\b|\bweek(?:ly)?\b/i.test(text)) {
+    return { start: dayStart(-intoWeek), end: new Date(now), label: "This week", matched: true };
+  }
+
+  if (/\bthis\s+month\b|\bmonth(?:ly)?\b/i.test(text)) {
+    return {
+      start: zonedDayStart(year, month, 1, timeZone),
+      end: new Date(now),
+      label: "This month",
+      matched: true,
+    };
+  }
+
+  return { start: today, end: new Date(now), label: "Today", matched: /\btoday\b/i.test(text) };
 }
 
 export function entryDate(entry: any) {
@@ -224,12 +361,16 @@ export function valuesMentionedInText(values: string[], text: string) {
 export async function collectReportMetrics(supabase: any, userId: string, text: string, timeZone?: string) {
   const range = parseReportRange(text, timeZone);
   const lowerBound = range.start.toISOString();
+  const upperBound = range.end.toISOString();
 
+  // Bound both ends: without an upper bound a historical range fetches everything
+  // since then, newest first, and the 5000-row cap can drop the days being asked about.
   const { data: entries, error } = await supabase
     .from("bot_entries")
     .select("entry_type,parsed_data,triggered_by,raw_text,source,channel,sale_date,created_at")
     .eq("user_id", userId)
     .or(`created_at.gte.${lowerBound},sale_date.gte.${lowerBound}`)
+    .or(`created_at.lte.${upperBound},sale_date.lte.${upperBound}`)
     .order("created_at", { ascending: false })
     .limit(5000);
   if (error) throw error;
@@ -282,44 +423,68 @@ export async function collectReportMetrics(supabase: any, userId: string, text: 
   };
 }
 
-export function salesLogQueryFilters(rows: any[], text: string) {
-  const itemMatches = valuesMentionedInText(uniqueFieldValues(rows, (entry) => entry.parsed_data?.item), text);
-  const shopMatches = valuesMentionedInText(uniqueFieldValues(rows, (entry) => entry.parsed_data?.shop), text);
-  const staffMatches = valuesMentionedInText(uniqueFieldValues(rows, (entry) => entry.triggered_by), text);
-  const paymentMatches = valuesMentionedInText(uniqueFieldValues(rows, (entry) => entry.parsed_data?.payment_method), text);
+const PAYMENT_METHOD_DIRECTORY = [
+  { name: "transfer", aliases: ["bank", "bank transfer"] },
+  { name: "pos", aliases: ["terminal"] },
+  { name: "cash", aliases: [] },
+  { name: "card", aliases: [] },
+  { name: "mixed", aliases: [] },
+];
 
+// Match a question against the configured directory first, so a named shop/staff/item
+// is still recognised when it has zero entries in the range. Falls back to values seen
+// in the data for businesses that never ran setup.
+export function matchQueryFilter(text: string, configured: any[], dataValues: string[]) {
+  const matched = matchDirectoryItems(text, configured);
+  if (matched.length) {
+    return {
+      names: matched.map((item: any) => String(item.name)),
+      labels: matched.flatMap((item: any) => directoryItemLabels(item)),
+    };
+  }
+  const names = valuesMentionedInText(dataValues, text);
+  return { names, labels: names.map((value) => value.toLowerCase()) };
+}
+
+export function salesLogQueryFilters(
+  rows: any[],
+  text: string,
+  directory: { shops?: any[]; staff?: any[]; items?: any[] } = {},
+) {
   return {
-    itemMatches,
-    shopMatches,
-    staffMatches,
-    paymentMatches,
+    itemMatches: matchQueryFilter(text, directory.items || [], uniqueFieldValues(rows, (entry) => entry.parsed_data?.item)),
+    shopMatches: matchQueryFilter(text, directory.shops || [], uniqueFieldValues(rows, (entry) => entry.parsed_data?.shop)),
+    staffMatches: matchQueryFilter(text, directory.staff || [], uniqueFieldValues(rows, (entry) => entry.triggered_by)),
+    paymentMatches: matchQueryFilter(text, PAYMENT_METHOD_DIRECTORY, uniqueFieldValues(rows, (entry) => entry.parsed_data?.payment_method)),
   };
 }
 
+export function matchesAnyLabel(value: unknown, labels: string[]) {
+  const stored = String(value || "").trim().toLowerCase();
+  if (!stored) return false;
+  return labels.some((label) => stored === label || stored.includes(label));
+}
+
 export async function buildSalesLogQueryAnswer(supabase: any, userId: string, text: string, timeZone?: string) {
-  const metrics = await collectReportMetrics(supabase, userId, text, timeZone);
-  const filters = salesLogQueryFilters(metrics.rows, text);
+  const [metrics, directory, catalogItems] = await Promise.all([
+    collectReportMetrics(supabase, userId, text, timeZone),
+    loadBusinessDirectory(supabase, userId),
+    loadCatalogItems(supabase, userId).catch(() => []),
+  ]);
+  const filters = salesLogQueryFilters(metrics.rows, text, { ...directory, items: catalogItems });
   let rows = metrics.rows;
 
-  if (filters.itemMatches.length) {
-    rows = rows.filter((entry: any) => filters.itemMatches.some((item) =>
-      String(entry.parsed_data?.item || "").toLowerCase().includes(item.toLowerCase())
-    ));
+  if (filters.itemMatches.labels.length) {
+    rows = rows.filter((entry: any) => matchesAnyLabel(entry.parsed_data?.item, filters.itemMatches.labels));
   }
-  if (filters.shopMatches.length) {
-    rows = rows.filter((entry: any) => filters.shopMatches.some((shop) =>
-      String(entry.parsed_data?.shop || "").toLowerCase().includes(shop.toLowerCase())
-    ));
+  if (filters.shopMatches.labels.length) {
+    rows = rows.filter((entry: any) => matchesAnyLabel(entry.parsed_data?.shop, filters.shopMatches.labels));
   }
-  if (filters.staffMatches.length) {
-    rows = rows.filter((entry: any) => filters.staffMatches.some((staff) =>
-      String(entry.triggered_by || "").toLowerCase().includes(staff.toLowerCase())
-    ));
+  if (filters.staffMatches.labels.length) {
+    rows = rows.filter((entry: any) => matchesAnyLabel(entry.triggered_by, filters.staffMatches.labels));
   }
-  if (filters.paymentMatches.length) {
-    rows = rows.filter((entry: any) => filters.paymentMatches.some((method) =>
-      String(entry.parsed_data?.payment_method || "").toLowerCase().includes(method.toLowerCase())
-    ));
+  if (filters.paymentMatches.labels.length) {
+    rows = rows.filter((entry: any) => matchesAnyLabel(entry.parsed_data?.payment_method, filters.paymentMatches.labels));
   }
 
   const sales = rows.filter((entry: any) => entry.entry_type === "sale");
@@ -346,23 +511,45 @@ export async function buildSalesLogQueryAnswer(supabase: any, userId: string, te
     .map(([item, value]) => `${item}: ₦${value.revenue.toLocaleString("en-NG")} (${value.qty})`);
 
   const appliedFilters = [
-    filters.itemMatches.length ? `Item: ${compactList(filters.itemMatches)}` : "",
-    filters.shopMatches.length ? `Shop: ${compactList(filters.shopMatches)}` : "",
-    filters.staffMatches.length ? `Staff: ${compactList(filters.staffMatches)}` : "",
-    filters.paymentMatches.length ? `Payment: ${compactList(filters.paymentMatches)}` : "",
+    filters.itemMatches.names.length ? `Item: ${compactList(filters.itemMatches.names)}` : "",
+    filters.shopMatches.names.length ? `Shop: ${compactList(filters.shopMatches.names)}` : "",
+    filters.staffMatches.names.length ? `Staff: ${compactList(filters.staffMatches.names)}` : "",
+    filters.paymentMatches.names.length ? `Payment: ${compactList(filters.paymentMatches.names)}` : "",
   ].filter(Boolean);
+  const period = metrics.range.label.toLowerCase();
 
   const lines = [`Sales Log - ${metrics.range.label}${appliedFilters.length ? ` (${appliedFilters.join("; ")})` : ""}`];
+  // Asked for a period we could not resolve — say what we actually covered rather
+  // than letting today's numbers stand in for it.
+  if (!metrics.range.matched && mentionsPeriod(text)) {
+    lines.push(`I couldn't read that date range, so this covers ${period} only.`);
+  }
   if (!rows.length) {
-    lines.push("No matching entries found.");
+    if (appliedFilters.length) {
+      // Named target with no rows: say ₦0 explicitly rather than falling back to a
+      // wider total, which would read as revenue this shop/staff/item never made.
+      lines.push(`Nothing logged ${period}. Net sales: ₦0.`);
+      if (filters.shopMatches.names.length) {
+        lines.push(`No one at ${compactList(filters.shopMatches.names)} has logged a sale ${period}.`);
+      }
+    } else {
+      lines.push("No matching entries found.");
+    }
     lines.push("Try a wider question, for example: “How much did we sell this week?”");
     return lines.join("\n");
+  }
+
+  // Question mentions an outlet but names none we know — never let that read as one shop's total.
+  if (!filters.shopMatches.names.length
+    && directory.shops.length > 1
+    && /\b(shop|branch|outlet|store|location)\b/i.test(text)) {
+    lines.push(`Covering all outlets: ${compactList(directory.shops.map((shop: any) => String(shop.name)), 5)}.`);
   }
 
   lines.push(`Net sales: ₦${revenue.toLocaleString("en-NG")}`);
   if (refundTotal) lines.push(`Gross sales: ₦${grossRevenue.toLocaleString("en-NG")} | Refunds: ₦${refundTotal.toLocaleString("en-NG")}`);
   lines.push(`Expenses: ₦${expenseTotal.toLocaleString("en-NG")}`);
-  if (filters.itemMatches.length || /\bhow many\b/i.test(text)) lines.push(`Qty sold: ${qtySold.toLocaleString("en-NG")}`);
+  if (filters.itemMatches.names.length || /\bhow many\b/i.test(text)) lines.push(`Qty sold: ${qtySold.toLocaleString("en-NG")}`);
   lines.push(`Entries: ${rows.length} (${sales.length} sales, ${expenses.length} expenses${refunds.length ? `, ${refunds.length} refunds` : ""})`);
   lines.push(topItems.length ? `Top items: ${topItems.join("; ")}` : "Top items: none yet");
 
