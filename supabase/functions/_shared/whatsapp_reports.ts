@@ -2,7 +2,7 @@
 import Anthropic from "npm:@anthropic-ai/sdk";
 import { AI_REPORT_ROW_LIMIT, checkWebhookRateLimit, getProfile, isProProfile, logAnalyticsEvent, planReportLimit } from "./whatsapp_core.ts";
 import { looksLikeProfitAndLossQuestion } from "./whatsapp_intents.ts";
-import { getTodayStart } from "./whatsapp_sales.ts";
+import { directoryItemLabels, getTodayStart, loadBusinessDirectory, loadCatalogItems, matchDirectoryItems } from "./whatsapp_sales.ts";
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY") || "";
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") || "";
@@ -282,44 +282,68 @@ export async function collectReportMetrics(supabase: any, userId: string, text: 
   };
 }
 
-export function salesLogQueryFilters(rows: any[], text: string) {
-  const itemMatches = valuesMentionedInText(uniqueFieldValues(rows, (entry) => entry.parsed_data?.item), text);
-  const shopMatches = valuesMentionedInText(uniqueFieldValues(rows, (entry) => entry.parsed_data?.shop), text);
-  const staffMatches = valuesMentionedInText(uniqueFieldValues(rows, (entry) => entry.triggered_by), text);
-  const paymentMatches = valuesMentionedInText(uniqueFieldValues(rows, (entry) => entry.parsed_data?.payment_method), text);
+const PAYMENT_METHOD_DIRECTORY = [
+  { name: "transfer", aliases: ["bank", "bank transfer"] },
+  { name: "pos", aliases: ["terminal"] },
+  { name: "cash", aliases: [] },
+  { name: "card", aliases: [] },
+  { name: "mixed", aliases: [] },
+];
 
+// Match a question against the configured directory first, so a named shop/staff/item
+// is still recognised when it has zero entries in the range. Falls back to values seen
+// in the data for businesses that never ran setup.
+export function matchQueryFilter(text: string, configured: any[], dataValues: string[]) {
+  const matched = matchDirectoryItems(text, configured);
+  if (matched.length) {
+    return {
+      names: matched.map((item: any) => String(item.name)),
+      labels: matched.flatMap((item: any) => directoryItemLabels(item)),
+    };
+  }
+  const names = valuesMentionedInText(dataValues, text);
+  return { names, labels: names.map((value) => value.toLowerCase()) };
+}
+
+export function salesLogQueryFilters(
+  rows: any[],
+  text: string,
+  directory: { shops?: any[]; staff?: any[]; items?: any[] } = {},
+) {
   return {
-    itemMatches,
-    shopMatches,
-    staffMatches,
-    paymentMatches,
+    itemMatches: matchQueryFilter(text, directory.items || [], uniqueFieldValues(rows, (entry) => entry.parsed_data?.item)),
+    shopMatches: matchQueryFilter(text, directory.shops || [], uniqueFieldValues(rows, (entry) => entry.parsed_data?.shop)),
+    staffMatches: matchQueryFilter(text, directory.staff || [], uniqueFieldValues(rows, (entry) => entry.triggered_by)),
+    paymentMatches: matchQueryFilter(text, PAYMENT_METHOD_DIRECTORY, uniqueFieldValues(rows, (entry) => entry.parsed_data?.payment_method)),
   };
 }
 
+export function matchesAnyLabel(value: unknown, labels: string[]) {
+  const stored = String(value || "").trim().toLowerCase();
+  if (!stored) return false;
+  return labels.some((label) => stored === label || stored.includes(label));
+}
+
 export async function buildSalesLogQueryAnswer(supabase: any, userId: string, text: string, timeZone?: string) {
-  const metrics = await collectReportMetrics(supabase, userId, text, timeZone);
-  const filters = salesLogQueryFilters(metrics.rows, text);
+  const [metrics, directory, catalogItems] = await Promise.all([
+    collectReportMetrics(supabase, userId, text, timeZone),
+    loadBusinessDirectory(supabase, userId),
+    loadCatalogItems(supabase, userId).catch(() => []),
+  ]);
+  const filters = salesLogQueryFilters(metrics.rows, text, { ...directory, items: catalogItems });
   let rows = metrics.rows;
 
-  if (filters.itemMatches.length) {
-    rows = rows.filter((entry: any) => filters.itemMatches.some((item) =>
-      String(entry.parsed_data?.item || "").toLowerCase().includes(item.toLowerCase())
-    ));
+  if (filters.itemMatches.labels.length) {
+    rows = rows.filter((entry: any) => matchesAnyLabel(entry.parsed_data?.item, filters.itemMatches.labels));
   }
-  if (filters.shopMatches.length) {
-    rows = rows.filter((entry: any) => filters.shopMatches.some((shop) =>
-      String(entry.parsed_data?.shop || "").toLowerCase().includes(shop.toLowerCase())
-    ));
+  if (filters.shopMatches.labels.length) {
+    rows = rows.filter((entry: any) => matchesAnyLabel(entry.parsed_data?.shop, filters.shopMatches.labels));
   }
-  if (filters.staffMatches.length) {
-    rows = rows.filter((entry: any) => filters.staffMatches.some((staff) =>
-      String(entry.triggered_by || "").toLowerCase().includes(staff.toLowerCase())
-    ));
+  if (filters.staffMatches.labels.length) {
+    rows = rows.filter((entry: any) => matchesAnyLabel(entry.triggered_by, filters.staffMatches.labels));
   }
-  if (filters.paymentMatches.length) {
-    rows = rows.filter((entry: any) => filters.paymentMatches.some((method) =>
-      String(entry.parsed_data?.payment_method || "").toLowerCase().includes(method.toLowerCase())
-    ));
+  if (filters.paymentMatches.labels.length) {
+    rows = rows.filter((entry: any) => matchesAnyLabel(entry.parsed_data?.payment_method, filters.paymentMatches.labels));
   }
 
   const sales = rows.filter((entry: any) => entry.entry_type === "sale");
@@ -346,23 +370,40 @@ export async function buildSalesLogQueryAnswer(supabase: any, userId: string, te
     .map(([item, value]) => `${item}: ₦${value.revenue.toLocaleString("en-NG")} (${value.qty})`);
 
   const appliedFilters = [
-    filters.itemMatches.length ? `Item: ${compactList(filters.itemMatches)}` : "",
-    filters.shopMatches.length ? `Shop: ${compactList(filters.shopMatches)}` : "",
-    filters.staffMatches.length ? `Staff: ${compactList(filters.staffMatches)}` : "",
-    filters.paymentMatches.length ? `Payment: ${compactList(filters.paymentMatches)}` : "",
+    filters.itemMatches.names.length ? `Item: ${compactList(filters.itemMatches.names)}` : "",
+    filters.shopMatches.names.length ? `Shop: ${compactList(filters.shopMatches.names)}` : "",
+    filters.staffMatches.names.length ? `Staff: ${compactList(filters.staffMatches.names)}` : "",
+    filters.paymentMatches.names.length ? `Payment: ${compactList(filters.paymentMatches.names)}` : "",
   ].filter(Boolean);
+  const period = metrics.range.label.toLowerCase();
 
   const lines = [`Sales Log - ${metrics.range.label}${appliedFilters.length ? ` (${appliedFilters.join("; ")})` : ""}`];
   if (!rows.length) {
-    lines.push("No matching entries found.");
+    if (appliedFilters.length) {
+      // Named target with no rows: say ₦0 explicitly rather than falling back to a
+      // wider total, which would read as revenue this shop/staff/item never made.
+      lines.push(`Nothing logged ${period}. Net sales: ₦0.`);
+      if (filters.shopMatches.names.length) {
+        lines.push(`No one at ${compactList(filters.shopMatches.names)} has logged a sale ${period}.`);
+      }
+    } else {
+      lines.push("No matching entries found.");
+    }
     lines.push("Try a wider question, for example: “How much did we sell this week?”");
     return lines.join("\n");
+  }
+
+  // Question mentions an outlet but names none we know — never let that read as one shop's total.
+  if (!filters.shopMatches.names.length
+    && directory.shops.length > 1
+    && /\b(shop|branch|outlet|store|location)\b/i.test(text)) {
+    lines.push(`Covering all outlets: ${compactList(directory.shops.map((shop: any) => String(shop.name)), 5)}.`);
   }
 
   lines.push(`Net sales: ₦${revenue.toLocaleString("en-NG")}`);
   if (refundTotal) lines.push(`Gross sales: ₦${grossRevenue.toLocaleString("en-NG")} | Refunds: ₦${refundTotal.toLocaleString("en-NG")}`);
   lines.push(`Expenses: ₦${expenseTotal.toLocaleString("en-NG")}`);
-  if (filters.itemMatches.length || /\bhow many\b/i.test(text)) lines.push(`Qty sold: ${qtySold.toLocaleString("en-NG")}`);
+  if (filters.itemMatches.names.length || /\bhow many\b/i.test(text)) lines.push(`Qty sold: ${qtySold.toLocaleString("en-NG")}`);
   lines.push(`Entries: ${rows.length} (${sales.length} sales, ${expenses.length} expenses${refunds.length ? `, ${refunds.length} refunds` : ""})`);
   lines.push(topItems.length ? `Top items: ${topItems.join("; ")}` : "Top items: none yet");
 

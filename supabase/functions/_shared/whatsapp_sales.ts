@@ -561,13 +561,27 @@ export function directoryLabels(items: any[]) {
     .sort((a, b) => b.value.length - a.value.length);
 }
 
-export function matchDirectoryItem(text: string, items: any[]) {
+export function matchDirectoryItems(text: string, items: any[]) {
   const lower = ` ${text.toLowerCase()} `;
+  const matched: any[] = [];
   for (const label of directoryLabels(items)) {
+    if (matched.includes(label.item)) continue;
     const escaped = label.value.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    if (new RegExp(`(^|[^a-z0-9])${escaped}([^a-z0-9]|$)`, "i").test(lower)) return label.item;
+    if (new RegExp(`(^|[^a-z0-9])${escaped}([^a-z0-9]|$)`, "i").test(lower)) matched.push(label.item);
   }
-  return null;
+  return matched;
+}
+
+export function matchDirectoryItem(text: string, items: any[]) {
+  return matchDirectoryItems(text, items)[0] || null;
+}
+
+// Every name a directory entry can be referred to by, lowercased — used to match
+// a question against configured shops/staff/items, and to match stored rows back.
+export function directoryItemLabels(item: any) {
+  return [item?.name, ...(item?.aliases || [])]
+    .map((value) => String(value || "").trim().toLowerCase())
+    .filter(Boolean);
 }
 
 export function shouldRequireContext(directory: { staff: any[]; shops: any[] }, entries: any[]) {
