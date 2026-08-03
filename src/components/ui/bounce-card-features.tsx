@@ -17,10 +17,10 @@ export const BouncyCardsFeatures = () => {
 
       {/* Row 1 */}
       <div className="mb-4 grid grid-cols-12 gap-4">
-        {/* Card 1 — 15+ Workflows */}
+        {/* Card 1 — Workflow catalogue */}
         <BounceCard className="col-span-12 md:col-span-4" accentColor="#4285F4">
           <CardIcon icon={<Zap className="w-5 h-5 text-white" />} color="#4285F4" />
-          <CardTitle>15+ Ready-to-Deploy Workflows</CardTitle>
+          <CardTitle>Ready-to-Deploy Workflows</CardTitle>
           <div className="absolute bottom-0 left-4 right-4 top-36 translate-y-8 rounded-t-2xl bg-gradient-to-br from-[#4285F4] to-[#1a56db] p-5 transition-transform duration-[250ms] group-hover:translate-y-4 group-hover:rotate-[2deg]">
             <p className="text-white/70 text-xs font-semibold uppercase tracking-wider mb-3">Categories</p>
             <div className="flex flex-wrap gap-2">

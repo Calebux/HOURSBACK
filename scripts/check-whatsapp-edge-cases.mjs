@@ -8,6 +8,7 @@ const root = join(__dirname, '..');
 // modules — check patterns against the union of all of them.
 const webhook = [
   'supabase/functions/kapso-webhook/index.ts',
+  'supabase/functions/waba-gateway-webhook/index.ts',
   'supabase/functions/meta-webhook/index.ts',
   'supabase/functions/_shared/whatsapp_core.ts',
   'supabase/functions/_shared/whatsapp_normalize.ts',
@@ -30,6 +31,11 @@ const checks = [
     name: 'Webhook signature verification rejects invalid signatures',
     source: webhook,
     patterns: ['verifySignature(rawBody', 'Invalid signature'],
+  },
+  {
+    name: 'Hoursback gateway webhooks fail closed and verify HMAC signatures',
+    source: webhook,
+    patterns: ['WABA gateway webhook secret is not configured', 'verifyHmacSignature(rawBody', 'waba_gateway_invalid_signature'],
   },
   {
     name: 'Production webhook fails closed without a configured secret',

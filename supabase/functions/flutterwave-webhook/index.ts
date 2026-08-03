@@ -1,30 +1,18 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from "jsr:@supabase/supabase-js@2"
 import { getClientIp, checkRateLimit, rateLimitResponse } from "../_shared/security.ts"
+import {
+  fetchVerifiedFlutterwaveTransaction,
+  isValidFlutterwaveWebhook,
+  validateVerifiedProPayment,
+} from "../_shared/flutterwave.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, verif-hash',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, verif-hash, verif_hash, flutterwave-signature',
 }
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
-
-const MONTHLY_PRO_AMOUNT_NGN = 9900
-const ANNUAL_PRO_AMOUNT_NGN = 94800
-const SUPPORTED_CURRENCY = 'NGN'
-
-function resolveBillingInterval(payload: any, amountNum: number): 'monthly' | 'annual' | null {
-  const metaInterval = payload?.meta?.billing_interval
-
-  if (metaInterval === 'monthly' || metaInterval === 'annual') {
-    return metaInterval
-  }
-
-  if (amountNum === MONTHLY_PRO_AMOUNT_NGN) return 'monthly'
-  if (amountNum === ANNUAL_PRO_AMOUNT_NGN) return 'annual'
-
-  return null
-}
 
 async function sendConfirmationEmail(
   email: string,
@@ -206,20 +194,24 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const signature = (req.headers.get('verif-hash') || req.headers.get('verif_hash'))?.trim()
     const secretHash = Deno.env.get('FLUTTERWAVE_WEBHOOK_HASH')?.trim()
+    const secretKey = Deno.env.get('FLUTTERWAVE_SECRET_KEY')?.trim()
+    if (!secretHash || !secretKey) {
+      console.error('CRITICAL: Flutterwave webhook secrets are not configured.')
+      return new Response('Payment webhook is not configured', { status: 503 })
+    }
 
-    // If a webhook hash is configured in Supabase secrets, verify it
-    if (!signature) {
-      console.error('CRITICAL: Missing verif-hash header from Flutterwave.')
-      const skipVerify = Deno.env.get('SKIP_WEBHOOK_VERIFICATION') === 'true'
-      if (!skipVerify) {
-        return new Response('Missing verif-hash header', { status: 401 })
-      }
-      console.warn('WARNING: Proceeding without signature verification (SKIP_WEBHOOK_VERIFICATION=true)')
-    } else if (secretHash && signature !== secretHash) {
-      console.error('Invalid signature mismatch.')
+    const rawBody = await req.text()
+    if (!await isValidFlutterwaveWebhook(rawBody, req.headers, secretHash)) {
+      console.error('Rejected Flutterwave webhook with an invalid or missing signature.')
       return new Response('Invalid signature', { status: 401 })
+    }
+
+    let payload: any
+    try {
+      payload = JSON.parse(rawBody)
+    } catch {
+      return new Response('Invalid JSON payload', { status: 400 })
     }
 
     const supabase = createClient(
@@ -232,29 +224,32 @@ Deno.serve(async (req) => {
     const rl = await checkRateLimit(supabase, `flw-webhook:${clientIp}`, 30, 60)
     if (!rl.allowed) return rateLimitResponse()
 
-    const payload = await req.json()
-
     // Only process successful payments from Flutterwave
-    if (payload.event === 'charge.completed' && payload.data?.status === 'successful') {
+    const eventType = payload.event || payload.type
+    const webhookStatus = String(payload.data?.status || '').toLowerCase()
+    if (eventType === 'charge.completed' && ['successful', 'succeeded'].includes(webhookStatus)) {
       const data = payload.data
-      const userId = data.meta?.user_id
-      const customerEmail = data.customer?.email
-      const amount = data.amount?.toString() ?? '0'
-      const currency = data.currency ?? ''
-      const txRef: string = data.tx_ref ?? data.flw_ref ?? 'N/A'
-
-      if (!userId || userId === 'guest') {
-        console.warn('Webhook payload missing explicit user_id in meta. Cannot upgrade user.')
-        return new Response('Ignored: Missing Valid user_id', { status: 200 })
+      let verified: any
+      try {
+        verified = await fetchVerifiedFlutterwaveTransaction(data?.id, secretKey)
+      } catch (error) {
+        console.error('Could not independently verify Flutterwave transaction:', error)
+        throw error
       }
 
-      const amountNum = parseFloat(data.amount ?? '0')
-      const amountCurrency = data.currency ?? ''
-      const billingInterval = resolveBillingInterval(data, amountNum)
-      if (amountCurrency !== SUPPORTED_CURRENCY || !billingInterval) {
-        console.warn(`Rejected webhook: unsupported amount ${amountNum} ${amountCurrency} for tx_ref ${txRef}`)
-        return new Response('Ignored: Unsupported amount or currency', { status: 200 })
+      const validation = validateVerifiedProPayment(verified, data)
+      if (!validation.ok || !validation.payment) {
+        console.warn(`Rejected verified Flutterwave payment: ${validation.reason || 'unknown reason'}`)
+        return new Response('Ignored: Payment verification mismatch', { status: 200 })
       }
+      const {
+        userId,
+        customerEmail,
+        amount: amountNum,
+        currency,
+        txRef,
+        billingInterval,
+      } = validation.payment
 
       // Idempotency: reject duplicate transactions
       const { data: existing } = await supabase
@@ -275,7 +270,7 @@ Deno.serve(async (req) => {
         expiresAt.setDate(expiresAt.getDate() + 30)
       }
 
-      // Upgrade user to Pro and set expiry 30 days from now
+      // Upgrade only after the signed webhook and Flutterwave API response agree.
       const { error } = await supabase
         .from('profiles')
         .update({
@@ -294,12 +289,11 @@ Deno.serve(async (req) => {
 
       console.log(`Successfully upgraded user ${userId} to Pro plan (${billingInterval}) via Flutterwave webhook. Expires: ${expiresAt.toISOString()}`)
 
-      // Send confirmation email if we have the customer email
-      const emailToUse = customerEmail ?? data.customer?.email
-      if (emailToUse) {
+      // Use customer details from the independently verified transaction only.
+      if (customerEmail) {
         const planLabel = billingInterval === 'annual' ? 'Hoursback Pro (Annual)' : 'Hoursback Pro (Monthly)'
-        await sendConfirmationEmail(emailToUse, amount, currency, txRef, expiresAt, planLabel)
-        console.log(`Confirmation email sent to ${emailToUse}`)
+        await sendConfirmationEmail(customerEmail, amountNum.toString(), currency, txRef, expiresAt, planLabel)
+        console.log(`Confirmation email sent to ${customerEmail}`)
       }
     }
 

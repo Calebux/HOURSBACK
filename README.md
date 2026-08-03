@@ -2,7 +2,8 @@
 
 Hoursback is a React/Vite app backed by Supabase Auth, Database, Storage, and
 Edge Functions. It supports AI workflow automation, channel-neutral business
-capture, WhatsApp/Kapso operations, reports, and paid Pro access.
+capture, WhatsApp operations through the Hoursback gateway, reports, and paid
+Pro access.
 
 ## Local Setup
 
@@ -44,11 +45,21 @@ Server/Edge Function secrets are configured in Supabase, not in frontend env:
 - `APIFY_API_KEY`
 - `TINYFISH_API_KEY`
 - `FLUTTERWAVE_SECRET_KEY`
+- `FLUTTERWAVE_WEBHOOK_HASH`
 - `KAPSO_API_KEY`
 - `KAPSO_WEBHOOK_SECRET`
+- `WHATSAPP_PROVIDER`
+- `WABA_GATEWAY_API_KEY`
+- `WABA_GATEWAY_WEBHOOK_SECRET`
 
 Never commit `.env`, `.env.local`, service role keys, OAuth client secrets, or
 provider tokens.
+
+`FLUTTERWAVE_WEBHOOK_HASH` must exactly match the secret configured in the
+Flutterwave dashboard under Settings → Webhooks. The payment webhook fails
+closed when either Flutterwave secret is missing, verifies the webhook
+signature, and re-fetches the transaction from Flutterwave before activating
+Pro access.
 
 ## Auth Configuration
 
@@ -89,30 +100,38 @@ kept for historical context only. Do not run them against production without a
 fresh review.
 
 Telegram code remains in the repository for historical context and migration
-reference, but the active customer/staff chat channel is WhatsApp via Kapso.
+reference, but the active customer/staff chat channel is WhatsApp through the
+Hoursback gateway.
 
-## WhatsApp/Kapso
+## WhatsApp Gateway
 
-The WhatsApp feature uses Kapso as the transport layer.
+The production WhatsApp path uses the Hoursback gateway at
+`https://waba.hoursback.xyz`. The gateway hosts Meta Embedded Signup, sends
+messages through the connected WhatsApp Business number, and forwards signed
+webhook events to the provider adapter in Supabase.
 
 Required Supabase secrets:
 
 ```text
-KAPSO_API_KEY
-KAPSO_WEBHOOK_SECRET
+WHATSAPP_PROVIDER=waba_gateway
+WABA_GATEWAY_API_KEY
+WABA_GATEWAY_WEBHOOK_SECRET
 ANTHROPIC_API_KEY
 ```
 
-Set up a workspace at `/whatsapp`, then register the displayed webhook URL in
-Kapso for `whatsapp.message.received` events. Internal WhatsApp sales updates are
-stored in the existing Sales Log. Customer-facing WhatsApp orders, bookings,
-service requests, receipts, and payment verification are Pro features.
+Set up a workspace at `/whatsapp`; Hoursback opens the gateway's Meta Embedded
+Signup flow and registers the workspace callback automatically. Internal
+WhatsApp sales updates are stored in the existing Sales Log. Customer-facing
+WhatsApp orders, bookings, service requests, receipts, and payment verification
+are Pro features.
 
 Production webhook safety:
 
-- Set `KAPSO_WEBHOOK_SECRET` in Supabase before enabling the webhook.
+- Set `WABA_GATEWAY_WEBHOOK_SECRET` to the same HMAC secret used by the gateway.
 - Unsigned webhooks are rejected by default.
-- Only set `KAPSO_ALLOW_UNSIGNED_WEBHOOKS=true` for local testing.
+
+Kapso remains available as a legacy provider. When intentionally using it, set
+`WHATSAPP_PROVIDER=kapso`, `KAPSO_API_KEY`, and `KAPSO_WEBHOOK_SECRET`.
 
 ## Backup and Export
 

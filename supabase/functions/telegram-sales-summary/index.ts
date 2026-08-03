@@ -127,7 +127,7 @@ serve(async (req) => {
 
     const totalSales    = sales.reduce((s, e) => s + (e.parsed_data?.total ?? 0), 0);
     const totalExpenses = expenses.reduce((s, e) => s + (e.parsed_data?.total ?? 0), 0);
-    const net           = totalSales - totalExpenses;
+    const netRecordedMovement = totalSales - totalExpenses;
 
     // Top 5 items by total
     const itemTotals: Record<string, number> = {};
@@ -168,7 +168,7 @@ serve(async (req) => {
         ``,
         `Sales: ${fmt(totalSales)} (${sales.length} ${sales.length === 1 ? "entry" : "entries"})`,
         `Expenses: ${fmt(totalExpenses)} (${expenses.length})`,
-        `Net: ${fmt(net)}`,
+        `Net recorded movement: ${fmt(netRecordedMovement)}`,
       ];
 
       if (topItems.length) {

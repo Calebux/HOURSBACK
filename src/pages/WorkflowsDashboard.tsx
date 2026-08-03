@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { MobileNav } from '../components/MobileNav';
 import { UserAvatar } from '../components/UserAvatar';
+import { FREE_ACTIVE_WORKFLOW_LIMIT } from '../lib/billing';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
@@ -949,11 +950,11 @@ export default function WorkflowsDashboard({ previewMode = false }: { previewMod
         </div>
 
         {/* Contextual upgrade — user is at the 3-workflow limit */}
-        {!previewMode && !isPro && workflows.length >= 3 && (
+        {!previewMode && !isPro && workflows.length >= FREE_ACTIVE_WORKFLOW_LIMIT && (
           <div className="mb-6 bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div>
-              <p className="font-semibold text-amber-900 text-sm">You've deployed 3 workflows — that's the free limit</p>
-              <p className="text-amber-700 text-xs mt-0.5">Upgrade to Pro to unlock 12 more workflows and run them all simultaneously.</p>
+              <p className="font-semibold text-amber-900 text-sm">You've deployed {FREE_ACTIVE_WORKFLOW_LIMIT} workflows — that's the free active-workflow limit</p>
+              <p className="text-amber-700 text-xs mt-0.5">Upgrade to Pro to remove the limit and unlock the full workflow catalogue.</p>
             </div>
             <ProUpgradeButton className="shrink-0 bg-amber-600 text-white px-4 py-2 rounded-full text-sm font-semibold hover:bg-amber-700 transition-colors flex items-center gap-1.5 whitespace-nowrap">
               Unlock more workflows →

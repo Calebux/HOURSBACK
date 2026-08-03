@@ -8,7 +8,7 @@ import {
 import { AuthModal } from '../components/AuthModal';
 import { useAuth } from '../contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
-import { pricingPlans } from '../data/playbooks';
+import { pricingPlans } from '../lib/billing';
 import { useFlutterwave, closePaymentModal } from 'flutterwave-react-v3';
 import { toast } from 'sonner';
 
@@ -1033,7 +1033,7 @@ function WhatsAppFeature() {
                 ['Staff', 'Sold 4 dresses, 2 alterations. Transfer ₦54,000'],
                 ['Customer', 'I want the black sandals in size 42 delivered to Lekki'],
                 ['Owner', 'Send me a 5-liner'],
-                ['Hoursback', 'Sales, expenses, estimated profit, top item, and closeout status are ready.'],
+                ['Hoursback', 'Sales, expenses, net recorded movement, top item, and closeout status are ready.'],
               ].map(([label, text]) => (
                 <div key={label} className="rounded-2xl border border-black/8 bg-[#F8F9FA] px-4 py-3">
                   <p className="text-xs font-semibold text-[#202124]/35">{label}</p>
@@ -1290,7 +1290,7 @@ function FAQSection() {
     { q: "Can Hoursback work with WhatsApp?", a: "Yes. Staff can log sales and closeout updates from WhatsApp, customers can place orders, bookings, or service requests through a customer-facing number, and owners can ask for summaries like today’s sales or a 5-line profit check." },
     { q: "What does Hoursback actually monitor?", a: "Google Sheets, websites, CRM data, financial spreadsheets, competitor pages, WhatsApp messages, and any data you connect via webhook. The AI detects what changed and sends you a clear summary by email or supported chat workflows." },
     { q: "How often does the AI run?", a: "You choose — daily, weekly, or monthly. Once deployed, the workflow runs on that schedule automatically. The report just arrives in your inbox." },
-    { q: "What kinds of workflows are available?", a: "Finance metrics, sales pipelines, competitor websites, spreadsheet data, industry news, supplier prices, and more. 15+ ready-made workflows across multiple categories." },
+    { q: "What kinds of workflows are available?", a: "Ready-made workflows cover finance, sales, operations, competitor monitoring, spreadsheet analysis, industry news, supplier tracking, and more. Starter accounts can run up to three workflows at once; Pro unlocks the full catalogue and removes that active-workflow limit." },
   ];
 
   return (

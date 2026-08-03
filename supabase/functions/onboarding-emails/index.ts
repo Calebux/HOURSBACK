@@ -121,7 +121,7 @@ function day2Email(): string {
       </table>
 
       <div style="text-align:center;padding:8px 0 16px;">
-        ${ctaButton("Browse all 15+ workflows", `${APP_URL}/workflows/new`)}
+        ${ctaButton("Browse workflow templates", `${APP_URL}/workflows/new`)}
       </div>
     </div>
   `;
@@ -191,7 +191,7 @@ function day10Email(): string {
       <p style="margin:0 0 8px;font-size:13px;font-weight:600;color:#111827;">Here's all it takes:</p>
       <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
         ${[
-          ["Pick a workflow template", "Finance, Sales, Operations, Marketing — 15+ options"],
+          ["Pick a workflow template", "Finance, Sales, Operations, Marketing, and more"],
           ["Add a data source", "A Google Sheet URL or website — takes 30 seconds"],
           ["Set your email + schedule", "Weekly, daily, or monthly — your choice"],
         ].map(([step, sub]) => `

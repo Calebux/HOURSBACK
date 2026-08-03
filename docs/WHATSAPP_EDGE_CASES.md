@@ -8,8 +8,8 @@ Run this matrix before opening the customer-facing number to real customers.
 - Catalogue or service list is saved.
 - Payment instructions are saved.
 - Fulfillment rules are saved, including pickup, delivery/service fees, cash-on-pickup policy, timing, and escalation rules.
-- Kapso webhook is subscribed to `whatsapp.message.received`.
-- Supabase has the current `KAPSO_WEBHOOK_SECRET`.
+- The Hoursback gateway is forwarding `whatsapp.message.received` events to the workspace callback.
+- Supabase and the gateway have the same current `WABA_GATEWAY_WEBHOOK_SECRET`.
 
 ## Customer Message Tests
 
