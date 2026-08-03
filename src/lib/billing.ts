@@ -1,7 +1,9 @@
+export const FREE_ACTIVE_WORKFLOW_LIMIT = 3;
+
 export const BILLING_LIMITS = {
   free: {
     label: 'Free',
-    workflows: 'Up to 3 active workflows',
+    workflows: `Up to ${FREE_ACTIVE_WORKFLOW_LIMIT} active workflows`,
     whatsapp: '1 internal WhatsApp number, 300 captured messages/day',
     customerRequests: 'Internal testing only; customer-facing WhatsApp requires Pro',
     salesLog: 'Manual and WhatsApp sales log',
@@ -22,3 +24,50 @@ export const BILLING_LIMITS = {
     support: 'Priority email support',
   },
 } as const;
+
+export const pricingPlans = [
+  {
+    name: 'Starter',
+    description: 'For owners starting with business capture and automation',
+    features: [
+      `Up to ${FREE_ACTIVE_WORKFLOW_LIMIT} active workflows`,
+      'Free workflow templates included',
+      'Scheduled and webhook triggers',
+      'Run history and basic reports',
+    ],
+    cta: 'Get Started Free',
+    popular: false,
+    monthlyPrice: 0,
+    annualPrice: 0,
+  },
+  {
+    name: 'Pro',
+    description: 'For businesses that need customer WhatsApp, broader automation, and higher usage limits',
+    features: [
+      'Full workflow catalogue unlocked',
+      'Unlimited active workflows and runs',
+      'Customer-facing WhatsApp and receipt workflows',
+      'Expanded AI usage and report delivery',
+      'Priority email support',
+    ],
+    cta: 'Upgrade to Pro',
+    popular: true,
+    monthlyPrice: 9900,
+    annualPrice: 7900,
+  },
+  {
+    name: 'Custom',
+    price: 'Custom',
+    description: 'Custom AI workflow setup for your organization',
+    features: [
+      'Everything in Pro',
+      'Custom workflow development',
+      'Dedicated account manager',
+      'Private deployment and data handling',
+    ],
+    cta: 'Contact Us',
+    popular: false,
+    monthlyPrice: 0,
+    annualPrice: 0,
+  },
+];

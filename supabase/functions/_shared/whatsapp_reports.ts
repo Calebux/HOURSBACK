@@ -46,7 +46,7 @@ export async function getTodayBusinessMetrics(supabase: any, userId: string, tim
     totalRefunds,
     totalSales,
     totalExpenses,
-    estimatedProfit: totalSales - totalExpenses,
+    netRecordedMovement: totalSales - totalExpenses,
     topItem,
     latestCloseout,
   };
@@ -71,11 +71,12 @@ export async function buildSalesSummary(supabase: any, userId: string, timeZone?
 export async function buildProfitAndLossSummary(supabase: any, userId: string, timeZone?: string) {
   const metrics = await getTodayBusinessMetrics(supabase, userId, timeZone);
   return [
-    "Estimated profit and loss today:",
+    "Recorded sales and expenses today (not a full P&L):",
     `Net revenue: ₦${metrics.totalSales.toLocaleString()}`,
     metrics.totalRefunds ? `Gross sales: ₦${metrics.grossSales.toLocaleString()} | Refunds: ₦${metrics.totalRefunds.toLocaleString()}` : `Gross sales: ₦${metrics.grossSales.toLocaleString()}`,
     `Expenses: ₦${metrics.totalExpenses.toLocaleString()}`,
-    `Estimated profit: ₦${metrics.estimatedProfit.toLocaleString()}`,
+    `Net recorded movement: ₦${metrics.netRecordedMovement.toLocaleString()}`,
+    "This excludes COGS and any other costs that were not logged.",
     metrics.latestCloseout
       ? `Closeout variance: ₦${Number(metrics.latestCloseout.variance_total || 0).toLocaleString()}`
       : "Closeout variance: not closed yet",
@@ -87,7 +88,7 @@ export async function buildFiveLineSummary(supabase: any, userId: string, timeZo
   return [
     `Net sales: ₦${metrics.totalSales.toLocaleString()}`,
     `Expenses: ₦${metrics.totalExpenses.toLocaleString()}`,
-    `Estimated profit: ₦${metrics.estimatedProfit.toLocaleString()}`,
+    `Net recorded movement: ₦${metrics.netRecordedMovement.toLocaleString()} (excludes unlogged costs and COGS)`,
     metrics.topItem ? `Top item: ${metrics.topItem[0]} (${metrics.topItem[1]})` : "Top item: none yet",
     metrics.latestCloseout ? `Closeout: ${metrics.latestCloseout.status.replace(/_/g, " ")}` : "Closeout: not done yet",
   ].join("\n");
@@ -417,7 +418,7 @@ export async function collectReportMetrics(supabase: any, userId: string, text: 
     refundTotal,
     revenue,
     expenseTotal,
-    profit: revenue - expenseTotal,
+    netRecordedMovement: revenue - expenseTotal,
     topItems,
     channels,
   };
@@ -573,14 +574,15 @@ export async function buildSalesLogQueryAnswer(supabase: any, userId: string, te
 
 export function deterministicReport(metrics: any, reportType: string) {
   const lines = [
-    `# ${reportType === "profit_and_loss" ? "Profit and Loss Report" : "Sales Report"} - ${metrics.range.label}`,
+    `# ${reportType === "profit_and_loss" ? "Recorded Sales and Expenses Report" : "Sales Report"} - ${metrics.range.label}`,
     "",
     "## At a glance",
     `- Net revenue: ₦${metrics.revenue.toLocaleString("en-NG")}`,
     `- Gross sales: ₦${Number(metrics.grossRevenue || metrics.revenue || 0).toLocaleString("en-NG")}`,
     `- Refunds: ₦${Number(metrics.refundTotal || 0).toLocaleString("en-NG")}`,
     `- Expenses: ₦${metrics.expenseTotal.toLocaleString("en-NG")}`,
-    `- Estimated profit: ₦${metrics.profit.toLocaleString("en-NG")}`,
+    `- Net recorded movement: ₦${metrics.netRecordedMovement.toLocaleString("en-NG")}`,
+    "- This is not a full profit figure unless COGS and every other cost were recorded.",
     `- Entries reviewed: ${metrics.rows.length}`,
     `- Sales entries: ${metrics.sales.length}`,
     `- Expense entries: ${metrics.expenses.length}`,
@@ -624,8 +626,8 @@ export async function generateReportWithAI(metrics: any, reportType: string) {
       messages: [{
         role: "user",
         content: [
-          `Write a concise ${reportType === "profit_and_loss" ? "profit and loss" : "sales"} report for a business owner.`,
-          "Use Markdown headings and bullets. No emoji. Do not invent numbers.",
+          `Write a concise ${reportType === "profit_and_loss" ? "recorded sales and expenses" : "sales"} report for a business owner.`,
+          "Use Markdown headings and bullets. No emoji. Do not invent numbers. Never call net recorded movement profit. State clearly that it is not a full P&L unless COGS and every other cost were recorded.",
           "Use these verified totals exactly:",
           JSON.stringify({
             period: metrics.range.label,
@@ -633,7 +635,7 @@ export async function generateReportWithAI(metrics: any, reportType: string) {
             gross_revenue: metrics.grossRevenue,
             refunds: metrics.refundTotal,
             expenses: metrics.expenseTotal,
-            estimated_profit: metrics.profit,
+            net_recorded_movement: metrics.netRecordedMovement,
             entries_reviewed: metrics.rows.length,
             sales_entries: metrics.sales.length,
             expense_entries: metrics.expenses.length,
@@ -804,7 +806,7 @@ export async function generateWhatsAppBusinessReport(supabase: any, connection: 
   }
   const output = await generateReportWithAI(metrics, reportType);
   const { run } = await saveWhatsAppReportRun(supabase, connection.user_id, output);
-  const subject = `${reportType === "profit_and_loss" ? "Profit and Loss" : "Sales"} Report - ${metrics.range.label}`;
+  const subject = `${reportType === "profit_and_loss" ? "Recorded Sales and Expenses" : "Sales"} Report - ${metrics.range.label}`;
   const emailed = wantsEmail ? await sendReportEmail(supabase, connection.user_id, subject, output) : false;
   await logAnalyticsEvent(supabase, connection.user_id, "whatsapp_report_generated", {
     run_id: run.id,
@@ -813,6 +815,7 @@ export async function generateWhatsAppBusinessReport(supabase: any, connection: 
     rows: metrics.rows.length,
     revenue: metrics.revenue,
     expenses: metrics.expenseTotal,
+    net_recorded_movement: metrics.netRecordedMovement,
     emailed,
     wants_pdf: wantsPdf,
   });
@@ -821,11 +824,11 @@ export async function generateWhatsAppBusinessReport(supabase: any, connection: 
     `${subject} generated.`,
     `Revenue: ₦${metrics.revenue.toLocaleString("en-NG")}`,
     `Expenses: ₦${metrics.expenseTotal.toLocaleString("en-NG")}`,
-    `Estimated profit: ₦${metrics.profit.toLocaleString("en-NG")}`,
+    `Net recorded movement: ₦${metrics.netRecordedMovement.toLocaleString("en-NG")}`,
+    "Not a full profit figure unless COGS and every other cost were recorded.",
     `Entries reviewed: ${metrics.rows.length}`,
     emailed ? "Email sent." : wantsEmail ? "Email could not be sent. Open Reports to view it." : null,
     wantsPdf ? "Open Reports to download the PDF version." : null,
     `${APP_URL}/reports`,
   ].filter(Boolean).join("\n");
 }
-

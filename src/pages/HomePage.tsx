@@ -185,7 +185,7 @@ export default function HomePage() {
     return {
       sales,
       expenses,
-      profit: sales - expenses,
+      netRecordedMovement: sales - expenses,
       openRequests,
       receipts,
       activeWorkflows,
@@ -486,7 +486,7 @@ export default function HomePage() {
         <section className="grid gap-3 md:grid-cols-4">
           {[
             { label: 'Sales today', value: money(stats.sales), icon: TrendingUp, tone: 'emerald' },
-            { label: 'Estimated profit', value: money(stats.profit), icon: Activity, tone: 'blue' },
+            { label: 'Net recorded movement', value: money(stats.netRecordedMovement), icon: Activity, tone: 'blue' },
             { label: 'Open requests', value: String(stats.openRequests.length), icon: Inbox, tone: 'amber' },
             { label: 'Receipts to verify', value: String(stats.receipts.length), icon: Receipt, tone: 'purple' },
           ].map(({ label, value, icon: Icon, tone }) => (

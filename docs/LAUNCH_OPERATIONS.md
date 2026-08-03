@@ -6,14 +6,14 @@ Use this before and during customer rollout.
 
 - Admin observability: open `/admin` and review Launch Health, Production migration readiness, and Support Queues.
 - Webhook health: watch `webhook_invalid_signature`, `webhook_missing_secret`, and `webhook_function_error` in `app_analytics_events`.
-- Kapso delivery health: still watch Kapso deliveries for non-200 responses, especially 401 invalid signature and 500 runtime errors.
-- Kapso sends: review order audit logs where `message_sent` is false.
+- Gateway delivery health: watch gateway deliveries for non-200 responses, especially 401 invalid signature and 500 runtime errors.
+- Gateway sends: review order audit logs where `message_sent` is false.
 - Receipt storage: review orders where `receipt_storage_status = failed`.
 - Stuck receipts: review confirmed requests in `receipt_sent` for more than 48 hours.
 - Stuck unpaid: review confirmed unpaid non-cash-pickup requests older than 48 hours.
 - Setup incomplete: review customer WhatsApp connections with missing phone number ID, catalogue, payment instructions, or fulfillment rules.
-- Edge functions: check Supabase logs for `kapso-webhook`, `kapso-setup`, `parse-sales-photo`, and scheduled functions after every deploy.
-- Webhook safety: production rejects unsigned webhooks unless `KAPSO_ALLOW_UNSIGNED_WEBHOOKS=true` is explicitly set for local testing.
+- Edge functions: check Supabase logs for `waba-gateway-webhook`, `kapso-setup`, `parse-sales-photo`, and scheduled functions after every deploy.
+- Webhook safety: the gateway adapter fails closed unless `WABA_GATEWAY_WEBHOOK_SECRET` (or the legacy fallback) is configured and the HMAC signature is valid.
 
 ## Production Migration Readiness
 
@@ -29,8 +29,8 @@ The admin dashboard reads these via `get_launch_observability()`.
 
 ## Support Workflow
 
-- Setup fails: confirm `KAPSO_API_KEY`, webhook URL, webhook secret, phone number ID, and selected connection mode.
-- Webhook returns 401: rotate or re-enter `KAPSO_WEBHOOK_SECRET`, then resend a Kapso test event.
+- Setup fails: confirm the gateway health endpoint, `WABA_GATEWAY_API_KEY`, webhook secret, phone number ID, and selected connection mode.
+- Webhook returns 401: rotate or re-enter `WABA_GATEWAY_WEBHOOK_SECRET` on both sides, then resend a gateway test event.
 - Receipt missing: ask the customer to resend the screenshot with the request reference.
 - AI reply is wrong: update catalogue, payment instructions, fulfillment rules, and escalation instructions; then retest with the same message.
 - Payment dispute/refund: staff handles manually. Hoursback should only log the request and notes.

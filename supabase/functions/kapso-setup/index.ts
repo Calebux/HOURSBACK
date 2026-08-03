@@ -133,15 +133,20 @@ function getWhatsAppSetupProvider(): "kapso" | "waba_gateway" | "zernio" {
 }
 
 function webhookSecretConfiguredForProvider(provider: string) {
-  return provider === "zernio" ? !!getZernioWebhookSecret() : !!KAPSO_WEBHOOK_SECRET;
+  if (provider === "zernio") return !!getZernioWebhookSecret();
+  if (provider === "waba_gateway") return gatewayWebhookSecretConfigured();
+  return !!KAPSO_WEBHOOK_SECRET;
 }
 
 // The WABA gateway onboards via the public /connect endpoint and never uses a
-// Kapso API key. Its base URL has a built-in default, so "configured" hinges on
-// having a webhook secret to sign/verify forwarded events — /connect rejects
-// setup links that don't carry one.
-function gatewayConfigured(): boolean {
+// Kapso API key. Setup needs a webhook secret; full send/receive readiness also
+// needs the gateway API key used by outbound message calls.
+function gatewayWebhookSecretConfigured(): boolean {
   return !!(Deno.env.get("WABA_GATEWAY_WEBHOOK_SECRET") || KAPSO_WEBHOOK_SECRET);
+}
+
+function gatewayConfigured(): boolean {
+  return !!Deno.env.get("WABA_GATEWAY_API_KEY") && gatewayWebhookSecretConfigured();
 }
 
 function gatewaySetupUrl(userId: string, connectionType: string) {
@@ -420,7 +425,7 @@ serve(async (req) => {
         : !!getKapsoApiKey();
       const setupLinkConfigured =
         setupProvider === "zernio" ? !!getZernioApiKey()
-        : setupProvider === "waba_gateway" ? gatewayConfigured()
+        : setupProvider === "waba_gateway" ? gatewayWebhookSecretConfigured()
         : true;
       return new Response(JSON.stringify({
         connected: connections.some((item: any) => !!item.phone_number_id),
@@ -467,7 +472,7 @@ serve(async (req) => {
               kapso_webhook_url: url,
               kapso_webhook_registered_at: registeredAt,
               kapso_webhook_error: null,
-              webhook_secret_set: !!KAPSO_WEBHOOK_SECRET,
+              webhook_secret_set: webhookSecretConfiguredForProvider("waba_gateway"),
               status: "webhook_active",
               updated_at: registeredAt,
             })
@@ -485,7 +490,7 @@ serve(async (req) => {
           .from("kapso_connections")
           .update({
             kapso_webhook_error: message,
-            webhook_secret_set: !!KAPSO_WEBHOOK_SECRET,
+            webhook_secret_set: webhookSecretConfiguredForProvider(connection.whatsapp_provider || getWhatsAppSetupProvider()),
             updated_at: new Date().toISOString(),
           })
           .eq("user_id", user.id)
@@ -528,7 +533,7 @@ serve(async (req) => {
           phone_number: existing?.phone_number || null,
           display_name: existing?.display_name || "Customer Requests",
           status: existing?.kapso_webhook_registered_at ? "webhook_active" : existing?.phone_number_id ? "connected" : "settings_saved",
-          webhook_secret_set: !!KAPSO_WEBHOOK_SECRET,
+          webhook_secret_set: webhookSecretConfiguredForProvider(existing?.whatsapp_provider || getWhatsAppSetupProvider()),
           customer_menu: customerMenu || null,
           payment_instructions: paymentInstructions || null,
           owner_notification_number: ownerNotificationNumber || null,
@@ -960,7 +965,7 @@ serve(async (req) => {
             kapso_webhook_url: wabaGatewayWebhookUrl(user.id, connectionType),
             kapso_webhook_registered_at: new Date().toISOString(),
             kapso_webhook_error: null,
-            webhook_secret_set: !!KAPSO_WEBHOOK_SECRET,
+            webhook_secret_set: webhookSecretConfiguredForProvider("waba_gateway"),
             whatsapp_provider: "waba_gateway",
             updated_at: new Date().toISOString(),
           })
@@ -978,7 +983,7 @@ serve(async (req) => {
             .update({
               status: "connected",
               kapso_webhook_error: message,
-              webhook_secret_set: !!KAPSO_WEBHOOK_SECRET,
+              webhook_secret_set: webhookSecretConfiguredForProvider(setupProvider),
               updated_at: new Date().toISOString(),
             })
             .eq("user_id", user.id)
@@ -1031,7 +1036,8 @@ serve(async (req) => {
             setup_link_url: setupLinkUrl,
             setup_link_expires_at: null,
             status: "setup_pending",
-            webhook_secret_set: !!KAPSO_WEBHOOK_SECRET,
+            whatsapp_provider: "waba_gateway",
+            webhook_secret_set: webhookSecretConfiguredForProvider("waba_gateway"),
             kapso_webhook_error: null,
             updated_at: new Date().toISOString(),
           }, { onConflict: "user_id,connection_type" })
@@ -1204,7 +1210,7 @@ serve(async (req) => {
             kapso_webhook_url: wabaGatewayWebhookUrl(user.id, connectionType),
             kapso_webhook_registered_at: new Date().toISOString(),
             kapso_webhook_error: null,
-            webhook_secret_set: !!KAPSO_WEBHOOK_SECRET,
+            webhook_secret_set: webhookSecretConfiguredForProvider("waba_gateway"),
             whatsapp_provider: "waba_gateway",
             updated_at: new Date().toISOString(),
           })

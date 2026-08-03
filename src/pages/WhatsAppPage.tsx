@@ -38,7 +38,7 @@ interface KapsoStatus {
   api_configured: boolean;
   webhook_secret_configured: boolean;
   setup_link_configured?: boolean;
-  provider?: 'kapso' | 'waba_gateway' | 'zernio';
+  provider?: 'kapso' | 'waba_gateway' | 'zernio' | 'meta';
   connection: KapsoConnection | null;
   connections?: KapsoConnection[];
 }
@@ -60,9 +60,9 @@ const internalCapabilities = [
     example: 'How much did we sell today?',
   },
   {
-    title: 'Get profit and loss',
-    body: 'Owners can get revenue, expenses, estimated profit, and closeout variance from WhatsApp.',
-    example: 'Profit and loss',
+    title: 'Review recorded sales and expenses',
+    body: 'Owners can get revenue, expenses, net recorded movement, and closeout variance from WhatsApp.',
+    example: 'Sales and expenses',
   },
   {
     title: 'Generate full reports',
@@ -136,9 +136,15 @@ export default function WhatsAppPage() {
 
   const webhookUrl = useMemo(() => {
     if (!user) return '';
+    if (status?.provider === 'waba_gateway') {
+      return `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/waba-gateway-webhook?uid=${user.id}&mode=${connectionType}`;
+    }
     if (status?.provider === 'zernio') {
       // Single global webhook — no uid/mode params needed, routing is done by phone_number_id
       return `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/zernio-webhook`;
+    }
+    if (status?.provider === 'meta') {
+      return `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/meta-webhook`;
     }
     return `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/kapso-webhook?uid=${user.id}&mode=${connectionType}`;
   }, [user, connectionType, status?.provider]);

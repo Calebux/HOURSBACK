@@ -53,17 +53,18 @@ npm run smoke:prod
 This checks that production routes serve the SPA, that nested routes load
 root-relative assets, and that token fragments are not present in HTML.
 
-## Kapso Webhooks
+## Hoursback Gateway Webhooks
 
-Kapso webhooks must use a secret key and include `X-Webhook-Signature`.
+Gateway webhooks must use a secret key and include `X-Webhook-Signature`,
+`X-Waba-Signature`, or `X-Signature` with an HMAC-SHA256 digest.
 
 Production setup:
 
-1. Set `KAPSO_API_KEY` in Supabase Edge Function secrets.
-2. Set `KAPSO_WEBHOOK_SECRET` in Supabase Edge Function secrets.
-3. Register the `/functions/v1/kapso-webhook?uid=<user_id>` URL in Kapso.
-4. Subscribe to `whatsapp.message.received`.
-5. Send a test WhatsApp message and confirm it appears in the Sales Log.
+1. Set `WHATSAPP_PROVIDER=waba_gateway` in Supabase Edge Function secrets.
+2. Set `WABA_GATEWAY_API_KEY` in Supabase Edge Function secrets.
+3. Set the same `WABA_GATEWAY_WEBHOOK_SECRET` in Supabase and the gateway.
+4. Register the `/functions/v1/waba-gateway-webhook?uid=<user_id>&mode=<mode>` callback through gateway setup.
+5. Subscribe to `whatsapp.message.received`.
+6. Send a test WhatsApp message and confirm it appears in the Sales Log.
 
-Unsigned webhooks are rejected by default. Only set
-`KAPSO_ALLOW_UNSIGNED_WEBHOOKS=true` for local testing, never for production.
+Unsigned or incorrectly signed gateway webhooks are rejected.
