@@ -352,14 +352,18 @@ async function registerWabaGatewayWebhookForNumber(
     existing?.webhook_id,
     existing?.webhook?.id,
   );
-  const result = existing ||
-    await createWabaGatewayPhoneWebhook(
-      gatewayPhoneRecordId,
-      url,
-      secret,
-    );
+  // Always register. The gateway upserts on (phone number, url), so this also
+  // refreshes the stored secret and events on an existing row — short-circuiting
+  // on `existing` would leave a stale secret signing deliveries we then reject.
+  const result = await createWabaGatewayPhoneWebhook(
+    gatewayPhoneRecordId,
+    url,
+    secret,
+  );
   const webhook = result?.data || result?.webhook || result;
   const webhookId = firstString(webhook?.id, webhook?.webhook_id, existingId);
+  // The gateway flags an upsert of an existing row as `reused`.
+  const refreshedExisting = webhook?.reused === true || !!existing;
   const registeredAt = new Date().toISOString();
 
   const { error } = await supabase
@@ -382,14 +386,15 @@ async function registerWabaGatewayWebhookForNumber(
     provider: "waba_gateway",
     connection_type: connectionType,
     phone_number_id: phoneNumberId,
-    reused_existing_webhook: !!existing,
+    gateway_phone_record_id: gatewayPhoneRecordId,
+    reused_existing_webhook: refreshedExisting,
   }, "edge");
 
   return {
     id: webhookId,
     url,
     provider: "waba_gateway",
-    reused_existing_webhook: !!existing,
+    reused_existing_webhook: refreshedExisting,
     registered_at: registeredAt,
   };
 }
