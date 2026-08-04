@@ -45,14 +45,19 @@ export async function kapsoFetch(path: string, init: RequestInit = {}) {
   }
 
   if (!response.ok) {
-    const message = json?.error || json?.message || `Kapso request failed with ${response.status}`;
+    const message = json?.error || json?.message ||
+      `Kapso request failed with ${response.status}`;
     throw new KapsoApiError(message, response.status, json);
   }
 
   return json;
 }
 
-export async function sendKapsoText(phoneNumberId: string, to: string, body: string) {
+export async function sendKapsoText(
+  phoneNumberId: string,
+  to: string,
+  body: string,
+) {
   return kapsoFetch(`/meta/whatsapp/v24.0/${phoneNumberId}/messages`, {
     method: "POST",
     body: JSON.stringify({
@@ -65,33 +70,65 @@ export async function sendKapsoText(phoneNumberId: string, to: string, body: str
   });
 }
 
-export function getWhatsAppProvider(): "kapso" | "waba_gateway" | "zernio" | "meta" {
-  const v = Deno.env.get("WHATSAPP_PROVIDER") || Deno.env.get("WABA_GATEWAY_PROVIDER") || "kapso";
+export function getWhatsAppProvider():
+  | "kapso"
+  | "waba_gateway"
+  | "zernio"
+  | "meta" {
+  const v = Deno.env.get("WHATSAPP_PROVIDER") ||
+    Deno.env.get("WABA_GATEWAY_PROVIDER") || "kapso";
   if (v === "waba_gateway") return "waba_gateway";
   if (v === "zernio") return "zernio";
   if (v === "meta") return "meta";
   return "kapso";
 }
 
-export async function sendWabaGatewayText(phoneNumberId: string, to: string, body: string) {
+export async function sendWabaGatewayText(
+  phoneNumberId: string,
+  to: string,
+  body: string,
+) {
+  const metaPhoneNumberId = Deno.env.get("WABA_GATEWAY_PHONE_NUMBER_ID") ||
+    phoneNumberId;
+  const gatewayPhoneRecordId = await resolveWabaGatewayPhoneRecordId(
+    metaPhoneNumberId,
+  );
+  const json = await wabaGatewayFetch(
+    `/phone-numbers/${encodeURIComponent(gatewayPhoneRecordId)}/messages`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        to,
+        type: "text",
+        text: { body },
+      }),
+    },
+  );
+
+  return {
+    provider: "waba_gateway",
+    ...json,
+  };
+}
+
+export async function wabaGatewayFetch(path: string, init: RequestInit = {}) {
   const apiKey = Deno.env.get("WABA_GATEWAY_API_KEY");
   if (!apiKey) {
     throw new Error("WABA_GATEWAY_API_KEY is not configured");
   }
 
-  const baseUrl = (Deno.env.get("WABA_GATEWAY_BASE_URL") || WABA_GATEWAY_DEFAULT_BASE).replace(/\/+$/, "");
-  const gatewayPhoneNumberId = Deno.env.get("WABA_GATEWAY_PHONE_NUMBER_ID") || phoneNumberId;
-  const response = await fetch(`${baseUrl}/phone-numbers/${encodeURIComponent(gatewayPhoneNumberId)}/messages`, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      to,
-      type: "text",
-      text: { body },
-    }),
+  const baseUrl =
+    (Deno.env.get("WABA_GATEWAY_BASE_URL") || WABA_GATEWAY_DEFAULT_BASE)
+      .replace(/\/+$/, "");
+  const headers = new Headers(init.headers);
+  headers.set("Authorization", `Bearer ${apiKey}`);
+  if (!headers.has("Content-Type") && init.body) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  const response = await fetch(`${baseUrl}${path}`, {
+    ...init,
+    headers,
   });
 
   const text = await response.text();
@@ -105,18 +142,91 @@ export async function sendWabaGatewayText(phoneNumberId: string, to: string, bod
   }
 
   if (!response.ok) {
-    const message = json?.error || json?.message || `WABA gateway request failed with ${response.status}`;
+    const message = json?.error || json?.message ||
+      `WABA gateway request failed with ${response.status}`;
     throw new KapsoApiError(message, response.status, json);
   }
 
-  return {
-    provider: "waba_gateway",
-    ...json,
-  };
+  return json;
 }
 
-export async function sendWhatsAppText(phoneNumberId: string, to: string, body: string) {
-  return sendWhatsAppTextForProvider(getWhatsAppProvider(), phoneNumberId, to, body);
+function gatewayRows(response: any, key: string) {
+  if (Array.isArray(response)) return response;
+  if (Array.isArray(response?.data)) return response.data;
+  if (Array.isArray(response?.[key])) return response[key];
+  if (Array.isArray(response?.data?.[key])) return response.data[key];
+  return [];
+}
+
+/** Resolve a Meta Phone Number ID to the gateway's internal phone record ID. */
+export async function resolveWabaGatewayPhoneRecordId(
+  metaPhoneNumberId: string,
+) {
+  const customersResponse = await wabaGatewayFetch("/customers");
+  const customers = gatewayRows(customersResponse, "customers");
+
+  for (const customer of customers) {
+    const customerId = customer?.id;
+    if (!customerId) continue;
+
+    const phoneResponse = await wabaGatewayFetch(
+      `/customers/${encodeURIComponent(customerId)}/phone-numbers`,
+    );
+    const phoneRecords = gatewayRows(phoneResponse, "phoneNumbers");
+    const match = phoneRecords.find((record: any) => {
+      const recordId = String(record?.id || "");
+      const recordMetaId = String(
+        record?.phoneNumberId || record?.phone_number_id ||
+          record?.metaPhoneNumberId || "",
+      );
+      return recordId === metaPhoneNumberId ||
+        recordMetaId === metaPhoneNumberId;
+    });
+
+    if (match?.id) return String(match.id);
+  }
+
+  throw new KapsoApiError(
+    "phone_number_not_found",
+    404,
+    { phone_number_id: metaPhoneNumberId },
+  );
+}
+
+export async function listWabaGatewayPhoneWebhooks(
+  gatewayPhoneRecordId: string,
+) {
+  return wabaGatewayFetch(
+    `/phone-numbers/${encodeURIComponent(gatewayPhoneRecordId)}/webhooks`,
+  );
+}
+
+export async function createWabaGatewayPhoneWebhook(
+  gatewayPhoneRecordId: string,
+  url: string,
+  secret: string,
+  events: string[] = ["whatsapp.message.received"],
+) {
+  return wabaGatewayFetch(
+    `/phone-numbers/${encodeURIComponent(gatewayPhoneRecordId)}/webhooks`,
+    {
+      method: "POST",
+      body: JSON.stringify({ url, secret, events, active: true }),
+    },
+  );
+}
+
+export async function sendWhatsAppText(
+  phoneNumberId: string,
+  to: string,
+  body: string,
+) {
+  return sendWhatsAppTextForProvider(
+    getWhatsAppProvider(),
+    phoneNumberId,
+    to,
+    body,
+  );
 }
 
 /** Provider-aware send — pass the provider from the connection row. */
@@ -126,7 +236,9 @@ export async function sendWhatsAppTextForProvider(
   to: string,
   body: string,
 ) {
-  if (provider === "waba_gateway") return sendWabaGatewayText(phoneNumberId, to, body);
+  if (provider === "waba_gateway") {
+    return sendWabaGatewayText(phoneNumberId, to, body);
+  }
   if (provider === "zernio") {
     const { sendZernioText } = await import("./zernio.ts");
     return sendZernioText(phoneNumberId, to, body);
@@ -139,15 +251,18 @@ export async function sendWhatsAppTextForProvider(
 }
 
 export function getOutboundMessageId(result: any): string | null {
-  return result?.messages?.[0]?.id
-    || result?.message?.id
-    || result?.data?.message?.id
-    || result?.id
-    || result?.message_id
-    || null;
+  return result?.messages?.[0]?.id ||
+    result?.message?.id ||
+    result?.data?.message?.id ||
+    result?.id ||
+    result?.message_id ||
+    null;
 }
 
-export async function createKapsoCustomer(name: string, externalCustomerId: string) {
+export async function createKapsoCustomer(
+  name: string,
+  externalCustomerId: string,
+) {
   return kapsoFetch("/platform/v1/customers", {
     method: "POST",
     body: JSON.stringify({
@@ -159,7 +274,10 @@ export async function createKapsoCustomer(name: string, externalCustomerId: stri
   });
 }
 
-export async function createKapsoSetupLink(customerId: string, setupLink: Record<string, unknown> = {}) {
+export async function createKapsoSetupLink(
+  customerId: string,
+  setupLink: Record<string, unknown> = {},
+) {
   return kapsoFetch(`/platform/v1/customers/${customerId}/setup_links`, {
     method: "POST",
     body: JSON.stringify({ setup_link: setupLink }),
@@ -167,7 +285,9 @@ export async function createKapsoSetupLink(customerId: string, setupLink: Record
 }
 
 export async function listKapsoPhoneWebhooks(phoneNumberId: string) {
-  return kapsoFetch(`/platform/v1/whatsapp/phone_numbers/${phoneNumberId}/webhooks`);
+  return kapsoFetch(
+    `/platform/v1/whatsapp/phone_numbers/${phoneNumberId}/webhooks`,
+  );
 }
 
 export async function createKapsoPhoneWebhook(
@@ -176,18 +296,21 @@ export async function createKapsoPhoneWebhook(
   secretKey: string,
   events: string[] = ["whatsapp.message.received"],
 ) {
-  return kapsoFetch(`/platform/v1/whatsapp/phone_numbers/${phoneNumberId}/webhooks`, {
-    method: "POST",
-    body: JSON.stringify({
-      whatsapp_webhook: {
-        kind: "kapso",
-        url,
-        secret_key: secretKey,
-        events,
-        active: true,
-      },
-    }),
-  });
+  return kapsoFetch(
+    `/platform/v1/whatsapp/phone_numbers/${phoneNumberId}/webhooks`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        whatsapp_webhook: {
+          kind: "kapso",
+          url,
+          secret_key: secretKey,
+          events,
+          active: true,
+        },
+      }),
+    },
+  );
 }
 
 export async function updateKapsoPhoneWebhook(
@@ -197,16 +320,19 @@ export async function updateKapsoPhoneWebhook(
   secretKey: string,
   events: string[] = ["whatsapp.message.received"],
 ) {
-  return kapsoFetch(`/platform/v1/whatsapp/phone_numbers/${phoneNumberId}/webhooks/${webhookId}`, {
-    method: "PATCH",
-    body: JSON.stringify({
-      whatsapp_webhook: {
-        kind: "kapso",
-        url,
-        secret_key: secretKey,
-        events,
-        active: true,
-      },
-    }),
-  });
+  return kapsoFetch(
+    `/platform/v1/whatsapp/phone_numbers/${phoneNumberId}/webhooks/${webhookId}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({
+        whatsapp_webhook: {
+          kind: "kapso",
+          url,
+          secret_key: secretKey,
+          events,
+          active: true,
+        },
+      }),
+    },
+  );
 }
